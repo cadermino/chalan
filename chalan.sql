@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `carry_from` INT NOT NULL,
   `deliver_to` INT NOT NULL,
-  `floor_number` VARCHAR(45) NOT NULL,
+  `floor_number` INT(3) NOT NULL,
   `payment_id` INT NULL DEFAULT NULL,
   `comments` LONGTEXT NULL,
   `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
