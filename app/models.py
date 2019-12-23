@@ -57,17 +57,19 @@ class Customer(db.Model):
 
 class Order(db.Model):
 	__tablename__ = 'orders'
-  	id = db.Column(db.Integer, primary_key=True)
-  	customer_id = db.Column(db.Integer, ForeignKey("customers.id"), nullable=False)
-  	driver_id = db.Column(db.Integer, ForeignKey("drivers.id"), nullable=False)
-  	order_status_id = db.Column(db.Integer, ForeignKey("lu_order_status.id"), default='1' nullable=False)
-  	appointment_date = db.Column(db.DateTime(), default=datetime.utcnow)
-  	carry_from = db.Column(db.Integer, ForeignKey("addresses.id"), nullable=False)
-  	deliver_to = db.Column(db.Integer, ForeignKey("addresses.id"), nullable=False)
-  	floor_number = db.Column(db.Integer)
-  	payment_id = db.Column(db.Integer, ForeignKey("payment.id"), default=NULL)
-  	comments = db.Column(db.String(500))
+	id = db.Column(db.Integer, primary_key=True)
+	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
+	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=False)
+	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
+	appointment_date = db.Column(db.DateTime(), default=datetime.utcnow)
+	carry_from = db.Column(db.Integer, db.ForeignKey("addresses.id"), nullable=False)
+	deliver_to = db.Column(db.Integer, db.ForeignKey("addresses.id"), nullable=False)
+	floor_number = db.Column(db.Integer)
+	payment_id = db.Column(db.Integer, db.ForeignKey("payment.id"), nullable=True)
+	comments = db.Column(db.String(500))
 
+	def __repr__(self):
+		return '<Order %r>' % self.id
 
 class Address(db.Model):
 	__tablename__ = 'addresses'
@@ -82,53 +84,53 @@ class Address(db.Model):
 
 class Driver(db.Model):
 	__tablename__ = 'drivers'
-  	id = db.Column(db.Integer, primary_key=True)
-  	name = db.Column(db.String(45))
-  	paternal_last_name = db.Column(db.String(45))
-  	maternal_last_name = db.Column(db.String(45))
-  	mobile_phone = db.Column(db.String(15))
-  	vehicle_id = db.Column(db.Integer)
-  	carrier_company_id = db.Column(db.Integer, nullable=True)
-  	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(45))
+	paternal_last_name = db.Column(db.String(45))
+	maternal_last_name = db.Column(db.String(45))
+	mobile_phone = db.Column(db.String(15))
+	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
+	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 
 	orders = db.relationship("Order", backref="driver")
 
 class Carrier_company(db.Model):
 	__tablename__ = 'carrier_company'
 	id = db.Column(db.Integer, primary=True)
-  	name = db.Column(db.String(45))
+	name = db.Column(db.String(45))
 
 	drivers = db.relationship('Driver', backref='carrier_company')
 
 class Order_status(db.Model):
 	__tablename__ = 'lu_order_status'
 	id = db.Column(db.Integer, primary_key=True)
-  	status = db.Column(db.String(45))
+	status = db.Column(db.String(45))
 
 
 class Payment_type(db.Model):
 	__tablename__ = 'lu_payment_type'
 	id = db.Column(db.Integer, primery_key=True)
- 	type = db.Column(db.String)
+	type = db.Column(db.String)
 
 
 class Payment(db.Model):
 	__tablename__ = 'payments'
 	id = db.Column(db.Integer, primary_key=True)
-  	amount = db.Column(db.Float)
-  	lu_payment_type_id = db.Column(db.Integer, nullable=False)
-  	reference = db.Column(db.String(45))
-  	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
-  	comments = db.Column(db.String(500))
+	amount = db.Column(db.Float)
+	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
+	reference = db.Column(db.String(45))
+	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
+	comments = db.Column(db.String(500))
 
 	orders = db.relationship("Order", backref="payment")
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
 	id = db.Column(db.Integer, primary_key=True)
-  	size = db.Column(db.Enum('small','medium','large'))
-  	plate = db.Column(db.String(45))
-  	model = db.Column(db.String(45))
-  	brand = db.Column(db.String(45))
+	size = db.Column(db.Enum('small','medium','large'))
+	plate = db.Column(db.String(45))
+	model = db.Column(db.String(45))
+	brand = db.Column(db.String(45))
 
 	driver = db.relationship("Driver", backref="vehicles")
