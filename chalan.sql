@@ -16,24 +16,30 @@ DROP SCHEMA IF EXISTS `chalan` ;
 -- Schema chalan
 -- -----------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS `chalan` DEFAULT CHARACTER SET utf8 ;
-SHOW WARNINGS;
 USE `chalan` ;
 
 -- -----------------------------------------------------
--- Table `addresses`
+-- Table `order_details`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `addresses` (
+CREATE TABLE IF NOT EXISTS `order_details` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  `type` ENUM('carry_from', 'deliver_to') NOT NULL,
+  `floor_number` INT(3) NOT NULL,
+  `order_id` INT NOT NULL,
   `street` VARCHAR(45) NULL,
   `interior_number` VARCHAR(45) NULL,
   `neighborhood` VARCHAR(45) NULL,
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
   `zip_code` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_order_details_order`
+    FOREIGN KEY (`order_id`)
+    REFERENCES `orders` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
 
 -- -----------------------------------------------------
 -- Table `carrier_company`
@@ -44,7 +50,6 @@ CREATE TABLE IF NOT EXISTS `carrier_company` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
 
 -- -----------------------------------------------------
 -- Table `customers`
@@ -55,7 +60,7 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `paternal_last_name` VARCHAR(45) NULL,
   `maternal_last_name` VARCHAR(45) NULL,
   `email` VARCHAR(45) NULL,
-  `password` VARCHAR(45) NULL,
+  `password` VARCHAR(255) NULL,
   `mobile_phone` VARCHAR(15) NULL,
   `phone` VARCHAR(15) NULL,
   `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
@@ -63,7 +68,6 @@ CREATE TABLE IF NOT EXISTS `customers` (
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
-SHOW WARNINGS;
 
 -- -----------------------------------------------------
 -- Table `drivers`
@@ -90,7 +94,11 @@ CREATE TABLE IF NOT EXISTS `drivers` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
+
+INSERT INTO `drivers` (`name`, `paternal_last_name`, `maternal_last_name`, `mobile_phone`, `vehicle_id`, `carrier_company_id`)
+VALUES
+	('Miguel', 'Calderon', 'Palomino', '764574557', 1, NULL);
+
 
 -- -----------------------------------------------------
 -- Table `lu_order_status`
@@ -101,7 +109,6 @@ CREATE TABLE IF NOT EXISTS `lu_order_status` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
 
 INSERT INTO `lu_order_status` (`id`, `status`)
 VALUES
@@ -118,7 +125,6 @@ CREATE TABLE IF NOT EXISTS `lu_payment_type` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
 
 INSERT INTO `lu_payment_type` (`id`, `type`)
 VALUES
@@ -129,14 +135,11 @@ VALUES
 -- Table `orders`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `orders` (
-  `id` INT NOT NULL,
+  `id` INT NOT NULL AUTO_INCREMENT,
   `customer_id` INT NOT NULL,
   `driver_id` INT NOT NULL,
   `order_status_id` INT NOT NULL DEFAULT 1,
   `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-  `carry_from` INT NOT NULL,
-  `deliver_to` INT NOT NULL,
-  `floor_number` INT(3) NOT NULL,
   `payment_id` INT NULL DEFAULT NULL,
   `comments` LONGTEXT NULL,
   `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -152,11 +155,6 @@ CREATE TABLE IF NOT EXISTS `orders` (
     REFERENCES `lu_order_status` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_orders_addresses_carry`
-    FOREIGN KEY (`carry_from`)
-    REFERENCES `addresses` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
   CONSTRAINT `fk_orders_drivers1`
     FOREIGN KEY (`driver_id`)
     REFERENCES `drivers` (`id`)
@@ -166,15 +164,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
     FOREIGN KEY (`payment_id`)
     REFERENCES `payments` (`id`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_orders_addresses_deliver`
-    FOREIGN KEY (`deliver_to`)
-    REFERENCES `addresses` (`id`)
-    ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
 
 -- -----------------------------------------------------
 -- Table `payments`
@@ -194,7 +186,6 @@ CREATE TABLE IF NOT EXISTS `payments` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
 
 -- -----------------------------------------------------
 -- Table `vehicles`
@@ -202,13 +193,16 @@ SHOW WARNINGS;
 CREATE TABLE IF NOT EXISTS `vehicles` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `size` ENUM('small', 'medium', 'large') NULL,
-  `plate` VARCHAR(45) NULL,
+  `plates` VARCHAR(45) NULL,
   `model` VARCHAR(45) NULL,
   `brand` VARCHAR(45) NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-SHOW WARNINGS;
+INSERT INTO `vehicles` (`size`, `plates`, `model`, `brand`)
+VALUES
+	('small', '464gfg', 'test', 'test');
+
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

@@ -30,5 +30,5 @@ def login():
     data = request.json
     customer = Customer.query.filter_by(email=data['email'].lower()).first()
     if customer is not None and customer.verify_password(data['password']):
-        return jsonify({'token': customer.generate_auth_token(expiration=60), 'expiration': 60})
+        return jsonify({'token': customer.generate_auth_token(expiration=3600), 'expiration': 3600})
     return jsonify({'message': 'user doesn\'t exist'})

@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import current_app, request, url_for, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from . import db
+from . import db, ma
 from .api.errors import bad_request
 
 class Customer(db.Model):
@@ -29,14 +29,6 @@ class Customer(db.Model):
 	
 	def verify_password(self, password):
 		return check_password_hash(self.password_hash, password)
-		
-	def to_json(self):
-		return {
-			'username': '{name} {paternal} {maternal}'.format(name=self.name, paternal=self.paternal_last_name, maternal=self.maternal_last_name),
-			'member_since': self.created_date,
-			'email': self.email,
-			'mobile_phone': self.mobile_phone,
-		}
 
 	def generate_auth_token(self, expiration):
 		s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
@@ -61,19 +53,18 @@ class Order(db.Model):
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
 	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=False)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
-	appointment_date = db.Column(db.DateTime(), default=datetime.utcnow)
-	carry_from = db.Column(db.Integer, db.ForeignKey("addresses.id"), nullable=False)
-	deliver_to = db.Column(db.Integer, db.ForeignKey("addresses.id"), nullable=False)
-	floor_number = db.Column(db.Integer)
-	payment_id = db.Column(db.Integer, db.ForeignKey("payment.id"), nullable=True)
+	appointment_date = db.Column(db.DateTime(), default=datetime.now)
+	payment_id = db.Column(db.Integer, db.ForeignKey("payments.id"), nullable=True)
 	comments = db.Column(db.String(500))
 
-	def __repr__(self):
-		return '<Order %r>' % self.id
+	order_details = db.relationship("OrderDetails", backref="orders")
 
-class Address(db.Model):
-	__tablename__ = 'addresses'
+class OrderDetails(db.Model):
+	__tablename__ = 'order_details'
 	id = db.Column(db.Integer, primary_key=True)
+	type = db.Column(db.Enum('carry_from','deliver_to'), nullable=False)
+	floor_number = db.Column(db.Integer)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	street = db.Column(db.String(45), nullable=True)
 	interior_number = db.Column(db.String(45), nullable=True)
 	neighborhood = db.Column(db.String(45), nullable=True)
@@ -95,23 +86,25 @@ class Driver(db.Model):
 
 	orders = db.relationship("Order", backref="driver")
 
-class Carrier_company(db.Model):
+class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
-	id = db.Column(db.Integer, primary=True)
+	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 
 	drivers = db.relationship('Driver', backref='carrier_company')
 
-class Order_status(db.Model):
+class OrderStatus(db.Model):
 	__tablename__ = 'lu_order_status'
 	id = db.Column(db.Integer, primary_key=True)
 	status = db.Column(db.String(45))
 
 
-class Payment_type(db.Model):
+class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'
-	id = db.Column(db.Integer, primery_key=True)
+	id = db.Column(db.Integer, primary_key=True)
 	type = db.Column(db.String)
+
+	payment = db.relationship("Payment", backref="payment_type")
 
 
 class Payment(db.Model):
@@ -123,7 +116,7 @@ class Payment(db.Model):
 	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 	comments = db.Column(db.String(500))
 
-	orders = db.relationship("Order", backref="payment")
+	orders = db.relationship("Order", backref="payments")
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
@@ -134,3 +127,13 @@ class Vehicle(db.Model):
 	brand = db.Column(db.String(45))
 
 	driver = db.relationship("Driver", backref="vehicles")
+
+
+class CustomerSchema(ma.ModelSchema):
+	class Meta:
+		model = Customer
+
+
+class OrderSchema(ma.ModelSchema):
+	class Meta:
+		model = Order
