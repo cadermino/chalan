@@ -1,6 +1,7 @@
 **__pycache__/
 .DS_Store
 .env
+.env_mysql
 .flaskenv
 *.pyc
 *.pyo
