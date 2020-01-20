@@ -12,7 +12,7 @@ services:
     restart: always
     links:
       - db:dbserver
-    command: sh -c "npm run build --prefix frontend & nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --reload --access-logfile - --error-logfile - chalan:app"
+    command: sh -c "npm install --prefix frontend && npm run build --prefix frontend & nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --reload --access-logfile - --error-logfile - chalan:app"
   db:
     image: "mysql/mysql-server:5.7"
     ports:
