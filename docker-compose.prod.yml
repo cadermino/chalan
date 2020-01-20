@@ -10,4 +10,4 @@ services:
       - 80:8000
     env_file: .env.prod
     restart: always
-    command: sh -c "nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
+    command: sh -c "npm run build --prefix frontend & nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
