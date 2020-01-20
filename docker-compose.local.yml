@@ -7,12 +7,12 @@ services:
     volumes:
       - .:/chalan
     ports:
-      - 8001:5000
+      - 8080:8000
     env_file: .env.dev
     restart: always
     links:
       - db:dbserver
-    command: flask run --host 0.0.0.0
+    command: sh -c "nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
   db:
     image: "mysql/mysql-server:5.7"
     ports:
