@@ -3,7 +3,7 @@
     <!--Hero-->
     <div
       class="py-20"
-      style="background-image: url(../assets/shipping-boxes.jpg)"
+      style="background-image: url('˜assets/logo.png')"
     >
       <div class="container mx-auto px-6">
         <h2 class="text-4xl font-bold mb-2 text-white">

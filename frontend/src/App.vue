@@ -10,7 +10,7 @@
         class="container mx-auto px-6 py-2 flex justify-between items-center"
       >
         <a class="font-bold text-2xl lg:text-4xl" href="#">
-          SHMW
+          CHALAN.mx
         </a>
         <div class="block lg:hidden">
           <button
