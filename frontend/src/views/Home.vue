@@ -1,28 +1,33 @@
 <template>
-  <div>
+  <div class="home">
     <!--Hero-->
     <div
-      class="py-20"
-      style="background-image: url('˜assets/logo.png')"
+      class="pyy-48 pt-48 pb-64 bg-cover"
+      :style="{ backgroundImage: 'url(' + require('@/assets/shipping-boxes.jpg') + ')'}"
     >
-      <div class="container mx-auto px-6">
+      <!-- <img src="../assets/shipping-boxes.jpg" alt="" /> -->
+      <div class="container mx-auto px-6 text-left">
         <h2 class="text-4xl font-bold mb-2 text-white">
-          Agenda tu vehiculo de mudanza en linea!
+          Con Chalan agenda la movilidad para tu <span class="">mudanza</span>
         </h2>
         <h3 class="text-2xl mb-8 text-gray-200">
-          Monitor your health vitals smartly anywhere you go.
+          Agenda tu vehiculo de mudanza en linea!
         </h3>
         <button
-          class="bg-white font-bold rounded-full py-4 px-8 shadow-lg uppercase tracking-wider"
+          class="bg-blue-500
+                 text-white
+                 font-bold
+                 rounded-full
+                 py-4 px-8 shadow-lg tracking-wider"
         >
-          Pre Order
+          Quiero agendar
         </button>
       </div>
     </div>
     <!-- Features -->
     <section class="container mx-auto px-6 p-10">
       <h2 class="text-4xl font-bold text-center text-gray-800 mb-8">
-        Features
+        Múdate en solo 3 pasos
       </h2>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
@@ -36,12 +41,12 @@
           </p>
         </div>
         <div class="w-full md:w-1/2">
-          <img src="assets/health.svg" alt="Monitoring" />
+          <img src="../assets/health.svg" alt="Monitoring" />
         </div>
       </div>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
-          <img src="assets/report.svg" alt="Reporting" />
+          <img src="../assets/report.svg" alt="Reporting" />
         </div>
         <div class="w-full md:w-1/2 pl-10">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
@@ -66,7 +71,7 @@
           </p>
         </div>
         <div class="w-full md:w-1/2">
-          <img src="assets/sync.svg" alt="Syncing" />
+          <img src="../assets/sync.svg" alt="Syncing" />
         </div>
       </div>
     </section>

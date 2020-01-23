@@ -10,7 +10,7 @@
         class="container mx-auto px-6 py-2 flex justify-between items-center"
       >
         <a class="font-bold text-2xl lg:text-4xl" href="#">
-          CHALAN.mx
+          chalan.mx
         </a>
         <div class="block lg:hidden">
           <button
@@ -31,10 +31,10 @@
         <div class="hidden lg:block">
           <ul class="inline-flex">
             <li>
-              <a class="px-4 font-bold" href="/">Home</a>
+              <router-link to="/" class="px-4 font-bold">Inicio</router-link>
             </li>
             <li>
-              <a class="px-4 hover:text-gray-800" href="#">About</a>
+              <router-link to="/about" class="px-4 hover:text-gray-800">Nosotros</router-link>
             </li>
             <li>
               <a class="px-4 hover:text-gray-800" href="#">Contact</a>
