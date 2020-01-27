@@ -2,19 +2,19 @@
   <div class="home">
     <!--Hero-->
     <div
-      class="pyy-48 pt-48 pb-64 bg-cover"
+      class="lg:pt-48 lg:pb-64 py-20 bg-cover"
       :style="{ backgroundImage: 'url(' + require('@/assets/shipping-boxes.jpg') + ')'}"
     >
-      <!-- <img src="../assets/shipping-boxes.jpg" alt="" /> -->
       <div class="container mx-auto px-6 text-left">
         <h2 class="text-4xl font-bold mb-2 text-white">
-          Con Chalan agenda la movilidad para tu <span class="">mudanza</span>
+          Con Chalán agenda movilidad para tu <span class="">mudanza</span>
         </h2>
         <h3 class="text-2xl mb-8 text-gray-200">
-          Agenda tu vehiculo de mudanza en linea!
+          Agenda tu vehículo de mudanza en linea!
         </h3>
         <button
           class="bg-blue-500
+                 hover:bg-blue-700
                  text-white
                  font-bold
                  rounded-full
@@ -32,7 +32,7 @@
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Exercise Metrics
+            Ingresa tus datos
           </h4>
           <p class="text-gray-600 mb-8">
             Our Smart Health Monitoring Wristwatch is able to capture you vitals
@@ -50,7 +50,7 @@
         </div>
         <div class="w-full md:w-1/2 pl-10">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Reporting
+            Indica la dirección
           </h4>
           <p class="text-gray-600 mb-8">
             Our Smart Health Monitoring Wristwatch can generate a comprehensive
@@ -62,7 +62,7 @@
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Syncing
+            Realiza el pago
           </h4>
           <p class="text-gray-600 mb-8">
             Our Smart Health Monitoring Wristwatch allows you to sync data
@@ -123,7 +123,7 @@
     <section style="background-color: #667eea">
       <div class="container mx-auto px-6 text-center py-20">
         <h2 class="mb-6 text-4xl font-bold text-center text-white">
-          Limited in Stock
+          Elige el vehículo que más te acomode
         </h2>
         <h3 class="my-4 text-2xl text-white">
           Get yourself the Smart Health Monitoring Wristwatch!
@@ -131,21 +131,22 @@
         <button
           class="bg-white font-bold rounded-full mt-6 py-4 px-8 shadow-lg uppercase tracking-wider"
         >
-          Pre Order
+          Agendar ahora
         </button>
       </div>
     </section>
+    <Footer></Footer>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-// import HelloWorld from '@/components/HelloWorld.vue';
+import Footer from '@/components/Footer.vue';
 
 export default {
   name: 'home',
   components: {
-    // HelloWorld,
+    Footer,
   },
 };
 </script>
