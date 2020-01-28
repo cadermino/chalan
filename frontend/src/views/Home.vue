@@ -3,7 +3,7 @@
     <!--Hero-->
     <div
       class="lg:pt-48 lg:pb-64 py-20 bg-cover"
-      :style="{ backgroundImage: 'url(' + require('@/assets/shipping-boxes.jpg') + ')'}"
+      :style="{ backgroundImage: 'url(' + require('@/assets/shipping-boxes-resized.jpg') + ')'}"
     >
       <div class="container mx-auto px-6 text-left">
         <h2 class="text-4xl font-bold mb-2 text-white">
@@ -12,16 +12,14 @@
         <h3 class="text-2xl mb-8 text-gray-200">
           Agenda tu vehículo de mudanza en linea!
         </h3>
-        <button
-          class="bg-blue-500
+        <router-link to="/order/step-one" class="bg-blue-500
                  hover:bg-blue-700
                  text-white
                  font-bold
                  rounded-full
-                 py-4 px-8 shadow-lg tracking-wider"
-        >
-          Quiero agendar
-        </button>
+                 py-4 px-8 shadow-lg tracking-wider">
+                 Quiero agendar
+        </router-link>
       </div>
     </div>
     <!-- Features -->
@@ -120,7 +118,7 @@
       </div>
     </section>
     <!--Call to Action-->
-    <section style="background-color: #667eea">
+    <section class="bg-blue-500">
       <div class="container mx-auto px-6 text-center py-20">
         <h2 class="mb-6 text-4xl font-bold text-center text-white">
           Elige el vehículo que más te acomode
@@ -135,18 +133,5 @@
         </button>
       </div>
     </section>
-    <Footer></Footer>
   </div>
 </template>
-
-<script>
-// @ is an alias to /src
-import Footer from '@/components/Footer.vue';
-
-export default {
-  name: 'home',
-  components: {
-    Footer,
-  },
-};
-</script>

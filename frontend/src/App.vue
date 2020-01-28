@@ -3,7 +3,13 @@
     <!--Nav-->
     <nav id="nav">
       <div
-        class="container mx-auto px-6 py-2 flex justify-between items-center"
+        class="container
+        mx-auto
+        px-6
+        py-2
+        flex
+        justify-between
+        items-center border-b-2 border-gray-200"
       >
         <router-link to="/" class="font-bold text-2xl lg:text-4xl">chalan.mx</router-link>
         <div class="block lg:hidden">
@@ -38,6 +44,7 @@
       </div>
     </nav>
     <router-view/>
+    <Footer></Footer>
   </div>
 </template>
 
@@ -50,3 +57,15 @@
   }
 }
 </style>
+
+<script>
+// @ is an alias to /src
+import Footer from '@/components/Footer.vue';
+
+export default {
+  name: 'app',
+  components: {
+    Footer,
+  },
+};
+</script>
