@@ -51,7 +51,7 @@ class Customer(db.Model):
 class Order(db.Model):
 	__tablename__ = 'orders'
 	id = db.Column(db.Integer, primary_key=True)
-	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True, default='null')
+	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
 	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
