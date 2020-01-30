@@ -24,7 +24,7 @@ USE `chalan` ;
 CREATE TABLE IF NOT EXISTS `order_details` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `type` ENUM('carry_from', 'deliver_to') NOT NULL,
-  `floor_number` INT(3) NOT NULL,
+  `floor_number` INT(3) NULL,
   `order_id` INT NOT NULL,
   `street` VARCHAR(45) NULL,
   `interior_number` VARCHAR(45) NULL,
@@ -136,8 +136,8 @@ VALUES
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `orders` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `customer_id` INT NOT NULL,
-  `driver_id` INT NOT NULL,
+  `customer_id` INT NULL DEFAULT NULL,
+  `driver_id` INT NULL DEFAULT NULL,
   `order_status_id` INT NOT NULL DEFAULT 1,
   `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `payment_id` INT NULL DEFAULT NULL,

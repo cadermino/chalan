@@ -5,6 +5,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
 
+# db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
@@ -50,20 +51,20 @@ class Customer(db.Model):
 class Order(db.Model):
 	__tablename__ = 'orders'
 	id = db.Column(db.Integer, primary_key=True)
-	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
-	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=False)
+	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
+	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
 	payment_id = db.Column(db.Integer, db.ForeignKey("payments.id"), nullable=True)
 	comments = db.Column(db.String(500))
 
-	order_details = db.relationship("OrderDetails", backref="orders")
+	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
 	id = db.Column(db.Integer, primary_key=True)
 	type = db.Column(db.Enum('carry_from','deliver_to'), nullable=False)
-	floor_number = db.Column(db.Integer)
+	floor_number = db.Column(db.Integer, nullable=True)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	street = db.Column(db.String(45), nullable=True)
 	interior_number = db.Column(db.String(45), nullable=True)
