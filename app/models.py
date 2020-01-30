@@ -5,8 +5,10 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
 
+# db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 	paternal_last_name = db.Column(db.String(45))
@@ -49,21 +51,23 @@ class Customer(db.Model):
 
 class Order(db.Model):
 	__tablename__ = 'orders'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
-	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
-	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=False)
+	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True, default='null')
+	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
 	payment_id = db.Column(db.Integer, db.ForeignKey("payments.id"), nullable=True)
 	comments = db.Column(db.String(500))
 
-	order_details = db.relationship("OrderDetails", backref="orders")
+	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	type = db.Column(db.Enum('carry_from','deliver_to'), nullable=False)
-	floor_number = db.Column(db.Integer)
+	floor_number = db.Column(db.Integer, nullable=True)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	street = db.Column(db.String(45), nullable=True)
 	interior_number = db.Column(db.String(45), nullable=True)
@@ -75,6 +79,7 @@ class OrderDetails(db.Model):
 
 class Driver(db.Model):
 	__tablename__ = 'drivers'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 	paternal_last_name = db.Column(db.String(45))
@@ -88,6 +93,7 @@ class Driver(db.Model):
 
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 
@@ -95,12 +101,14 @@ class CarrierCompany(db.Model):
 
 class OrderStatus(db.Model):
 	__tablename__ = 'lu_order_status'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	status = db.Column(db.String(45))
 
 
 class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	type = db.Column(db.String)
 
@@ -109,6 +117,7 @@ class PaymentType(db.Model):
 
 class Payment(db.Model):
 	__tablename__ = 'payments'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	amount = db.Column(db.Float)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
@@ -120,6 +129,7 @@ class Payment(db.Model):
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
+	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	size = db.Column(db.Enum('small','medium','large'))
 	plate = db.Column(db.String(45))

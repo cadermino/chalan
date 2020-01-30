@@ -12,7 +12,6 @@ def token_required(func):
             return unauthorized('Missing token')
         customer = Customer.verify_auth_token(auth_headers[1])
         if customer is not None:
-            kwargs['customer_data'] = customer
             return func(*args, **kwargs)
         return bad_request('Invalid token')
     return wrapper
