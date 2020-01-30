@@ -8,7 +8,6 @@ from .api.errors import bad_request
 # db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 	paternal_last_name = db.Column(db.String(45))
@@ -51,7 +50,6 @@ class Customer(db.Model):
 
 class Order(db.Model):
 	__tablename__ = 'orders'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True, default='null')
 	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=True)
@@ -64,7 +62,6 @@ class Order(db.Model):
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	type = db.Column(db.Enum('carry_from','deliver_to'), nullable=False)
 	floor_number = db.Column(db.Integer, nullable=True)
@@ -79,7 +76,6 @@ class OrderDetails(db.Model):
 
 class Driver(db.Model):
 	__tablename__ = 'drivers'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 	paternal_last_name = db.Column(db.String(45))
@@ -93,7 +89,6 @@ class Driver(db.Model):
 
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 
@@ -101,14 +96,12 @@ class CarrierCompany(db.Model):
 
 class OrderStatus(db.Model):
 	__tablename__ = 'lu_order_status'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	status = db.Column(db.String(45))
 
 
 class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	type = db.Column(db.String)
 
@@ -117,7 +110,6 @@ class PaymentType(db.Model):
 
 class Payment(db.Model):
 	__tablename__ = 'payments'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	amount = db.Column(db.Float)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
@@ -129,7 +121,6 @@ class Payment(db.Model):
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
-	__table_args__ = {'extend_existing': True}
 	id = db.Column(db.Integer, primary_key=True)
 	size = db.Column(db.Enum('small','medium','large'))
 	plate = db.Column(db.String(45))
