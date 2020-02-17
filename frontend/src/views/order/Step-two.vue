@@ -5,6 +5,31 @@
                 <Tracker></Tracker>
                 <div class="w-full max-w-xl mx-auto">
                   Paso dos en proceso
+                  <div class="border-b border-1 my-10"></div>
+                  <div class="flex items-center justify-between">
+                      <router-link to="/order/step-one"
+                        class="bg-green-500
+                        hover:bg-green-700
+                        text-white
+                        py-2
+                        px-4
+                        rounded
+                        focus:outline-none
+                        focus:border-blue-400">
+                        Atras
+                      </router-link>
+                      <router-link to="/order/step-two"
+                        class="bg-green-500
+                        hover:bg-green-700
+                        text-white
+                        py-2
+                        px-4
+                        rounded
+                        focus:outline-none
+                        focus:border-blue-400">
+                        Siguiente
+                      </router-link>
+                  </div>
                 </div>
             </div>
         </div>

@@ -489,7 +489,7 @@
                             rounded
                             focus:outline-none
                             focus:border-blue-400"
-                            @click="validate()">
+                            @click="nextStep">
                             Siguiente
                           </button>
                         </div>
@@ -522,6 +522,7 @@ export default {
   methods: {
     ...mapActions([
       'getAddress',
+      'validateRequiredFields',
     ]),
     ...mapMutations([
       'setOrder',
@@ -530,18 +531,11 @@ export default {
       'setFormValidationMessages',
       'setViewsMessages',
     ]),
-    validate() {
-      const emptyFields = [];
-      Object.keys(this.steps[this.viewName].requisites).forEach((field) => {
-        if (!this.currentOrder[field]) {
-          emptyFields.push(field);
-        }
-      });
-      const message = (emptyFields.length > 0) ? 'Revisa que los campos requeridos * esten llenos.' : null;
-      this.setViewsMessages({ view: this.viewName, message });
-      emptyFields.forEach((field) => {
-        this.setFormValidationMessages({ field, message: 'no olvides llenar este campo' });
-      });
+    nextStep() {
+      this.validateRequiredFields(this.viewName);
+      if (this.steps[this.viewName].isComplete) {
+        this.$router.push('step-two');
+      }
     },
   },
   computed: {

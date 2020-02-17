@@ -75,6 +75,19 @@ export default new Vuex.Store({
     },
   },
   actions: {
+    validateRequiredFields({ commit, state }, viewName) {
+      const emptyFields = [];
+      Object.keys(state.steps[viewName].requisites).forEach((field) => {
+        if (!state.currentOrder[field]) {
+          emptyFields.push(field);
+        }
+      });
+      const message = (emptyFields.length > 0) ? 'Revisa que los campos requeridos * esten llenos.' : null;
+      commit('setViewsMessages', { view: viewName, message });
+      emptyFields.forEach((field) => {
+        commit('setFormValidationMessages', { field, message: 'no olvides llenar este campo' });
+      });
+    },
     createOrder({ commit }) {
       chalan.createOrder()
         .then((response) => {
