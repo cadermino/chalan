@@ -62,6 +62,9 @@
 // @ is an alias to /src
 import Footer from '@/components/Footer.vue';
 
+console.log('esta es ruta base', process.env.BASE_URL);
+console.log('esta es la ruta', process.env.VUE_APP_API_URL);
+
 export default {
   name: 'app',
   components: {

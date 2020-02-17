@@ -3,5 +3,6 @@ module.exports = {
     extend: {},
   },
   variants: {},
-  plugins: [],
+  plugins: [
+  ]
 };

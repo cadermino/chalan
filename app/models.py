@@ -129,6 +129,19 @@ class Vehicle(db.Model):
 
 	driver = db.relationship("Driver", backref="vehicles")
 
+class Sepomex(db.Model):
+	__tablename__ = 'sepomex'
+	id = db.Column(db.Integer, primary_key=True)
+	id_estado = db.Column(db.Integer, nullable=False)
+	estado = db.Column(db.String(35), nullable=False)
+	id_municipio = db.Column(db.Integer, nullable=False)
+	municipio = db.Column(db.String(60), nullable=False)
+	ciudad = db.Column(db.String(60), default='NULL')
+	zona = db.Column(db.String(15), nullable=False)
+	cp = db.Column(db.Integer, nullable=False)
+	asentamiento = db.Column(db.String(70), nullable=False)
+	tipo = db.Column(db.String(40), nullable=False)
+
 
 class CustomerSchema(ma.ModelSchema):
 	class Meta:
@@ -138,3 +151,8 @@ class CustomerSchema(ma.ModelSchema):
 class OrderSchema(ma.ModelSchema):
 	class Meta:
 		model = Order
+
+
+class SepomexSchema(ma.ModelSchema):
+	class Meta:
+		model = Sepomex

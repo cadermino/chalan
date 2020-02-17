@@ -20,8 +20,13 @@ const routes = [
   },
   {
     path: '/order/step-one',
-    name: 'order',
+    name: 'address',
     component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
+  },
+  {
+    path: '/order/step-two',
+    name: 'vehicle',
+    component: () => import(/* webpackChunkName: "step-two" */ '../views/order/Step-two.vue'),
   },
 ];
 

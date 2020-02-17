@@ -1,146 +1,102 @@
 <template>
-    <div class="max-w-xl mx-auto my-4 border-b-2 py-16">
-        <div class="flex pb-3">
-            <div class="flex-1">
-            </div>
-
-            <div class="flex-1">
-                <div class="w-10
+    <div class="max-w-xl mx-auto my-4 border-b-2 pt-16">
+        <div class="flex pb-3 justify-around">
+          <div v-for="(item, key, index) in steps"
+              v-bind:key="index"
+              :class="(index+1 !== stepObjectLength)?'w-1/3':'ml-3'">
+            <div class="w-full flex mb-4">
+              <div class="flex-1">
+                <div v-if="item.isComplete"
+                :class="[(index+1 !== stepObjectLength)?'mx-auto':'',
+                            (item.isComplete)?'mx-auto':'']"
+                class="w-10
                 h-10
                 bg-green-500
-                mx-auto
                 rounded-full
-                text-lg text-white flex items-center">
-                    <span class="text-white text-center w-full">
-                        <i class="fa fa-check w-full fill-current white"></i>
-                    </span>
+                text-lg
+                text-white
+                flex
+                items-center">
+                  <span class="text-white text-center w-full">
+                    <i class="fa fa-check w-full fill-current white"></i>
+                  </span>
                 </div>
-            </div>
-
-
-            <div class="w-1/6
-            align-center
-            items-center
-            align-middle content-center flex">
-                <div class="w-full
-                bg-gray-200
-                rounded
-                items-center
-                align-middle align-center flex-1">
-                    <div class="bg-green-300
-                    text-xs
-                    leading-none
-                    py-1
-                    text-center
-                    text-gray-700 rounded " style="width: 100%"></div>
-                </div>
-            </div>
-
-
-            <div class="flex-1">
-                <div class="w-10
-                h-10
-                bg-green-500
-                mx-auto
-                rounded-full
-                text-lg text-white flex items-center">
-                    <span class="text-white text-center w-full">
-                        <i class="fa fa-check w-full fill-current white"></i>
-                    </span>
-                </div>
-            </div>
-
-            <div class="w-1/6
-            align-center
-            items-center
-            align-middle content-center flex">
-                <div class="w-full
-                bg-gray-200
-                rounded
-                items-center
-                align-middle align-center flex-1">
-                    <div class="bg-green-300
-                    text-xs
-                    leading-none
-                    py-1
-                    text-center
-                    text-gray-700 rounded " style="width: 20%"></div>
-                </div>
-            </div>
-
-            <div class="flex-1">
-                <div class="w-10
+                <div v-if="!item.isComplete"
+                class="w-10
                 h-10
                 bg-white
                 border-2
                 border-gray-light
                 mx-auto rounded-full text-lg text-white flex items-center">
-                    <span class="text-gray-500 text-center w-full">3</span>
+                  <span class="text-gray-500 text-center w-full">{{ index+1 }}</span>
                 </div>
-            </div>
 
+                <div :class="(index+1 !== stepObjectLength)?'text-center':''"
+                  class="w-full text-xs mt-3">
+                  {{ item.name }}
+                </div>
+              </div>
 
-            <div class="w-1/6
-            align-center
-            items-center
-            align-middle
-            content-center flex">
+              <div v-if="(index + 1) !== stepObjectLength"
+                   class="w-full pt-4">
                 <div class="w-full
                 bg-gray-200
                 rounded
                 items-center
-                align-middle align-center flex-1">
-                    <div class="bg-green-300
-                    text-xs
-                    leading-none
-                    py-1
-                    text-center
-                    text-gray-700 rounded " style="width: 0%"></div>
+                align-middle
+                align-center
+                flex-1">
+                  <div class="bg-green-300
+                  text-xs
+                  leading-none
+                  py-1
+                  text-center
+                  text-gray-700 rounded " :style="item.isComplete? 'width: 100%' : 'width: 0%'">
+                  </div>
                 </div>
+              </div>
             </div>
-
-
-            <div class="flex-1">
-                <div class="w-10
-                h-10
-                bg-white
-                border-2
-                border-gray-light
-                mx-auto
-                rounded-full
-                text-lg
-                text-white flex items-center">
-                    <span class="text-gray-500 text-center w-full">4</span>
-                </div>
-            </div>
-
-
-            <div class="flex-1">
-            </div>
-        </div>
-
-        <div class="flex text-xs content-center text-center">
-            <div class="w-1/4">
-                Dirección recojo/entrega
-            </div>
-
-            <div class="w-1/4">
-                Datos del vehículo
-            </div>
-
-            <div class="w-1/4">
-                Pago
-            </div>
-
-            <div class="w-1/4">
-                Confirmación
-            </div>
+          </div>
         </div>
     </div>
 </template>
 
 <script>
+import { mapMutations } from 'vuex';
+
 export default {
   name: 'Tracker',
+  data() {
+    return {
+    };
+  },
+  props: [],
+  mounted() {
+    this.verifyStepStatus();
+  },
+  watch: {
+    currentOrder: {
+      handler() {
+        this.verifyStepStatus();
+      },
+      deep: true,
+    },
+  },
+  methods: {
+    ...mapMutations([
+      'verifyStepStatus',
+    ]),
+  },
+  computed: {
+    steps() {
+      return this.$store.state.steps;
+    },
+    currentOrder() {
+      return this.$store.state.currentOrder;
+    },
+    stepObjectLength() {
+      return Object.keys(this.steps).length;
+    },
+  },
 };
 </script>
