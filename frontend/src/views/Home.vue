@@ -143,17 +143,10 @@ export default {
   props: [
   ],
   computed: {
-    ...mapState({
-      // ...
-    }),
+    ...mapState({}),
   },
   methods: {
-    // test() {
-    //   this.$router.push('/order/step-one');
-    // },
-    ...mapActions([
-      'createOrder',
-    ]),
+    ...mapActions([]),
   },
 };
 </script>
