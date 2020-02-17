@@ -1,5 +1,4 @@
-from flask import jsonify, request, g, url_for, current_app
-from .. import db
+from flask import jsonify, request
 from ..models import Customer, Order, OrderSchema
 from . import api
 from .decorators import token_required
