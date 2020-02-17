@@ -81,7 +81,7 @@ export default new Vuex.Store({
           commit('assignOrder', response.data);
         })
         .catch((error) => {
-          /* eslint no-console: ["error", { allow: ["warn", "error"] }] */
+          // eslint-disable-next-line no-console
           console.log(error);
         });
     },
@@ -110,7 +110,7 @@ export default new Vuex.Store({
           }
         })
         .catch((error) => {
-          /* eslint no-console: ["error", { allow: ["warn", "error"] }] */
+          // eslint-disable-next-line no-console
           commit('setViewsMessages', { view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
           console.log(error);
         });
