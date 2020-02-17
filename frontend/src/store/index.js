@@ -80,9 +80,7 @@ export default new Vuex.Store({
         .then((response) => {
           commit('assignOrder', response.data);
         })
-        .catch((error) => {
-          // eslint-disable-next-line no-console
-          console.log(error);
+        .catch(() => {
         });
     },
     getAddress({ commit }, payload) {
@@ -109,10 +107,8 @@ export default new Vuex.Store({
             commit('setFormValidationMessages', { field: `${payload.direction}_zip_code`, message: 'ingresa un código postal válido' });
           }
         })
-        .catch((error) => {
-          // eslint-disable-next-line no-console
+        .catch(() => {
           commit('setViewsMessages', { view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
-          console.log(error);
         });
     },
   },
