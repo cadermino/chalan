@@ -23,7 +23,9 @@
                             </span>
                           </div>
                         </div>
-                        <p class="text-center font-bold mb-10">Dirección de inicial</p>
+                        <p class="text-center font-bold mb-10">
+                          Dirección de donde vamos a recoger tus cosas
+                        </p>
                         <div class="flex flex-wrap -mx-3 mb-4">
                           <div class="w-full px-3 mb-4">
                               <label class="block
