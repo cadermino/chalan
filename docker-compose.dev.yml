@@ -15,7 +15,7 @@ services:
     restart: always
     links:
       - db:dbserver
-    command: sh -c "npm install --unsafe-perm --prefix frontend && npm run build-dev --prefix frontend & nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
+    command: sh -c "npm install --unsafe-perm --prefix frontend && npm run build-dev --prefix frontend & while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
   certbot:
     image: certbot/certbot
     restart: unless-stopped
