@@ -3,11 +3,11 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: ../Dockerfile.dev
     volumes:
-      - .:/chalan
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
+      - ..:/chalan
+      - ../data/certbot/conf:/etc/letsencrypt
+      - ../data/certbot/www:/var/www/certbot
     ports:
       - 80:8000
       - 443:443
@@ -20,8 +20,8 @@ services:
     image: certbot/certbot
     restart: unless-stopped
     volumes:
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
+      - ../data/certbot/conf:/etc/letsencrypt
+      - ../data/certbot/www:/var/www/certbot
     entrypoint: sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
   db:
     image: "mysql/mysql-server:5.7"
@@ -29,5 +29,5 @@ services:
       - "3307:3306"
     env_file: ../.env.mysql.dev
     volumes:
-      - ./db:/docker-entrypoint-initdb.d/:ro
+      - ../db:/docker-entrypoint-initdb.d/:ro
     restart: always
