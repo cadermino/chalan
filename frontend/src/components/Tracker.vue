@@ -76,22 +76,11 @@ export default {
   props: {
     currentView: String,
   },
-  mounted() {
-    this.verifyStepStatus();
-  },
+  mounted() {},
   components: {},
-  watch: {
-    currentOrder: {
-      handler() {
-        this.verifyStepStatus();
-      },
-      deep: true,
-    },
-  },
+  watch: {},
   methods: {
-    ...mapMutations([
-      'verifyStepStatus',
-    ]),
+    ...mapMutations([]),
   },
   computed: {
     steps() {

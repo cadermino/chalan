@@ -520,13 +520,14 @@ export default {
     Tracker,
   },
   mounted() {
-
+    this.getDataFromLocalStorage();
   },
   props: [
   ],
   methods: {
     ...mapActions([
       'validateRequiredFields',
+      'getDataFromLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -537,6 +538,8 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        const parsed = JSON.stringify(this.currentOrder);
+        localStorage.setItem('currentOrder', parsed);
         this.$router.push('step-two');
       }
     },

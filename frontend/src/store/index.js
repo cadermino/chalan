@@ -55,6 +55,14 @@ export default new Vuex.Store({
     setOrder(state, payload) {
       state.currentOrder[payload.field] = payload.value;
       state.formValidationMessages[payload.field] = null;
+      Object.keys(state.steps).forEach((key) => {
+        const requisitesValues = [];
+        state.steps[key].requisites.forEach((requisite) => {
+          requisitesValues.push(state.currentOrder[requisite]);
+        });
+        state.steps[key].isComplete = requisitesValues
+          .reduce((prev, curr) => prev && Boolean(curr), true);
+      });
     },
     fillNeighborhoodList(state, payload) {
       state[`${payload.direction}NeighborhoodList`] = payload.value;
@@ -65,18 +73,21 @@ export default new Vuex.Store({
     setFormValidationMessages(state, payload) {
       state.formValidationMessages[payload.field] = payload.message;
     },
-    verifyStepStatus(state) {
-      Object.keys(state.steps).forEach((key) => {
-        const requisitesValues = [];
-        state.steps[key].requisites.forEach((requisite) => {
-          requisitesValues.push(state.currentOrder[requisite]);
-        });
-        state.steps[key].isComplete = requisitesValues
-          .reduce((prev, curr) => prev && Boolean(curr), true);
-      });
-    },
   },
   actions: {
+    getDataFromLocalStorage({ commit }) {
+      console.group("localStorage.getItem('currentOrder')", localStorage.getItem('currentOrder'));
+      if (localStorage.getItem('currentOrder')) {
+        try {
+          const order = JSON.parse(localStorage.getItem('currentOrder'));
+          Object.keys(order).forEach((key) => {
+            commit('setOrder', { field: key, value: order[key] });
+          });
+        } catch (e) {
+          localStorage.removeItem('currentOrder');
+        }
+      }
+    },
     validateRequiredFields({ commit, state }, viewName) {
       const emptyFields = [];
       state.steps[viewName].requisites.forEach((field) => {

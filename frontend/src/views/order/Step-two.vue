@@ -180,6 +180,7 @@ export default {
     Tracker,
   },
   mounted() {
+    this.getDataFromLocalStorage();
     if (!this.steps['step-one'].isComplete) {
       this.$router.push('step-one');
     }
@@ -191,14 +192,18 @@ export default {
   methods: {
     ...mapActions([
       'validateRequiredFields',
+      'getDataFromLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
     ]),
     nextStep() {
-      this.validateRequiredFields(this.viewName);
+      console.log(this.steps[this.viewName].isComplete);
+      // this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        const parsed = JSON.stringify(this.currentOrder);
+        localStorage.setItem('currentOrder', parsed);
         this.$router.push('step-three');
       }
     },

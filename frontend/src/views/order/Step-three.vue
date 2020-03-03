@@ -76,6 +76,7 @@
                 leading-tight
                 focus:outline-none
                 focus:border-blue-400"
+                v-model="userComments"
                 id="address-from-street"
                 type="text">
               </textarea>
@@ -133,6 +134,7 @@ export default {
     Datetime,
   },
   mounted() {
+    this.getDataFromLocalStorage();
     if (!this.steps['step-two'].isComplete) {
       this.$router.push('step-two');
     }
@@ -141,15 +143,18 @@ export default {
   ],
   methods: {
     ...mapActions([
-      'validateRequiredFields',
+      // 'validateRequiredFields',
+      'getDataFromLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
     ]),
     nextStep() {
-      this.validateRequiredFields(this.viewName);
+      // this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        const parsed = JSON.stringify(this.currentOrder);
+        localStorage.setItem('currentOrder', parsed);
         this.$router.push('step-four');
       }
     },
@@ -167,6 +172,14 @@ export default {
       },
       set(value) {
         this.setOrder({ field: 'appointment_date', value });
+      },
+    },
+    userComments: {
+      get() {
+        return this.currentOrder.comments;
+      },
+      set(value) {
+        this.setOrder({ field: 'comments', value });
       },
     },
     minDatetime() {
