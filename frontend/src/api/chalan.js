@@ -38,4 +38,11 @@ export default {
       },
     });
   },
+  getAvailableVehicles() {
+    return axios.get(`${process.env.VUE_APP_API_URL}vehicle/available`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
 };
