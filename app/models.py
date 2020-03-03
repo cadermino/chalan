@@ -123,7 +123,7 @@ class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
 	id = db.Column(db.Integer, primary_key=True)
 	size = db.Column(db.Enum('small','medium','large'))
-	plate = db.Column(db.String(45))
+	plates = db.Column(db.String(45))
 	model = db.Column(db.String(45))
 	brand = db.Column(db.String(45))
 
@@ -151,6 +151,12 @@ class CustomerSchema(ma.ModelSchema):
 class OrderSchema(ma.ModelSchema):
 	class Meta:
 		model = Order
+
+
+class VehicleSchema(ma.ModelSchema):
+	class Meta:
+		# fields = ('id', 'brand', 'model', 'size')
+		model = Vehicle
 
 
 class SepomexSchema(ma.ModelSchema):

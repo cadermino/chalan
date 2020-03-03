@@ -28,6 +28,11 @@ const routes = [
     name: 'vehicle',
     component: () => import(/* webpackChunkName: "step-two" */ '../views/order/Step-two.vue'),
   },
+  {
+    path: '/order/step-three',
+    name: 'confirmation',
+    component: () => import(/* webpackChunkName: "step-three" */ '../views/order/Step-three.vue'),
+  },
 ];
 
 const router = new VueRouter({

@@ -1,9 +1,15 @@
 <template>
   <div class="home">
     <!--Hero-->
+    <!-- <div
+      class="lg:pt-48 lg:pb-64 py-20 bg-cover"
+      :style="{ backgroundImage:
+      'url(' + require('@/assets/hero.svg') + ')'}"
+    > -->
     <div
       class="lg:pt-48 lg:pb-64 py-20 bg-cover"
-      :style="{ backgroundImage: 'url(' + require('@/assets/shipping-boxes-resized.jpg') + ')'}"
+      :style="{ backgroundImage:
+      'url(' + require('@/assets/shipping-boxes-dark-resized.jpg') + ')'}"
     >
       <div class="container mx-auto px-6 text-left">
         <h2 class="text-4xl font-bold mb-2 text-white">
@@ -44,7 +50,7 @@
       </div>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
-          <img src="../assets/report.svg" alt="Reporting" />
+          <img src="../assets/roadmap.svg" alt="Reporting" />
         </div>
         <div class="w-full md:w-1/2 pl-10">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
@@ -69,7 +75,7 @@
           </p>
         </div>
         <div class="w-full md:w-1/2">
-          <img src="../assets/sync.svg" alt="Syncing" />
+          <img src="../assets/creditcard.jpg" alt="Syncing" />
         </div>
       </div>
     </section>

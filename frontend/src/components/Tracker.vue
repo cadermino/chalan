@@ -22,13 +22,16 @@
                   </span>
                 </div>
                 <div v-if="!item.isComplete"
+                :class="(currentView==key) ?
+                'bg-gray-400 border-gray-400' : 'bg-white border-gray-light'"
                 class="w-10
                 h-10
-                bg-white
                 border-2
-                border-gray-light
                 mx-auto rounded-full text-lg text-white flex items-center">
-                  <span class="text-gray-500 text-center w-full">{{ index+1 }}</span>
+                  <span :class="(currentView==key) ? 'text-gray-100' : 'text-gray-500'"
+                    class="text-center w-full">
+                    {{ index+1 }}
+                  </span>
                 </div>
 
                 <div :class="(index+1 !== stepObjectLength)?'text-center':''"
@@ -70,13 +73,17 @@ export default {
     return {
     };
   },
-  props: [],
+  props: {
+    currentView: String,
+  },
   mounted() {
     this.verifyStepStatus();
   },
+  components: {},
   watch: {
     currentOrder: {
       handler() {
+        console.log('entro a tracker');
         this.verifyStepStatus();
       },
       deep: true,

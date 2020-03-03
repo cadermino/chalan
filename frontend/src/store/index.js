@@ -34,6 +34,7 @@ export default new Vuex.Store({
     },
     viewsMessages: {
       'step-one': null,
+      'step-two': null,
     },
     formValidationMessages: {
       from_floor_number: null,
@@ -44,6 +45,7 @@ export default new Vuex.Store({
       to_street: null,
       to_neighborhood: null,
       to_zip_code: null,
+      appointment_date: null,
     },
   },
   mutations: {
@@ -64,9 +66,9 @@ export default new Vuex.Store({
       state.formValidationMessages[payload.field] = payload.message;
     },
     verifyStepStatus(state) {
-      const requisitesValues = [];
       Object.keys(state.steps).forEach((key) => {
-        Object.keys(state.steps[key].requisites).forEach((requisite) => {
+        const requisitesValues = [];
+        state.steps[key].requisites.forEach((requisite) => {
           requisitesValues.push(state.currentOrder[requisite]);
         });
         state.steps[key].isComplete = requisitesValues
@@ -77,7 +79,7 @@ export default new Vuex.Store({
   actions: {
     validateRequiredFields({ commit, state }, viewName) {
       const emptyFields = [];
-      Object.keys(state.steps[viewName].requisites).forEach((field) => {
+      state.steps[viewName].requisites.forEach((field) => {
         if (!state.currentOrder[field]) {
           emptyFields.push(field);
         }
@@ -94,34 +96,6 @@ export default new Vuex.Store({
           commit('assignOrder', response.data);
         })
         .catch(() => {
-        });
-    },
-    getAddress({ commit }, payload) {
-      chalan.getAddress(payload.zipcode)
-        .then((response) => {
-          if (response.data.length > 0) {
-            const payloadNeighborhood = {
-              value: response.data,
-              direction: payload.direction,
-            };
-            commit('fillNeighborhoodList', payloadNeighborhood);
-            const zipCodeResponse = {
-              state: response.data[0].estado,
-              city: response.data[0].municipio,
-            };
-            Object.keys(zipCodeResponse).forEach((key) => {
-              const orderPayload = {
-                field: `${payload.direction}_${key}`,
-                value: zipCodeResponse[key],
-              };
-              commit('setOrder', orderPayload);
-            });
-          } else {
-            commit('setFormValidationMessages', { field: `${payload.direction}_zip_code`, message: 'ingresa un código postal válido' });
-          }
-        })
-        .catch(() => {
-          commit('setViewsMessages', { view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
         });
     },
   },
