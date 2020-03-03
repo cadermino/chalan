@@ -1,5 +1,4 @@
 from flask import jsonify
-from ...models import VehicleSchema
 from ...models import Order as OrderModel
 from ...models import Vehicle as VehicleModel
 
@@ -33,7 +32,5 @@ class Vehicle:
                 'driver_id': driver_id[0],
                 'driver_name': driver_name,
             }
-        # vehicle_schema = VehicleSchema(many=True)
-        # output = vehicle_schema.dump(vehicles)
 
         return jsonify(available)

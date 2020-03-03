@@ -180,12 +180,11 @@ export default {
     Tracker,
   },
   mounted() {
-    // if (!this.steps['step-one'].isComplete) {
-    //   this.$router.push('step-one');
-    // }
+    if (!this.steps['step-one'].isComplete) {
+      this.$router.push('step-one');
+    }
     this.getAvailableVehicles();
     document.getElementById('text-header').scrollIntoView();
-    console.log('entro');
   },
   props: [
   ],

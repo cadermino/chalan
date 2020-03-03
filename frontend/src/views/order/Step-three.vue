@@ -114,7 +114,6 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-// @ is an alias to /src
 import { Datetime } from 'vue-datetime';
 import 'vue-datetime/dist/vue-datetime.css';
 import { Settings } from 'luxon';
@@ -134,14 +133,9 @@ export default {
     Datetime,
   },
   mounted() {
-    // this.selectedDate = String(Date.now());
-    // if (!this.steps['step-one'].isComplete) {
-    //   this.$router.push('step-one');
-    // }
-    // if (!this.selectedDate) {
-    //   this.setSelectedDefaultDateTime();
-    // }
-    document.getElementById('text-header').scrollIntoView();
+    if (!this.steps['step-two'].isComplete) {
+      this.$router.push('step-two');
+    }
   },
   props: [
   ],
@@ -158,9 +152,6 @@ export default {
       if (this.steps[this.viewName].isComplete) {
         this.$router.push('step-four');
       }
-    },
-    setSelectedDefaultDateTime() {
-      this.selectedDate = new Date(Date.now()).toISOString();
     },
   },
   computed: {

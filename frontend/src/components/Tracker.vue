@@ -83,7 +83,6 @@ export default {
   watch: {
     currentOrder: {
       handler() {
-        console.log('entro a tracker');
         this.verifyStepStatus();
       },
       deep: true,

@@ -155,7 +155,6 @@ class OrderSchema(ma.ModelSchema):
 
 class VehicleSchema(ma.ModelSchema):
 	class Meta:
-		# fields = ('id', 'brand', 'model', 'size')
 		model = Vehicle
 
 

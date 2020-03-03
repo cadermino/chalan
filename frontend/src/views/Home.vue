@@ -1,11 +1,6 @@
 <template>
   <div class="home">
     <!--Hero-->
-    <!-- <div
-      class="lg:pt-48 lg:pb-64 py-20 bg-cover"
-      :style="{ backgroundImage:
-      'url(' + require('@/assets/hero.svg') + ')'}"
-    > -->
     <div
       class="lg:pt-48 lg:pb-64 py-20 bg-cover"
       :style="{ backgroundImage:
