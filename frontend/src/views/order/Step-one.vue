@@ -540,6 +540,10 @@ export default {
       if (this.steps[this.viewName].isComplete) {
         const parsed = JSON.stringify(this.currentOrder);
         localStorage.setItem('currentOrder', parsed);
+        const parsedFromNeighborhoodList = JSON.stringify(this.fromNeighborhoodList);
+        localStorage.setItem('fromNeighborhoodList', parsedFromNeighborhoodList);
+        const parsedToNeighborhoodList = JSON.stringify(this.toNeighborhoodList);
+        localStorage.setItem('toNeighborhoodList', parsedToNeighborhoodList);
         this.$router.push('step-two');
       }
     },

@@ -143,15 +143,15 @@ export default {
   ],
   methods: {
     ...mapActions([
-      // 'validateRequiredFields',
       'getDataFromLocalStorage',
+      'validateRequiredFields',
     ]),
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
     ]),
     nextStep() {
-      // this.validateRequiredFields(this.viewName);
+      this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
         const parsed = JSON.stringify(this.currentOrder);
         localStorage.setItem('currentOrder', parsed);

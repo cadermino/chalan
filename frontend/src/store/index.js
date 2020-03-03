@@ -76,9 +76,12 @@ export default new Vuex.Store({
   },
   actions: {
     getDataFromLocalStorage({ commit }) {
-      console.group("localStorage.getItem('currentOrder')", localStorage.getItem('currentOrder'));
       if (localStorage.getItem('currentOrder')) {
         try {
+          const fromNeighborhoodList = JSON.parse(localStorage.getItem('fromNeighborhoodList'));
+          commit('fillNeighborhoodList', { direction: 'from', value: fromNeighborhoodList });
+          const toNeighborhoodList = JSON.parse(localStorage.getItem('toNeighborhoodList'));
+          commit('fillNeighborhoodList', { direction: 'to', value: toNeighborhoodList });
           const order = JSON.parse(localStorage.getItem('currentOrder'));
           Object.keys(order).forEach((key) => {
             commit('setOrder', { field: key, value: order[key] });
