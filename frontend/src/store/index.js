@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
+import VueJwtDecode from 'vue-jwt-decode';
 import chalan from '../api/chalan';
 import steps from './steps';
 
@@ -7,13 +8,14 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
+    nowDate: '',
     steps,
     fromNeighborhoodList: [],
     toNeighborhoodList: [],
     currentOrder: {
       customer_id: null,
+      token: null,
       driver_id: null,
-      order_status_id: null,
       appointment_date: null,
       payment_id: null,
       comments: null,
@@ -48,6 +50,17 @@ export default new Vuex.Store({
       appointment_date: null,
     },
   },
+  getters: {
+    isTokenValid(state, getters) {
+      return state.nowDate < (getters.decodeToken.exp * 1000);
+    },
+    decodeToken(state) {
+      return VueJwtDecode.decode(state.currentOrder.token);
+    },
+    isUserLogged: (state, getters) => (state.currentOrder.customer_id
+      && state.currentOrder.token
+      && getters.isTokenValid) || false,
+  },
   mutations: {
     assignOrder(state, order) {
       state.currentOrder = order;
@@ -73,8 +86,17 @@ export default new Vuex.Store({
     setFormValidationMessages(state, payload) {
       state.formValidationMessages[payload.field] = payload.message;
     },
+    setNowDate(state) {
+      state.nowDate = Date.now();
+    },
+    // logOut() {},
   },
   actions: {
+    addDataToLocalStorage({ state }, location) {
+      location.forEach((item) => {
+        localStorage.setItem(item, JSON.stringify(state[item]));
+      });
+    },
     getDataFromLocalStorage({ commit }) {
       if (localStorage.getItem('currentOrder')) {
         try {

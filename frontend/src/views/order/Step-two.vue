@@ -147,7 +147,6 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-// @ is an alias to /src
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
 
@@ -181,11 +180,10 @@ export default {
   },
   mounted() {
     this.getDataFromLocalStorage();
-    if (!this.steps['step-one'].isComplete) {
-      this.$router.push('step-one');
-    }
+    // if (!this.steps['step-one'].isComplete) {
+    //   this.$router.push('step-one');
+    // }
     this.getAvailableVehicles();
-    document.getElementById('text-header').scrollIntoView();
   },
   props: [
   ],
@@ -193,6 +191,7 @@ export default {
     ...mapActions([
       'validateRequiredFields',
       'getDataFromLocalStorage',
+      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -200,11 +199,10 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      if (this.steps[this.viewName].isComplete) {
-        const parsed = JSON.stringify(this.currentOrder);
-        localStorage.setItem('currentOrder', parsed);
-        this.$router.push('step-three');
-      }
+      // if (this.steps[this.viewName].isComplete) {
+      this.addDataToLocalStorage(['currentOrder']);
+      this.$router.push({ name: 'step-three' });
+      // }
     },
     selectSize(vehicle) {
       this.setOrder({ field: 'driver_id', value: String(vehicle.driver_id) });

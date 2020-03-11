@@ -37,6 +37,13 @@
               <router-link to="/about" class="px-4 hover:text-gray-800">Nosotros</router-link>
             </li>
             <li>
+              <router-link
+                to="/register-login"
+                class="px-4 hover:text-gray-800">
+                Regístrate/inicia sesión
+              </router-link>
+            </li>
+            <li>
               <a class="px-4 hover:text-gray-800" href="#">Contact</a>
             </li>
           </ul>

@@ -504,7 +504,6 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-// @ is an alias to /src
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
 
@@ -519,15 +518,13 @@ export default {
   components: {
     Tracker,
   },
-  mounted() {
-    this.getDataFromLocalStorage();
-  },
+  mounted() {},
   props: [
   ],
   methods: {
     ...mapActions([
       'validateRequiredFields',
-      'getDataFromLocalStorage',
+      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -537,15 +534,12 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      if (this.steps[this.viewName].isComplete) {
-        const parsed = JSON.stringify(this.currentOrder);
-        localStorage.setItem('currentOrder', parsed);
-        const parsedFromNeighborhoodList = JSON.stringify(this.fromNeighborhoodList);
-        localStorage.setItem('fromNeighborhoodList', parsedFromNeighborhoodList);
-        const parsedToNeighborhoodList = JSON.stringify(this.toNeighborhoodList);
-        localStorage.setItem('toNeighborhoodList', parsedToNeighborhoodList);
-        this.$router.push('step-two');
-      }
+      this.addDataToLocalStorage([
+        'currentOrder',
+        'fromNeighborhoodList',
+        'toNeighborhoodList',
+      ]);
+      this.$router.push({ name: 'step-two' });
     },
     getAddress(payload) {
       chalan.getAddress(payload.zipcode)

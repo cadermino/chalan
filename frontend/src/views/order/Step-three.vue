@@ -22,7 +22,7 @@
               </span>
             </div>
           </div>
-          <p class="text-center font-bold mb-10" id="text-header">
+          <p class="text-center font-bold mb-10">
             Elije la día y la hora que quires mudarte
           </p>
           <div class="flex flex-wrap mb-4">
@@ -65,9 +65,7 @@
                 font-bold mb-2" for="address-from-street">
                     Algún comentario o indicación que nos quieras dar? (opcional)
               </label>
-              <textarea :class="formValidationMessages['from_street']
-              ?'border-red-300':''"
-              class="appearance-none
+              <textarea class="appearance-none
                 border rounded
                 w-full
                 py-2
@@ -83,7 +81,7 @@
             </div>
           </div>
           <div class="flex items-center justify-between">
-            <router-link to="/order/step-two" class="bg-green-500
+            <router-link :to="{name: 'step-two'}" class="bg-green-500
               hover:bg-green-700
               text-white
               py-2
@@ -135,9 +133,9 @@ export default {
   },
   mounted() {
     this.getDataFromLocalStorage();
-    if (!this.steps['step-two'].isComplete) {
-      this.$router.push('step-two');
-    }
+    // if (!this.steps['step-two'].isComplete) {
+    //   this.$router.push('step-two');
+    // }
   },
   props: [
   ],
@@ -145,6 +143,7 @@ export default {
     ...mapActions([
       'getDataFromLocalStorage',
       'validateRequiredFields',
+      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -152,11 +151,8 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      if (this.steps[this.viewName].isComplete) {
-        const parsed = JSON.stringify(this.currentOrder);
-        localStorage.setItem('currentOrder', parsed);
-        this.$router.push('step-four');
-      }
+      this.addDataToLocalStorage(['currentOrder']);
+      this.$router.push('step-four');
     },
   },
   computed: {

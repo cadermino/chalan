@@ -1,6 +1,8 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import Home from '../views/Home.vue';
+import steps from '../store/steps';
+import store from '../store/index';
 
 Vue.use(VueRouter);
 
@@ -20,18 +22,31 @@ const routes = [
   },
   {
     path: '/order/step-one',
-    name: 'address',
+    name: 'step-one',
     component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
   },
   {
     path: '/order/step-two',
-    name: 'vehicle',
+    name: 'step-two',
     component: () => import(/* webpackChunkName: "step-two" */ '../views/order/Step-two.vue'),
+    meta: { requiresPreviousComplete: true },
   },
   {
     path: '/order/step-three',
-    name: 'confirmation',
+    name: 'step-three',
     component: () => import(/* webpackChunkName: "step-three" */ '../views/order/Step-three.vue'),
+    meta: { requiresPreviousComplete: true },
+  },
+  {
+    path: '/order/step-four',
+    name: 'step-four',
+    component: () => import(/* webpackChunkName: "step-four" */ '../views/order/Step-four.vue'),
+    meta: { requiresPreviousComplete: true, requiresAuth: true },
+  },
+  {
+    path: '/register-login',
+    name: 'register-login',
+    component: () => import(/* webpackChunkName: "step-four" */ '../views/RegisterLogin.vue'),
   },
 ];
 
@@ -39,6 +54,57 @@ const router = new VueRouter({
   mode: 'history',
   base: process.env.VUE_APP_BASE_URL,
   routes,
+  scrollBehavior() {
+    return { x: 0, y: 0 };
+  },
 });
 
+router.beforeEach((to, from, next) => {
+  store.dispatch('getDataFromLocalStorage');
+  store.commit('setNowDate');
+  if (to.matched.some(record => record.meta.requiresPreviousComplete
+    && record.meta.requiresAuth)) {
+    if (store.getters.isUserLogged) {
+      if (!steps[to.name].previous) {
+        next({
+          name: 'step-one',
+        });
+      } else if (!steps[steps[to.name].previous].isComplete) {
+        next({
+          name: steps[to.name].previous,
+        });
+      } else if (steps[steps[to.name].previous].isComplete) {
+        next();
+      }
+    } else {
+      next({
+        path: '/register-login',
+        query: { redirect: to.fullPath },
+      });
+    }
+  } else if (to.matched.some(record => record.meta.requiresPreviousComplete)) {
+    if (!steps[to.name].previous) {
+      next({
+        name: 'step-one',
+      });
+    } else if (!steps[steps[to.name].previous].isComplete) {
+      next({
+        name: steps[to.name].previous,
+      });
+    } else if (steps[steps[to.name].previous].isComplete) {
+      next();
+    }
+  } else if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (store.getters.isUserLogged) {
+      next();
+    } else {
+      next({
+        path: '/register-login',
+        query: { redirect: to.fullPath },
+      });
+    }
+  } else {
+    next();
+  }
+});
 export default router;
