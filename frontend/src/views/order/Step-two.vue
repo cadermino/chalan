@@ -180,9 +180,6 @@ export default {
   },
   mounted() {
     this.getDataFromLocalStorage();
-    // if (!this.steps['step-one'].isComplete) {
-    //   this.$router.push('step-one');
-    // }
     this.getAvailableVehicles();
   },
   props: [
@@ -199,10 +196,10 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      // if (this.steps[this.viewName].isComplete) {
-      this.addDataToLocalStorage(['currentOrder']);
-      this.$router.push({ name: 'step-three' });
-      // }
+      if (this.steps[this.viewName].isComplete) {
+        this.addDataToLocalStorage(['currentOrder']);
+        this.$router.push({ name: 'step-three' });
+      }
     },
     selectSize(vehicle) {
       this.setOrder({ field: 'driver_id', value: String(vehicle.driver_id) });

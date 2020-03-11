@@ -534,12 +534,14 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      this.addDataToLocalStorage([
-        'currentOrder',
-        'fromNeighborhoodList',
-        'toNeighborhoodList',
-      ]);
-      this.$router.push({ name: 'step-two' });
+      if (this.steps[this.viewName].isComplete) {
+        this.addDataToLocalStorage([
+          'currentOrder',
+          'fromNeighborhoodList',
+          'toNeighborhoodList',
+        ]);
+        this.$router.push({ name: 'step-two' });
+      }
     },
     getAddress(payload) {
       chalan.getAddress(payload.zipcode)

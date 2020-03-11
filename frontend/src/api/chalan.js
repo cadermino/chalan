@@ -1,5 +1,4 @@
 import axios from 'axios';
-// import qs from 'qs';
 
 const orderData = {
   customer_id: null,

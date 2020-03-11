@@ -133,9 +133,6 @@ export default {
   },
   mounted() {
     this.getDataFromLocalStorage();
-    // if (!this.steps['step-two'].isComplete) {
-    //   this.$router.push('step-two');
-    // }
   },
   props: [
   ],
@@ -151,8 +148,10 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      this.addDataToLocalStorage(['currentOrder']);
-      this.$router.push('step-four');
+      if (this.steps[this.viewName].isComplete) {
+        this.addDataToLocalStorage(['currentOrder']);
+        this.$router.push({ name: 'step-four' });
+      }
     },
   },
   computed: {

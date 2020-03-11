@@ -12,9 +12,7 @@
 </template>
 
 <script>
-import {
-  mapState, mapActions, mapMutations, mapGetters,
-} from 'vuex';
+import { mapActions } from 'vuex';
 import Login from '@/components/Login.vue';
 import Tracker from '@/components/Tracker.vue';
 
@@ -37,27 +35,9 @@ export default {
   methods: {
     ...mapActions([
       'getDataFromLocalStorage',
-      'validateRequiredFields',
-      'addDataToLocalStorage',
     ]),
-    ...mapMutations([
-      'setOrder',
-      'setViewsMessages',
-    ]),
-    confirmPayment() {
-    },
   },
   computed: {
-    ...mapState([
-      'formValidationMessages',
-      'steps',
-      'viewsMessages',
-      'currentOrder',
-      'isLoginFormDisplayed',
-    ]),
-    ...mapGetters([
-      'isUserLogged',
-    ]),
     redirect() {
       return this.$route.query.redirect || '/';
     },

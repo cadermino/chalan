@@ -85,7 +85,6 @@ export default {
       'validateRequiredFields',
     ]),
     goToView(key) {
-      // this.validateRequiredFields(this.currentView);
       if (key !== this.currentView) {
         this.$router.push({ name: key }).catch(() => {});
       }
