@@ -89,9 +89,13 @@ export default new Vuex.Store({
     setNowDate(state) {
       state.nowDate = Date.now();
     },
-    // logOut() {},
   },
   actions: {
+    logout({ dispatch, commit }) {
+      commit('setOrder', { field: 'customer_id', value: null });
+      commit('setOrder', { field: 'token', value: null });
+      dispatch('addDataToLocalStorage', ['currentOrder']);
+    },
     addDataToLocalStorage({ state }, location) {
       location.forEach((item) => {
         localStorage.setItem(item, JSON.stringify(state[item]));

@@ -46,6 +46,9 @@
             <li>
               <a class="px-4 hover:text-gray-800" href="#">Contact</a>
             </li>
+            <li @click="logout">
+              Salir
+            </li>
           </ul>
         </div>
       </div>
@@ -66,13 +69,18 @@
 </style>
 
 <script>
-// @ is an alias to /src
+import { mapActions } from 'vuex';
 import Footer from '@/components/Footer.vue';
 
 export default {
   name: 'app',
   components: {
     Footer,
+  },
+  methods: {
+    ...mapActions([
+      'logout',
+    ]),
   },
 };
 </script>
