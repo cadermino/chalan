@@ -45,4 +45,29 @@ export default {
       },
     });
   },
+  login(payload) {
+    const data = { email: payload.email, password: payload.password };
+    const options = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      data,
+      url: `${process.env.VUE_APP_AUTH_API_URL}login`,
+    };
+    return axios(options);
+  },
+  register(payload) {
+    const data = {
+      email: payload.email,
+      password: payload.password,
+      name: payload.name,
+      mobile_phone: payload.mobilePhone,
+    };
+    const options = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      data,
+      url: `${process.env.VUE_APP_AUTH_API_URL}register`,
+    };
+    return axios(options);
+  },
 };

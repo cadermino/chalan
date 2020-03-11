@@ -147,7 +147,6 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-// @ is an alias to /src
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
 
@@ -180,17 +179,16 @@ export default {
     Tracker,
   },
   mounted() {
-    if (!this.steps['step-one'].isComplete) {
-      this.$router.push('step-one');
-    }
+    this.getDataFromLocalStorage();
     this.getAvailableVehicles();
-    document.getElementById('text-header').scrollIntoView();
   },
   props: [
   ],
   methods: {
     ...mapActions([
       'validateRequiredFields',
+      'getDataFromLocalStorage',
+      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -199,7 +197,8 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        this.$router.push('step-three');
+        this.addDataToLocalStorage(['currentOrder']);
+        this.$router.push({ name: 'step-three' });
       }
     },
     selectSize(vehicle) {

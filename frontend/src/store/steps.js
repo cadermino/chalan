@@ -1,6 +1,7 @@
 export default {
   'step-one': {
     name: 'Dirección recojo/entrega',
+    previous: null,
     isComplete: false,
     requisites: [
       'from_floor_number',
@@ -19,24 +20,28 @@ export default {
   },
   'step-two': {
     name: 'Información del vehículo',
+    previous: 'step-one',
     isComplete: false,
     requisites: [
       'driver_id',
     ],
   },
   'step-three': {
-    name: 'Confirmación',
+    name: 'Agenda',
+    previous: 'step-two',
     isComplete: false,
     requisites: [
       'appointment_date',
     ],
   },
   'step-four': {
-    name: 'Realiza el pago',
+    name: 'Pago',
+    previous: 'step-three',
     isComplete: false,
     requisites: [
-      'customer_id',
       'payment_id',
+      'customer_id',
+      'token',
     ],
   },
 };

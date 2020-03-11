@@ -504,7 +504,6 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-// @ is an alias to /src
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
 
@@ -519,14 +518,13 @@ export default {
   components: {
     Tracker,
   },
-  mounted() {
-
-  },
+  mounted() {},
   props: [
   ],
   methods: {
     ...mapActions([
       'validateRequiredFields',
+      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -537,7 +535,12 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        this.$router.push('step-two');
+        this.addDataToLocalStorage([
+          'currentOrder',
+          'fromNeighborhoodList',
+          'toNeighborhoodList',
+        ]);
+        this.$router.push({ name: 'step-two' });
       }
     },
     getAddress(payload) {
