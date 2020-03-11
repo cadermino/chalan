@@ -22,7 +22,10 @@ def register():
         db.session.rollback()
         return jsonify({'message' : 'duplicated email'}), 400
 
-    return jsonify({'message' : 'usuario registrado'}), 201
+    return jsonify({
+        'message' : 'usuario registrado',
+        'token' : customer.generate_auth_token(expiration=3600)
+    }), 201
 
 
 @auth.route('/login', methods=['POST'])
@@ -30,5 +33,9 @@ def login():
     data = request.json
     customer = Customer.query.filter_by(email=data['email'].lower()).first()
     if customer is not None and customer.verify_password(data['password']):
-        return jsonify({'token': customer.generate_auth_token(expiration=3600), 'expiration': 3600})
-    return jsonify({'message': 'user doesn\'t exist'})
+        return jsonify({
+            'token': customer.generate_auth_token(expiration=3600), 'expiration': 3600
+        })
+    return jsonify({
+        'message': 'user doesn\'t exist'
+    }), 400
