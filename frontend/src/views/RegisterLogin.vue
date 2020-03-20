@@ -3,8 +3,11 @@
     <div class="flex flex-wrap">
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
-        <div class="w-1/4 max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
-          <Login :redirect="redirect"></Login>
+        <div class="xl:w-1/4 max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
+          <Login
+            :redirect="redirect"
+          >
+          </Login>
         </div>
       </div>
     </div>
