@@ -5,15 +5,10 @@
       :app-id="appId"
       v-model="model"
       @sdk-init="handleSdkInit"
-      @login="login"
-      @logout="logout"
-      @click="click">
+      @login="login">
       <template slot="login">Continuar con Facebook</template>
       <template slot="logout">Salir</template>
     </v-facebook-login>
-    <!-- <button v-if="scope.logout && model.connected" @click="scope.logout">
-      Logout
-    </button> -->
   </div>
 </template>
 
@@ -55,7 +50,6 @@ export default {
       this.FB.api('/me',
         'GET', { fields: 'id,name,email' },
         (userInformation) => {
-          // console.log(userInformation);
           this.personalID = userInformation.id;
           this.email = userInformation.email;
           this.name = userInformation.name;
@@ -66,7 +60,6 @@ export default {
               token: statusResponse.authResponse.signedRequest,
             })
               .then((response) => {
-                console.log(response);
                 if (response.status === 201) {
                   this.handleUserData(response.data.token);
                   this.$router.push(this.redirect);
@@ -74,8 +67,6 @@ export default {
               })
               .catch((error) => {
                 let errorMessages;
-                // this.errorMessages =
-                //   'Ocurrio un error, por favor intenta nuevamente o recarga la página';
                 if (error.response && error.response.data.message === 'invalid token') {
                   errorMessages = 'Token invalido';
                 } else {
@@ -83,25 +74,16 @@ export default {
                 }
                 this.$emit('error-message', errorMessages);
               });
-            console.log('getLoginStatus', statusResponse);
           });
         });
     },
     handleUserData(token) {
-      // this.resetMessages();
       this.setOrder({ field: 'token', value: token });
       this.setOrder({ field: 'customer_id', value: this.decodeToken.id });
       this.addDataToLocalStorage(['currentOrder']);
     },
     login() {
-      console.log('entro login()');
       this.getUserData();
-    },
-    logout() {
-      console.log('entro logout()');
-    },
-    click() {
-      console.log('entro click()');
     },
     handleSdkInit({ FB, scope }) {
       this.FB = FB;

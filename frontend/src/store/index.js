@@ -98,7 +98,6 @@ export default new Vuex.Store({
     logout({ state, dispatch, commit }) {
       if (state.FB) {
         state.FB.logout();
-        console.log(state.FB);
       }
       commit('setOrder', { field: 'customer_id', value: null });
       commit('setOrder', { field: 'token', value: null });
