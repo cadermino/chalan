@@ -1,9 +1,10 @@
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 import datetime
 from . import auth
 from ..models import Customer
 from .. import db
 from sqlalchemy import exc
+from facepy import SignedRequest
 
 @auth.route('/register', methods=['POST'])
 def register():
@@ -40,3 +41,26 @@ def login():
     return jsonify({
         'message': 'user doesn\'t exist'
     }), 400
+
+
+@auth.route('/login-facebook', methods=['POST'])
+def login_facebook():
+    data = request.json
+    try:
+        SignedRequest.parse(data['token'], current_app.config['SECRET_FB_APP_KEY'])
+    except:
+        return jsonify({'message' : 'invalid token'}), 403
+    try:
+        customer = Customer.query.filter_by(email=data['email'].lower()).first()
+        if customer is None:
+            customer = Customer(email=data['email'].lower(),
+                        name=data['name'])
+            db.session.add(customer)
+            db.session.commit()
+    except:    
+        return jsonify({'message' : 'provide required data'}), 400
+
+    return jsonify({
+        'message' : 'facebook user logged',
+        'token' : customer.generate_auth_token(expiration=3600)
+    }), 201

@@ -25,6 +25,15 @@
       </p>
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
+          <LoginFacebook
+            :redirect="redirect"
+            v-on:error-message="errorMessageEvent"
+          />
+        </div>
+      </div>
+      <div class="border-b border-1 my-10"></div>
+      <div class="flex flex-wrap -mx-3">
+        <div class="w-full px-3 mb-4">
           <label class="block
             text-gray-700
             text-sm
@@ -178,6 +187,15 @@
       </p>
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
+          <LoginFacebook
+            :redirect="redirect"
+            v-on:error-message="errorMessageEvent"
+          />
+        </div>
+      </div>
+      <div class="border-b border-1 my-10"></div>
+      <div class="flex flex-wrap -mx-3">
+        <div class="w-full px-3 mb-4">
           <label class="block
             text-gray-700
             text-sm
@@ -279,6 +297,7 @@
 import {
   mapMutations, mapState, mapActions, mapGetters,
 } from 'vuex';
+import LoginFacebook from './LoginFacebook.vue';
 import chalan from '../api/chalan';
 
 export default {
@@ -321,8 +340,9 @@ export default {
       this.infoMessages = 'Para continuar con el proceso registrate o inicia sesión';
     }
   },
-  components: {},
-  watch: {},
+  components: {
+    LoginFacebook,
+  },
   methods: {
     ...mapActions([
       'addDataToLocalStorage',
@@ -330,6 +350,10 @@ export default {
     ...mapMutations([
       'setOrder',
     ]),
+    errorMessageEvent(message) {
+      this.resetMessages();
+      this.errorMessages = message;
+    },
     resetMessages() {
       this.errorMessages = '';
       this.infoMessages = '';

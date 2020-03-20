@@ -8,6 +8,7 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
+    FB: undefined,
     nowDate: '',
     steps,
     fromNeighborhoodList: [],
@@ -62,6 +63,9 @@ export default new Vuex.Store({
       && getters.isTokenValid) || false,
   },
   mutations: {
+    setFB(state, FB) {
+      state.FB = FB;
+    },
     assignOrder(state, order) {
       state.currentOrder = order;
     },
@@ -91,10 +95,14 @@ export default new Vuex.Store({
     },
   },
   actions: {
-    logout({ dispatch, commit }) {
+    logout({ state, dispatch, commit }) {
+      if (state.FB) {
+        state.FB.logout();
+      }
       commit('setOrder', { field: 'customer_id', value: null });
       commit('setOrder', { field: 'token', value: null });
       dispatch('addDataToLocalStorage', ['currentOrder']);
+      window.location.reload();
     },
     addDataToLocalStorage({ state }, location) {
       location.forEach((item) => {

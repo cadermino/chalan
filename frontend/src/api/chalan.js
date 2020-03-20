@@ -55,6 +55,16 @@ export default {
     };
     return axios(options);
   },
+  loginFacebook(payload) {
+    const data = { email: payload.email, name: payload.name, token: payload.token };
+    const options = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      data,
+      url: `${process.env.VUE_APP_AUTH_API_URL}login-facebook`,
+    };
+    return axios(options);
+  },
   register(payload) {
     const data = {
       email: payload.email,
