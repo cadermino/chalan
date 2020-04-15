@@ -14,6 +14,8 @@ export default new Vuex.Store({
     fromNeighborhoodList: [],
     toNeighborhoodList: [],
     currentOrder: {
+      order_id: null,
+      is_out_of_range: null,
       customer_id: null,
       token: null,
       driver_id: null,

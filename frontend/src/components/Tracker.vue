@@ -34,7 +34,8 @@
               </span>
             </div>
 
-            <div :class="(index+1 !== stepObjectLength)?'text-center':''"
+            <div :class="[(index+1 !== stepObjectLength)?'text-center':'',
+              (currentView==key) ? 'font-black' : '']"
               class="w-full text-xs mt-3">
               {{ item.name }}
             </div>

@@ -4,6 +4,12 @@ import router from './router';
 import store from './store';
 import './assets/css/tailwind.css';
 
+const moment = require('moment');
+
+Vue.use(require('vue-moment'), {
+  moment,
+});
+
 Vue.config.productionTip = false;
 
 new Vue({

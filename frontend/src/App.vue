@@ -77,6 +77,9 @@ export default {
   components: {
     Footer,
   },
+  mounted() {
+    this.$moment.locale('es');
+  },
   methods: {
     ...mapActions([
       'logout',

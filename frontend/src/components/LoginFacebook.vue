@@ -6,6 +6,7 @@
       v-model="model"
       @sdk-init="handleSdkInit"
       @login="login">
+      <template slot="working">Por favor espera...</template>
       <template slot="login">Continuar con Facebook</template>
       <template slot="logout">Salir</template>
     </v-facebook-login>
