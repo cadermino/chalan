@@ -70,37 +70,6 @@ DEFAULT CHARACTER SET = utf8;
 
 
 -- -----------------------------------------------------
--- Table `drivers`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `drivers` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(45) NULL,
-  `paternal_last_name` VARCHAR(45) NULL,
-  `maternal_last_name` VARCHAR(45) NULL,
-  `mobile_phone` VARCHAR(15) NULL,
-  `vehicle_id` INT NOT NULL,
-  `carrier_company_id` INT NULL,
-  `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_drivers_carrier_company1`
-    FOREIGN KEY (`carrier_company_id`)
-    REFERENCES `carrier_company` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_drivers_vehicle1`
-    FOREIGN KEY (`vehicle_id`)
-    REFERENCES `vehicles` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
-INSERT INTO `drivers` (`name`, `paternal_last_name`, `maternal_last_name`, `mobile_phone`, `vehicle_id`, `carrier_company_id`)
-VALUES
-	('Miguel', 'Calderon', 'Palomino', '764574557', 1, NULL);
-
-
--- -----------------------------------------------------
 -- Table `lu_order_status`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `lu_order_status` (
@@ -137,7 +106,7 @@ VALUES
 CREATE TABLE IF NOT EXISTS `orders` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `customer_id` INT NULL DEFAULT NULL,
-  `driver_id` INT NULL DEFAULT NULL,
+  `product_id` INT NULL DEFAULT NULL,
   `order_status_id` INT NOT NULL DEFAULT 1,
   `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `payment_id` INT NULL DEFAULT NULL,
@@ -155,9 +124,9 @@ CREATE TABLE IF NOT EXISTS `orders` (
     REFERENCES `lu_order_status` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_orders_drivers1`
-    FOREIGN KEY (`driver_id`)
-    REFERENCES `drivers` (`id`)
+  CONSTRAINT `fk_products1`
+    FOREIGN KEY (`product_id`)
+    REFERENCES `products` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_orders_payments1`
@@ -193,15 +162,45 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `vehicles` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `size` ENUM('small', 'medium', 'large') NULL,
+  `weight` VARCHAR(45) NULL,
   `plates` VARCHAR(45) NULL,
   `model` VARCHAR(45) NULL,
   `brand` VARCHAR(45) NULL,
+  `description` VARCHAR(200) NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
 INSERT INTO `vehicles` (`size`, `plates`, `model`, `brand`)
 VALUES
 	('small', '464gfg', 'test', 'test');
+
+
+-- -----------------------------------------------------
+-- Table `products`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `products` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `vehicle_id` INT NOT NULL,
+  `price` FLOAT NULL,
+  `origin_state` VARCHAR(45) NULL,
+  `destination_state` VARCHAR(45) NULL,
+  `floor_number` INT(3) NULL,
+  `carrier_company_id` INT NOT NULL,
+  `active` TINYINT NOT NULL,
+  `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_vehicle1`
+    FOREIGN KEY (`vehicle_id`)
+    REFERENCES `vehicles` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_carrier_company1` 
+    FOREIGN KEY (`carrier_company_id`)
+    REFERENCES `carrier_company` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
