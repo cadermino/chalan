@@ -52,7 +52,7 @@ class Order(db.Model):
 	__tablename__ = 'orders'
 	id = db.Column(db.Integer, primary_key=True)
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
-	driver_id = db.Column(db.Integer, db.ForeignKey("drivers.id"), nullable=True)
+	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
 	payment_id = db.Column(db.Integer, db.ForeignKey("payments.id"), nullable=True)
@@ -74,25 +74,26 @@ class OrderDetails(db.Model):
 	zip_code = db.Column(db.String(45), nullable=True)
 
 
-class Driver(db.Model):
-	__tablename__ = 'drivers'
+class Product(db.Model):
+	__tablename__ = 'products'
 	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(45))
-	paternal_last_name = db.Column(db.String(45))
-	maternal_last_name = db.Column(db.String(45))
-	mobile_phone = db.Column(db.String(15))
 	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+	price = db.Column(db.Float)
+	from_state = db.Column(db.String(45))
+	to_state = db.Column(db.String(45))
+	from_floor = db.Column(db.Integer)
+	to_floor = db.Column(db.Integer)
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
-	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
+	active = db.Column(db.Integer)
 
-	orders = db.relationship("Order", backref="driver")
+	vehicle = db.relationship("Vehicle", backref="products")
+	# vehicle = db.relationship("Vehicle", backref="products", lazy='joined')
 
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
 
-	drivers = db.relationship('Driver', backref='carrier_company')
 
 class OrderStatus(db.Model):
 	__tablename__ = 'lu_order_status'
@@ -124,10 +125,12 @@ class Vehicle(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	size = db.Column(db.Enum('small','medium','large'))
 	plates = db.Column(db.String(45))
+	weight = db.Column(db.String(45))
 	model = db.Column(db.String(45))
 	brand = db.Column(db.String(45))
+	description = db.Column(db.String(45))
+	picture = db.Column(db.String(45))
 
-	driver = db.relationship("Driver", backref="vehicles")
 
 class Sepomex(db.Model):
 	__tablename__ = 'sepomex'
@@ -156,6 +159,11 @@ class OrderSchema(ma.ModelSchema):
 class VehicleSchema(ma.ModelSchema):
 	class Meta:
 		model = Vehicle
+
+
+class ProductSchema(ma.ModelSchema):
+	class Meta:
+		model = Product
 
 
 class SepomexSchema(ma.ModelSchema):

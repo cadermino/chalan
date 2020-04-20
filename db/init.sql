@@ -162,17 +162,36 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `vehicles` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `size` ENUM('small', 'medium', 'large') NULL,
-  `weight` VARCHAR(45) NULL,
-  `plates` VARCHAR(45) NULL,
-  `model` VARCHAR(45) NULL,
+  `weight` VARCHAR(45) NULL COMMENT 'weight in kilograms',
   `brand` VARCHAR(45) NULL,
+  `model` VARCHAR(45) NULL,
   `description` VARCHAR(200) NULL,
+  `picture` VARCHAR(200) NULL,
+  `plates` VARCHAR(45) NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-INSERT INTO `vehicles` (`size`, `plates`, `model`, `brand`)
+INSERT INTO `vehicles` (`id`, `size`, `weight`, `brand`, `model`, `description`, `picture`, `plates`)
 VALUES
-	('small', '464gfg', 'test', 'test');
+	(1, 'small', '0–2,722', 'Chevrolet', 'Colorado/GMC Canyon', 'Chevrolet Colorado/GMC Canyon', 'truck-small.svg', '464gfg'),
+	(4, 'small', '0–2,722', 'Ford', 'Ranger', 'Ford Ranger', 'truck-small.svg', '464gfg'),
+	(5, 'small', '0–2,722', 'Nissan', 'Frontier', 'Nissan Frontier', 'truck-small.svg', '464gfg'),
+	(6, 'small', '0–2,722', 'Jeep', 'Comanche', 'Jeep Comanche', 'truck-small.svg', '464gfg'),
+	(7, 'small', '0–2,722', 'Toyota', 'Tacoma', 'Toyota Tacoma', 'truck-small.svg', '464gfg'),
+	(8, 'small', '0–2,722', 'Honda', 'Ridgeline FWD', 'Honda Ridgeline FWD', 'truck-small.svg', '464gfg'),
+	(9, 'medium', '7,258–8,845', 'Chevrolet', 'Silverado/GMC Sierra 5500', 'Silverado/GMC Sierra 5500', 'truck-medium.svg', '464gfg'),
+	(10, 'medium', '7,258–8,845', 'Ford', 'F-550', 'F-550', 'truck-medium.svg', '464gfg'),
+	(11, 'medium', '7,258–8,845', 'Ram', '5500', '5500', 'truck-medium.svg', '464gfg'),
+	(12, 'medium', '7,258–8,845', 'Kenworth', 'T170', 'T170', 'truck-medium.svg', '464gfg'),
+	(13, 'medium', '7,258–8,845', 'Peterbilt', '325', '325', 'truck-medium.svg', '464gfg'),
+	(14, 'medium', '7,258–8,845', 'International', 'TerraStar', 'TerraStar', 'truck-medium.svg', '464gfg'),
+	(15, 'medium', '7,258–8,845', 'Isuzu', 'NRR', 'NRR', 'truck-medium.svg', '464gfg'),
+	(16, 'large', '11,794–14,969', 'Autocar', 'ACMD', 'Autocar ACMD', 'truck-large.svg', '464gfg'),
+	(17, 'large', '11,794–14,969', 'GMC C7500', 'GMC C7500', 'GMC C7500', 'truck-large.svg', '464gfg'),
+	(18, 'large', '11,794–14,969', 'Kenworth T470 & T440 & T370', 'Kenworth T470 & T440 & T370', 'Kenworth T470 & T440 & T370', 'truck-large.svg', '464gfg'),
+	(19, 'large', '11,794–14,969', 'Peterbilt 220 & 337', 'Peterbilt 220 & 337', 'Peterbilt 220 & 337', 'truck-large.svg', '464gfg'),
+	(20, 'large', '11,794–14,969', 'Ford F-750', 'Ford F-750', 'Ford F-750', 'truck-large.svg', '464gfg');
+
 
 
 -- -----------------------------------------------------
@@ -181,10 +200,11 @@ VALUES
 CREATE TABLE IF NOT EXISTS `products` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `vehicle_id` INT NOT NULL,
+  `from_floor` INT(3) NULL,
+  `to_floor` INT(3) NULL,
+  `from_state` VARCHAR(45) NULL,
+  `to_state` VARCHAR(45) NULL,
   `price` FLOAT NULL,
-  `origin_state` VARCHAR(45) NULL,
-  `destination_state` VARCHAR(45) NULL,
-  `floor_number` INT(3) NULL,
   `carrier_company_id` INT NOT NULL,
   `active` TINYINT NOT NULL,
   `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

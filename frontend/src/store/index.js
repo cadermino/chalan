@@ -18,7 +18,6 @@ export default new Vuex.Store({
       is_out_of_range: null,
       customer_id: null,
       token: null,
-      driver_id: null,
       appointment_date: null,
       payment_id: null,
       comments: null,

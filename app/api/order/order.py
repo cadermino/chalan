@@ -12,7 +12,6 @@ class Order:
         order = OrderModel.query.get(self.order_id)
 
         order.customer_id = order_data['customer_id']
-        order.driver_id = order_data['driver_id']
         order.order_status_id = order_data['order_status_id']
         order.appointment_date = order_data['appointment_date']
         order.payment_id = order_data['payment_id']
@@ -57,7 +56,6 @@ class Order:
             order_data['order_status_id'] = 3
         order = OrderModel(
             customer_id = order_data['customer_id'],
-            driver_id = order_data['driver_id'],
             order_status_id = order_data['order_status_id'],
             appointment_date = order_data['appointment_date'],
             comments = order_data['comments']
