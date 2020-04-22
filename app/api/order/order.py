@@ -1,7 +1,6 @@
 from ... import db
 from ...models import OrderDetails, OrderSchema
 from ...models import Order as OrderModel
-from datetime import datetime
 
 class Order:
 

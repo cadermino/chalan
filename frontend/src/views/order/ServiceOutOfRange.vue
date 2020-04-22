@@ -31,11 +31,6 @@ import { mapMutations, mapActions } from 'vuex';
 
 export default {
   name: 'serviceOutOfRange',
-  // data() {
-  //   return {
-  //     state: '',
-  //   };
-  // },
   props: ['state'],
   mounted() {
     this.setOrder({ field: 'is_out_of_range', value: true });

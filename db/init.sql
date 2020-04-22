@@ -171,26 +171,26 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;
 
-INSERT INTO `vehicles` (`id`, `size`, `weight`, `brand`, `model`, `description`, `picture`, `plates`)
+INSERT INTO `vehicles` (`size`, `weight`, `brand`, `model`, `description`, `picture`, `plates`)
 VALUES
-	(1, 'small', '0–2,722', 'Chevrolet', 'Colorado/GMC Canyon', 'Chevrolet Colorado/GMC Canyon', 'truck-small.svg', '464gfg'),
-	(4, 'small', '0–2,722', 'Ford', 'Ranger', 'Ford Ranger', 'truck-small.svg', '464gfg'),
-	(5, 'small', '0–2,722', 'Nissan', 'Frontier', 'Nissan Frontier', 'truck-small.svg', '464gfg'),
-	(6, 'small', '0–2,722', 'Jeep', 'Comanche', 'Jeep Comanche', 'truck-small.svg', '464gfg'),
-	(7, 'small', '0–2,722', 'Toyota', 'Tacoma', 'Toyota Tacoma', 'truck-small.svg', '464gfg'),
-	(8, 'small', '0–2,722', 'Honda', 'Ridgeline FWD', 'Honda Ridgeline FWD', 'truck-small.svg', '464gfg'),
-	(9, 'medium', '7,258–8,845', 'Chevrolet', 'Silverado/GMC Sierra 5500', 'Silverado/GMC Sierra 5500', 'truck-medium.svg', '464gfg'),
-	(10, 'medium', '7,258–8,845', 'Ford', 'F-550', 'F-550', 'truck-medium.svg', '464gfg'),
-	(11, 'medium', '7,258–8,845', 'Ram', '5500', '5500', 'truck-medium.svg', '464gfg'),
-	(12, 'medium', '7,258–8,845', 'Kenworth', 'T170', 'T170', 'truck-medium.svg', '464gfg'),
-	(13, 'medium', '7,258–8,845', 'Peterbilt', '325', '325', 'truck-medium.svg', '464gfg'),
-	(14, 'medium', '7,258–8,845', 'International', 'TerraStar', 'TerraStar', 'truck-medium.svg', '464gfg'),
-	(15, 'medium', '7,258–8,845', 'Isuzu', 'NRR', 'NRR', 'truck-medium.svg', '464gfg'),
-	(16, 'large', '11,794–14,969', 'Autocar', 'ACMD', 'Autocar ACMD', 'truck-large.svg', '464gfg'),
-	(17, 'large', '11,794–14,969', 'GMC C7500', 'GMC C7500', 'GMC C7500', 'truck-large.svg', '464gfg'),
-	(18, 'large', '11,794–14,969', 'Kenworth T470 & T440 & T370', 'Kenworth T470 & T440 & T370', 'Kenworth T470 & T440 & T370', 'truck-large.svg', '464gfg'),
-	(19, 'large', '11,794–14,969', 'Peterbilt 220 & 337', 'Peterbilt 220 & 337', 'Peterbilt 220 & 337', 'truck-large.svg', '464gfg'),
-	(20, 'large', '11,794–14,969', 'Ford F-750', 'Ford F-750', 'Ford F-750', 'truck-large.svg', '464gfg');
+	('small', '0–2,722', 'Chevrolet', 'Colorado/GMC Canyon', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('small', '0–2,722', 'Ford', 'Ranger', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('small', '0–2,722', 'Nissan', 'Frontier', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('small', '0–2,722', 'Jeep', 'Comanche', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('small', '0–2,722', 'Toyota', 'Tacoma', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('small', '0–2,722', 'Honda', 'Ridgeline FWD', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'Chevrolet', 'Silverado/GMC Sierra 5500', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'Ford', 'F-550', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'Ram', '5500', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'Kenworth', 'T170', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'Peterbilt', '325', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'International', 'TerraStar', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('medium', '7,258–8,845', 'Isuzu', 'NRR', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('large', '11,794–14,969', 'Autocar', 'ACMD', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('large', '11,794–14,969', 'GMC', 'C7500', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('large', '11,794–14,969', 'Kenworth', 'T470 & T440 & T370', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('large', '11,794–14,969', 'Peterbilt', '220 & 337', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg'),
+	('large', '11,794–14,969', 'Ford', 'F-750', 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg');
 
 
 
@@ -221,6 +221,29 @@ CREATE TABLE IF NOT EXISTS `products` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
+
+INSERT INTO `products` (`vehicle_id`, `from_floor`, `to_floor`, `from_state`, `to_state`, `price`, `carrier_company_id`, `active`)
+VALUES
+	(1, 5, 3, 'Ciudad de México', 'Ciudad de México', 5000, 1, 1),
+	(4, 3, 6, 'Ciudad de México', 'Ciudad de México', 8000, 1, 1),
+	(5, 1, 1, 'Ciudad de México', 'Ciudad de México', 6000, 1, 1),
+	(6, 1, 1, 'Ciudad de México', 'Ciudad de México', 7000, 1, 1),
+	(7, 1, 1, 'Ciudad de México', 'Ciudad de México', 10000, 1, 1),
+	(8, 1, 1, 'Ciudad de México', 'Ciudad de México', 9000, 1, 1),
+	(9, 5, 3, 'Ciudad de México', 'Ciudad de México', 13000, 1, 1),
+	(10, 0, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(11, 3, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(12, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(13, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(14, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(15, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(16, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(17, 5, 3, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(18, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(19, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(20, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(10, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(10, 1, 1, 'Ciudad de México', 'Ciudad de México', 300, 1, 1);
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

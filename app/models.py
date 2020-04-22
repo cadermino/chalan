@@ -87,7 +87,6 @@ class Product(db.Model):
 	active = db.Column(db.Integer)
 
 	vehicle = db.relationship("Vehicle", backref="products")
-	# vehicle = db.relationship("Vehicle", backref="products", lazy='joined')
 
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'

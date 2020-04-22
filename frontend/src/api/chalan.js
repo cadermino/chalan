@@ -25,7 +25,6 @@ export default {
         to_floor: filters.to_floor,
         from_state: filters.from_state,
         to_state: filters.to_state,
-        size: filters.size,
       },
     });
   },

@@ -2,7 +2,6 @@
   <div>
     <div class="flex flex-wrap my-10">
       <div class="w-full mb-4 max-w-xl mx-auto">
-        <!-- <div class="w-full max-w-xl mx-auto"> -->
         <p class="mt-6 mb-2">
           <strong>POLÍTICA DE PRIVACIDAD</strong>
         </p>

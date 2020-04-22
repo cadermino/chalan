@@ -257,7 +257,6 @@ export default {
         });
     },
     selectProduct(product) {
-      console.log(product);
       this.setOrder({ field: 'product_id', value: product.id });
       this.setOrder({ field: 'price', value: product.price });
       this.setOrder({ field: 'product_size', value: product.size });
