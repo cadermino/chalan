@@ -534,33 +534,28 @@ export default {
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
-      if (this.steps[this.viewName].isComplete && !this.isOutOfRange) {
-        chalan.createOrder(this.currentOrder)
-          .then((response) => {
-            if (response.status === 201) {
-              this.addDataToLocalStorage([
-                'currentOrder',
-                'fromNeighborhoodList',
-                'toNeighborhoodList',
-              ]);
-              if (response.data.is_out_of_range) {
+      if (this.steps[this.viewName].isComplete) {
+        this.addDataToLocalStorage([
+          'currentOrder',
+          'fromNeighborhoodList',
+          'toNeighborhoodList',
+        ]);
+        if (this.isOutOfRange) {
+          chalan.createOrder(this.currentOrder)
+            .then((response) => {
+              if (response.status === 201) {
                 this.$router.push({
                   name: 'ServiceOutOfRange',
                   params: { state: this.currentOrder.from_state },
                 });
-              } else {
-                this.$router.push({ name: 'step-two' });
               }
-            }
-          })
-          .catch(() => {
-            this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
-          });
-      } else if (this.isOutOfRange) {
-        this.$router.push({
-          name: 'ServiceOutOfRange',
-          params: { state: this.currentOrder.from_state },
-        });
+            })
+            .catch(() => {
+              this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+            });
+        } else {
+          this.$router.push({ name: 'step-two' });
+        }
       }
     },
     getAddress(payload) {

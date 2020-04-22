@@ -23,7 +23,8 @@ export default {
     previous: 'step-one',
     isComplete: false,
     requisites: [
-      'driver_id',
+      'product_id',
+      'price',
     ],
   },
   'step-three': {

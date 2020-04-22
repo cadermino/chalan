@@ -23,7 +23,8 @@ class Product:
                 'model': product.vehicle.model,
                 'description': product.vehicle.description,
                 'picture': product.vehicle.picture,
-                'price': product.price
+                'price': product.price,
+                'id': product.id
             }
             output.append(prod)
 

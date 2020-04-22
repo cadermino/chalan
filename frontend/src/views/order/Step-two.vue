@@ -72,9 +72,11 @@
               v-bind:value="index"
               v-bind:key="index"
               class="w-full my-5 md:w-1/2 px-3">
-              <div @click="selectProduct(product)"
+              <div @click="(currentOrder.product_id == product.id) ?
+                        '' : selectProduct(product)"
+                :class="(currentOrder.product_id == product.id) ? 'bg-gray-200' : ''"
                 class="w-full cursor-pointer">
-                <img class="h-48
+                <img class="h-auto
                   w-full
                   flex-none
                   bg-cover
@@ -123,6 +125,9 @@
                   <div class="flex items-center">
                     <button
                       type="button"
+                      :class="(currentOrder.product_id == product.id) ?
+                        'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
+                        'bg-green-500 hover:bg-green-700'"
                       class="w-full
                       bg-green-500
                       hover:bg-green-700
@@ -132,7 +137,8 @@
                       rounded
                       focus:outline-none
                       focus:border-blue-400">
-                      Elegir
+                      {{ (currentOrder.product_id == product.id) ?
+                        'Seleccionado' : 'Elegir' }}
                     </button>
                   </div>
                 </div>
@@ -200,23 +206,6 @@ export default {
       viewName: 'step-two',
       selectedSize: null,
       productList: null,
-      vehiclesInfo: {
-        small: {
-          bgImage: 'truck-small.svg',
-          title: 'Pequeño',
-          description: 'Vehiculo con capacidad para uno a dos muebles',
-        },
-        medium: {
-          bgImage: 'truck-medium.svg',
-          title: 'Mediano',
-          description: 'Capacidad de 5 a 10 muebles',
-        },
-        large: {
-          bgImage: 'truck-large.svg',
-          title: 'Grande',
-          description: 'Capacidad para una mudanza completa',
-        },
-      },
     };
   },
   components: {
@@ -247,7 +236,6 @@ export default {
     },
     selectSize(size) {
       this.selectedSize = size;
-      this.productListFiltered = this.productList.filter(item => item.size === size);
     },
     getProducts() {
       const payload = {
@@ -258,11 +246,8 @@ export default {
       };
       chalan.getProducts(payload)
         .then((response) => {
-          this.productList = response.data;
           this.selectedSize = 'small';
-          this.productListFiltered = this.productList
-            .filter(item => item.size === this.selectedSize);
-          // this.productListFiltered = this.productList;
+          this.productList = response.data;
         })
         .catch(() => {
           this.setViewsMessages({
@@ -270,6 +255,11 @@ export default {
             message: 'Hubo un error, intenta después de recargar la página',
           });
         });
+    },
+    selectProduct(product) {
+      console.log(product);
+      this.setOrder({ field: 'product_id', value: product.id });
+      this.setOrder({ field: 'price', value: product.price });
     },
   },
   computed: {
@@ -279,6 +269,9 @@ export default {
       'steps',
       'viewsMessages',
     ]),
+    productListFiltered() {
+      return this.productList.filter(item => item.size === this.selectedSize);
+    },
   },
 };
 </script>
