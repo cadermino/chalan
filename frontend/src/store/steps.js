@@ -23,7 +23,9 @@ export default {
     previous: 'step-one',
     isComplete: false,
     requisites: [
-      'driver_id',
+      'product_id',
+      'product_size',
+      'price',
     ],
   },
   'step-three': {

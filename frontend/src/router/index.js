@@ -21,6 +21,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/About.vue'),
   },
   {
+    path: '/politica-de-privacidad',
+    name: 'privacy',
+    component: () => import(/* webpackChunkName: "privacy" */ '../views/Privacy.vue'),
+  },
+  {
     path: '/order/step-one',
     name: 'step-one',
     component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
@@ -44,9 +49,20 @@ const routes = [
     meta: { requiresPreviousComplete: true, requiresAuth: true },
   },
   {
+    path: '/order/area-fuera-servicio/:state',
+    name: 'ServiceOutOfRange',
+    component: () => import(/* webpackChunkName: "ServiceOutOfRange" */ '../views/order/ServiceOutOfRange.vue'),
+    props: true,
+  },
+  {
     path: '/register-login',
     name: 'register-login',
-    component: () => import(/* webpackChunkName: "step-four" */ '../views/RegisterLogin.vue'),
+    component: () => import(/* webpackChunkName: "register-login" */ '../views/RegisterLogin.vue'),
+  },
+  {
+    path: '*',
+    name: 'page-not-found',
+    component: () => import(/* webpackChunkName: "page-not-found" */ '../views/PageNotFound.vue'),
   },
 ];
 

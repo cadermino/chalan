@@ -23,62 +23,60 @@
             </div>
           </div>
           <p class="text-center font-bold mb-10">
-            Datos de tu mudanza
+            Confirma que todo este en orden antes del pago
           </p>
           <div class="flex flex-wrap mb-4">
-            <div class="w-full px-3 mb-4">
-              <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="w-full pxx-3 mb-4">
+              <div class="bg-white overflow-hidden sm:rounded-lg">
                 <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
                   <h3 class="text-lg leading-6 font-medium text-gray-900">
-                    Applicant Information
+                    $2,300 MX
                   </h3>
                   <p class="mt-1 max-w-2xl text-sm leading-5 text-gray-500">
-                    Personal details and application.
+                    Total a pagar
                   </p>
                 </div>
                 <div>
                   <dl>
                     <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Full name
+                        Dirección de recojo
                       </dt>
                       <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        Margot Foster
+                        {{ completeFromAddress }}
                       </dd>
                     </div>
                     <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Application for
+                        Dirección de entrega
                       </dt>
                       <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        Backend Developer
+                        {{ completeToAddress }}
                       </dd>
                     </div>
                     <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Email address
+                        Fecha y hora de la mudanza
                       </dt>
                       <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        margotfoster@example.com
+                        {{ currentOrder.appointment_date |
+                          moment("dddd D MMMM YYYY - h:mm A") }}
                       </dd>
                     </div>
                     <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Salary expectation
+                        Tamaño de vehículo
                       </dt>
                       <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        $120,000
+                        <!-- {{ currentOrder. }} -->
                       </dd>
                     </div>
                     <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        About
+                        Referencias
                       </dt>
                       <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        Fugiat ipsum ipsum deserunt culpa aute sint do nostrud anim incididunt
-                        cillum culpa consequat. Excepteur qui ipsum aliquip consequat sint.
-                        Sit id mollit nulla mollit nostrud in ea officia proident.
-                        Irure nostrud pariatur mollit ad adipisicing reprehenderit deserunt qui eu.
+                        {{ currentOrder.comments }}
                       </dd>
                     </div>
                     <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -230,7 +228,7 @@
             </div>
           </div>
           <div class="flex items-center justify-between">
-            <router-link to="/order/step-two" class="bg-green-500
+            <router-link to="/order/step-three" class="bg-green-500
               hover:bg-green-700
               text-white
               py-2
@@ -263,6 +261,7 @@
 import {
   mapState, mapActions, mapMutations, mapGetters,
 } from 'vuex';
+import 'moment/locale/es';
 import Tracker from '@/components/Tracker.vue';
 
 export default {
@@ -276,7 +275,9 @@ export default {
     Tracker,
   },
   mounted() {
+    this.$moment.locale('es');
     this.getDataFromLocalStorage();
+    console.log(this.$moment.locale());
   },
   props: [
   ],
@@ -303,6 +304,30 @@ export default {
     ...mapGetters([
       'isUserLogged',
     ]),
+    completeFromAddress() {
+      const fromInteriorNumber = this.currentOrder.from_interior_number
+        ? `interior ${this.currentOrder.from_interior_number},` : '';
+      const fromFloor = this.currentOrder.from_floor_number === '0'
+        ? '- Planta baja' : `- Piso ${this.currentOrder.from_floor_number}`;
+      return `${this.currentOrder.from_street},
+        ${fromInteriorNumber}
+        ${this.currentOrder.from_neighborhood},
+        ${this.currentOrder.from_city},
+        CP. ${this.currentOrder.from_zip_code}
+        ${fromFloor}`;
+    },
+    completeToAddress() {
+      const toInteriorNumber = this.currentOrder.to_interior_number
+        ? `interior ${this.currentOrder.to_interior_number},` : '';
+      const toFloor = this.currentOrder.to_floor_number === 0
+        ? '- Planta baja' : `- Piso ${this.currentOrder.to_floor_number}`;
+      return `${this.currentOrder.to_street},
+        ${toInteriorNumber}
+        ${this.currentOrder.to_neighborhood},
+        ${this.currentOrder.to_city},
+        CP. ${this.currentOrder.to_zip_code}
+        ${toFloor}`;
+    },
   },
 };
 </script>

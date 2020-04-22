@@ -26,42 +26,71 @@
             Elige el tamaño de tu mudanza <span class="text-red-500">*</span>
           </p>
           <div class="flex flex-wrap mb-4">
-            <div v-for="(vehicle, index) in vehiclesAvailable"
+            <div class="inline-flex w-full">
+              <button
+                @click="selectSize('small')"
+                :class="selectedSize === 'small'?
+                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
+                class="w-full
+                focus:outline-none
+                hover:bg-gray-500
+                text-gray
+                py-2
+                px-4
+                rounded-l">
+                Pequeño
+              </button>
+              <button
+                @click="selectSize('medium')"
+                :class="selectedSize === 'medium'?
+                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
+                class="w-full
+                focus:outline-none
+                hover:bg-gray-500
+                text-gray
+                py-2
+                px-4">
+                Mediano
+              </button>
+              <button
+                @click="selectSize('large')"
+                :class="selectedSize === 'large'?
+                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
+                class="w-full
+                focus:outline-none
+                hover:bg-gray-500
+                text-gray
+                py-2
+                px-4
+                rounded-r">
+                Grande
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-wrap mb-4" v-if="productList">
+            <div v-for="(product, index) in productListFiltered"
               v-bind:value="index"
               v-bind:key="index"
-              class="w-full my-5">
-              <div @click="(currentOrder.driver_id == vehicle.driver_id) ?
-                        '' : selectSize(vehicle)"
-                :class="(currentOrder.driver_id == vehicle.driver_id) ? 'bg-gray-200' : ''"
-                class="w-full lg:max-w-full lg:flex">
-                <div class="h-48
-                  lg:h-auto lg:w-48
+              class="w-full my-5 md:w-1/2 px-3">
+              <div @click="(currentOrder.product_id == product.id) ?
+                        '' : selectProduct(product)"
+                :class="(currentOrder.product_id == product.id) ? 'bg-gray-200' : ''"
+                class="w-full cursor-pointer">
+                <img class="h-auto
+                  w-full
                   flex-none
                   bg-cover
                   border-l border-r border-b-0 border-t border-gray-400
-                  lg:border-r-0
-                  lg:border-b
                   rounded-t
-                  lg:rounded-t-none lg:rounded-l
                   text-center
                   overflow-hidden"
-                  :style="{ backgroundImage:
-                  'url(' + require('@/assets/'+vehicle.bgImage) + ')'}"
-                  style="background-size: 60%;
-                  background-position: center;
-                  background-repeat: no-repeat;"
-                  title="Woman holding a mug">
-                </div>
+                  :src="require(`@/assets/${product.picture}`)"
+                  alt="Sunset in the mountains">
                 <div class="w-full border-r
                   border-b
                   border-l
                   border-gray-400
-                  lg:border-l-0
-                  lg:border-t
-                  lg:border-gray-400
                   rounded-b
-                  lg:rounded-b-none
-                  lg:rounded-r
                   p-4
                   flex
                   flex-col
@@ -69,26 +98,46 @@
                   leading-normal">
                   <div class="mb-8">
                     <div class="text-gray-900 font-bold text-xl mb-2">
-                      {{ vehicle.title }}
+                      {{  product.price
+                            .toLocaleString('en-US', {
+                              style: 'currency',
+                              currency: 'MXN',
+                              maximumSignificantDigits: 3,
+                            }
+                          )
+                      }}
                     </div>
-                    <p class="text-gray-700 text-base">
-                      {{ vehicle.description }}
-                    </p>
+                    <ul>
+                      <li><span>Marca:</span>
+                        <span class="font-bold"> {{ product.brand }}</span>
+                      </li>
+                      <li><span>Modelo:</span>
+                        <span class="font-bold"> {{ product.model }}</span>
+                      </li>
+                      <li><span>Límite de peso:</span>
+                        <span class="font-bold"> {{ product.weight }} kg</span>
+                      </li>
+                      <li class="mt-3">
+                        {{ product.description }} kg
+                      </li>
+                    </ul>
                   </div>
                   <div class="flex items-center">
                     <button
                       type="button"
-                      :class="(currentOrder.driver_id == vehicle.driver_id) ?
+                      :class="(currentOrder.product_id == product.id) ?
                         'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
                         'bg-green-500 hover:bg-green-700'"
                       class="w-full
+                      bg-green-500
+                      hover:bg-green-700
                       text-white
                       py-2
                       px-4
                       rounded
                       focus:outline-none
                       focus:border-blue-400">
-                      {{ (currentOrder.driver_id == vehicle.driver_id) ?
+                      {{ (currentOrder.product_id == product.id) ?
                         'Seleccionado' : 'Elegir' }}
                     </button>
                   </div>
@@ -155,24 +204,8 @@ export default {
   data() {
     return {
       viewName: 'step-two',
-      vehiclesAvailable: {},
-      vehiclesInfo: {
-        small: {
-          bgImage: 'truck-small.svg',
-          title: 'Pequeño',
-          description: 'Vehiculo con capacidad para uno a dos muebles',
-        },
-        medium: {
-          bgImage: 'truck-medium.svg',
-          title: 'Mediano',
-          description: 'Capacidad de 5 a 10 muebles',
-        },
-        large: {
-          bgImage: 'truck-large.svg',
-          title: 'Grande',
-          description: 'Capacidad para una mudanza completa',
-        },
-      },
+      selectedSize: null,
+      productList: null,
     };
   },
   components: {
@@ -180,7 +213,7 @@ export default {
   },
   mounted() {
     this.getDataFromLocalStorage();
-    this.getAvailableVehicles();
+    this.getProducts();
   },
   props: [
   ],
@@ -201,21 +234,20 @@ export default {
         this.$router.push({ name: 'step-three' });
       }
     },
-    selectSize(vehicle) {
-      this.setOrder({ field: 'driver_id', value: String(vehicle.driver_id) });
+    selectSize(size) {
+      this.selectedSize = size;
     },
-    getAvailableVehicles() {
-      chalan.getAvailableVehicles()
+    getProducts() {
+      const payload = {
+        from_floor: this.currentOrder.from_floor_number,
+        to_floor: this.currentOrder.to_floor_number,
+        from_state: this.currentOrder.from_state,
+        to_state: this.currentOrder.to_state,
+      };
+      chalan.getProducts(payload)
         .then((response) => {
-          this.vehiclesAvailable = response.data;
-          Object.values(this.vehiclesAvailable).forEach((value) => {
-            this.vehiclesAvailable[value.size]
-              .bgImage = this.vehiclesInfo[value.size].bgImage;
-            this.vehiclesAvailable[value.size]
-              .title = this.vehiclesInfo[value.size].title;
-            this.vehiclesAvailable[value.size]
-              .description = this.vehiclesInfo[value.size].description;
-          });
+          this.selectedSize = this.currentOrder.product_size ? this.currentOrder.product_size : 'small';
+          this.productList = response.data;
         })
         .catch(() => {
           this.setViewsMessages({
@@ -223,6 +255,11 @@ export default {
             message: 'Hubo un error, intenta después de recargar la página',
           });
         });
+    },
+    selectProduct(product) {
+      this.setOrder({ field: 'product_id', value: product.id });
+      this.setOrder({ field: 'price', value: product.price });
+      this.setOrder({ field: 'product_size', value: product.size });
     },
   },
   computed: {
@@ -232,6 +269,9 @@ export default {
       'steps',
       'viewsMessages',
     ]),
+    productListFiltered() {
+      return this.productList.filter(item => item.size === this.selectedSize);
+    },
   },
 };
 </script>

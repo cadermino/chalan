@@ -11,7 +11,6 @@ class Order:
         order = OrderModel.query.get(self.order_id)
 
         order.customer_id = order_data['customer_id']
-        order.driver_id = order_data['driver_id']
         order.order_status_id = order_data['order_status_id']
         order.appointment_date = order_data['appointment_date']
         order.payment_id = order_data['payment_id']
@@ -44,10 +43,15 @@ class Order:
         
         return order
 
-    def create(self, order_data):
+    def create(self, order_data):           
+        is_out_of_range = False
+        order_data['order_status_id'] = 1
+        if order_data['from_state'] != 'Ciudad de México':
+            is_out_of_range = True
+            order_data['order_status_id'] = 3
         order = OrderModel(
             customer_id = order_data['customer_id'],
-            driver_id = order_data['driver_id'],
+            order_status_id = order_data['order_status_id'],
             appointment_date = order_data['appointment_date'],
             comments = order_data['comments']
         )
@@ -79,4 +83,4 @@ class Order:
         db.session.add(order_details_to)
         db.session.commit()
         
-        return order
+        return (order, is_out_of_range)
