@@ -24,6 +24,7 @@ export default {
     isComplete: false,
     requisites: [
       'product_id',
+      'product_size',
       'price',
     ],
   },

@@ -246,7 +246,7 @@ export default {
       };
       chalan.getProducts(payload)
         .then((response) => {
-          this.selectedSize = 'small';
+          this.selectedSize = this.currentOrder.product_size ? this.currentOrder.product_size : 'small';
           this.productList = response.data;
         })
         .catch(() => {
@@ -260,6 +260,7 @@ export default {
       console.log(product);
       this.setOrder({ field: 'product_id', value: product.id });
       this.setOrder({ field: 'price', value: product.price });
+      this.setOrder({ field: 'product_size', value: product.size });
     },
   },
   computed: {

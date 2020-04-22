@@ -44,11 +44,7 @@ class Order:
         
         return order
 
-    def create(self, order_data):
-        print(order_data)
-        # if not order_data['appointment_date']:
-        # order_data['appointment_date'] = datetime.fromisoformat(order_data['appointment_date'])
-            
+    def create(self, order_data):           
         is_out_of_range = False
         order_data['order_status_id'] = 1
         if order_data['from_state'] != 'Ciudad de México':

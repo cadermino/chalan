@@ -228,7 +228,7 @@
             </div>
           </div>
           <div class="flex items-center justify-between">
-            <router-link to="/order/step-two" class="bg-green-500
+            <router-link to="/order/step-three" class="bg-green-500
               hover:bg-green-700
               text-white
               py-2

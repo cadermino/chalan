@@ -163,10 +163,11 @@ export default {
     ]),
     selectedDate: {
       get() {
-        return this.currentOrder.appointment_date;
+        return this.$moment(this.currentOrder.appointment_date).toISOString();
       },
       set(value) {
-        this.setOrder({ field: 'appointment_date', value });
+        const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
+        this.setOrder({ field: 'appointment_date', value: appointmentDate });
       },
     },
     userComments: {
