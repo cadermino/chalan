@@ -28,9 +28,16 @@
           <div class="flex flex-wrap mb-4">
             <div class="w-full pxx-3 mb-4">
               <div class="bg-white overflow-hidden sm:rounded-lg">
-                <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
-                  <h3 class="text-lg leading-6 font-medium text-gray-900">
-                    $2,300 MX
+                <div class="px-4 py-5 border-b border-gray-200">
+                  <h3 class="text-2xl leading-6 font-medium text-gray-900">
+                    {{ currentOrder.price
+                        .toLocaleString('en-US', {
+                          style: 'currency',
+                          currency: 'MXN',
+                          maximumSignificantDigits: 3,
+                        }
+                      )
+                    }}
                   </h3>
                   <p class="mt-1 max-w-2xl text-sm leading-5 text-gray-500">
                     Total a pagar
@@ -38,54 +45,106 @@
                 </div>
                 <div>
                   <dl>
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Dirección de recojo
                       </dt>
-                      <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         {{ completeFromAddress }}
                       </dd>
                     </div>
-                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Dirección de entrega
                       </dt>
-                      <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         {{ completeToAddress }}
                       </dd>
                     </div>
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Fecha y hora de la mudanza
                       </dt>
-                      <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         {{ currentOrder.appointment_date |
                           moment("dddd D MMMM YYYY - h:mm A") }}
                       </dd>
                     </div>
-                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Tamaño de vehículo
+                        Detalles del vehículo
                       </dt>
-                      <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        <!-- {{ currentOrder. }} -->
+                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        <div class="max-w-sm w-full lg:max-w-full lg:flex">
+                          <div class="h-48 lg:h-auto
+                          lg:w-64
+                          flex-none
+                          lg:bg-contain
+                          lg:bg-center
+                          lg:bg-no-repeat
+                          bg-cover
+                          rounded-t
+                          lg:rounded-t-none
+                          lg:rounded-l
+                          text-center
+                          overflow-hidden"
+                          style="background-image: url('/img/card-left.jpg')"
+                          :style="{ backgroundImage:
+                            'url(' + require(`@/assets/${currentOrder.vehicle_picture}`) + ')'}"
+                          title="Woman holding a mug">
+                          </div>
+                          <div class="border-r
+                          border-b
+                          border-l
+                          border-gray-400
+                          lg:border-0
+                          lg:border-gray-400
+                          bg-white
+                          rounded-b
+                          lg:rounded-b-none
+                          lg:rounded-r
+                          p-4
+                          flex
+                          flex-col
+                          justify-between
+                          leading-normal">
+                            <div class="">
+                              <div class="text-gray-900 font-bold text-xl">
+                                {{ currentOrder.vehicle_brand }} {{ currentOrder.vehicle_model }}
+                              </div>
+                              <p class="mb-4">
+                                <span class="text-gray-700 text-base">peso:</span>
+                                  {{ currentOrder.vehicle_weight }}
+                              </p>
+                              <p class="text-gray-700 text-base">
+                                Lorem ipsum dolor sit amet,
+                                consectetur adipisicing elit.
+                                Voluptatibus quia,
+                                nulla! Maiores et perferendis eaque,
+                                exercitationem praesentium nihil.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </dd>
                     </div>
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Referencias
                       </dt>
-                      <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         {{ currentOrder.comments }}
                       </dd>
                     </div>
-                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Attachments
+                        Opciones de pago
                       </dt>
-                      <dd class="mt-1 text-sm leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <ul class="border border-gray-200 rounded-md">
-                          <li class="pl-3
+                          <li class="border-t
+                          border-gray-200
+                          pl-3
                           pr-4
                           py-3
                           flex
@@ -94,50 +153,9 @@
                           text-sm
                           leading-5">
                             <div class="w-0 flex-1 flex items-center">
-                              <svg class="flex-shrink-0 h-5 w-5 text-gray-400"
-                                fill="currentColor"
-                                viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                  d="M8
-                                  4a3
-                                  3
-                                  0
-                                  00-3
-                                  3v4a5
-                                  5
-                                  0
-                                  0010
-                                  0V7a1
-                                  1
-                                  0
-                                  112
-                                  0v4a7
-                                  7
-                                  0
-                                  11-14
-                                  0V7a5
-                                  5
-                                  0
-                                  0110
-                                  0v4a3
-                                  3
-                                  0
-                                  11-6
-                                  0V7a1
-                                  1
-                                  0
-                                  012
-                                  0v4a1
-                                  1
-                                  0
-                                  102
-                                  0V7a3
-                                  3
-                                  0
-                                  00-3-3z" clip-rule="evenodd"/>
-                              </svg>
+                              <i class="fa fa-credit-card"></i>
                               <span class="ml-2 flex-1 w-0 truncate">
-                                resume_back_end_developer.pdf
+                                Tarjeta débito/crédito
                               </span>
                             </div>
                             <div class="ml-4 flex-shrink-0">
@@ -147,7 +165,7 @@
                               transition
                               duration-150
                               ease-in-out">
-                                Download
+                                Elegir
                               </a>
                             </div>
                           </li>
@@ -162,50 +180,9 @@
                           text-sm
                           leading-5">
                             <div class="w-0 flex-1 flex items-center">
-                              <svg class="flex-shrink-0
-                              h-5
-                              w-5
-                              text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M8
-                                4a3
-                                3
-                                0
-                                00-3
-                                3v4a5
-                                5
-                                0
-                                0010
-                                0V7a1
-                                1
-                                0
-                                112
-                                0v4a7
-                                7
-                                0
-                                11-14
-                                0V7a5
-                                5
-                                0
-                                0110
-                                0v4a3
-                                3
-                                0
-                                11-6
-                                0V7a1
-                                1
-                                0
-                                012
-                                0v4a1
-                                1
-                                0
-                                102
-                                0V7a3
-                                3
-                                0
-                                00-3-3z" clip-rule="evenodd"/>
-                              </svg>
+                              <i class="fa fa-money-bill-alt"></i>
                               <span class="ml-2 flex-1 w-0 truncate">
-                                coverletter_back_end_developer.pdf
+                                Efectivo
                               </span>
                             </div>
                             <div class="ml-4 flex-shrink-0">
@@ -215,7 +192,7 @@
                               transition
                               duration-150
                               ease-in-out">
-                                Download
+                                Elegir
                               </a>
                             </div>
                           </li>

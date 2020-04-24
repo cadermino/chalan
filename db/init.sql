@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `order_details` (
     REFERENCES `orders` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 
 -- -----------------------------------------------------
@@ -48,7 +48,11 @@ CREATE TABLE IF NOT EXISTS `carrier_company` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(45) NULL,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
+
+INSERT INTO `carrier_company` (`name`)
+VALUES
+	('Transportes Rodrigues');
 
 
 -- -----------------------------------------------------
@@ -65,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `phone` VARCHAR(15) NULL,
   `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB
+ENGINE = InnoDB CHARSET=utf8
 DEFAULT CHARACTER SET = utf8;
 
 
@@ -76,7 +80,7 @@ CREATE TABLE IF NOT EXISTS `lu_order_status` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `status` VARCHAR(45) NULL,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 
 INSERT INTO `lu_order_status` (`id`, `status`)
@@ -92,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `lu_payment_type` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `type` VARCHAR(45) NULL,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 
 INSERT INTO `lu_payment_type` (`id`, `type`)
@@ -134,7 +138,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     REFERENCES `payments` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 
 -- -----------------------------------------------------
@@ -153,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `payments` (
     REFERENCES `lu_payment_type` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 
 -- -----------------------------------------------------
@@ -169,7 +173,7 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
   `picture` VARCHAR(200) NULL,
   `plates` VARCHAR(45) NULL,
   PRIMARY KEY (`id`))
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 INSERT INTO `vehicles` (`size`, `weight`, `brand`, `model`, `description`, `picture`, `plates`)
 VALUES
@@ -220,30 +224,30 @@ CREATE TABLE IF NOT EXISTS `products` (
     REFERENCES `carrier_company` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = InnoDB CHARSET=utf8;
 
 INSERT INTO `products` (`vehicle_id`, `from_floor`, `to_floor`, `from_state`, `to_state`, `price`, `carrier_company_id`, `active`)
 VALUES
 	(1, 5, 3, 'Ciudad de México', 'Ciudad de México', 5000, 1, 1),
-	(4, 3, 6, 'Ciudad de México', 'Ciudad de México', 8000, 1, 1),
-	(5, 1, 1, 'Ciudad de México', 'Ciudad de México', 6000, 1, 1),
-	(6, 1, 1, 'Ciudad de México', 'Ciudad de México', 7000, 1, 1),
-	(7, 1, 1, 'Ciudad de México', 'Ciudad de México', 10000, 1, 1),
-	(8, 1, 1, 'Ciudad de México', 'Ciudad de México', 9000, 1, 1),
-	(9, 5, 3, 'Ciudad de México', 'Ciudad de México', 13000, 1, 1),
-	(10, 0, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(11, 3, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(2, 3, 6, 'Ciudad de México', 'Ciudad de México', 8000, 1, 1),
+	(3, 1, 1, 'Ciudad de México', 'Ciudad de México', 6000, 1, 1),
+	(4, 1, 1, 'Ciudad de México', 'Ciudad de México', 7000, 1, 1),
+	(5, 1, 1, 'Ciudad de México', 'Ciudad de México', 10000, 1, 1),
+	(6, 1, 1, 'Ciudad de México', 'Ciudad de México', 9000, 1, 1),
+	(7, 5, 3, 'Ciudad de México', 'Ciudad de México', 13000, 1, 1),
+	(8, 0, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(9, 3, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(10, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(11, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
 	(12, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
 	(13, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
 	(14, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(15, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(15, 5, 3, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
 	(16, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(17, 5, 3, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(17, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
 	(18, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(19, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(20, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(10, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(10, 1, 1, 'Ciudad de México', 'Ciudad de México', 300, 1, 1);
+	(1, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
+	(2, 1, 1, 'Ciudad de México', 'Ciudad de México', 300, 1, 1);
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
