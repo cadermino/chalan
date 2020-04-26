@@ -81,6 +81,8 @@ export default {
     handleUserData(token) {
       this.setOrder({ field: 'token', value: token });
       this.setOrder({ field: 'customer_id', value: this.decodeToken.id });
+      this.setOrder({ field: 'customer_name', value: this.name });
+      this.setOrder({ field: 'email', value: this.email });
       this.addDataToLocalStorage(['currentOrder']);
     },
     login() {

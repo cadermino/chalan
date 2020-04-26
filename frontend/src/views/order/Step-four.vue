@@ -23,12 +23,13 @@
             </div>
           </div>
           <p class="text-center font-bold mb-10">
-            Confirma que todo este en orden antes del pago
+            {{ currentOrder.customer_name | uppercase }},
+             confirma que todo este en orden antes del pago
           </p>
           <div class="flex flex-wrap mb-4">
             <div class="w-full pxx-3 mb-4">
               <div class="bg-white overflow-hidden sm:rounded-lg">
-                <div class="px-4 py-5 border-b border-gray-200">
+                <div class="pt-0 px-4 py-5 border-b border-gray-200">
                   <h3 class="text-2xl leading-6 font-medium text-gray-900">
                     {{ currentOrder.price
                         .toLocaleString('en-US', {
@@ -45,42 +46,18 @@
                 </div>
                 <div>
                   <dl>
-                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
-                      <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Dirección de recojo
-                      </dt>
-                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{ completeFromAddress }}
-                      </dd>
-                    </div>
-                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
-                      <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Dirección de entrega
-                      </dt>
-                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{ completeToAddress }}
-                      </dd>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
-                      <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Fecha y hora de la mudanza
-                      </dt>
-                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{ currentOrder.appointment_date |
-                          moment("dddd D MMMM YYYY - h:mm A") }}
-                      </dd>
-                    </div>
                     <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Detalles del vehículo
                       </dt>
-                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <div class="max-w-sm w-full lg:max-w-full lg:flex">
-                          <div class="h-48 lg:h-auto
+                          <div class=" mt-2
+                          h-48 lg:h-auto
                           lg:w-64
                           flex-none
                           lg:bg-contain
-                          lg:bg-center
+                          lg:bg-cente
                           lg:bg-no-repeat
                           bg-cover
                           rounded-t
@@ -90,8 +67,7 @@
                           overflow-hidden"
                           style="background-image: url('/img/card-left.jpg')"
                           :style="{ backgroundImage:
-                            'url(' + require(`@/assets/${currentOrder.vehicle_picture}`) + ')'}"
-                          title="Woman holding a mug">
+                            'url(' + require(`@/assets/${currentOrder.vehicle_picture}`) + ')'}">
                           </div>
                           <div class="border-r
                           border-b
@@ -103,6 +79,7 @@
                           rounded-b
                           lg:rounded-b-none
                           lg:rounded-r
+                          pt-0
                           p-4
                           flex
                           flex-col
@@ -112,9 +89,9 @@
                               <div class="text-gray-900 font-bold text-xl">
                                 {{ currentOrder.vehicle_brand }} {{ currentOrder.vehicle_model }}
                               </div>
-                              <p class="mb-4">
+                              <p class="mb-2">
                                 <span class="text-gray-700 text-base">peso:</span>
-                                  {{ currentOrder.vehicle_weight }}
+                                  {{ currentOrder.vehicle_weight }} Kg.
                               </p>
                               <p class="text-gray-700 text-base">
                                 Lorem ipsum dolor sit amet,
@@ -130,17 +107,85 @@
                     </div>
                     <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
+                        Dirección de recojo
+                      </dt>
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ completeFromAddress }}
+                      </dd>
+                    </div>
+                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-sm leading-5 font-medium text-gray-500">
+                        Dirección de entrega
+                      </dt>
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ completeToAddress }}
+                      </dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-sm leading-5 font-medium text-gray-500">
+                        Fecha y hora de la mudanza
+                      </dt>
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ currentOrder.appointment_date |
+                          moment("dddd D MMMM YYYY - h:mm A") }}
+                      </dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-sm leading-5 font-medium text-gray-500">
                         Referencias
                       </dt>
-                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         {{ currentOrder.comments }}
+                      </dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-sm leading-5 font-medium text-gray-500">
+                        Teléfono de contacto
+                      </dt>
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        <div class="pr-4
+                          py-3
+                          flex
+                          items-center
+                          justify-between
+                          text-base
+                          leading-5">
+                          <div v-if="!isMobilePhoneFieldActive"
+                            class="w-0 flex-1 flex items-center">
+                            {{ currentOrder.mobile_phone?currentOrder.mobile_phone:'-' }}
+                          </div>
+                          <input v-if="isMobilePhoneFieldActive"
+                            class="appearance-none
+                            border rounded
+                            w-full
+                            py-2
+                            px-3
+                            text-gray-700
+                            leading-tight
+                            focus:outline-none
+                            focus:border-blue-400"
+                            v-model="phoneNumber"
+                            type="number">
+                          <div class="ml-4 flex-shrink-0">
+                            <div
+                              @click="editMobilePhone()"
+                              class="cursor-pointer font-medium
+                              text-indigo-600
+                              hover:text-indigo-500
+                              transition
+                              duration-150
+                              ease-in-out">
+                              {{ isMobilePhoneFieldActive?'Aceptar':'Editar' }}
+                            </div>
+                          </div>
+                        </div>
                       </dd>
                     </div>
                     <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Opciones de pago
                       </dt>
-                      <dd class="mt-1 text-lg leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <ul class="border border-gray-200 rounded-md">
                           <li class="border-t
                           border-gray-200
@@ -150,23 +195,28 @@
                           flex
                           items-center
                           justify-between
-                          text-sm
+                          text-base
                           leading-5">
                             <div class="w-0 flex-1 flex items-center">
                               <i class="fa fa-credit-card"></i>
                               <span class="ml-2 flex-1 w-0 truncate">
                                 Tarjeta débito/crédito
+                                <i class="fa fa-check text-green-400 ml-2"
+                                  v-if="paymentTypeSelected=='credit'"
+                                ></i>
                               </span>
                             </div>
                             <div class="ml-4 flex-shrink-0">
-                              <a href="#" class="font-medium
+                              <div
+                              @click="paymentTypeSelect('credit')"
+                              class="cursor-pointer font-medium
                               text-indigo-600
                               hover:text-indigo-500
                               transition
                               duration-150
                               ease-in-out">
-                                Elegir
-                              </a>
+                                {{ paymentTypeSelected=='credit'?'Seleccionado':'Elegir' }}
+                              </div>
                             </div>
                           </li>
                           <li class="border-t
@@ -177,23 +227,28 @@
                           flex
                           items-center
                           justify-between
-                          text-sm
+                          text-base
                           leading-5">
                             <div class="w-0 flex-1 flex items-center">
                               <i class="fa fa-money-bill-alt"></i>
                               <span class="ml-2 flex-1 w-0 truncate">
                                 Efectivo
+                                <i class="fa fa-check text-green-400 ml-2"
+                                  v-if="paymentTypeSelected=='cash'"
+                                ></i>
                               </span>
                             </div>
                             <div class="ml-4 flex-shrink-0">
-                              <a href="#" class="font-medium
+                              <div
+                              @click="paymentTypeSelect('cash')"
+                              class="cursor-pointer font-medium
                               text-indigo-600
                               hover:text-indigo-500
                               transition
                               duration-150
                               ease-in-out">
-                                Elegir
-                              </a>
+                                {{ paymentTypeSelected=='cash'?'Seleccionado':'Elegir' }}
+                              </div>
                             </div>
                           </li>
                         </ul>
@@ -225,7 +280,7 @@
               rounded
               focus:outline-none
               focus:border-blue-400">
-              Proceder al pago
+              Agendar vehículo
               </button>
           </div>
         </div>
@@ -246,6 +301,8 @@ export default {
   data() {
     return {
       viewName: 'step-four',
+      paymentTypeSelected: '',
+      isMobilePhoneFieldActive: false,
     };
   },
   components: {
@@ -254,7 +311,6 @@ export default {
   mounted() {
     this.$moment.locale('es');
     this.getDataFromLocalStorage();
-    console.log(this.$moment.locale());
   },
   props: [
   ],
@@ -268,7 +324,13 @@ export default {
       'setOrder',
       'setViewsMessages',
     ]),
+    paymentTypeSelect(payment) {
+      this.paymentTypeSelected = payment;
+    },
     confirmPayment() {
+    },
+    editMobilePhone() {
+      this.isMobilePhoneFieldActive = !this.isMobilePhoneFieldActive;
     },
   },
   computed: {
@@ -290,6 +352,7 @@ export default {
         ${fromInteriorNumber}
         ${this.currentOrder.from_neighborhood},
         ${this.currentOrder.from_city},
+        ${this.currentOrder.from_state},
         CP. ${this.currentOrder.from_zip_code}
         ${fromFloor}`;
     },
@@ -302,8 +365,17 @@ export default {
         ${toInteriorNumber}
         ${this.currentOrder.to_neighborhood},
         ${this.currentOrder.to_city},
+        ${this.currentOrder.to_state},
         CP. ${this.currentOrder.to_zip_code}
         ${toFloor}`;
+    },
+    phoneNumber: {
+      get() {
+        return this.currentOrder.mobile_phone;
+      },
+      set(value) {
+        this.setOrder({ field: 'mobile_phone', value });
+      },
     },
   },
 };

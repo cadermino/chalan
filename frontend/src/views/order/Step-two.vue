@@ -263,7 +263,6 @@ export default {
       this.setOrder({ field: 'vehicle_brand', value: product.brand });
       this.setOrder({ field: 'vehicle_model', value: product.model });
       this.setOrder({ field: 'vehicle_weight', value: product.weight });
-      this.setOrder({ field: 'vehicle_weight', value: product.weight });
       this.setOrder({ field: 'vehicle_picture', value: product.picture });
     },
   },
