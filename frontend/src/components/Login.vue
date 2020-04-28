@@ -336,6 +336,9 @@ export default {
     redirect: String,
   },
   mounted() {
+    if (this.isUserLogged) {
+      this.$router.push(this.redirect);
+    }
     if (this.redirect !== '/') {
       this.infoMessages = 'Para continuar con el proceso registrate o inicia sesión';
     }
@@ -467,6 +470,7 @@ export default {
     ]),
     ...mapGetters([
       'decodeToken',
+      'isUserLogged',
     ]),
   },
 };

@@ -21,6 +21,7 @@ export default new Vuex.Store({
       vehicle_model: null,
       vehicle_weight: null,
       vehicle_picture: null,
+      vehicle_description: null,
       price: null,
       is_out_of_range: null,
       email: null,
@@ -135,6 +136,12 @@ export default new Vuex.Store({
           localStorage.removeItem('currentOrder');
         }
       }
+    },
+    removeDataFromLocalStorage({ dispatch, commit }, payload) {
+      payload.items.forEach((key) => {
+        commit(payload.mutation, { field: key, value: null });
+      });
+      dispatch('addDataToLocalStorage', [payload.location]);
     },
     validateRequiredFields({ commit, state }, viewName) {
       const emptyFields = [];

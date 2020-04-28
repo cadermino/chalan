@@ -23,7 +23,7 @@
             </div>
           </div>
           <p class="text-center font-bold mb-10">
-            {{ currentOrder.customer_name | uppercase }},
+            {{ currentOrder.customer_name }},
              confirma que todo este en orden antes del pago
           </p>
           <div class="flex flex-wrap mb-4">
@@ -202,20 +202,20 @@
                               <span class="ml-2 flex-1 w-0 truncate">
                                 Tarjeta débito/crédito
                                 <i class="fa fa-check text-green-400 ml-2"
-                                  v-if="paymentTypeSelected=='credit'"
+                                  v-if="paymentTypeSelected=='card'"
                                 ></i>
                               </span>
                             </div>
                             <div class="ml-4 flex-shrink-0">
                               <div
-                              @click="paymentTypeSelect('credit')"
-                              class="cursor-pointer font-medium
-                              text-indigo-600
-                              hover:text-indigo-500
-                              transition
-                              duration-150
-                              ease-in-out">
-                                {{ paymentTypeSelected=='credit'?'Seleccionado':'Elegir' }}
+                                @click="paymentTypeSelect('card')"
+                                class="cursor-pointer font-medium
+                                text-indigo-600
+                                hover:text-indigo-500
+                                transition
+                                duration-150
+                                ease-in-out">
+                                {{ paymentTypeSelected=='card'?'Seleccionado':'Elegir' }}
                               </div>
                             </div>
                           </li>
@@ -240,13 +240,13 @@
                             </div>
                             <div class="ml-4 flex-shrink-0">
                               <div
-                              @click="paymentTypeSelect('cash')"
-                              class="cursor-pointer font-medium
-                              text-indigo-600
-                              hover:text-indigo-500
-                              transition
-                              duration-150
-                              ease-in-out">
+                                @click="paymentTypeSelect('cash')"
+                                class="cursor-pointer font-medium
+                                text-indigo-600
+                                hover:text-indigo-500
+                                transition
+                                duration-150
+                                ease-in-out">
                                 {{ paymentTypeSelected=='cash'?'Seleccionado':'Elegir' }}
                               </div>
                             </div>
@@ -270,7 +270,27 @@
               focus:border-blue-400">
               Atras
             </router-link>
-            <button
+            <stripe-checkout
+              v-if="paymentTypeSelected === 'card'"
+              ref="checkoutRef"
+              :pk="publishableKey"
+              :sessionId="sessionId"
+            >
+              <template slot="checkout-button">
+                <button @click="checkout"
+                  class="bg-green-500
+                  hover:bg-green-700
+                  text-white
+                  py-2
+                  px-4
+                  rounded
+                  focus:outline-none
+                  focus:border-blue-400">
+                  Proceder al pago
+                </button>
+              </template>
+            </stripe-checkout>
+            <button v-else
               type="button"
               class="bg-green-500
               hover:bg-green-700
@@ -281,7 +301,7 @@
               focus:outline-none
               focus:border-blue-400">
               Agendar vehículo
-              </button>
+            </button>
           </div>
         </div>
       </div>
@@ -294,7 +314,9 @@ import {
   mapState, mapActions, mapMutations, mapGetters,
 } from 'vuex';
 import 'moment/locale/es';
+import { StripeCheckout } from 'vue-stripe-checkout';
 import Tracker from '@/components/Tracker.vue';
+import chalan from '../../api/chalan';
 
 export default {
   name: 'step-four',
@@ -303,12 +325,16 @@ export default {
       viewName: 'step-four',
       paymentTypeSelected: '',
       isMobilePhoneFieldActive: false,
+      publishableKey: process.env.VUE_APP_STRIPE,
+      sessionId: null,
     };
   },
   components: {
     Tracker,
+    StripeCheckout,
   },
   mounted() {
+    this.createChecoutSession();
     this.$moment.locale('es');
     this.getDataFromLocalStorage();
   },
@@ -328,9 +354,32 @@ export default {
       this.paymentTypeSelected = payment;
     },
     confirmPayment() {
+      // this.paymentTypeSelected
     },
     editMobilePhone() {
       this.isMobilePhoneFieldActive = !this.isMobilePhoneFieldActive;
+    },
+    checkout() {
+      this.$refs.checkoutRef.redirectToCheckout();
+    },
+    createChecoutSession() {
+      const payload = {
+        token: this.currentOrder.token,
+        email: this.currentOrder.email,
+        customer_id: this.currentOrder.customer_id,
+        name: this.productName,
+        description: this.currentOrder.vehicle_description,
+        amount: this.currentOrder.price * 100,
+      };
+      console.log(payload);
+      chalan.checkoutSession(payload)
+        .then((response) => {
+          console.log(response);
+          this.sessionId = response.data.id;
+        })
+        .catch(() => {
+
+        });
     },
   },
   computed: {
@@ -376,6 +425,12 @@ export default {
       set(value) {
         this.setOrder({ field: 'mobile_phone', value });
       },
+    },
+    productName() {
+      return `${this.currentOrder.vehicle_brand} ${this.currentOrder.vehicle_model} ${this.currentOrder.vehicle_weight} kg.`;
+    },
+    productDescription() {
+      return `Mobilidad desde ${this.currentOrder.from_city} a ${this.currentOrder.to_city}`;
     },
   },
 };

@@ -14,6 +14,9 @@ class Config:
     MAIL_SENDER = os.environ.get('MAIL_SENDER')
     ADMIN_MAIL = os.environ.get('ADMIN_MAIL')
     MAIL_SUBJECT_PREFIX = os.environ.get('MAIL_SUBJECT_PREFIX')
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+    STRIPE_SUCCESS = os.environ.get('STRIPE_SUCCESS')
+    STRIPE_CANCEL = os.environ.get('STRIPE_CANCEL')
 
     @staticmethod
     def init_app(app):

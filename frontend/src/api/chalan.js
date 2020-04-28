@@ -63,4 +63,19 @@ export default {
     };
     return axios(options);
   },
+  checkoutSession(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}order/checkout`, {
+      headers: {
+        Authorization: `Bearer ${payload.token}`,
+        'Content-Type': 'application/json',
+      },
+      params: {
+        customer_email: payload.email,
+        client_reference_id: payload.customer_id,
+        name: payload.name,
+        description: payload.description,
+        amount: payload.amount,
+      },
+    });
+  },
 };

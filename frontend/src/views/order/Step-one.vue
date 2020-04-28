@@ -492,7 +492,7 @@
                 focus:outline-none
                 focus:border-blue-400"
                 @click="nextStep">
-                Siguiente
+                Guardar y continuar
               </button>
             </div>
           </form>
@@ -525,6 +525,7 @@ export default {
     ...mapActions([
       'validateRequiredFields',
       'addDataToLocalStorage',
+      'removeDataFromLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -597,6 +598,20 @@ export default {
         return this.currentOrder.from_zip_code;
       },
       set(zipcode) {
+        this.removeDataFromLocalStorage({
+          mutation: 'setOrder',
+          location: 'currentOrder',
+          items: [
+            'price',
+            'product_id',
+            'product_size',
+            'vehicle_brand',
+            'vehicle_description',
+            'vehicle_model',
+            'vehicle_picture',
+            'vehicle_weight',
+          ],
+        });
         this.setOrder({ value: zipcode, field: 'from_zip_code' });
         this.selectedFromNeighborhood = null;
         this.fillNeighborhoodList({ value: [], direction: 'from' });
