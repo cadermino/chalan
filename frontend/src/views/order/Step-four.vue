@@ -90,15 +90,11 @@
                                 {{ currentOrder.vehicle_brand }} {{ currentOrder.vehicle_model }}
                               </div>
                               <p class="mb-2">
-                                <span class="text-gray-700 text-base">peso:</span>
+                                <span class="text-gray-700 text-base">Peso de carga:</span>
                                   {{ currentOrder.vehicle_weight }} Kg.
                               </p>
                               <p class="text-gray-700 text-base">
-                                Lorem ipsum dolor sit amet,
-                                consectetur adipisicing elit.
-                                Voluptatibus quia,
-                                nulla! Maiores et perferendis eaque,
-                                exercitationem praesentium nihil.
+                                {{ currentOrder.vehicle_description }}
                               </p>
                             </div>
                           </div>
@@ -187,8 +183,7 @@
                       </dt>
                       <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <ul class="border border-gray-200 rounded-md">
-                          <li class="border-t
-                          border-gray-200
+                          <li class="border-gray-200
                           pl-3
                           pr-4
                           py-3

@@ -48,7 +48,8 @@
             <li>
               <a class="px-4 hover:text-gray-800" href="#">Contact</a>
             </li>
-            <li @click="logout">
+            <li @click="logout"
+              class="cursor-pointer">
               Salir
             </li>
           </ul>

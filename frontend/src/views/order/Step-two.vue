@@ -114,7 +114,7 @@
                       <li><span>Modelo:</span>
                         <span class="font-bold"> {{ product.model }}</span>
                       </li>
-                      <li><span>Límite de peso:</span>
+                      <li><span>Peso de carga:</span>
                         <span class="font-bold"> {{ product.weight }} kg</span>
                       </li>
                       <li class="mt-3">
