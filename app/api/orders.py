@@ -1,4 +1,5 @@
-from flask import jsonify, request
+import stripe
+from flask import jsonify, request, current_app
 from ..models import Customer, Order, OrderSchema
 from . import api
 from .decorators import token_required
@@ -25,15 +26,6 @@ def update_order(order_id):
         'order_id': order.id
     }), 200
 
-# @api.route('/order/<int:order_id>/payment', methods=['POST'])
-# @token_required
-# def order_payment(order_id):
-#     auth_headers = request.headers.get('Authorization', '').split()
-#     customer = Customer.verify_auth_token(auth_headers[1])
-#     print('create_order_customer function')
-#     print(request)
-#     return 'True'
-
 @api.route('/orders', methods=['GET'])
 @token_required
 def all_orders():
@@ -41,3 +33,27 @@ def all_orders():
     order_schema = OrderSchema(many=True)
     output = order_schema.dump(orders)
     return jsonify({'orders': output})
+
+@api.route('/order/checkout', methods=['GET'])
+@token_required
+def generate_checkout_session():
+    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+    session = stripe.checkout.Session.create(
+        customer_email = request.args.get('customer_email'),
+        client_reference_id = request.args.get('client_reference_id'),
+        locale = 'es',
+        success_url = current_app.config['STRIPE_SUCCESS'],
+        cancel_url = current_app.config['STRIPE_CANCEL'],
+        payment_method_types = ["card"],
+        line_items = [
+            {
+                'name': request.args.get('name'),
+                'description': request.args.get('description'),
+                'amount': request.args.get('amount'),
+                'currency': 'mxn',
+                'quantity': 1,
+            }
+        ],
+    )
+
+    return session

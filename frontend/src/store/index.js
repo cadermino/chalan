@@ -17,9 +17,17 @@ export default new Vuex.Store({
       order_id: null,
       product_size: null,
       product_id: null,
+      vehicle_brand: null,
+      vehicle_model: null,
+      vehicle_weight: null,
+      vehicle_picture: null,
+      vehicle_description: null,
       price: null,
       is_out_of_range: null,
+      email: null,
       customer_id: null,
+      customer_name: null,
+      mobile_phone: null,
       token: null,
       appointment_date: null,
       payment_id: null,
@@ -42,6 +50,8 @@ export default new Vuex.Store({
     viewsMessages: {
       'step-one': null,
       'step-two': null,
+      'step-three': null,
+      'step-four': null,
     },
     formValidationMessages: {
       from_floor_number: null,
@@ -128,6 +138,12 @@ export default new Vuex.Store({
           localStorage.removeItem('currentOrder');
         }
       }
+    },
+    removeDataFromLocalStorage({ dispatch, commit }, payload) {
+      payload.items.forEach((key) => {
+        commit(payload.mutation, { field: key, value: null });
+      });
+      dispatch('addDataToLocalStorage', [payload.location]);
     },
     validateRequiredFields({ commit, state }, viewName) {
       const emptyFields = [];

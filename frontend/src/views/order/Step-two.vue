@@ -67,7 +67,7 @@
               </button>
             </div>
           </div>
-          <div class="flex flex-wrap mb-4" v-if="productList">
+          <div class="flex flex-wrap mb-4" v-if="productListFiltered.length">
             <div v-for="(product, index) in productListFiltered"
               v-bind:value="index"
               v-bind:key="index"
@@ -114,7 +114,7 @@
                       <li><span>Modelo:</span>
                         <span class="font-bold"> {{ product.model }}</span>
                       </li>
-                      <li><span>Límite de peso:</span>
+                      <li><span>Peso de carga:</span>
                         <span class="font-bold"> {{ product.weight }} kg</span>
                       </li>
                       <li class="mt-3">
@@ -144,6 +144,9 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="flex flex-wrap mb-4" v-else>
+            lo sentimos, no tenemos vehículos para los criterios seleccionados
           </div>
           <div class="flex items-center mb-8">
             <div v-if="viewsMessages[viewName]"
@@ -205,7 +208,7 @@ export default {
     return {
       viewName: 'step-two',
       selectedSize: null,
-      productList: null,
+      productList: [],
     };
   },
   components: {
@@ -260,6 +263,11 @@ export default {
       this.setOrder({ field: 'product_id', value: product.id });
       this.setOrder({ field: 'price', value: product.price });
       this.setOrder({ field: 'product_size', value: product.size });
+      this.setOrder({ field: 'vehicle_brand', value: product.brand });
+      this.setOrder({ field: 'vehicle_model', value: product.model });
+      this.setOrder({ field: 'vehicle_weight', value: product.weight });
+      this.setOrder({ field: 'vehicle_picture', value: product.picture });
+      this.setOrder({ field: 'vehicle_description', value: product.description });
     },
   },
   computed: {

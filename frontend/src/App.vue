@@ -11,7 +11,9 @@
         justify-between
         items-center border-b-2 border-gray-200"
       >
-        <router-link to="/" class="font-bold text-2xl lg:text-4xl">chalan.mx</router-link>
+        <router-link to="/" class="font-bold text-2xl lg:text-4xl">
+          <img class="w-2/3" src="../src/assets/logo_chalan.png" alt="">
+        </router-link>
         <div class="block lg:hidden">
           <button
             class="flex items-center px-3 py-2 border rounded text-gray-500
@@ -46,7 +48,8 @@
             <li>
               <a class="px-4 hover:text-gray-800" href="#">Contact</a>
             </li>
-            <li @click="logout">
+            <li @click="logout"
+              class="cursor-pointer">
               Salir
             </li>
           </ul>
