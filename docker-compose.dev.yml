@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     volumes:
-      - .:/chalan
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
     ports:
