@@ -348,9 +348,6 @@ export default {
     paymentTypeSelect(payment) {
       this.paymentTypeSelected = payment;
     },
-    confirmPayment() {
-      // this.paymentTypeSelected
-    },
     editMobilePhone() {
       this.isMobilePhoneFieldActive = !this.isMobilePhoneFieldActive;
     },
@@ -366,14 +363,12 @@ export default {
         description: this.currentOrder.vehicle_description,
         amount: this.currentOrder.price * 100,
       };
-      console.log(payload);
       chalan.checkoutSession(payload)
         .then((response) => {
-          console.log(response);
           this.sessionId = response.data.id;
         })
         .catch(() => {
-
+          this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
         });
     },
   },
@@ -423,9 +418,6 @@ export default {
     },
     productName() {
       return `${this.currentOrder.vehicle_brand} ${this.currentOrder.vehicle_model} ${this.currentOrder.vehicle_weight} kg.`;
-    },
-    productDescription() {
-      return `Mobilidad desde ${this.currentOrder.from_city} a ${this.currentOrder.to_city}`;
     },
   },
 };

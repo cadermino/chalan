@@ -26,15 +26,6 @@ def update_order(order_id):
         'order_id': order.id
     }), 200
 
-# @api.route('/order/<int:order_id>/payment', methods=['POST'])
-# @token_required
-# def order_payment(order_id):
-#     auth_headers = request.headers.get('Authorization', '').split()
-#     customer = Customer.verify_auth_token(auth_headers[1])
-#     print('create_order_customer function')
-#     print(request)
-#     return 'True'
-
 @api.route('/orders', methods=['GET'])
 @token_required
 def all_orders():
@@ -46,8 +37,6 @@ def all_orders():
 @api.route('/order/checkout', methods=['GET'])
 @token_required
 def generate_checkout_session():
-    print('STRIPE_SECRET_KEY')
-    print(current_app.config['STRIPE_SECRET_KEY'])
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     session = stripe.checkout.Session.create(
         customer_email = request.args.get('customer_email'),
