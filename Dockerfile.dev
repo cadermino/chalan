@@ -7,7 +7,6 @@ FROM python:3.6-alpine as production-stage
 WORKDIR /chalan
 COPY . .
 COPY --from=build-stage /chalan/dist /chalan/frontend/dist
-# RUN ls -la && cd frontend && ls -la && cd dist && ls -la
 
 RUN apk add --no-cache tzdata
 ENV TZ America/Mexico_City
