@@ -24,6 +24,7 @@ services:
     entrypoint: sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
   db:
     image: "mysql/mysql-server:5.7"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
       - "3307:3306"
     env_file: .env.mysql.dev

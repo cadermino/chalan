@@ -3,7 +3,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.local
     volumes:
       - .:/chalan
     ports:
@@ -12,12 +12,13 @@ services:
     restart: always
     links:
       - db:dbserver
-    command: sh -c "pip install -r requirements/dev.txt && flask run --host=0.0.0.0 --port=8000"
+    command: sh -c "flask run --host=0.0.0.0 --port=8000"
   db:
     image: "mysql/mysql-server:5.7"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
       - "3307:3306"
     env_file: .env.mysql.dev
+    restart: always
     volumes:
       - ./db:/docker-entrypoint-initdb.d/:ro
-    restart: always
