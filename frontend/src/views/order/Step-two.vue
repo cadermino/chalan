@@ -118,7 +118,7 @@
                         <span class="font-bold"> {{ product.weight }} kg</span>
                       </li>
                       <li class="mt-3">
-                        {{ product.description }} kg
+                        {{ product.description }}
                       </li>
                     </ul>
                   </div>
@@ -209,6 +209,16 @@ export default {
       viewName: 'step-two',
       selectedSize: null,
       productList: [],
+      productFields: {
+        product_id: 'id',
+        price: 'price',
+        product_size: 'size',
+        vehicle_brand: 'brand',
+        vehicle_model: 'model',
+        vehicle_weight: 'weight',
+        vehicle_picture: 'picture',
+        vehicle_description: 'description',
+      },
     };
   },
   components: {
@@ -244,13 +254,25 @@ export default {
       const payload = {
         from_floor: this.currentOrder.from_floor_number,
         to_floor: this.currentOrder.to_floor_number,
+        from_neighborhood: this.currentOrder.from_neighborhood,
+        to_neighborhood: this.currentOrder.to_neighborhood,
+        from_city: this.currentOrder.from_city,
+        to_city: this.currentOrder.to_city,
         from_state: this.currentOrder.from_state,
         to_state: this.currentOrder.to_state,
+        from_zip_code: this.currentOrder.from_zip_code,
+        to_zip_code: this.currentOrder.to_zip_code,
       };
       chalan.getProducts(payload)
         .then((response) => {
           this.selectedSize = this.currentOrder.product_size ? this.currentOrder.product_size : 'small';
           this.productList = response.data;
+          if (this.productList.length < 1) {
+            Object.keys(this.productFields).forEach((field) => {
+              this.setOrder({ field, value: null });
+            });
+            this.addDataToLocalStorage(['currentOrder']);
+          }
         })
         .catch(() => {
           this.setViewsMessages({
@@ -260,14 +282,9 @@ export default {
         });
     },
     selectProduct(product) {
-      this.setOrder({ field: 'product_id', value: product.id });
-      this.setOrder({ field: 'price', value: product.price });
-      this.setOrder({ field: 'product_size', value: product.size });
-      this.setOrder({ field: 'vehicle_brand', value: product.brand });
-      this.setOrder({ field: 'vehicle_model', value: product.model });
-      this.setOrder({ field: 'vehicle_weight', value: product.weight });
-      this.setOrder({ field: 'vehicle_picture', value: product.picture });
-      this.setOrder({ field: 'vehicle_description', value: product.description });
+      Object.keys(this.productFields).forEach((field) => {
+        this.setOrder({ field, value: product[this.productFields[field]] });
+      });
     },
   },
   computed: {

@@ -11,9 +11,8 @@ def create_order():
     order = OrderEntity()
     order = order.create(order_data=order_data)
     return jsonify({
-        'message': 'order {id} created!'.format(id=order[0].id),
-        'order_id': order[0].id,
-        'is_out_of_range': order[1]
+        'message': 'order {id} created!'.format(id=order.id),
+        'order_id': order.id,
     }), 201
 
 @api.route('/order/<int:order_id>/update', methods=['POST'])

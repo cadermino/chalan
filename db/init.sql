@@ -204,12 +204,19 @@ VALUES
 CREATE TABLE IF NOT EXISTS `products` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `vehicle_id` INT NOT NULL,
+  `price` FLOAT NULL,
   `from_floor` INT(3) NULL,
   `to_floor` INT(3) NULL,
+  `from_neighborhood` VARCHAR(45) NULL,
+  `to_neighborhood` VARCHAR(45) NULL,
+  `from_city` VARCHAR(45) NULL,
+  `to_city` VARCHAR(45) NULL,
   `from_state` VARCHAR(45) NULL,
   `to_state` VARCHAR(45) NULL,
-  `price` FLOAT NULL,
+  `from_zip_code` VARCHAR(45) NULL,
+  `to_zip_code` VARCHAR(45) NULL,
   `carrier_company_id` INT NOT NULL,
+  `description` VARCHAR(500) NULL,
   `active` TINYINT NOT NULL,
   `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
@@ -226,28 +233,28 @@ CREATE TABLE IF NOT EXISTS `products` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB CHARSET=utf8;
 
-INSERT INTO `products` (`vehicle_id`, `from_floor`, `to_floor`, `from_state`, `to_state`, `price`, `carrier_company_id`, `active`)
+INSERT INTO `products` (`vehicle_id`, `price`, `from_floor`, `to_floor`, `from_neighborhood`, `to_neighborhood`, `from_city`, `to_city`, `from_state`, `to_state`, `from_zip_code`, `to_zip_code`, `carrier_company_id`, `description`, `active`)
 VALUES
-	(1, 5, 3, 'Ciudad de México', 'Ciudad de México', 5000, 1, 1),
-	(2, 3, 6, 'Ciudad de México', 'Ciudad de México', 8000, 1, 1),
-	(3, 1, 1, 'Ciudad de México', 'Ciudad de México', 6000, 1, 1),
-	(4, 1, 1, 'Ciudad de México', 'Ciudad de México', 7000, 1, 1),
-	(5, 1, 1, 'Ciudad de México', 'Ciudad de México', 10000, 1, 1),
-	(6, 1, 1, 'Ciudad de México', 'Ciudad de México', 9000, 1, 1),
-	(7, 5, 3, 'Ciudad de México', 'Ciudad de México', 13000, 1, 1),
-	(8, 0, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(9, 3, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(10, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(11, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(12, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(13, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(14, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(15, 5, 3, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(16, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(17, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(18, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(1, 1, 1, 'Ciudad de México', 'Ciudad de México', 15000, 1, 1),
-	(2, 1, 1, 'Ciudad de México', 'Ciudad de México', 300, 1, 1);
+	(1, 5000, 5, 3, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(2, 8000, 3, 6, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(3, 6000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(4, 7000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(5, 10000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(6, 9000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(7, 13000, 5, 3, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(8, 15000, 0, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(9, 15000, 3, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(10, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(11, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(12, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(13, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(14, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(15, 15000, 5, 3, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(16, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(17, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(18, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(1, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
+	(2, 300, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1);
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

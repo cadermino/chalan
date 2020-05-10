@@ -44,11 +44,6 @@ class Order:
         return order
 
     def create(self, order_data):           
-        is_out_of_range = False
-        order_data['order_status_id'] = 1
-        if order_data['from_state'] != 'Ciudad de México':
-            is_out_of_range = True
-            order_data['order_status_id'] = 3
         order = OrderModel(
             customer_id = order_data['customer_id'],
             order_status_id = order_data['order_status_id'],
@@ -83,4 +78,4 @@ class Order:
         db.session.add(order_details_to)
         db.session.commit()
         
-        return (order, is_out_of_range)
+        return order

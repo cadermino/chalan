@@ -62,7 +62,7 @@ export default {
             })
               .then((response) => {
                 if (response.status === 201) {
-                  this.handleUserData(response.data.token);
+                  this.handleUserData(response.data);
                   this.$router.push(this.redirect);
                 }
               })
@@ -78,11 +78,12 @@ export default {
           });
         });
     },
-    handleUserData(token) {
-      this.setOrder({ field: 'token', value: token });
+    handleUserData(data) {
+      this.setOrder({ field: 'token', value: data.token });
       this.setOrder({ field: 'customer_id', value: this.decodeToken.id });
-      this.setOrder({ field: 'customer_name', value: this.name });
-      this.setOrder({ field: 'email', value: this.email });
+      this.setOrder({ field: 'customer_name', value: data.name });
+      this.setOrder({ field: 'email', value: data.email });
+      this.setOrder({ field: 'mobile_phone', value: data.mobile_phone });
       this.addDataToLocalStorage(['currentOrder']);
     },
     login() {

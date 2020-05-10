@@ -23,8 +23,14 @@ export default {
       params: {
         from_floor: filters.from_floor,
         to_floor: filters.to_floor,
+        from_neighborhood: filters.from_neighborhood,
+        to_neighborhood: filters.to_neighborhood,
+        from_city: filters.from_city,
+        to_city: filters.to_city,
         from_state: filters.from_state,
         to_state: filters.to_state,
+        from_zip_code: filters.from_zip_code,
+        to_zip_code: filters.to_zip_code,
       },
     });
   },

@@ -25,7 +25,10 @@ def register():
 
     return jsonify({
         'message' : 'usuario registrado',
-        'token' : customer.generate_auth_token(expiration=3600)
+        'token' : customer.generate_auth_token(expiration=3600),
+        'name': customer.name,
+        'email': customer.email,
+        'mobile_phone': customer.mobile_phone
     }), 201
 
 
@@ -36,7 +39,10 @@ def login():
     if customer is not None and customer.verify_password(data['password']):
         return jsonify({
             'token': customer.generate_auth_token(expiration=3600),
-            'expiration': 3600
+            'expiration': 3600,
+            'name': customer.name, 
+            'email': customer.email,
+            'mobile_phone': customer.mobile_phone
         })
     return jsonify({
         'message': 'user doesn\'t exist'
@@ -62,5 +68,8 @@ def login_facebook():
 
     return jsonify({
         'message' : 'facebook user logged',
-        'token' : customer.generate_auth_token(expiration=3600)
+        'token' : customer.generate_auth_token(expiration=3600),
+        'name': customer.name, 
+        'email': customer.email,
+        'mobile_phone': customer.mobile_phone
     }), 201
