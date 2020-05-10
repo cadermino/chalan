@@ -139,12 +139,6 @@ export default new Vuex.Store({
         }
       }
     },
-    removeDataFromLocalStorage({ dispatch, commit }, payload) {
-      payload.items.forEach((key) => {
-        commit(payload.mutation, { field: key, value: null });
-      });
-      dispatch('addDataToLocalStorage', [payload.location]);
-    },
     validateRequiredFields({ commit, state }, viewName) {
       const emptyFields = [];
       state.steps[viewName].requisites.forEach((field) => {

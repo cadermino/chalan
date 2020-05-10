@@ -415,7 +415,7 @@ export default {
         })
           .then((response) => {
             if (response.status === 200) {
-              this.handleUserData(response.data.token);
+              this.handleUserData(response.data);
               this.$router.push(this.redirect);
             }
           })
@@ -439,7 +439,7 @@ export default {
         })
           .then((response) => {
             if (response.status === 201) {
-              this.handleUserData(response.data.token);
+              this.handleUserData(response.data);
               this.$router.push(this.redirect);
             }
           })
@@ -451,13 +451,13 @@ export default {
           });
       }
     },
-    handleUserData(token) {
+    handleUserData(data) {
       this.resetMessages();
-      this.setOrder({ field: 'token', value: token });
+      this.setOrder({ field: 'token', value: data.token });
       this.setOrder({ field: 'customer_id', value: this.decodeToken.id });
-      this.setOrder({ field: 'email', value: this.requiredFieldsRegister.email });
-      this.setOrder({ field: 'mobile_phone', value: this.requiredFieldsRegister.mobilePhone });
-      this.setOrder({ field: 'customer_name', value: this.requiredFieldsRegister.name });
+      this.setOrder({ field: 'email', value: data.email });
+      this.setOrder({ field: 'mobile_phone', value: data.mobile_phone });
+      this.setOrder({ field: 'customer_name', value: data.name });
       this.addDataToLocalStorage(['currentOrder']);
     },
     cancel() {
