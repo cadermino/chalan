@@ -1,7 +1,6 @@
 from flask import jsonify
 from ...models import Product as ProductModel
 from ...models import Vehicle as VehicleModel
-from sqlalchemy import and_
 
 class Product:
     is_active = 1
