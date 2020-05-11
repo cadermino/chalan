@@ -540,18 +540,18 @@ export default {
             .then((response) => {
               if (response.status === 201) {
                 this.setOrder({ field: 'order_id', value: response.data.order_id });
+                this.addDataToLocalStorage([
+                  'currentOrder',
+                  'fromNeighborhoodList',
+                  'toNeighborhoodList',
+                ]);
+                this.$router.push({ name: 'step-two' });
               }
             })
             .catch(() => {
               this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
             });
         }
-        this.addDataToLocalStorage([
-          'currentOrder',
-          'fromNeighborhoodList',
-          'toNeighborhoodList',
-        ]);
-        this.$router.push({ name: 'step-two' });
       }
     },
     getAddress(payload) {
