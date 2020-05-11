@@ -28,6 +28,6 @@ services:
     ports:
       - "3307:3306"
     env_file: .env.mysql.dev
+    restart: always
     volumes:
       - ./db:/docker-entrypoint-initdb.d/:ro
-    restart: always

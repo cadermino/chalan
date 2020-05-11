@@ -117,6 +117,7 @@ import { Datetime } from 'vue-datetime';
 import 'vue-datetime/dist/vue-datetime.css';
 import { Settings } from 'luxon';
 import Tracker from '@/components/Tracker.vue';
+import chalan from '../../api/chalan';
 
 Settings.defaultLocale = 'es';
 
@@ -149,8 +150,16 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        this.addDataToLocalStorage(['currentOrder']);
-        this.$router.push({ name: 'step-four' });
+        chalan.updateOrder(this.currentOrder)
+          .then((response) => {
+            if (response.status === 200) {
+              this.addDataToLocalStorage(['currentOrder']);
+              this.$router.push({ name: 'step-four' });
+            }
+          })
+          .catch(() => {
+            this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+          });
       }
     },
   },

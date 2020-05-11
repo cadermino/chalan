@@ -1,7 +1,7 @@
 FROM node:8-alpine as build-stage
 WORKDIR /chalan
 COPY /frontend .
-RUN npm install && npm run build
+RUN npm install && npm run build-dev
 
 FROM python:3.6-alpine as production-stage
 WORKDIR /chalan

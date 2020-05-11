@@ -70,7 +70,13 @@ export default new Vuex.Store({
       return state.nowDate < (getters.decodeToken.exp * 1000);
     },
     decodeToken(state) {
-      return VueJwtDecode.decode(state.currentOrder.token);
+      try {
+        return VueJwtDecode.decode(state.currentOrder.token);
+      } catch {
+        return {
+          exp: 0,
+        };
+      }
     },
     isUserLogged: (state, getters) => (state.currentOrder.customer_id
       && state.currentOrder.token

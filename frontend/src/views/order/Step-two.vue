@@ -243,8 +243,16 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        this.addDataToLocalStorage(['currentOrder']);
-        this.$router.push({ name: 'step-three' });
+        chalan.updateOrder(this.currentOrder)
+          .then((response) => {
+            if (response.status === 200) {
+              this.addDataToLocalStorage(['currentOrder']);
+              this.$router.push({ name: 'step-three' });
+            }
+          })
+          .catch(() => {
+            this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+          });
       }
     },
     selectSize(size) {
