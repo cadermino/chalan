@@ -535,27 +535,23 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        this.addDataToLocalStorage([
-          'currentOrder',
-          'fromNeighborhoodList',
-          'toNeighborhoodList',
-        ]);
-        if (this.isOutOfRange) {
+        if (!this.currentOrder.order_id) {
           chalan.createOrder(this.currentOrder)
             .then((response) => {
               if (response.status === 201) {
-                this.$router.push({
-                  name: 'ServiceOutOfRange',
-                  params: { state: this.currentOrder.from_state },
-                });
+                this.setOrder({ field: 'order_id', value: response.data.order_id });
               }
             })
             .catch(() => {
               this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
             });
-        } else {
-          this.$router.push({ name: 'step-two' });
         }
+        this.addDataToLocalStorage([
+          'currentOrder',
+          'fromNeighborhoodList',
+          'toNeighborhoodList',
+        ]);
+        this.$router.push({ name: 'step-two' });
       }
     },
     getAddress(payload) {
@@ -589,9 +585,6 @@ export default {
       'viewsMessages',
       'steps',
     ]),
-    isOutOfRange() {
-      return this.currentOrder.from_state !== 'Ciudad de México';
-    },
     zipcodeFrom: {
       get() {
         return this.currentOrder.from_zip_code;

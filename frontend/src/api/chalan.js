@@ -2,7 +2,14 @@ import axios from 'axios';
 
 export default {
   createOrder(orderData) {
-    return axios.post(`${process.env.VUE_APP_API_URL}order/create`, orderData, {
+    return axios.post(`${process.env.VUE_APP_API_URL}order`, orderData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
+  updateOrder(orderData) {
+    return axios.put(`${process.env.VUE_APP_API_URL}order/${orderData.order_id}`, orderData, {
       headers: {
         'Content-Type': 'application/json',
       },

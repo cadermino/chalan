@@ -78,6 +78,11 @@ const router = new VueRouter({
 router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage');
   store.commit('setNowDate');
+  if (store.state.currentOrder.token && !store.getters.isTokenValid) {
+    localStorage.removeItem('currentOrder');
+    localStorage.removeItem('fromNeighborhoodList');
+    localStorage.removeItem('toNeighborhoodList');
+  }
   if (to.matched.some(record => record.meta.requiresPreviousComplete
     && record.meta.requiresAuth)) {
     if (store.getters.isUserLogged) {

@@ -5,7 +5,7 @@ from . import api
 from .decorators import token_required
 from .order import Order as OrderEntity
 
-@api.route('/order/create', methods=['POST'])
+@api.route('/order', methods=['POST'])
 def create_order():
     order_data = request.json
     order = OrderEntity()
@@ -15,7 +15,7 @@ def create_order():
         'order_id': order.id,
     }), 201
 
-@api.route('/order/<int:order_id>/update', methods=['POST'])
+@api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json
     order = OrderEntity(order_id)

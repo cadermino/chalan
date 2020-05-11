@@ -11,7 +11,7 @@ class Order:
         order = OrderModel.query.get(self.order_id)
 
         order.customer_id = order_data['customer_id']
-        order.order_status_id = order_data['order_status_id']
+        order.product_id = order_data['product_id']
         order.appointment_date = order_data['appointment_date']
         order.payment_id = order_data['payment_id']
         order.comments = order_data['comments']
@@ -45,10 +45,7 @@ class Order:
 
     def create(self, order_data):           
         order = OrderModel(
-            customer_id = order_data['customer_id'],
-            order_status_id = order_data['order_status_id'],
-            appointment_date = order_data['appointment_date'],
-            comments = order_data['comments']
+            customer_id = order_data['customer_id']
         )
         db.session.add(order)
         db.session.commit()
