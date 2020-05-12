@@ -545,13 +545,13 @@ export default {
                   'fromNeighborhoodList',
                   'toNeighborhoodList',
                 ]);
-                this.$router.push({ name: 'step-two' });
               }
             })
             .catch(() => {
               this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
             });
         }
+        this.$router.push({ name: 'step-two' });
       }
     },
     getAddress(payload) {

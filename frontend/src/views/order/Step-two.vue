@@ -219,6 +219,7 @@ export default {
         vehicle_picture: 'picture',
         vehicle_description: 'description',
       },
+      selectedProduct: [],
     };
   },
   components: {
@@ -290,6 +291,7 @@ export default {
         });
     },
     selectProduct(product) {
+      this.selectedProduct = product;
       Object.keys(this.productFields).forEach((field) => {
         this.setOrder({ field, value: product[this.productFields[field]] });
       });
