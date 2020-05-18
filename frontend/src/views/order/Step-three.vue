@@ -132,14 +132,11 @@ export default {
     Tracker,
     Datetime,
   },
-  mounted() {
-    this.getDataFromLocalStorage();
-  },
+  mounted() {},
   props: [
   ],
   methods: {
     ...mapActions([
-      'getDataFromLocalStorage',
       'validateRequiredFields',
       'addDataToLocalStorage',
     ]),
@@ -150,7 +147,11 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        chalan.updateOrder(this.currentOrder)
+        const payload = {
+          order: this.currentOrder,
+          customer: this.customer,
+        };
+        chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
               this.addDataToLocalStorage(['currentOrder']);
@@ -169,6 +170,7 @@ export default {
       'steps',
       'viewsMessages',
       'currentOrder',
+      'customer',
     ]),
     selectedDate: {
       get() {

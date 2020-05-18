@@ -9,7 +9,7 @@ export default {
     });
   },
   updateOrder(orderData) {
-    return axios.put(`${process.env.VUE_APP_API_URL}order/${orderData.order_id}`, orderData, {
+    return axios.put(`${process.env.VUE_APP_API_URL}order/${orderData.order.order_id}`, orderData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -77,18 +77,42 @@ export default {
     return axios(options);
   },
   checkoutSession(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}order/checkout`, {
-      headers: {
-        Authorization: `Bearer ${payload.token}`,
-        'Content-Type': 'application/json',
+    return axios.put(`${process.env.VUE_APP_API_URL}order/checkout/${payload.orderId}`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${payload.token}`,
+        },
+        params: {
+          customer_email: payload.email,
+          client_reference_id: payload.customer_id,
+          name: payload.name,
+          description: payload.description,
+          amount: payload.amount,
+        },
+      });
+  },
+  checkoutCash(payload) {
+    return axios.put(`${process.env.VUE_APP_API_URL}order/checkout-cash/${payload.orderId}`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${payload.token}`,
+        },
+      });
+  },
+  updateCustomerProfile(payload) {
+    return axios.patch(`${process.env.VUE_APP_API_URL}customer/${payload.customerId}`,
+      {
+        mobile_phone: payload.mobilePhone,
       },
-      params: {
-        customer_email: payload.email,
-        client_reference_id: payload.customer_id,
-        name: payload.name,
-        description: payload.description,
-        amount: payload.amount,
-      },
-    });
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${payload.token}`,
+        },
+      });
   },
 };

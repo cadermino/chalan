@@ -113,7 +113,6 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `product_id` INT NULL DEFAULT NULL,
   `order_status_id` INT NOT NULL DEFAULT 1,
   `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-  `payment_id` INT NULL DEFAULT NULL,
   `comments` LONGTEXT NULL,
   `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
@@ -132,11 +131,6 @@ CREATE TABLE IF NOT EXISTS `orders` (
     FOREIGN KEY (`product_id`)
     REFERENCES `products` (`id`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_orders_payments1`
-    FOREIGN KEY (`payment_id`)
-    REFERENCES `payments` (`id`)
-    ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB CHARSET=utf8;
 
@@ -147,11 +141,18 @@ ENGINE = InnoDB CHARSET=utf8;
 CREATE TABLE IF NOT EXISTS `payments` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `amount` FLOAT NULL,
+  `order_id` INT NOT NULL,
   `lu_payment_type_id` INT NOT NULL,
-  `reference` VARCHAR(45) NULL,
+  `status` ENUM('pending', 'paid', 'cancelled') NOT NULL DEFAULT 'pending',
+  `reference` VARCHAR(100) NULL COMMENT 'Stripe session id',
   `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `comments` LONGTEXT NULL,
   PRIMARY KEY (`id`),
+  CONSTRAINT `fk_payments_orders1`
+    FOREIGN KEY (`order_id`)
+    REFERENCES `orders` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
   CONSTRAINT `fk_payments_lu_payment_type1`
     FOREIGN KEY (`lu_payment_type_id`)
     REFERENCES `lu_payment_type` (`id`)

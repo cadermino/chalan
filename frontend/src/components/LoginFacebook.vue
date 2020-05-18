@@ -44,7 +44,7 @@ export default {
       'addDataToLocalStorage',
     ]),
     ...mapMutations([
-      'setOrder',
+      'setCustomerData',
       'setFB',
     ]),
     getUserData() {
@@ -79,12 +79,12 @@ export default {
         });
     },
     handleUserData(data) {
-      this.setOrder({ field: 'token', value: data.token });
-      this.setOrder({ field: 'customer_id', value: this.decodeToken.id });
-      this.setOrder({ field: 'customer_name', value: data.name });
-      this.setOrder({ field: 'email', value: data.email });
-      this.setOrder({ field: 'mobile_phone', value: data.mobile_phone });
-      this.addDataToLocalStorage(['currentOrder']);
+      this.setCustomerData({ field: 'token', value: data.token });
+      this.setCustomerData({ field: 'customer_id', value: this.decodeToken.id });
+      this.setCustomerData({ field: 'customer_name', value: data.name });
+      this.setCustomerData({ field: 'email', value: data.email });
+      this.setCustomerData({ field: 'mobile_phone', value: data.mobile_phone });
+      this.addDataToLocalStorage(['customer']);
     },
     login() {
       this.getUserData();

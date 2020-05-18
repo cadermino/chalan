@@ -219,14 +219,12 @@ export default {
         vehicle_picture: 'picture',
         vehicle_description: 'description',
       },
-      selectedProduct: [],
     };
   },
   components: {
     Tracker,
   },
   mounted() {
-    this.getDataFromLocalStorage();
     this.getProducts();
   },
   props: [
@@ -234,7 +232,6 @@ export default {
   methods: {
     ...mapActions([
       'validateRequiredFields',
-      'getDataFromLocalStorage',
       'addDataToLocalStorage',
     ]),
     ...mapMutations([
@@ -244,7 +241,11 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        chalan.updateOrder(this.currentOrder)
+        const payload = {
+          order: this.currentOrder,
+          customer: this.customer,
+        };
+        chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
               this.addDataToLocalStorage(['currentOrder']);
@@ -291,7 +292,6 @@ export default {
         });
     },
     selectProduct(product) {
-      this.selectedProduct = product;
       Object.keys(this.productFields).forEach((field) => {
         this.setOrder({ field, value: product[this.productFields[field]] });
       });
@@ -300,6 +300,7 @@ export default {
   computed: {
     ...mapState([
       'currentOrder',
+      'customer',
       'formValidationMessages',
       'steps',
       'viewsMessages',

@@ -5,7 +5,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
 
-# db.metadata.clear()
+db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
@@ -55,10 +55,11 @@ class Order(db.Model):
 	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
-	payment_id = db.Column(db.Integer, db.ForeignKey("payments.id"), nullable=True)
 	comments = db.Column(db.String(500))
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
+	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
+	product = db.relationship("Product", backref="orders")
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -94,6 +95,7 @@ class Product(db.Model):
 	active = db.Column(db.Integer)
 
 	vehicle = db.relationship("Vehicle", backref="products")
+	# order = db.relationship("Order", backref="products", lazy='dynamic')
 
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
@@ -119,12 +121,14 @@ class Payment(db.Model):
 	__tablename__ = 'payments'
 	id = db.Column(db.Integer, primary_key=True)
 	amount = db.Column(db.Float)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
-	reference = db.Column(db.String(45))
+	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False)
+	reference = db.Column(db.String(100))
 	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 	comments = db.Column(db.String(500))
 
-	orders = db.relationship("Order", backref="payments")
+	# orders = db.relationship("Order", backref="payments")
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'

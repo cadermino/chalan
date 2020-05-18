@@ -33,9 +33,9 @@ def all_orders():
     output = order_schema.dump(orders)
     return jsonify({'orders': output})
 
-@api.route('/order/checkout', methods=['GET'])
+@api.route('/order/checkout/<int:order_id>', methods=['PUT'])
 @token_required
-def generate_checkout_session():
+def generate_checkout_session(order_id):
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     session = stripe.checkout.Session.create(
         customer_email = request.args.get('customer_email'),
@@ -54,5 +54,20 @@ def generate_checkout_session():
             }
         ],
     )
+    order = OrderEntity(order_id)
+    payment = order.create_stripe_payment(session.id)
 
-    return session
+    return jsonify({
+        'session_id': session.id,
+        'payment': payment.id,
+    }), 200
+
+@api.route('/order/checkout-cash/<int:order_id>', methods=['PUT'])
+@token_required
+def generate_checkout_cash(order_id):
+    order = OrderEntity(order_id)
+    payment = order.create_cash_payment()
+
+    return jsonify({
+        'payment': payment.id,
+    }), 200

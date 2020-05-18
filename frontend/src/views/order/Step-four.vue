@@ -23,8 +23,9 @@
             </div>
           </div>
           <p class="text-center font-bold mb-10">
-            {{ currentOrder.customer_name }},
-             confirma que todo esté en orden antes del pago
+            {{ customer.customer_name }},
+             confirma que todo esté en orden antes del pago además bríndanos tu
+             número de celular para mandantener la cominicación
           </p>
           <div class="flex flex-wrap mb-4">
             <div class="w-full pxx-3 mb-4">
@@ -136,7 +137,11 @@
                     </div>
                     <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Teléfono de contacto
+                        Teléfono de contacto <span class="text-red-500">*</span>
+                        <span v-if="!phoneNumber"
+                          class="ml-2 text-red-500
+                          text-xs
+                          italic">No olvides ingresar tu teléfono.</span>
                       </dt>
                       <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <div class="pr-4
@@ -148,9 +153,11 @@
                           leading-5">
                           <div v-if="!isMobilePhoneFieldActive"
                             class="w-0 flex-1 flex items-center">
-                            {{ currentOrder.mobile_phone?currentOrder.mobile_phone:'-' }}
+                            {{ customer.mobile_phone?customer.mobile_phone:'-' }}
                           </div>
                           <input v-if="isMobilePhoneFieldActive"
+                            :class="!phoneNumber
+                              ?'border-red-300':''"
                             class="appearance-none
                             border rounded
                             w-full
@@ -179,7 +186,11 @@
                     </div>
                     <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
-                        Opciones de pago
+                        Opciones de pago <span class="text-red-500">*</span>
+                        <span v-if="formValidationMessages['payment_method']"
+                          class="ml-2 text-red-500
+                          text-xs
+                          italic">{{ formValidationMessages['payment_method'] }}.</span>
                       </dt>
                       <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <ul class="border border-gray-200 rounded-md">
@@ -197,7 +208,7 @@
                               <span class="ml-2 flex-1 w-0 truncate">
                                 Tarjeta débito/crédito
                                 <i class="fa fa-check text-green-400 ml-2"
-                                  v-if="paymentTypeSelected=='card'"
+                                  v-if="currentOrder.payment_method=='card'"
                                 ></i>
                               </span>
                             </div>
@@ -210,7 +221,7 @@
                                 transition
                                 duration-150
                                 ease-in-out">
-                                {{ paymentTypeSelected=='card'?'Seleccionado':'Elegir' }}
+                                {{ currentOrder.payment_method=='card'?'Seleccionado':'Elegir' }}
                               </div>
                             </div>
                           </li>
@@ -229,7 +240,7 @@
                               <span class="ml-2 flex-1 w-0 truncate">
                                 Efectivo
                                 <i class="fa fa-check text-green-400 ml-2"
-                                  v-if="paymentTypeSelected=='cash'"
+                                  v-if="currentOrder.payment_method=='cash'"
                                 ></i>
                               </span>
                             </div>
@@ -242,7 +253,7 @@
                                 transition
                                 duration-150
                                 ease-in-out">
-                                {{ paymentTypeSelected=='cash'?'Seleccionado':'Elegir' }}
+                                {{ currentOrder.payment_method=='cash'?'Seleccionado':'Elegir' }}
                               </div>
                             </div>
                           </li>
@@ -266,13 +277,12 @@
               Atras
             </router-link>
             <stripe-checkout
-              v-if="paymentTypeSelected === 'card'"
               ref="checkoutRef"
               :pk="publishableKey"
               :sessionId="sessionId"
             >
               <template slot="checkout-button">
-                <button @click="checkout"
+                <button @click="nextStep(currentOrder.payment_method)"
                   class="bg-green-500
                   hover:bg-green-700
                   text-white
@@ -285,18 +295,6 @@
                 </button>
               </template>
             </stripe-checkout>
-            <button v-else
-              type="button"
-              class="bg-green-500
-              hover:bg-green-700
-              text-white
-              py-2
-              px-4
-              rounded
-              focus:outline-none
-              focus:border-blue-400">
-              Agendar vehículo
-            </button>
           </div>
         </div>
       </div>
@@ -318,7 +316,6 @@ export default {
   data() {
     return {
       viewName: 'step-four',
-      paymentTypeSelected: '',
       isMobilePhoneFieldActive: false,
       publishableKey: process.env.VUE_APP_STRIPE,
       sessionId: null,
@@ -329,43 +326,96 @@ export default {
     StripeCheckout,
   },
   mounted() {
-    this.createChecoutSession();
     this.$moment.locale('es');
-    this.getDataFromLocalStorage();
   },
   props: [
   ],
   methods: {
     ...mapActions([
-      'getDataFromLocalStorage',
       'validateRequiredFields',
       'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
+      'setCustomerData',
       'setViewsMessages',
+      'setFormValidationMessages',
     ]),
+    nextStep(paymentMethod) {
+      this.validateRequiredFields(this.viewName);
+      if (this.steps[this.viewName].isComplete && this.isUserLogged && this.phoneNumber) {
+        this.addDataToLocalStorage(['currentOrder']);
+        this.addDataToLocalStorage(['customer']);
+        if (paymentMethod === 'card') {
+          this.createCardPayment();
+        } else {
+          this.createCashPayment();
+        }
+      }
+    },
     paymentTypeSelect(payment) {
-      this.paymentTypeSelected = payment;
+      this.setOrder({ field: 'payment_method', value: payment });
     },
     editMobilePhone() {
       this.isMobilePhoneFieldActive = !this.isMobilePhoneFieldActive;
     },
-    checkout() {
-      this.$refs.checkoutRef.redirectToCheckout();
-    },
-    createChecoutSession() {
+    createCardPayment() {
       const payload = {
-        token: this.currentOrder.token,
-        email: this.currentOrder.email,
-        customer_id: this.currentOrder.customer_id,
+        orderId: this.currentOrder.order_id,
+        token: this.customer.token,
+        email: this.customer.email,
+        customer_id: this.customer.customer_id,
         name: this.productName,
         description: this.currentOrder.vehicle_description,
+        paymentMethod: this.currentOrder.payment_method,
         amount: this.currentOrder.price * 100,
       };
       chalan.checkoutSession(payload)
         .then((response) => {
-          this.sessionId = response.data.id;
+          if (response.status === 200) {
+            const customerPayload = {
+              mobilePhone: this.customer.mobile_phone,
+              customerId: this.customer.customer_id,
+              token: this.customer.token,
+            };
+            chalan.updateCustomerProfile(customerPayload)
+              .then((res) => {
+                if (res.status === 204) {
+                  this.sessionId = response.data.session_id;
+                  this.$refs.checkoutRef.redirectToCheckout();
+                }
+              })
+              .catch(() => {
+                this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+              });
+          }
+        })
+        .catch(() => {
+          this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+        });
+    },
+    createCashPayment() {
+      chalan.checkoutCash({
+        orderId: this.currentOrder.order_id,
+        token: this.customer.token,
+      })
+        .then((response) => {
+          if (response.status === 200) {
+            const customerPayload = {
+              mobilePhone: this.customer.mobile_phone,
+              customerId: this.customer.customer_id,
+              token: this.customer.token,
+            };
+            chalan.updateCustomerProfile(customerPayload)
+              .then((res) => {
+                if (res.status === 204) {
+                  this.$router.push({ name: 'dashboard' });
+                }
+              })
+              .catch(() => {
+                this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+              });
+          }
         })
         .catch(() => {
           this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
@@ -378,6 +428,7 @@ export default {
       'steps',
       'viewsMessages',
       'currentOrder',
+      'customer',
     ]),
     ...mapGetters([
       'isUserLogged',
@@ -410,10 +461,10 @@ export default {
     },
     phoneNumber: {
       get() {
-        return this.currentOrder.mobile_phone;
+        return this.customer.mobile_phone;
       },
       set(value) {
-        this.setOrder({ field: 'mobile_phone', value });
+        this.setCustomerData({ field: 'mobile_phone', value });
       },
     },
     productName() {

@@ -3,15 +3,16 @@
     <div class="flex flex-wrap my-10">
       <div class="w-full mb-4 max-w-xl mx-auto">
         <div class="">
-          <h1 class="text-center ">Lo sentimos :(</h1>
+          <h1 class="text-center ">
+            {{ currentOrder.customer_name }} Tu mudanza ha sido agendada!
+          </h1>
         </div>
         <div class="text-center">
           <h3 class="h2">
-            Todavía no contamos con servicio en <span class="font-bold">{{ state }}</span>
           </h3>
-          <p>Estamos trabajando para extender Chalán a toda la republica 🦾 🇲🇽</p>
+          <p></p>
           <div class="mt-10">
-            <router-link to="/order/step-one" class="bg-blue-500
+            <router-link to="/" class="bg-blue-500
               hover:bg-blue-700
               text-white
               font-bold
@@ -30,14 +31,14 @@
 import { mapMutations, mapActions } from 'vuex';
 
 export default {
-  name: 'serviceOutOfRange',
+  name: 'dashboard',
   props: ['state'],
   mounted() {
-    this.setOrder({ field: 'is_out_of_range', value: true });
     this.addDataToLocalStorage(['currentOrder']);
   },
   methods: {
     ...mapActions([
+      'currentOrder',
       'addDataToLocalStorage',
     ]),
     ...mapMutations([
