@@ -127,7 +127,8 @@ class Payment(db.Model):
 	reference = db.Column(db.String(100))
 	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 	comments = db.Column(db.String(500))
-	
+	active = db.Column(db.Integer)
+
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
