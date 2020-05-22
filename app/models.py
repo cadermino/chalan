@@ -96,7 +96,6 @@ class Product(db.Model):
 	active = db.Column(db.Integer)
 
 	vehicle = db.relationship("Vehicle", backref="products")
-	# order = db.relationship("Order", backref="products", lazy='dynamic')
 
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
@@ -128,8 +127,7 @@ class Payment(db.Model):
 	reference = db.Column(db.String(100))
 	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 	comments = db.Column(db.String(500))
-
-	# orders = db.relationship("Order", backref="payments")
+	
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'

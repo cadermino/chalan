@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS `payments` (
   `reference` VARCHAR(100) NULL COMMENT 'Stripe session id',
   `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `comments` LONGTEXT NULL,
+  `active` TINYINT NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_payments_orders1`
     FOREIGN KEY (`order_id`)

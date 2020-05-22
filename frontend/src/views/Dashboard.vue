@@ -105,7 +105,6 @@ export default {
   },
   mounted() {
     this.$moment.locale('es');
-    console.log(this.sessionId);
     this.getPendingOrders();
     if (this.sessionId) {
       this.setViewsMessages({ view: this.viewName, message: 'Su pago ha sido recibido con exito!' });

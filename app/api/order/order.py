@@ -76,10 +76,6 @@ class Order:
         db.session.commit()
         
         return order
-    
-    def order_details(self):
-        order = Order.query.get(self.order_id)
-        pass
 
     def create_stripe_payment(self, session_id):
         order = OrderModel.query.get(self.order_id)
@@ -88,7 +84,8 @@ class Order:
             amount = order.product.price,
             lu_payment_type_id = 1,
             status = 'pending',
-            reference = session_id
+            reference = session_id,
+            active = 1
         )
         db.session.add(payment)
         db.session.commit()
@@ -101,7 +98,8 @@ class Order:
             order_id = self.order_id,
             amount = order.product.price,
             lu_payment_type_id = 2,
-            status = 'pending'
+            status = 'pending',
+            active = 1
         )
         db.session.add(payment)
         db.session.commit()

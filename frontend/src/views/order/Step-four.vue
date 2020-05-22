@@ -387,9 +387,6 @@ export default {
                   chalan.updateOrder(orderPayload)
                     .then((orderResponse) => {
                       if (orderResponse.status === 200) {
-                        // Object.keys(this.currentOrder).forEach((field) => {
-                        //   this.setOrder({ field, value: null });
-                        // });
                         this.addDataToLocalStorage(['currentOrder', 'customer']);
                         this.$refs.checkoutRef.redirectToCheckout();
                       }

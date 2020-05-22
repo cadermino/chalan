@@ -1,31 +1,26 @@
 from flask import jsonify, request
-from ..models import Customer, CustomerSchema, Order, Payment
+from ..models import Customer, Order, Payment
 from . import api
 from .decorators import token_required
 from .. import db
-# import datetime as dt
-
-@api.route('/customers', methods=['GET'])
-@token_required
-def all_customers():
-    customers = Customer.query.all()
-    customer_schema = CustomerSchema(many=True)
-    output = customer_schema.dump(customers)
-    return jsonify({'customers': output})
 
 @api.route('/customer/<int:customer_id>', methods=['PATCH'])
 @token_required
 def update_customer(customer_id):
+    auth_headers = request.headers.get('Authorization', '').split()
+    customer = Customer.verify_auth_token(auth_headers[1])
     customer_data = request.json
-    customer = Customer.query.get(customer_id)
+    try:
+        customer_data['id']
+        return {}, 401
+    except:
+        for column in customer_data:
+            if getattr(customer, column) != customer_data[column]:
+                setattr(customer, column, customer_data[column])
+                db.session.add(customer)
+                db.session.commit()
 
-    for column in customer_data:
-        if getattr(customer, column) != customer_data[column]:
-            setattr(customer, column, customer_data[column])
-            db.session.add(customer)
-            db.session.commit()
-
-    return {}, 204
+        return {}, 204
 
 @api.route('/customer/<int:customer_id>/orders', methods=['GET'])
 @token_required

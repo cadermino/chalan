@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import VueJwtDecode from 'vue-jwt-decode';
-// import chalan from '../api/chalan';
 import steps from './steps';
 
 Vue.use(Vuex);
