@@ -5,7 +5,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
 
-db.metadata.clear()
+# db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
@@ -47,6 +47,7 @@ class Customer(db.Model):
 	def __repr__(self):
 		return '<Customer %r>' % self.name
 
+	orders = db.relationship("Order", backref="customers", lazy='dynamic')
 
 class Order(db.Model):
 	__tablename__ = 'orders'

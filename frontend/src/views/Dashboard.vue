@@ -1,26 +1,83 @@
 <template>
   <div>
     <div class="flex flex-wrap my-10">
-      <div class="w-full mb-4 max-w-xl mx-auto">
+      <div class="w-full mb-4 max-w-4xl mx-auto">
         <div class="">
-          <h1 class="text-center ">
-            {{ currentOrder.customer_name }} Tu mudanza ha sido agendada!
-          </h1>
-        </div>
-        <div class="text-center">
-          <h3 class="h2">
-          </h3>
-          <p></p>
-          <div class="mt-10">
-            <router-link to="/" class="bg-blue-500
-              hover:bg-blue-700
-              text-white
-              font-bold
+          <div class="flex items-center mb-8"
+             v-if="viewsMessages[viewName]">
+            <div class="bg-blue-100
+              w-full
+              border
+              border-blue-400
+              text-blue-700
+              px-4
+              py-3
               rounded
-              py-2 px-4
-              tracking-wider">
-              Volver
-            </router-link>
+              relative"
+              role="info">
+              <span class="block sm:inline">
+                {{ viewsMessages[viewName] }}
+              </span>
+            </div>
+          </div>
+          <h1 class="text-center text-xl font-medium mb-10">
+            Servicio pediente
+          </h1>
+          <div class="text-center mb-10" v-if="pendingOrders.length == 0">
+            No tienes mudanza agendada con nosotros
+            <div class="mt-10">
+              <router-link :to="{ name:'step-one' }" class="bg-blue-500
+                hover:bg-blue-700
+                text-white
+                font-bold
+                rounded
+                py-2 px-4
+                tracking-wider">
+                Agenda tu mudanza
+              </router-link>
+            </div>
+          </div>
+          <div v-else>
+            <table class="table-auto w-full mb-10">
+              <thead>
+                <tr>
+                  <th class="px-4 py-2">Fecha agendada</th>
+                  <th class="px-4 py-2">Vehículo</th>
+                  <th class="px-4 py-2">Peso</th>
+                  <th class="px-4 py-2">Monto</th>
+                  <th class="px-4 py-2">Estado del pago</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(order, key, index) in pendingOrders"
+                    v-bind:key="index">
+                  <td class="border px-4 py-2">{{ order.appointment_date |
+                    moment("dddd D MMMM - h:mm A") }}</td>
+                  <td class="border px-4 py-2">{{ order.vehicle_name }}</td>
+                  <td class="border px-4 py-2">{{ order.weight }}</td>
+                  <td class="border px-4 py-2">{{
+                    order.amount.toLocaleString('en-US', {
+                      style: 'currency',
+                      currency: 'MXN',
+                      maximumSignificantDigits: 3,
+                    }) }}
+                  </td>
+                  <td class="border px-4 py-2">{{ paymentStatus[order.payment_status] }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="text-center">
+              <router-link :to="{ name: 'home' }"
+                class="bg-blue-500
+                hover:bg-blue-700
+                text-white
+                font-bold
+                rounded
+                py-2 px-4
+                tracking-wider">
+                Volver
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -28,21 +85,63 @@
   </div>
 </template>
 <script>
-import { mapMutations, mapActions } from 'vuex';
+import { mapMutations, mapActions, mapState } from 'vuex';
+import 'moment/locale/es';
+import chalan from '../api/chalan';
 
 export default {
   name: 'dashboard',
-  props: ['state'],
+  props: ['sessionId'],
+  data() {
+    return {
+      viewName: 'dashboard',
+      pendingOrders: [],
+      paymentStatus: {
+        pending: 'Pendiente',
+        paid: 'Pagado',
+        cancelled: 'Cancelado',
+      },
+    };
+  },
   mounted() {
-    this.addDataToLocalStorage(['currentOrder']);
+    this.$moment.locale('es');
+    console.log(this.sessionId);
+    this.getPendingOrders();
+    if (this.sessionId) {
+      this.setViewsMessages({ view: this.viewName, message: 'Su pago ha sido recibido con exito!' });
+      Object.keys(this.currentOrder).forEach((field) => {
+        this.setOrder({ field, value: null });
+      });
+      this.addDataToLocalStorage(['currentOrder']);
+    }
   },
   methods: {
     ...mapActions([
-      'currentOrder',
       'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
+      'setViewsMessages',
+    ]),
+    getPendingOrders() {
+      const payload = {
+        customerId: this.customer.customer_id,
+        token: this.customer.token,
+      };
+      chalan.getPendingOrders(payload)
+        .then((response) => {
+          this.pendingOrders = response.data;
+        })
+        .catch(() => {
+
+        });
+    },
+  },
+  computed: {
+    ...mapState([
+      'currentOrder',
+      'customer',
+      'viewsMessages',
     ]),
   },
 };

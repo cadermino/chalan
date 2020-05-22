@@ -344,8 +344,6 @@ export default {
     nextStep(paymentMethod) {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete && this.isUserLogged && this.phoneNumber) {
-        this.addDataToLocalStorage(['currentOrder']);
-        this.addDataToLocalStorage(['customer']);
         if (paymentMethod === 'card') {
           this.createCardPayment();
         } else {
@@ -373,6 +371,7 @@ export default {
       chalan.checkoutSession(payload)
         .then((response) => {
           if (response.status === 200) {
+            this.sessionId = response.data.session_id;
             const customerPayload = {
               mobilePhone: this.customer.mobile_phone,
               customerId: this.customer.customer_id,
@@ -381,8 +380,23 @@ export default {
             chalan.updateCustomerProfile(customerPayload)
               .then((res) => {
                 if (res.status === 204) {
-                  this.sessionId = response.data.session_id;
-                  this.$refs.checkoutRef.redirectToCheckout();
+                  const orderPayload = {
+                    order: this.currentOrder,
+                    customer: this.customer,
+                  };
+                  chalan.updateOrder(orderPayload)
+                    .then((orderResponse) => {
+                      if (orderResponse.status === 200) {
+                        // Object.keys(this.currentOrder).forEach((field) => {
+                        //   this.setOrder({ field, value: null });
+                        // });
+                        this.addDataToLocalStorage(['currentOrder', 'customer']);
+                        this.$refs.checkoutRef.redirectToCheckout();
+                      }
+                    })
+                    .catch(() => {
+                      this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+                    });
                 }
               })
               .catch(() => {
@@ -409,16 +423,29 @@ export default {
             chalan.updateCustomerProfile(customerPayload)
               .then((res) => {
                 if (res.status === 204) {
-                  this.$router.push({ name: 'dashboard' });
+                  const orderPayload = {
+                    order: this.currentOrder,
+                    customer: this.customer,
+                  };
+                  chalan.updateOrder(orderPayload)
+                    .then((orderResponse) => {
+                      if (orderResponse.status === 200) {
+                        this.addDataToLocalStorage(['currentOrder', 'customer']);
+                        this.$router.push({ name: 'dashboard' });
+                      }
+                    })
+                    .catch(() => {
+                      this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+                    });
                 }
               })
               .catch(() => {
-                this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+                this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
               });
           }
         })
         .catch(() => {
-          this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
         });
     },
   },

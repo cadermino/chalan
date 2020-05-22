@@ -154,12 +154,12 @@ export default {
         chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
-              this.addDataToLocalStorage(['currentOrder']);
+              this.addDataToLocalStorage(['currentOrder', 'customer']);
               this.$router.push({ name: 'step-four' });
             }
           })
           .catch(() => {
-            this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+            this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
           });
       }
     },
@@ -177,8 +177,10 @@ export default {
         return this.$moment(this.currentOrder.appointment_date).toISOString();
       },
       set(value) {
-        const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
-        this.setOrder({ field: 'appointment_date', value: appointmentDate });
+        if (value) {
+          const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
+          this.setOrder({ field: 'appointment_date', value: appointmentDate });
+        }
       },
     },
     userComments: {

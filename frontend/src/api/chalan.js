@@ -115,4 +115,12 @@ export default {
         },
       });
   },
+  getPendingOrders(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}customer/${payload.customerId}/orders`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
 };

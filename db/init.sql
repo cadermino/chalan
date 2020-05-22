@@ -87,7 +87,8 @@ INSERT INTO `lu_order_status` (`id`, `status`)
 VALUES
   (1, 'pending'),
   (2, 'in progress'),
-  (3, 'cancelled');
+  (3, 'completed'),
+  (4, 'cancelled');
 
 -- -----------------------------------------------------
 -- Table `lu_payment_type`

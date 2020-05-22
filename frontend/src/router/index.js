@@ -51,10 +51,10 @@ const routes = [
   {
     path: '/dashboard',
     // path: '/dashboard/area-fuera-servicio/:state',
-    name: 'dashboard',
+    name: 'dashboard/:session_id',
     component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),
     meta: { requiresAuth: true },
-    props: true,
+    props: route => ({ sessionId: route.query.session_id }),
   },
   {
     path: '/register-login',

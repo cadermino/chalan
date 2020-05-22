@@ -551,14 +551,27 @@ export default {
               }
             })
             .catch(() => {
-              this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+              this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+            });
+        } else {
+          const payload = {
+            order: this.currentOrder,
+            customer: this.customer,
+          };
+          chalan.updateOrder(payload)
+            .then((response) => {
+              if (response.status === 200) {
+                this.addDataToLocalStorage([
+                  'currentOrder',
+                  'customer',
+                ]);
+                this.$router.push({ name: 'step-two' });
+              }
+            })
+            .catch(() => {
+              this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
             });
         }
-        this.addDataToLocalStorage([
-          'currentOrder',
-          'customer',
-        ]);
-        this.$router.push({ name: 'step-two' });
       }
     },
     getAddress(payload) {
@@ -579,7 +592,7 @@ export default {
           }
         })
         .catch(() => {
-          this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
         });
     },
   },

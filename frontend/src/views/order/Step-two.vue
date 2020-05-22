@@ -248,12 +248,12 @@ export default {
         chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
-              this.addDataToLocalStorage(['currentOrder']);
+              this.addDataToLocalStorage(['currentOrder', 'customer']);
               this.$router.push({ name: 'step-three' });
             }
           })
           .catch(() => {
-            this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+            this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
           });
       }
     },
@@ -281,12 +281,12 @@ export default {
             Object.keys(this.productFields).forEach((field) => {
               this.setOrder({ field, value: null });
             });
-            this.addDataToLocalStorage(['currentOrder']);
+            this.addDataToLocalStorage(['currentOrder', 'customer']);
           }
         })
         .catch(() => {
           this.setViewsMessages({
-            view: 'step-two',
+            view: this.viewName,
             message: 'Hubo un error, intenta después de recargar la página',
           });
         });

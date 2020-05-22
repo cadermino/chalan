@@ -77,6 +77,10 @@ class Order:
         
         return order
     
+    def order_details(self):
+        order = Order.query.get(self.order_id)
+        pass
+
     def create_stripe_payment(self, session_id):
         order = OrderModel.query.get(self.order_id)
         payment = PaymentModel(

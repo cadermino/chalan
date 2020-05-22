@@ -53,6 +53,7 @@ export default new Vuex.Store({
       'step-two': null,
       'step-three': null,
       'step-four': null,
+      dashboard: null,
     },
     formValidationMessages: {
       from_floor_number: null,
