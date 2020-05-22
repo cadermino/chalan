@@ -6,7 +6,6 @@ class Product:
     is_active = 1
 
     def get_active_products(self, filters):
-        print(filters);
         products = ProductModel.query.\
             filter(ProductModel.active == Product.is_active).\
             filter(ProductModel.from_floor == filters['from_floor']).\

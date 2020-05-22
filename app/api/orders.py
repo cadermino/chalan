@@ -25,34 +25,50 @@ def update_order(order_id):
         'order_id': order.id
     }), 200
 
-@api.route('/orders', methods=['GET'])
+@api.route('/order/checkout/<int:order_id>', methods=['PUT'])
 @token_required
-def all_orders():
-    orders = Order.query.all()
-    order_schema = OrderSchema(many=True)
-    output = order_schema.dump(orders)
-    return jsonify({'orders': output})
+def generate_checkout_session(order_id):
+    auth_headers = request.headers.get('Authorization', '').split()
+    customer = Customer.verify_auth_token(auth_headers[1])
+    order = customer.orders.order_by(Order.id.desc()).first()
+    price = order.product.price * 100
+    if price % 1 == 0:
+        amount = int(price)
+    else:
+        amount = price
 
-@api.route('/order/checkout', methods=['GET'])
-@token_required
-def generate_checkout_session():
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     session = stripe.checkout.Session.create(
-        customer_email = request.args.get('customer_email'),
-        client_reference_id = request.args.get('client_reference_id'),
+        customer_email = customer.email,
+        client_reference_id = customer.id,
         locale = 'es',
         success_url = current_app.config['STRIPE_SUCCESS'],
         cancel_url = current_app.config['STRIPE_CANCEL'],
         payment_method_types = ["card"],
         line_items = [
             {
-                'name': request.args.get('name'),
-                'description': request.args.get('description'),
-                'amount': request.args.get('amount'),
+                'name': '{} {} {}kg.'.format(order.product.vehicle.brand, order.product.vehicle.model, order.product.vehicle.weight),
+                'description': order.product.description,
+                'amount': amount,
                 'currency': 'mxn',
                 'quantity': 1,
             }
         ],
     )
+    order = OrderEntity(order.id)
+    payment = order.create_stripe_payment(session.id)
 
-    return session
+    return jsonify({
+        'session_id': session.id,
+        'payment': payment.id,
+    }), 200
+
+@api.route('/order/checkout-cash/<int:order_id>', methods=['PUT'])
+@token_required
+def generate_checkout_cash(order_id):
+    order = OrderEntity(order_id)
+    payment = order.create_cash_payment()
+
+    return jsonify({
+        'payment': payment.id,
+    }), 200

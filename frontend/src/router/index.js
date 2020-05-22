@@ -49,10 +49,11 @@ const routes = [
     meta: { requiresPreviousComplete: true, requiresAuth: true },
   },
   {
-    path: '/order/area-fuera-servicio/:state',
-    name: 'ServiceOutOfRange',
-    component: () => import(/* webpackChunkName: "ServiceOutOfRange" */ '../views/order/ServiceOutOfRange.vue'),
-    props: true,
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),
+    meta: { requiresAuth: true },
+    props: route => ({ sessionId: route.query.session_id }),
   },
   {
     path: '/register-login',
@@ -76,12 +77,13 @@ const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  store.dispatch('getDataFromLocalStorage');
+  store.dispatch('getDataFromLocalStorage', 'currentOrder');
+  store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
-  if (store.state.currentOrder.token && !store.getters.isTokenValid) {
+  if (store.getters.getToken && !store.getters.isTokenValid) {
     localStorage.removeItem('currentOrder');
-    localStorage.removeItem('fromNeighborhoodList');
-    localStorage.removeItem('toNeighborhoodList');
+    localStorage.removeItem('customer');
+    window.location.reload();
   }
   if (to.matched.some(record => record.meta.requiresPreviousComplete
     && record.meta.requiresAuth)) {

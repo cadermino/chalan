@@ -30,15 +30,11 @@ export default {
     Tracker,
     Login,
   },
-  mounted() {
-    this.getDataFromLocalStorage();
-  },
+  mounted() {},
   props: [
   ],
   methods: {
-    ...mapActions([
-      'getDataFromLocalStorage',
-    ]),
+    ...mapActions([]),
   },
   computed: {
     redirect() {

@@ -84,9 +84,7 @@ export default {
       'product_size',
       'price',
       'appointment_date',
-      'payment_id',
-      'customer_id',
-      'token',
+      'payment_method',
     ],
   },
 };

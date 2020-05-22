@@ -47,6 +47,7 @@ class Customer(db.Model):
 	def __repr__(self):
 		return '<Customer %r>' % self.name
 
+	orders = db.relationship("Order", backref="customers", lazy='dynamic')
 
 class Order(db.Model):
 	__tablename__ = 'orders'
@@ -55,10 +56,11 @@ class Order(db.Model):
 	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
-	payment_id = db.Column(db.Integer, db.ForeignKey("payments.id"), nullable=True)
 	comments = db.Column(db.String(500))
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
+	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
+	product = db.relationship("Product", backref="orders")
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -119,12 +121,14 @@ class Payment(db.Model):
 	__tablename__ = 'payments'
 	id = db.Column(db.Integer, primary_key=True)
 	amount = db.Column(db.Float)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
-	reference = db.Column(db.String(45))
+	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False)
+	reference = db.Column(db.String(100))
 	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 	comments = db.Column(db.String(500))
+	active = db.Column(db.Integer)
 
-	orders = db.relationship("Order", backref="payments")
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'

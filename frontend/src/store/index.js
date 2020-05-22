@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import VueJwtDecode from 'vue-jwt-decode';
-import chalan from '../api/chalan';
 import steps from './steps';
 
 Vue.use(Vuex);
@@ -11,8 +10,13 @@ export default new Vuex.Store({
     FB: undefined,
     nowDate: '',
     steps,
-    fromNeighborhoodList: [],
-    toNeighborhoodList: [],
+    customer: {
+      email: null,
+      customer_id: null,
+      customer_name: null,
+      mobile_phone: null,
+      token: null,
+    },
     currentOrder: {
       order_id: null,
       product_size: null,
@@ -23,19 +27,14 @@ export default new Vuex.Store({
       vehicle_picture: null,
       vehicle_description: null,
       price: null,
-      is_out_of_range: null,
-      email: null,
-      customer_id: null,
-      customer_name: null,
-      mobile_phone: null,
-      token: null,
       appointment_date: null,
-      payment_id: null,
+      payment_method: null,
       comments: null,
       from_floor_number: null,
       from_street: null,
       from_interior_number: null,
       from_neighborhood: null,
+      from_neighborhood_list: [],
       from_city: null,
       from_state: null,
       from_zip_code: null,
@@ -43,6 +42,7 @@ export default new Vuex.Store({
       to_street: null,
       to_interior_number: null,
       to_neighborhood: null,
+      to_neighborhood_list: [],
       to_city: null,
       to_state: null,
       to_zip_code: null,
@@ -52,6 +52,7 @@ export default new Vuex.Store({
       'step-two': null,
       'step-three': null,
       'step-four': null,
+      dashboard: null,
     },
     formValidationMessages: {
       from_floor_number: null,
@@ -66,28 +67,28 @@ export default new Vuex.Store({
     },
   },
   getters: {
+    getToken(state) {
+      return state.customer.token;
+    },
     isTokenValid(state, getters) {
       return state.nowDate < (getters.decodeToken.exp * 1000);
     },
     decodeToken(state) {
       try {
-        return VueJwtDecode.decode(state.currentOrder.token);
+        return VueJwtDecode.decode(state.customer.token);
       } catch {
         return {
           exp: 0,
         };
       }
     },
-    isUserLogged: (state, getters) => (state.currentOrder.customer_id
-      && state.currentOrder.token
+    isUserLogged: (state, getters) => (state.customer.customer_id
+      && state.customer.token
       && getters.isTokenValid) || false,
   },
   mutations: {
     setFB(state, FB) {
       state.FB = FB;
-    },
-    assignOrder(state, order) {
-      state.currentOrder = order;
     },
     setOrder(state, payload) {
       state.currentOrder[payload.field] = payload.value;
@@ -101,8 +102,8 @@ export default new Vuex.Store({
           .reduce((prev, curr) => prev && Boolean(curr), true);
       });
     },
-    fillNeighborhoodList(state, payload) {
-      state[`${payload.direction}NeighborhoodList`] = payload.value;
+    setCustomerData(state, payload) {
+      state.customer[payload.field] = payload.value;
     },
     setViewsMessages(state, payload) {
       state.viewsMessages[payload.view] = payload.message;
@@ -119,9 +120,9 @@ export default new Vuex.Store({
       if (state.FB) {
         state.FB.logout();
       }
-      commit('setOrder', { field: 'customer_id', value: null });
-      commit('setOrder', { field: 'token', value: null });
-      dispatch('addDataToLocalStorage', ['currentOrder']);
+      commit('setCustomerData', { field: 'customer_id', value: null });
+      commit('setCustomerData', { field: 'token', value: null });
+      dispatch('addDataToLocalStorage', ['customer']);
       window.location.reload();
     },
     addDataToLocalStorage({ state }, location) {
@@ -129,19 +130,19 @@ export default new Vuex.Store({
         localStorage.setItem(item, JSON.stringify(state[item]));
       });
     },
-    getDataFromLocalStorage({ commit }) {
-      if (localStorage.getItem('currentOrder')) {
+    getDataFromLocalStorage({ commit }, location) {
+      const mutations = {
+        currentOrder: 'setOrder',
+        customer: 'setCustomerData',
+      };
+      if (localStorage.getItem(location)) {
         try {
-          const fromNeighborhoodList = JSON.parse(localStorage.getItem('fromNeighborhoodList'));
-          commit('fillNeighborhoodList', { direction: 'from', value: fromNeighborhoodList });
-          const toNeighborhoodList = JSON.parse(localStorage.getItem('toNeighborhoodList'));
-          commit('fillNeighborhoodList', { direction: 'to', value: toNeighborhoodList });
-          const order = JSON.parse(localStorage.getItem('currentOrder'));
-          Object.keys(order).forEach((key) => {
-            commit('setOrder', { field: key, value: order[key] });
+          const data = JSON.parse(localStorage.getItem(location));
+          Object.keys(data).forEach((key) => {
+            commit(mutations[location], { field: key, value: data[key] });
           });
         } catch (e) {
-          localStorage.removeItem('currentOrder');
+          localStorage.removeItem(location);
         }
       }
     },
@@ -157,14 +158,6 @@ export default new Vuex.Store({
       emptyFields.forEach((field) => {
         commit('setFormValidationMessages', { field, message: 'no olvides llenar este campo' });
       });
-    },
-    createOrder({ commit }) {
-      chalan.createOrder()
-        .then((response) => {
-          commit('assignOrder', response.data);
-        })
-        .catch(() => {
-        });
     },
   },
 });

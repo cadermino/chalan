@@ -175,7 +175,7 @@
                   v-model="selectedFromNeighborhood">
                     <option disabled value="">Selecciona una colonia</option>
                     <option
-                    v-for="item in fromNeighborhoodList"
+                    v-for="item in currentOrder.from_neighborhood_list"
                     v-bind:value="item.asentamiento"
                     v-bind:key="item.asentamiento">
                       {{ item.asentamiento }}
@@ -394,7 +394,7 @@
                   v-model="selectedToNeighborhood">
                     <option disabled value="">Selecciona una colonia</option>
                     <option
-                    v-for="item in toNeighborhoodList"
+                    v-for="item in currentOrder.to_neighborhood_list"
                     v-bind:value="item.asentamiento"
                     v-bind:key="item.asentamiento">
                       {{ item.asentamiento }}
@@ -528,7 +528,6 @@ export default {
     ]),
     ...mapMutations([
       'setOrder',
-      'fillNeighborhoodList',
       'setFormValidationMessages',
       'setViewsMessages',
     ]),
@@ -536,20 +535,41 @@ export default {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
         if (!this.currentOrder.order_id) {
-          chalan.createOrder(this.currentOrder)
+          const payload = {
+            order: this.currentOrder,
+            customer: this.customer,
+          };
+          chalan.createOrder(payload)
             .then((response) => {
               if (response.status === 201) {
                 this.setOrder({ field: 'order_id', value: response.data.order_id });
                 this.addDataToLocalStorage([
                   'currentOrder',
-                  'fromNeighborhoodList',
-                  'toNeighborhoodList',
+                  'customer',
                 ]);
                 this.$router.push({ name: 'step-two' });
               }
             })
             .catch(() => {
-              this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+              this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+            });
+        } else {
+          const payload = {
+            order: this.currentOrder,
+            customer: this.customer,
+          };
+          chalan.updateOrder(payload)
+            .then((response) => {
+              if (response.status === 200) {
+                this.addDataToLocalStorage([
+                  'currentOrder',
+                  'customer',
+                ]);
+                this.$router.push({ name: 'step-two' });
+              }
+            })
+            .catch(() => {
+              this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
             });
         }
       }
@@ -559,7 +579,7 @@ export default {
         .then((response) => {
           this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: '' });
           if (response.data.length > 0) {
-            this.fillNeighborhoodList({ value: response.data, direction: payload.direction });
+            this.setOrder({ field: `${payload.direction}_neighborhood_list`, value: response.data });
             const zipCodeResponse = {
               state: response.data[0].estado,
               city: response.data[0].municipio,
@@ -572,15 +592,14 @@ export default {
           }
         })
         .catch(() => {
-          this.setViewsMessages({ view: 'step-one', message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
         });
     },
   },
   computed: {
     ...mapState([
       'currentOrder',
-      'fromNeighborhoodList',
-      'toNeighborhoodList',
+      'customer',
       'formValidationMessages',
       'viewsMessages',
       'steps',
@@ -592,7 +611,8 @@ export default {
       set(zipcode) {
         this.setOrder({ value: zipcode, field: 'from_zip_code' });
         this.selectedFromNeighborhood = null;
-        this.fillNeighborhoodList({ value: [], direction: 'from' });
+        this.setOrder({ value: null, field: 'from_city' });
+        this.setOrder({ value: null, field: 'from_state' });
         if (zipcode.length > 3 && zipcode.length < 6) {
           this.getAddress({ zipcode, direction: 'from' });
         } else {
@@ -639,7 +659,8 @@ export default {
       set(zipcode) {
         this.setOrder({ value: zipcode, field: 'to_zip_code' });
         this.selectedToNeighborhood = null;
-        this.fillNeighborhoodList({ value: [], direction: 'to' });
+        this.setOrder({ value: null, field: 'to_city' });
+        this.setOrder({ value: null, field: 'to_state' });
         if (zipcode.length > 3 && zipcode.length < 6) {
           this.getAddress({ zipcode, direction: 'to' });
         } else {
