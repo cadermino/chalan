@@ -65,6 +65,7 @@ export default new Vuex.Store({
       to_zip_code: null,
       appointment_date: null,
     },
+    loading: false,
   },
   getters: {
     getToken(state) {
@@ -113,6 +114,9 @@ export default new Vuex.Store({
     },
     setNowDate(state) {
       state.nowDate = Date.now();
+    },
+    setLoader(state, value) {
+      state.loading = value;
     },
   },
   actions: {

@@ -482,6 +482,8 @@
             </div>
             <div class="flex items-center justify-end">
               <button
+                :disabled="loading"
+                :class="loading?'opacity-50 cursor-not-allowed':''"
                 type="button"
                 class="bg-green-500
                 hover:bg-green-700
@@ -518,7 +520,9 @@ export default {
   components: {
     Tracker,
   },
-  mounted() {},
+  mounted() {
+    this.setLoader(false);
+  },
   props: [
   ],
   methods: {
@@ -530,10 +534,12 @@ export default {
       'setOrder',
       'setFormValidationMessages',
       'setViewsMessages',
+      'setLoader',
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        this.setLoader(true);
         if (!this.currentOrder.order_id) {
           const payload = {
             order: this.currentOrder,
@@ -603,6 +609,7 @@ export default {
       'formValidationMessages',
       'viewsMessages',
       'steps',
+      'loading',
     ]),
     zipcodeFrom: {
       get() {

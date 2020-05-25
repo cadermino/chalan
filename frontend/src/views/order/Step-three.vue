@@ -92,6 +92,8 @@
               Atras
             </router-link>
             <button
+              :disabled="loading"
+              :class="loading?'opacity-50 cursor-not-allowed':''"
               type="button"
               class="bg-green-500
               hover:bg-green-700
@@ -132,7 +134,9 @@ export default {
     Tracker,
     Datetime,
   },
-  mounted() {},
+  mounted() {
+    this.setLoader(false);
+  },
   props: [
   ],
   methods: {
@@ -143,10 +147,12 @@ export default {
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
+      'setLoader',
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        this.setLoader(true);
         const payload = {
           order: this.currentOrder,
           customer: this.customer,
@@ -171,6 +177,7 @@ export default {
       'viewsMessages',
       'currentOrder',
       'customer',
+      'loading',
     ]),
     selectedDate: {
       get() {
