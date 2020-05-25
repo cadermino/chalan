@@ -167,6 +167,8 @@
         </button>
         <button
           type="button"
+          :disabled="loading"
+          :class="loading?'opacity-50 cursor-not-allowed':''"
           class="bg-green-500
           hover:bg-green-700
           text-white
@@ -276,6 +278,8 @@
         </button>
         <button
           type="button"
+          :disabled="loading"
+          :class="loading?'opacity-50 cursor-not-allowed':''"
           class="bg-green-500
           hover:bg-green-700
           text-white
@@ -474,6 +478,7 @@ export default {
   computed: {
     ...mapState([
       'isLoginFormDisplayed',
+      'loading',
     ]),
     ...mapGetters([
       'decodeToken',

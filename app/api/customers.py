@@ -27,6 +27,7 @@ def update_customer(customer_id):
 def customer_orders(customer_id):
     order = Order.query.\
         filter_by(customer_id = customer_id).order_by(Order.id.desc()).first()
+    print(order)
     if order is None:
         return jsonify([]), 200
     try:
