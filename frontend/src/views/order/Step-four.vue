@@ -283,6 +283,8 @@
             >
               <template slot="checkout-button">
                 <button @click="nextStep(currentOrder.payment_method)"
+                  :disabled="loading"
+                  :class="loading?'opacity-50 cursor-not-allowed':''"
                   class="bg-green-500
                   hover:bg-green-700
                   text-white
@@ -327,6 +329,7 @@ export default {
   },
   mounted() {
     this.$moment.locale('es');
+    this.setLoader(false);
   },
   props: [
   ],
@@ -340,10 +343,12 @@ export default {
       'setCustomerData',
       'setViewsMessages',
       'setFormValidationMessages',
+      'setLoader',
     ]),
     nextStep(paymentMethod) {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete && this.isUserLogged && this.phoneNumber) {
+        this.setLoader(true);
         if (paymentMethod === 'card') {
           this.createCardPayment();
         } else {
@@ -453,6 +458,7 @@ export default {
       'viewsMessages',
       'currentOrder',
       'customer',
+      'loading',
     ]),
     ...mapGetters([
       'isUserLogged',

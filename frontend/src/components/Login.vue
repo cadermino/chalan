@@ -336,6 +336,7 @@ export default {
     redirect: String,
   },
   mounted() {
+    this.setLoader(false);
     if (this.isUserLogged) {
       this.$router.push(this.redirect);
     }
@@ -353,6 +354,7 @@ export default {
     ...mapMutations([
       'setOrder',
       'setCustomerData',
+      'setLoader',
     ]),
     errorMessageEvent(message) {
       this.resetMessages();
@@ -410,6 +412,7 @@ export default {
     login() {
       this.validateRequiredFields('requiredFieldsLogin');
       if (this.canSubmitLoginForm) {
+        this.setLoader(true);
         chalan.login({
           email: this.requiredFieldsLogin.email,
           password: this.requiredFieldsLogin.password,
@@ -421,6 +424,7 @@ export default {
             }
           })
           .catch((error) => {
+            this.setLoader(false);
             if (error.response && error.response.data.message === "user doesn't exist") {
               this.errorMessages = 'El usuario no existe o la contraseña es incorrecta';
             } else {
@@ -432,6 +436,7 @@ export default {
     register() {
       this.validateRequiredFields('requiredFieldsRegister');
       if (this.canSubmitRegisterForm) {
+        this.setLoader(true);
         chalan.register({
           email: this.requiredFieldsRegister.email,
           password: this.requiredFieldsRegister.password,
@@ -445,6 +450,7 @@ export default {
             }
           })
           .catch((error) => {
+            this.setLoader(false);
             this.resetMessages();
             if (error.response && error.response.data.message === 'duplicated email') {
               this.errorMessages = 'Ya existe un usuario con ese correo';

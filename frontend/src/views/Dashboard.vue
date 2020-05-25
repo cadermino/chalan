@@ -26,7 +26,7 @@
           <div class="text-center mb-10" v-if="pendingOrders.length == 0">
             No tienes mudanza agendada con nosotros
             <div class="mt-10">
-              <router-link :to="{ name:'step-one' }" class="bg-blue-500
+              <router-link :to="{ name: 'step-one' }" class="bg-blue-500
                 hover:bg-blue-700
                 text-white
                 font-bold
@@ -67,16 +67,17 @@
               </tbody>
             </table>
             <div class="text-center">
-              <router-link :to="{ name: 'home' }"
-                class="bg-blue-500
+              <button class="bg-blue-500
                 hover:bg-blue-700
                 text-white
                 font-bold
                 rounded
                 py-2 px-4
-                tracking-wider">
+                tracking-wider"
+                type="button"
+                @click="goBack">
                 Volver
-              </router-link>
+              </button>
             </div>
           </div>
         </div>
@@ -121,6 +122,7 @@ export default {
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
+      'setLoader',
     ]),
     getPendingOrders() {
       const payload = {
@@ -130,10 +132,18 @@ export default {
       chalan.getPendingOrders(payload)
         .then((response) => {
           this.pendingOrders = response.data;
+          this.setLoader(false);
         })
         .catch(() => {
 
         });
+    },
+    goBack() {
+      if (window.history.length > 1) {
+        this.$router.go(-1);
+      } else {
+        this.$router.push('/');
+      }
     },
   },
   computed: {

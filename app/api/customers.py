@@ -27,6 +27,12 @@ def update_customer(customer_id):
 def customer_orders(customer_id):
     order = Order.query.\
         filter_by(customer_id = customer_id).order_by(Order.id.desc()).first()
+    if order is None:
+        return jsonify([]), 200
+    try:
+        order.product.vehicle
+    except:
+        return jsonify([]), 200
     try:
         payment_status = order.payments.order_by(Payment.id.desc()).first().status
     except:

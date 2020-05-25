@@ -15,7 +15,6 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
 import Login from '@/components/Login.vue';
 import Tracker from '@/components/Tracker.vue';
 
@@ -33,9 +32,7 @@ export default {
   mounted() {},
   props: [
   ],
-  methods: {
-    ...mapActions([]),
-  },
+  methods: {},
   computed: {
     redirect() {
       return this.$route.query.redirect || '/';

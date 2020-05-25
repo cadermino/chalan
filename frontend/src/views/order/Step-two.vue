@@ -178,6 +178,8 @@
               Atras
             </router-link>
             <button
+              :disabled="loading"
+              :class="loading?'opacity-50 cursor-not-allowed':''"
               type="button"
               class="bg-green-500
               hover:bg-green-700
@@ -237,10 +239,12 @@ export default {
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
+      'setLoader',
     ]),
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        this.setLoader(true);
         const payload = {
           order: this.currentOrder,
           customer: this.customer,
@@ -277,6 +281,7 @@ export default {
         .then((response) => {
           this.selectedSize = this.currentOrder.product_size ? this.currentOrder.product_size : 'small';
           this.productList = response.data;
+          this.setLoader(false);
           if (this.productList.length < 1) {
             Object.keys(this.productFields).forEach((field) => {
               this.setOrder({ field, value: null });
@@ -304,6 +309,7 @@ export default {
       'formValidationMessages',
       'steps',
       'viewsMessages',
+      'loading',
     ]),
     productListFiltered() {
       return this.productList.filter(item => item.size === this.selectedSize);

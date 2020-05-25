@@ -32,6 +32,7 @@ export default {
     };
   },
   mounted() {
+    this.setLoader(false);
   },
   props: {
     redirect: String,
@@ -46,6 +47,7 @@ export default {
     ...mapMutations([
       'setCustomerData',
       'setFB',
+      'setLoader',
     ]),
     getUserData() {
       this.FB.api('/me',
@@ -62,11 +64,13 @@ export default {
             })
               .then((response) => {
                 if (response.status === 201) {
+                  this.setLoader(true);
                   this.handleUserData(response.data);
                   this.$router.push(this.redirect);
                 }
               })
               .catch((error) => {
+                this.setLoader(false);
                 let errorMessages;
                 if (error.response && error.response.data.message === 'invalid token') {
                   errorMessages = 'Token invalido';
