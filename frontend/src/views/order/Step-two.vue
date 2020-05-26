@@ -146,7 +146,7 @@
             </div>
           </div>
           <div class="flex flex-wrap mb-4" v-else>
-            lo sentimos, no tenemos vehículos para los criterios seleccionados
+            Lo sentimos :( no tenemos vehículos para la dirección seleccionada
           </div>
           <div class="flex items-center mb-8">
             <div v-if="viewsMessages[viewName]"
