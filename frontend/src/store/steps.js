@@ -2,6 +2,7 @@ export default {
   'step-one': {
     name: 'Dirección recojo/entrega',
     previous: null,
+    next: 'step-two',
     isComplete: false,
     requisites: [
       'from_floor_number',
@@ -19,8 +20,9 @@ export default {
     ],
   },
   'step-two': {
-    name: 'Información del vehículo',
+    name: 'Agenda',
     previous: 'step-one',
+    next: 'step-three',
     isComplete: false,
     requisites: [
       'from_floor_number',
@@ -35,14 +37,13 @@ export default {
       'to_city',
       'to_state',
       'to_zip_code',
-      'product_id',
-      'product_size',
-      'price',
+      'appointment_date',
     ],
   },
   'step-three': {
-    name: 'Agenda',
+    name: 'Información del vehículo',
     previous: 'step-two',
+    next: 'step-four',
     isComplete: false,
     requisites: [
       'from_floor_number',
@@ -57,15 +58,16 @@ export default {
       'to_city',
       'to_state',
       'to_zip_code',
+      'appointment_date',
       'product_id',
       'product_size',
       'price',
-      'appointment_date',
     ],
   },
   'step-four': {
     name: 'Pago',
     previous: 'step-three',
+    next: null,
     isComplete: false,
     requisites: [
       'from_floor_number',
@@ -80,10 +82,10 @@ export default {
       'to_city',
       'to_state',
       'to_zip_code',
+      'appointment_date',
       'product_id',
       'product_size',
       'price',
-      'appointment_date',
       'payment_method',
     ],
   },

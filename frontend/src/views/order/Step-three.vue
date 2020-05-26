@@ -22,66 +22,156 @@
               </span>
             </div>
           </div>
-          <p class="text-center font-bold mb-10">
-            Elije la día y la hora que quires mudarte
+          <p class="text-center font-bold mb-10" id="text-header">
+            Elige el tamaño de tu mudanza <span class="text-red-500">*</span>
           </p>
           <div class="flex flex-wrap mb-4">
-            <div class="w-full px-3 mb-4">
-              <label class="block
-              text-gray-700
-              text-sm
-              font-bold mb-2" for="address-from-interior">
-                  Elige la fecha y hora <span class="text-red-500">*</span>
-              </label>
-              <Datetime v-model="selectedDate"
-                :input-class="datePickerClasses"
-                type="datetime"
-                :phrases="{ok: 'Aceptar', cancel: 'Salir'}"
-                value-zone="America/Mexico_City"
-                :format="{ year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit' }"
-                use12-hour
-                :minute-step="5"
-                class="theme-chalan"
-                :min-datetime="minDatetime"
-                :max-datetime="maxDatetime"
-                placeholder="17 de Marzo de 2020 18:00"
-              >
-              </Datetime>
-              <p v-if="formValidationMessages['appointment_date']"
-                class="text-red-500
-                text-xs
-                italic">
-                {{ formValidationMessages['appointment_date'] }}.
-              </p>
-            </div>
-            <div class="w-full px-3 mb-4">
-              <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-street">
-                    Algún comentario o indicación que nos quieras dar? (opcional)
-              </label>
-              <textarea class="appearance-none
-                border rounded
-                w-full
-                py-2
-                px-3
-                text-gray-700
-                leading-tight
+            <div class="inline-flex w-full">
+              <button
+                @click="selectSize('small')"
+                :class="selectedSize === 'small'?
+                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
+                class="w-full
                 focus:outline-none
-                focus:border-blue-400"
-                v-model="userComments"
-                id="address-from-street"
-                type="text">
-              </textarea>
+                hover:bg-gray-500
+                text-gray
+                py-2
+                px-4
+                rounded-l">
+                Pequeño
+              </button>
+              <button
+                @click="selectSize('medium')"
+                :class="selectedSize === 'medium'?
+                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
+                class="w-full
+                focus:outline-none
+                hover:bg-gray-500
+                text-gray
+                py-2
+                px-4">
+                Mediano
+              </button>
+              <button
+                @click="selectSize('large')"
+                :class="selectedSize === 'large'?
+                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
+                class="w-full
+                focus:outline-none
+                hover:bg-gray-500
+                text-gray
+                py-2
+                px-4
+                rounded-r">
+                Grande
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-wrap mb-4" v-if="productListFiltered.length">
+            <div v-for="(product, index) in productListFiltered"
+              v-bind:value="index"
+              v-bind:key="index"
+              class="w-full my-5 md:w-1/2 px-3">
+              <div @click="(currentOrder.product_id == product.id) ?
+                        '' : selectProduct(product)"
+                :class="(currentOrder.product_id == product.id) ? 'bg-gray-200' : ''"
+                class="w-full cursor-pointer">
+                <img class="h-auto
+                  w-full
+                  flex-none
+                  bg-cover
+                  border-l border-r border-b-0 border-t border-gray-400
+                  rounded-t
+                  text-center
+                  overflow-hidden"
+                  :src="require(`@/assets/${product.picture}`)"
+                  alt="Sunset in the mountains">
+                <div class="w-full border-r
+                  border-b
+                  border-l
+                  border-gray-400
+                  rounded-b
+                  p-4
+                  flex
+                  flex-col
+                  justify-between
+                  leading-normal">
+                  <div class="mb-8">
+                    <div class="text-gray-900 font-bold text-xl mb-2">
+                      {{  product.price
+                            .toLocaleString('en-US', {
+                              style: 'currency',
+                              currency: 'MXN',
+                              maximumSignificantDigits: 3,
+                            }
+                          )
+                      }}
+                    </div>
+                    <ul>
+                      <li><span>Marca:</span>
+                        <span class="font-bold"> {{ product.brand }}</span>
+                      </li>
+                      <li><span>Modelo:</span>
+                        <span class="font-bold"> {{ product.model }}</span>
+                      </li>
+                      <li><span>Peso de carga:</span>
+                        <span class="font-bold"> {{ product.weight }} kg</span>
+                      </li>
+                      <li class="mt-3">
+                        {{ product.description }}
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="flex items-center">
+                    <button
+                      type="button"
+                      :class="(currentOrder.product_id == product.id) ?
+                        'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
+                        'bg-green-500 hover:bg-green-700'"
+                      class="w-full
+                      bg-green-500
+                      hover:bg-green-700
+                      text-white
+                      py-2
+                      px-4
+                      rounded
+                      focus:outline-none
+                      focus:border-blue-400">
+                      {{ (currentOrder.product_id == product.id) ?
+                        'Seleccionado' : 'Elegir' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-wrap mb-4" v-else>
+            Lo sentimos :( no tenemos vehículos
+            <span class="font-bold">
+              -- {{ vehicleSizes[selectedSize] }} --
+            </span>
+              para la dirección seleccionada
+          </div>
+          <div class="flex items-center mb-8">
+            <div v-if="viewsMessages[viewName]"
+              class="bg-red-100
+              w-full
+              border
+              border-red-400
+              text-red-700
+              px-4
+              py-3
+              rounded
+              relative"
+              role="alert">
+              <strong class="font-bold">Oops! </strong>
+              <span class="block sm:inline">
+                {{ viewsMessages[viewName] }}
+              </span>
             </div>
           </div>
           <div class="flex items-center justify-between">
-            <router-link :to="{name: 'step-two'}" class="bg-green-500
+            <router-link :to="{ name: steps[viewName].previous }" class="bg-green-500
               hover:bg-green-700
               text-white
               py-2
@@ -115,27 +205,38 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-import { Datetime } from 'vue-datetime';
-import 'vue-datetime/dist/vue-datetime.css';
-import { Settings } from 'luxon';
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
-
-Settings.defaultLocale = 'es';
 
 export default {
   name: 'step-three',
   data() {
     return {
       viewName: 'step-three',
+      selectedSize: 'small',
+      productList: [],
+      productFields: {
+        product_id: 'id',
+        price: 'price',
+        product_size: 'size',
+        vehicle_brand: 'brand',
+        vehicle_model: 'model',
+        vehicle_weight: 'weight',
+        vehicle_picture: 'picture',
+        vehicle_description: 'description',
+      },
+      vehicleSizes: {
+        small: 'pequeños',
+        medium: 'medianos',
+        large: 'grandes',
+      },
     };
   },
   components: {
     Tracker,
-    Datetime,
   },
   mounted() {
-    this.setLoader(false);
+    this.getProducts();
   },
   props: [
   ],
@@ -161,7 +262,7 @@ export default {
           .then((response) => {
             if (response.status === 200) {
               this.addDataToLocalStorage(['currentOrder', 'customer']);
-              this.$router.push({ name: 'step-four' });
+              this.$router.push({ name: this.steps[this.viewName].next });
             }
           })
           .catch(() => {
@@ -169,72 +270,64 @@ export default {
           });
       }
     },
+    selectSize(size) {
+      this.selectedSize = size;
+    },
+    getProducts() {
+      this.setViewsMessages({ view: this.viewName, message: '' });
+      const payload = {
+        from_floor: this.currentOrder.from_floor_number,
+        to_floor: this.currentOrder.to_floor_number,
+        from_neighborhood: this.currentOrder.from_neighborhood,
+        to_neighborhood: this.currentOrder.to_neighborhood,
+        from_city: this.currentOrder.from_city,
+        to_city: this.currentOrder.to_city,
+        from_state: this.currentOrder.from_state,
+        to_state: this.currentOrder.to_state,
+        from_zip_code: this.currentOrder.from_zip_code,
+        to_zip_code: this.currentOrder.to_zip_code,
+      };
+      chalan.getProducts(payload)
+        .then((response) => {
+          if (response.data[0]) {
+            this.selectedSize = this.currentOrder.product_size
+              ? this.currentOrder.product_size : response.data[0].size;
+          }
+          this.productList = response.data;
+          this.setLoader(false);
+          if (this.productList.length < 1) {
+            Object.keys(this.productFields).forEach((field) => {
+              this.setOrder({ field, value: null });
+            });
+            this.addDataToLocalStorage(['currentOrder', 'customer']);
+          }
+        })
+        .catch(() => {
+          this.setViewsMessages({
+            view: this.viewName,
+            message: 'Hubo un error, intenta después de recargar la página',
+          });
+          this.setLoader(false);
+        });
+    },
+    selectProduct(product) {
+      Object.keys(this.productFields).forEach((field) => {
+        this.setOrder({ field, value: product[this.productFields[field]] });
+      });
+    },
   },
   computed: {
     ...mapState([
+      'currentOrder',
+      'customer',
       'formValidationMessages',
       'steps',
       'viewsMessages',
-      'currentOrder',
-      'customer',
       'loading',
     ]),
-    selectedDate: {
-      get() {
-        return this.$moment(this.currentOrder.appointment_date).toISOString();
-      },
-      set(value) {
-        if (value) {
-          const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
-          this.setOrder({ field: 'appointment_date', value: appointmentDate });
-        }
-      },
-    },
-    userComments: {
-      get() {
-        return this.currentOrder.comments;
-      },
-      set(value) {
-        this.setOrder({ field: 'comments', value });
-      },
-    },
-    minDatetime() {
-      return new Date(Date.now()).toISOString();
-    },
-    maxDatetime() {
-      const date = new Date();
-      return new Date(date.setDate(date.getDate() + 60)).toISOString();
-    },
-    datePickerClasses() {
-      const classes = [
-        'appearance-none',
-        'border rounded',
-        'w-full',
-        'py-2',
-        'px-3',
-        'text-gray-700',
-        'leading-tight',
-        'focus:outline-none',
-        'focus:border-blue-400',
-      ];
-      if (this.formValidationMessages.appointment_date) {
-        classes.push('border-red-300');
-      }
-      return classes;
+    productListFiltered() {
+      return this.productList.filter(item => item.size === this.selectedSize);
     },
   },
 };
 </script>
-<style>
-  .theme-chalan .vdatetime-popup__header,
-  .theme-chalan .vdatetime-calendar__month__day--selected > span > span,
-  .theme-chalan .vdatetime-calendar__month__day--selected:hover > span > span {
-    background: #4299e1;
-  }
-
-  .theme-chalan .vdatetime-year-picker__item--selected,
-  .theme-chalan .vdatetime-time-picker__item--selected,
-  .theme-chalan .vdatetime-popup__actions__button {
-    color: #4299e1;
-  }
-</style>

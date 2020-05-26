@@ -40,7 +40,7 @@ const routes = [
     path: '/order/step-three',
     name: 'step-three',
     component: () => import(/* webpackChunkName: "step-three" */ '../views/order/Step-three.vue'),
-    meta: { requiresPreviousComplete: true },
+    meta: { requiresPreviousComplete: true, requiresAuth: true },
   },
   {
     path: '/order/step-four',
