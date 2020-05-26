@@ -580,26 +580,28 @@ export default {
         }
       }
     },
-    getAddress(payload) {
-      chalan.getAddress(payload.zipcode)
-        .then((response) => {
-          this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: '' });
-          if (response.data.length > 0) {
-            this.setOrder({ field: `${payload.direction}_neighborhood_list`, value: response.data });
-            const zipCodeResponse = {
-              state: response.data[0].estado,
-              city: response.data[0].municipio,
-            };
-            Object.keys(zipCodeResponse).forEach((key) => {
-              this.setOrder({ field: `${payload.direction}_${key}`, value: zipCodeResponse[key] });
-            });
-          } else {
-            this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: 'ingresa un código postal válido' });
-          }
-        })
-        .catch(() => {
-          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
-        });
+    async getAddress(payload) {
+      this.setLoader(true);
+      try {
+        const result = await chalan.getAddress(payload.zipcode);
+        this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: '' });
+        if (result.data.length > 0) {
+          this.setOrder({ field: `${payload.direction}_neighborhood_list`, value: result.data });
+          const cityAndState = {
+            city: result.data[0].municipio,
+            state: result.data[0].estado,
+          };
+          Object.keys(cityAndState).forEach((key) => {
+            this.setOrder({ field: `${payload.direction}_${key}`, value: cityAndState[key] });
+          });
+        } else {
+          this.setOrder({ field: `${payload.direction}_neighborhood_list`, value: [] });
+          this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: 'ingresa un código postal válido' });
+        }
+      } catch {
+        this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+      }
+      this.setLoader(false);
     },
   },
   computed: {
@@ -624,6 +626,7 @@ export default {
           this.getAddress({ zipcode, direction: 'from' });
         } else {
           this.setFormValidationMessages({ field: 'from_zip_code', message: 'ingresa un código postal válido' });
+          this.setOrder({ field: 'from_neighborhood_list', value: [] });
         }
       },
     },
@@ -671,6 +674,7 @@ export default {
         if (zipcode.length > 3 && zipcode.length < 6) {
           this.getAddress({ zipcode, direction: 'to' });
         } else {
+          this.setOrder({ field: 'to_neighborhood_list', value: [] });
           this.setFormValidationMessages({ field: 'to_zip_code', message: 'ingresa un código postal válido' });
         }
       },
