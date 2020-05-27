@@ -20,7 +20,7 @@ export default {
     ],
   },
   'step-two': {
-    name: 'Agenda',
+    name: 'Fecha de mudanza',
     previous: 'step-one',
     next: 'step-three',
     isComplete: false,

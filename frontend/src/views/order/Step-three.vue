@@ -289,13 +289,28 @@ export default {
       };
       chalan.getProducts(payload)
         .then((response) => {
-          if (response.data[0]) {
-            this.selectedSize = this.currentOrder.product_size
-              ? this.currentOrder.product_size : response.data[0].size;
-          }
+          this.selectedSize = this.currentOrder.product_size
+            ? this.currentOrder.product_size : 'small';
           this.productList = response.data;
+          if (response.data[0] && this.productListFiltered.length === 0) {
+            this.selectedSize = response.data[0].size;
+          }
           this.setLoader(false);
-          if (this.productList.length < 1) {
+          if (this.productList.length === 0) {
+            const orderPayload = {
+              order: this.currentOrder,
+              customer: this.customer,
+            };
+            chalan.updateOrder(orderPayload)
+              .then((res) => {
+                if (res.status === 200) {
+                  this.addDataToLocalStorage(['currentOrder', 'customer']);
+                  this.$router.push({ name: this.steps[this.viewName].next });
+                }
+              })
+              .catch(() => {
+                this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+              });
             Object.keys(this.productFields).forEach((field) => {
               this.setOrder({ field, value: null });
             });
