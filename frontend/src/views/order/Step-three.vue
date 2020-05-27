@@ -67,7 +67,7 @@
               </button>
             </div>
           </div>
-          <div class="flex flex-wrap mb-4" v-if="productListFiltered.length">
+          <div class="flex flex-wrap mb-4" v-if="productList.length">
             <div v-for="(product, index) in productListFiltered"
               v-bind:value="index"
               v-bind:key="index"
@@ -145,12 +145,17 @@
               </div>
             </div>
           </div>
-          <div class="flex flex-wrap mb-4" v-else>
-            Lo sentimos :( no tenemos vehículos
-            <span class="font-bold">
-              -- {{ vehicleSizes[selectedSize] }} --
-            </span>
-              para la dirección seleccionada
+          <div class="" v-else>
+            <p v-if="customer.mobile_phone">
+              {{ customer.customer_name }}, te escribiremos un
+              mensaje al <span class="font-bold">{{ customer.mobile_phone }}</span> para coordinar
+              los siguientes pasos de tu mudanza.
+            </p>
+            <p v-else>
+              {{ customer.customer_name }}, te enviamos un
+              correo a <span class="font-bold">{{ customer.email }}</span> para coordinar
+              los siguientes pasos de tu mudanza.
+            </p>
           </div>
           <div class="flex items-center mb-8">
             <div v-if="viewsMessages[viewName]"
@@ -289,9 +294,9 @@ export default {
       };
       chalan.getProducts(payload)
         .then((response) => {
+          this.productList = response.data;
           this.selectedSize = this.currentOrder.product_size
             ? this.currentOrder.product_size : 'small';
-          this.productList = response.data;
           if (response.data[0] && this.productListFiltered.length === 0) {
             this.selectedSize = response.data[0].size;
           }
@@ -317,7 +322,8 @@ export default {
             this.addDataToLocalStorage(['currentOrder', 'customer']);
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.log(err);
           this.setViewsMessages({
             view: this.viewName,
             message: 'Hubo un error, intenta después de recargar la página',
