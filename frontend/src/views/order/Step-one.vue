@@ -553,7 +553,7 @@ export default {
                   'currentOrder',
                   'customer',
                 ]);
-                this.$router.push({ name: 'step-two' });
+                this.$router.push({ name: this.steps[this.viewName].next });
               }
             })
             .catch(() => {
