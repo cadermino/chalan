@@ -22,22 +22,23 @@ export default {
       },
     });
   },
-  getProducts(filters) {
+  getProducts(payload) {
     return axios.get(`${process.env.VUE_APP_API_URL}products`, {
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
       },
       params: {
-        from_floor: filters.from_floor,
-        to_floor: filters.to_floor,
-        from_neighborhood: filters.from_neighborhood,
-        to_neighborhood: filters.to_neighborhood,
-        from_city: filters.from_city,
-        to_city: filters.to_city,
-        from_state: filters.from_state,
-        to_state: filters.to_state,
-        from_zip_code: filters.from_zip_code,
-        to_zip_code: filters.to_zip_code,
+        from_floor: payload.from_floor,
+        to_floor: payload.to_floor,
+        from_neighborhood: payload.from_neighborhood,
+        to_neighborhood: payload.to_neighborhood,
+        from_city: payload.from_city,
+        to_city: payload.to_city,
+        from_state: payload.from_state,
+        to_state: payload.to_state,
+        from_zip_code: payload.from_zip_code,
+        to_zip_code: payload.to_zip_code,
       },
     });
   },
@@ -52,7 +53,12 @@ export default {
     return axios(options);
   },
   loginFacebook(payload) {
-    const data = { email: payload.email, name: payload.name, token: payload.token };
+    const data = {
+      email: payload.email,
+      name: payload.name,
+      token: payload.token,
+      mobile_phone: payload.mobilePhone,
+    };
     const options = {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -96,6 +102,18 @@ export default {
   checkoutCash(payload) {
     return axios.put(`${process.env.VUE_APP_API_URL}order/checkout-cash/${payload.orderId}`,
       {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${payload.token}`,
+        },
+      });
+  },
+  confirmStripePayment(payload) {
+    return axios.put(`${process.env.VUE_APP_API_URL}order/confirm-stripe-payment/${payload.orderId}`,
+      {
+        session_id: payload.sessionId,
+      },
       {
         headers: {
           'Content-Type': 'application/json',

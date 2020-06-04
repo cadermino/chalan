@@ -107,12 +107,32 @@ export default {
   mounted() {
     this.$moment.locale('es');
     this.getPendingOrders();
-    if (this.sessionId) {
-      this.setViewsMessages({ view: this.viewName, message: 'Su pago ha sido recibido con exito!' });
-      Object.keys(this.currentOrder).forEach((field) => {
-        this.setOrder({ field, value: null });
-      });
-      this.addDataToLocalStorage(['currentOrder']);
+    if (this.sessionId && this.currentOrder.order_id) {
+      const payload = {
+        sessionId: this.sessionId,
+        orderId: this.currentOrder.order_id,
+        token: this.customer.token,
+      };
+      chalan.confirmStripePayment(payload)
+        .then((response) => {
+          if (response.status === 200) {
+            this.setViewsMessages({
+              view: this.viewName,
+              message: 'Su pago ha sido recibido con exito!',
+            });
+            Object.keys(this.currentOrder).forEach((field) => {
+              this.setOrder({ field, value: null });
+            });
+            this.addDataToLocalStorage(['currentOrder']);
+            this.$router.push(this.$route.path);
+          }
+        })
+        .catch(() => {
+          this.setViewsMessages({
+            view: this.viewName,
+            message: 'Hubo un error, intenta después de recargar la página',
+          });
+        });
     }
   },
   methods: {
@@ -135,7 +155,7 @@ export default {
           this.setLoader(false);
         })
         .catch(() => {
-
+          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
         });
     },
     goBack() {

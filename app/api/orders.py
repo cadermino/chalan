@@ -1,9 +1,11 @@
+import os
 import stripe
 from flask import jsonify, request, current_app
 from ..models import Customer, Order, OrderSchema
 from . import api
 from .decorators import token_required
 from .order import Order as OrderEntity
+from .email import send_email
 
 @api.route('/order', methods=['POST'])
 def create_order():
@@ -66,9 +68,62 @@ def generate_checkout_session(order_id):
 @api.route('/order/checkout-cash/<int:order_id>', methods=['PUT'])
 @token_required
 def generate_checkout_cash(order_id):
+    auth_headers = request.headers.get('Authorization', '').split()
+    customer = Customer.verify_auth_token(auth_headers[1])
+    last_order = customer.orders.order_by(Order.id.desc()).first()
     order = OrderEntity(order_id)
     payment = order.create_cash_payment()
+    send_email(
+        os.getenv('ADMIN_MAIL'),
+        'Orden id {} pago cash'.format(order_id),
+        'email/admin_new_order',
+        bcc=[],
+        order=last_order,
+        mobile_phone=customer.mobile_phone
+    )
+    send_email(
+        customer.email,
+        'Hemos recibido tu solicitud',
+        'email/cash_payment_selected',
+        bcc=[],
+        customer_name=customer.name,
+        mobile_phone=customer.mobile_phone
+    )
 
     return jsonify({
         'payment': payment.id,
     }), 200
+
+@api.route('order/confirm-stripe-payment/<int:order_id>', methods=['PUT'])
+@token_required
+def confirm_stripe_payment(order_id):
+    data = request.json
+    auth_headers = request.headers.get('Authorization', '').split()
+    customer = Customer.verify_auth_token(auth_headers[1])
+    last_order = customer.orders.order_by(Order.id.desc()).first()
+    order = OrderEntity(order_id)
+    try:
+        payment = order.confirm_stripe_payment(data['session_id'])
+        if payment.status == 'paid':
+            send_email(
+                os.getenv('ADMIN_MAIL'),
+                'Orden id {} pago stripe completado'.format(order_id),
+                'email/admin_new_order',
+                bcc=[],
+                order=last_order,
+                mobile_phone=customer.mobile_phone
+            )
+            send_email(
+                customer.email, 'Tu pago ha sido procesado correctamente',
+                'email/stripe_payment_completed',
+                bcc=[],
+                customer_name=customer.name,
+                mobile_phone=customer.mobile_phone
+            )
+            return jsonify({
+                'payment': payment.status,
+            }), 200
+    except:
+        return jsonify({
+            'message': 'There was a problem processing the payment.'
+        }), 400

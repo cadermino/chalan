@@ -138,16 +138,22 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex';
+import { mapState, mapActions, mapMutations } from 'vuex';
 
 export default {
   props: [
   ],
+  mounted() {
+    this.setLoader(false);
+  },
   computed: {
     ...mapState({}),
   },
   methods: {
     ...mapActions([]),
+    ...mapMutations([
+      'setLoader',
+    ]),
   },
 };
 </script>

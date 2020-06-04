@@ -7,6 +7,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY')
     SECRET_FB_APP_KEY = os.environ.get('SECRET_FB_APP_KEY')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS')
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_SERVER = os.environ.get('MAIL_SERVER')

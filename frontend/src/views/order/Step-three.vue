@@ -281,6 +281,7 @@ export default {
     getProducts() {
       this.setViewsMessages({ view: this.viewName, message: '' });
       const payload = {
+        token: this.customer.token,
         from_floor: this.currentOrder.from_floor_number,
         to_floor: this.currentOrder.to_floor_number,
         from_neighborhood: this.currentOrder.from_neighborhood,
@@ -322,8 +323,7 @@ export default {
             this.addDataToLocalStorage(['currentOrder', 'customer']);
           }
         })
-        .catch((err) => {
-          console.log(err);
+        .catch(() => {
           this.setViewsMessages({
             view: this.viewName,
             message: 'Hubo un error, intenta después de recargar la página',
