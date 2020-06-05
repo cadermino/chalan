@@ -24,8 +24,8 @@
           </div>
           <p class="text-center font-bold mb-10">
             {{ customer.customer_name }},
-             confirma que todo esté en orden antes del pago además bríndanos tu
-             número de celular para mandantener la cominicación
+             confirma que todo esté en orden antes del pago, además bríndanos tu
+             número de celular para mantener la comunicación
           </p>
           <div class="flex flex-wrap mb-4">
             <div class="w-full pxx-3 mb-4">

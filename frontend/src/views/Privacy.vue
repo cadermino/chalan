@@ -7,7 +7,7 @@
         </p>
         <p>&nbsp;</p>
         <p>
-          El presente Política de Privacidad establece los términos en que Chalán usa
+          La presente Política de Privacidad establece los términos en que Chalán usa
           y protege la
           información que es proporcionada por sus usuarios al momento de utilizar su sitio web.
           Esta compañía está comprometida con la seguridad de los datos de sus usuarios.

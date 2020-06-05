@@ -58,11 +58,15 @@ def login_facebook():
         return jsonify({'message' : 'invalid token'}), 403
     try:
         customer = Customer.query.filter_by(email=data['email'].lower()).first()
+        if customer and customer.mobile_phone != data['mobile_phone']:
+            customer.mobile_phone = data['mobile_phone']
         if customer is None:
-            customer = Customer(email=data['email'].lower(),
-                        name=data['name'])
-            db.session.add(customer)
-            db.session.commit()
+            customer = Customer(
+                email=data['email'].lower(),
+                name=data['name'],
+                mobile_phone=data['mobile_phone'])
+        db.session.add(customer)
+        db.session.commit()
     except:    
         return jsonify({'message' : 'provide required data'}), 400
 

@@ -105,3 +105,12 @@ class Order:
         db.session.commit()
         
         return payment
+    
+    def confirm_stripe_payment(self, session_id):
+        payment = PaymentModel.query.filter_by(order_id = self.order_id).filter_by(reference = session_id).first()
+        if payment.reference == session_id:
+            payment.status = 'paid'
+            db.session.add(payment)
+            db.session.commit()
+        
+        return payment
