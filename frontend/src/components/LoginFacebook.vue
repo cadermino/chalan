@@ -30,8 +30,7 @@
       :app-id="appId"
       v-model="model"
       @sdk-init="handleSdkInit"
-      @login="login"
-      @click="click">
+      @login="login">
       <template slot="working">Por favor espera...</template>
       <template slot="login">Continuar con Facebook</template>
       <template slot="logout">Salir</template>
@@ -48,9 +47,6 @@ export default {
   name: 'LoginFacebook',
   data() {
     return {
-      requiredFieldsRegister: {
-        mobilePhone: null,
-      },
       registerFormValidationMessages: {
         mobilePhone: null,
       },
@@ -141,8 +137,6 @@ export default {
       this.setCustomerData({ field: 'email', value: data.email });
       this.setCustomerData({ field: 'mobile_phone', value: this.mobilePhone });
       this.addDataToLocalStorage(['customer']);
-    },
-    click() {
     },
     login() {
       this.setLoader(true);
