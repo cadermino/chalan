@@ -16,6 +16,7 @@ export default new Vuex.Store({
       customer_name: null,
       mobile_phone: null,
       token: null,
+      picture: null,
     },
     currentOrder: {
       order_id: null,

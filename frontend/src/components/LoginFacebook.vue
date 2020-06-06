@@ -55,6 +55,7 @@ export default {
       personalID: '',
       email: '',
       name: '',
+      picture: '',
       scope: {},
       model: {},
       FB: {},
@@ -99,11 +100,12 @@ export default {
     ]),
     getUserData() {
       this.FB.api('/me',
-        'GET', { fields: 'id,name,email' },
+        'GET', { fields: 'id,name,email,picture' },
         (userInformation) => {
           this.personalID = userInformation.id;
           this.email = userInformation.email;
           this.name = userInformation.name;
+          this.picture = userInformation.picture;
           this.FB.getLoginStatus((statusResponse) => {
             chalan.loginFacebook({
               email: this.email,
@@ -136,6 +138,7 @@ export default {
       this.setCustomerData({ field: 'customer_name', value: data.name });
       this.setCustomerData({ field: 'email', value: data.email });
       this.setCustomerData({ field: 'mobile_phone', value: this.mobilePhone });
+      this.setCustomerData({ field: 'picture', value: this.picture });
       this.addDataToLocalStorage(['customer']);
     },
     login() {
