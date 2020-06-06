@@ -469,6 +469,7 @@ export default {
       this.setCustomerData({ field: 'email', value: data.email });
       this.setCustomerData({ field: 'mobile_phone', value: data.mobile_phone });
       this.setCustomerData({ field: 'customer_name', value: data.name });
+      this.setCustomerData({ field: 'picture', value: '' });
       this.addDataToLocalStorage(['customer']);
     },
     cancel() {

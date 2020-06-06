@@ -37,7 +37,7 @@
               </router-link>
             </div>
           </div>
-          <div v-else>
+          <div v-else class="overflow-scroll">
             <table class="table-auto w-full mb-10">
               <thead>
                 <tr>
