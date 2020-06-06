@@ -27,7 +27,7 @@
         px-4
         py-2
         text-gray
-        hover:bg-indigo-500
+        hover:bg-blue-500
         hover:text-white">
         Mis ordenes
       </router-link>
@@ -36,7 +36,7 @@
         px-4
         py-2
         text-gray
-        hover:bg-indigo-500
+        hover:bg-blue-500
         hover:text-white"
         @click="logout">Salir</div>
     </div>
