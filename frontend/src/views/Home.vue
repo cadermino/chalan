@@ -8,10 +8,11 @@
     >
       <div class="container mx-auto px-6 text-left">
         <h2 class="text-4xl font-bold mb-2 text-white">
-          Con Chalán agenda movilidad para tu <span class="">mudanza</span>
+          En Chalán te ayudamos a encontrar el vehículo ideal para tu mudanza
         </h2>
         <h3 class="text-2xl mb-8 text-gray-200">
-          Agenda tu vehículo de mudanza en linea!
+          Chalán te muestra una lista de
+          vehículos según tamaño y precio. Escoge el que más te convenga.
         </h3>
         <router-link to="/order/step-one" class="bg-blue-500
                  hover:bg-blue-700
@@ -19,63 +20,75 @@
                  font-bold
                  rounded-full
                  py-4 px-8 shadow-lg tracking-wider">
-                 Quiero agendar
+                 Ver precios
         </router-link>
       </div>
     </div>
     <!-- Features -->
     <section class="container mx-auto px-6 p-10">
       <h2 class="text-4xl font-bold text-center text-gray-800 mb-8">
-        Múdate en solo 3 pasos
+        Múdate en solo 4 pasos
       </h2>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Ingresa tus datos
+            Indícanos las direcciones
           </h4>
-          <p class="text-gray-600 mb-8">
-            Our Smart Health Monitoring Wristwatch is able to capture you vitals
-            while you exercise. You can create different category of exercises
-            and can track your vitals on the go.
+          <p class="text-gray-600 mb-8 text-lg">
+            Para cotizar con mayor precisión,
+            necesitamos saber desde donde y a qué lugar te vamos a mover
           </p>
         </div>
         <div class="w-full md:w-1/2">
-          <img src="../assets/health.svg" alt="Monitoring" />
+          <!-- <img src="../assets/health.svg" alt="Monitoring" /> -->
+          <img src="../assets/address.png" alt="direcciones" />
         </div>
       </div>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
-          <img src="../assets/roadmap.svg" alt="Reporting" />
+          <!-- <img src="../assets/roadmap.svg" alt="Reporting" /> -->
+          <img src="../assets/date.png" alt="Fecha y hora" />
         </div>
         <div class="w-full md:w-1/2 pl-10">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Indica la dirección
+            Fecha y hora de tu mudanza
           </h4>
-          <p class="text-gray-600 mb-8">
-            Our Smart Health Monitoring Wristwatch can generate a comprehensive
-            report on your vitals depending on your settings either daily,
-            weekly, monthly, quarterly or yearly.
+          <p class="text-gray-600 mb-8 text-lg">
+            Ingresa la fecha y hora en la que vamos por tus cosas.
           </p>
         </div>
       </div>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Realiza el pago
+            Escoge la movilidad
           </h4>
-          <p class="text-gray-600 mb-8">
-            Our Smart Health Monitoring Wristwatch allows you to sync data
-            across all your mobile devices whether iOS, Android or Windows OS
-            and also to your laptop whether MacOS, GNU/LInux or Windows OS.
+          <p class="text-gray-600 mb-8 text-lg">
+            Tenemos vehículos de todos los tamaños clasificados
+            en tres categorías, pequeño, mediano y grande
           </p>
         </div>
         <div class="w-full md:w-1/2">
-          <img src="../assets/creditcard.jpg" alt="Syncing" />
+          <img src="../assets/truck-list.png" alt="Syncing" />
+        </div>
+      </div>
+      <div class="flex items-center flex-wrap mb-20">
+        <div class="w-full md:w-1/2">
+          <!-- <img src="../assets/roadmap.svg" alt="Reporting" /> -->
+          <img src="../assets/payment.png" alt="Fecha y hora" />
+        </div>
+        <div class="w-full md:w-1/2 pl-10">
+          <h4 class="text-3xl text-gray-800 font-bold mb-3">
+            Opciones de pago
+          </h4>
+          <p class="text-gray-600 mb-8 text-lg">
+            Contamos con dos opciones de pago, en efectivo y con tarjeta.
+          </p>
         </div>
       </div>
     </section>
     <!-- Testimonials -->
-    <section class="bg-gray-100">
+    <section class="bg-gray-100 hidden">
       <div class="container mx-auto px-6 py-20">
         <h2 class="text-4xl font-bold text-center text-gray-800 mb-8">
           Testimonials
@@ -124,13 +137,13 @@
         <h2 class="mb-6 text-4xl font-bold text-center text-white">
           Elige el vehículo que más te acomode
         </h2>
-        <h3 class="my-4 text-2xl text-white">
+        <!-- <h3 class="my-4 text-2xl text-white">
           Get yourself the Smart Health Monitoring Wristwatch!
-        </h3>
+        </h3> -->
         <button
           class="bg-white font-bold rounded-full mt-6 py-4 px-8 shadow-lg uppercase tracking-wider"
         >
-          Agendar ahora
+          Cotiza ahora
         </button>
       </div>
     </section>

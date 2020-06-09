@@ -293,7 +293,7 @@
                   rounded
                   focus:outline-none
                   focus:border-blue-400">
-                  Proceder al pago
+                  {{ currentOrder.payment_method=='cash'?'Agendar vehículo':'Proceder al pago' }}
                 </button>
               </template>
             </stripe-checkout>

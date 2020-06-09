@@ -104,6 +104,15 @@
       <div class="w-full text-center text-xs">
         <a href="https://www.vecteezy.com/" target="_blank"> Vectors by Vecteezy</a>
       </div>
+      <div class="w-full text-center text-xs">
+        <a href="http://www.freepik.com" target="_blank">Designed by stories / Freepik</a>
+      </div>
+      <div class="w-full text-center text-xs">
+        <a href="http://www.freepik.com" target="_blank">Designed by makyzz / Freepik</a>
+      </div>
+      <div class="w-full text-center text-xs">
+        <a href="http://www.freepik.com" target="_blank">Designed by Freepik</a>
+      </div>
     </div>
   </footer>
 </template>

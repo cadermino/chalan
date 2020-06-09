@@ -23,7 +23,7 @@
             </div>
           </div>
           <p class="text-center font-bold mb-10">
-            Elije la día y la hora que quires mudarte
+            Elije el día y la hora de tu mudanza
           </p>
           <div class="flex flex-wrap mb-4">
             <div class="w-full px-3 mb-4">
@@ -74,6 +74,9 @@
                 leading-tight
                 focus:outline-none
                 focus:border-blue-400"
+                rows="5"
+                placeholder="Ej. La primera dirección es a la altura de Walmart de Toreo
+y la dirección de destino es a dos cuadras del Ángel de la independencia."
                 v-model="userComments"
                 id="address-from-street"
                 type="text">
