@@ -47,7 +47,7 @@
                 </div>
                 <div>
                   <dl>
-                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-white px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Detalles del vehículo
                       </dt>
@@ -102,7 +102,7 @@
                         </div>
                       </dd>
                     </div>
-                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-gray-50 px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Dirección de recojo
                       </dt>
@@ -110,7 +110,7 @@
                         {{ completeFromAddress }}
                       </dd>
                     </div>
-                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-white px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Dirección de entrega
                       </dt>
@@ -118,7 +118,7 @@
                         {{ completeToAddress }}
                       </dd>
                     </div>
-                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-gray-50 px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Fecha y hora de la mudanza
                       </dt>
@@ -127,7 +127,7 @@
                           moment("dddd D MMMM YYYY - h:mm A") }}
                       </dd>
                     </div>
-                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-gray-50 px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Referencias
                       </dt>
@@ -135,7 +135,7 @@
                         {{ currentOrder.comments }}
                       </dd>
                     </div>
-                    <div class="bg-gray-50 px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-gray-50 px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Teléfono de contacto <span class="text-red-500">*</span>
                         <span v-if="!phoneNumber"
@@ -184,7 +184,7 @@
                         </div>
                       </dd>
                     </div>
-                    <div class="bg-white px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4">
+                    <div class="bg-white px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Opciones de pago <span class="text-red-500">*</span>
                         <span v-if="formValidationMessages['payment_method']"
