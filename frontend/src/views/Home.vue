@@ -15,12 +15,12 @@
           vehículos según tamaño y precio. Escoge el que más te convenga.
         </h3>
         <router-link to="/order/step-one" class="bg-blue-500
-                 hover:bg-blue-700
-                 text-white
-                 font-bold
-                 rounded-full
-                 py-4 px-8 shadow-lg tracking-wider">
-                 Ver precios
+          hover:bg-blue-700
+          text-white
+          font-bold
+          rounded-full
+          py-4 px-8 shadow-lg tracking-wider">
+          Ver precios
         </router-link>
       </div>
     </div>
@@ -140,11 +140,17 @@
         <!-- <h3 class="my-4 text-2xl text-white">
           Get yourself the Smart Health Monitoring Wristwatch!
         </h3> -->
-        <button
-          class="bg-white font-bold rounded-full mt-6 py-4 px-8 shadow-lg uppercase tracking-wider"
-        >
+        <router-link to="/order/step-one" class="bg-white
+          font-bold
+          rounded-full
+          mt-6
+          py-4
+          px-8
+          shadow-lg
+          uppercase
+          tracking-wider">
           Cotiza ahora
-        </button>
+        </router-link>
       </div>
     </section>
   </div>
