@@ -1,6 +1,5 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
-// import Home from '../views/Home.vue';
 import steps from '../store/steps';
 import store from '../store/index';
 
@@ -10,10 +9,8 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    // component: Home,
     beforeEnter() {
-      // Put the full page url including the protocol http(s) below
-      window.location = 'https://dev.chalan.mx/landing/';
+      window.location = '/landing/';
     },
   },
   {
