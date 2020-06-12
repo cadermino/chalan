@@ -1,12 +1,7 @@
-FROM node:8-alpine as build-stage
-WORKDIR /chalan
-COPY /frontend .
-RUN npm install && npm run build-dev
-
-FROM python:3.6-alpine as production-stage
+FROM python:3.6-alpine
 WORKDIR /chalan
 COPY . .
-COPY --from=build-stage /chalan/dist /chalan/frontend/dist
+# COPY --from=build-stage /chalan/dist /chalan/frontend/dist
 
 RUN apk add --no-cache tzdata
 ENV TZ America/Mexico_City

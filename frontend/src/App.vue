@@ -26,19 +26,16 @@
     <!--Nav-->
     <Navbar></Navbar>
     <router-view/>
-    <Footer></Footer>
   </div>
 </template>
 
 <script>
 import { mapActions, mapState } from 'vuex';
-import Footer from '@/components/Footer.vue';
 import Navbar from '@/components/Navbar.vue';
 
 export default {
   name: 'app',
   components: {
-    Footer,
     Navbar,
   },
   methods: {
