@@ -11,7 +11,10 @@ const routes = [
     path: '/',
     name: 'home',
     // component: Home,
-    redirect: '/landing',
+    beforeEnter() {
+      // Put the full page url including the protocol http(s) below
+      window.location = 'https://dev.chalan.mx/landing/';
+    },
   },
   {
     path: '/about',
