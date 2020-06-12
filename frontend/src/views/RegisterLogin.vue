@@ -35,7 +35,7 @@ export default {
   methods: {},
   computed: {
     redirect() {
-      return this.$route.query.redirect || '/';
+      return this.$route.query.redirect || '/dashboard';
     },
   },
 };

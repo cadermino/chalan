@@ -103,24 +103,20 @@
           rounded">
           Iniciar
         </router-link>
-        <a href="#" class="mt-1
+        <a href="/landing/contacto" class="mt-1
           block
           px-2
           py-1
           text-gray
           sm:mt-0
           sm:ml-2">Contacto</a>
-        <router-link
-          :to="{name: 'about'}"
-          @click.native="isOpen = false"
-          class="block
+        <a href="/landing/nosotros" class="mt-1
+          block
           px-2
           py-1
           text-gray
           sm:mt-0
-          sm:ml-2">
-          Nosotros
-        </router-link>
+          sm:ml-2">Nosotros</a>
         <router-link  v-if="!isUserLogged"
           :to="{name: 'register-login'}"
           @click.native="isOpen = false"
