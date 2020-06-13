@@ -102,7 +102,7 @@ ENGINE = InnoDB CHARSET=utf8;
 
 INSERT INTO `lu_payment_type` (`id`, `type`)
 VALUES
-  (1, 'credit card'),
+  (1, 'card'),
   (2, 'cash');
 
 -- -----------------------------------------------------
