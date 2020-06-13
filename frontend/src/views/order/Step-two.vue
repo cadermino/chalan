@@ -76,7 +76,7 @@
                 focus:border-blue-400"
                 rows="5"
                 placeholder="Ej. La primera dirección es a la altura de Walmart de Toreo
-y la dirección de destino es a dos cuadras del Ángel de la independencia."
+                y la dirección de destino es a dos cuadras del Ángel de la independencia."
                 v-model="userComments"
                 id="address-from-street"
                 type="text">

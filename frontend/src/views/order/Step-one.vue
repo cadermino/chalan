@@ -539,6 +539,7 @@ export default {
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
+        this.setOrder({ field: 'created_date', value: this.$moment().format() });
         this.setLoader(true);
         if (!this.currentOrder.order_id) {
           const payload = {

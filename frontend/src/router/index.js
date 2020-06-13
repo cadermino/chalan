@@ -3,6 +3,8 @@ import VueRouter from 'vue-router';
 import steps from '../store/steps';
 import store from '../store/index';
 
+const moment = require('moment');
+
 Vue.use(VueRouter);
 
 const routes = [
@@ -68,7 +70,9 @@ router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
   store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
-  if (store.getters.getToken && !store.getters.isTokenValid) {
+  const orderCreatedDate = moment(store.state.currentOrder.created_date);
+  const isLocalStorageOutdated = moment().diff(orderCreatedDate, 'hours') >= 24;
+  if (isLocalStorageOutdated) {
     localStorage.removeItem('currentOrder');
     localStorage.removeItem('customer');
     window.location.reload();
