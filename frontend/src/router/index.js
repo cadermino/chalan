@@ -70,7 +70,6 @@ router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
   store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
-  console.log(store.state.currentOrder.created_date);
   const orderCreatedDate = moment(store.state.currentOrder.created_date);
   const isLocalStorageOutdated = moment().diff(orderCreatedDate, 'hours') >= 24;
   if (isLocalStorageOutdated) {
