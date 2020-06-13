@@ -20,6 +20,7 @@ export default new Vuex.Store({
     },
     currentOrder: {
       order_id: null,
+      created_date: null,
       product_size: null,
       product_id: null,
       vehicle_brand: null,
