@@ -16,7 +16,6 @@ class Customer(db.Model):
 	password_hash = db.Column('password', db.String(128))
 	mobile_phone = db.Column(db.String(15))
 	phone = db.Column(db.String(15))
-	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 
 	orders = db.relationship("Order", backref="customer")
 
@@ -125,7 +124,6 @@ class Payment(db.Model):
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
 	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False)
 	reference = db.Column(db.String(100))
-	created_date = db.Column(db.DateTime(), default=datetime.utcnow)
 	comments = db.Column(db.String(500))
 	active = db.Column(db.Integer)
 
