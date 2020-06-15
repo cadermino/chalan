@@ -29,6 +29,7 @@ export default {
         Authorization: `Bearer ${payload.token}`,
       },
       params: {
+        order_id: payload.order_id,
         from_floor: payload.from_floor,
         to_floor: payload.to_floor,
         from_neighborhood: payload.from_neighborhood,

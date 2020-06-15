@@ -281,6 +281,7 @@ export default {
     getProducts() {
       this.setViewsMessages({ view: this.viewName, message: '' });
       const payload = {
+        order_id: this.currentOrder.order_id,
         token: this.customer.token,
         from_floor: this.currentOrder.from_floor_number,
         to_floor: this.currentOrder.to_floor_number,
@@ -311,16 +312,11 @@ export default {
               .then((res) => {
                 if (res.status === 200) {
                   this.addDataToLocalStorage(['currentOrder', 'customer']);
-                  this.$router.push({ name: this.steps[this.viewName].next });
                 }
               })
               .catch(() => {
                 this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
               });
-            Object.keys(this.productFields).forEach((field) => {
-              this.setOrder({ field, value: null });
-            });
-            this.addDataToLocalStorage(['currentOrder', 'customer']);
           }
         })
         .catch(() => {
