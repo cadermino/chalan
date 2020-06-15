@@ -1,5 +1,6 @@
 import os
 from flask import jsonify, request
+from .. import db
 from . import api
 from .product import Product as ProductEntity
 from ..models import Customer, Order
@@ -25,12 +26,14 @@ def get_products():
     }
     product = ProductEntity()
     products = product.get_active_products(filters)
-
     if len(products) == 0:
+        order = Order.query.get(request.args.get('order_id'))
+        order.customer_id = customer.id
+        db.session.add(order)
+        db.session.commit()
         send_email(customer.email, 'Siguientes pasos para tu mudanza',
                    'email/no_product', bcc=[], customer=customer)
-        last_order = customer.orders.order_by(Order.id.desc()).first()
-        send_email(os.getenv('ADMIN_MAIL'), 'Orden id {} sin vehículo'.format(last_order.id),
-                   'email/admin_new_order', bcc=[], order=last_order, mobile_phone=customer.mobile_phone)
+        send_email(os.getenv('ADMIN_MAIL'), 'Orden id {} sin vehículo'.format(order.id),
+                   'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone)
 
-    return jsonify(products)
+    return jsonify(products), 200
