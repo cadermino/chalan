@@ -303,21 +303,6 @@ export default {
             this.selectedSize = response.data[0].size;
           }
           this.setLoader(false);
-          if (this.productList.length === 0) {
-            const orderPayload = {
-              order: this.currentOrder,
-              customer: this.customer,
-            };
-            chalan.updateOrder(orderPayload)
-              .then((res) => {
-                if (res.status === 200) {
-                  this.addDataToLocalStorage(['currentOrder', 'customer']);
-                }
-              })
-              .catch(() => {
-                this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
-              });
-          }
         })
         .catch(() => {
           this.setViewsMessages({

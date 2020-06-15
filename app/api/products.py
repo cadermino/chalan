@@ -26,7 +26,6 @@ def get_products():
     }
     product = ProductEntity()
     products = product.get_active_products(filters)
-
     if len(products) == 0:
         order = Order.query.get(request.args.get('order_id'))
         order.customer_id = customer.id
@@ -37,4 +36,4 @@ def get_products():
         send_email(os.getenv('ADMIN_MAIL'), 'Orden id {} sin vehículo'.format(order.id),
                    'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone)
 
-    return jsonify(products)
+    return jsonify(products), 200
