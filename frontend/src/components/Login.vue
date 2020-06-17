@@ -31,7 +31,8 @@
           />
         </div>
       </div>
-      <div class="border-b border-1 my-10"></div>
+      <div class="mt-5 text-center">O con:</div>
+      <div class="border-b border-1 mb-10"></div>
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
           <label class="block
@@ -195,7 +196,8 @@
           />
         </div>
       </div>
-      <div class="border-b border-1 my-10"></div>
+      <div class="mt-5 text-center">O con:</div>
+      <div class="border-b border-1 mb-10"></div>
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
           <label class="block
