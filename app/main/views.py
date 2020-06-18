@@ -8,16 +8,20 @@ def index():
 
 @main.route('/preguntas-frecuentes', methods=['GET'])
 def faq():
-    return render_template('faq.html', name='Carlos')
+    return render_template('faq.html')
 
 @main.route('/nosotros', methods=['GET'])
 def about():
-    return render_template('about.html', name='Carlos',)
+    return render_template('about.html')
 
-@main.route('/politica-de-privacidad', methods=['GET'])
+@main.route('/aviso-de-privacidad', methods=['GET'])
 def privacy():
     return render_template('privacy.html')
 
 @main.route('/contacto', methods=['GET', 'POST'])
 def contact():
     return render_template('contact.html')
+
+@main.route('/terminos-y-condiciones', methods=['GET'])
+def terms():
+    return render_template('terms.html')
