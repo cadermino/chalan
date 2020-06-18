@@ -14,7 +14,7 @@ def faq():
 def about():
     return render_template('about.html')
 
-@main.route('/politica-de-privacidad', methods=['GET'])
+@main.route('/aviso-de-privacidad', methods=['GET'])
 def privacy():
     return render_template('privacy.html')
 
