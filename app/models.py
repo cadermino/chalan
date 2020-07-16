@@ -100,6 +100,7 @@ class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
+	active = db.Column(db.Integer)
 
 
 class OrderStatus(db.Model):
@@ -131,13 +132,20 @@ class Payment(db.Model):
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
 	id = db.Column(db.Integer, primary_key=True)
+	charge_per_kilometer = db.Column(db.Integer, nullable=False)
+	charge_per_floor = db.Column(db.Integer, nullable=False)
 	size = db.Column(db.Enum('small','medium','large'))
 	plates = db.Column(db.String(45))
 	weight = db.Column(db.String(45))
-	model = db.Column(db.String(45))
+	width = db.Column(db.String(45))
+	height = db.Column(db.String(45))
+	length = db.Column(db.String(45))
 	brand = db.Column(db.String(45))
+	model = db.Column(db.String(45))
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	description = db.Column(db.String(45))
 	picture = db.Column(db.String(45))
+	active = db.Column(db.Integer)
 
 
 class Sepomex(db.Model):
