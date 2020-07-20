@@ -266,8 +266,13 @@ export default {
           order_id: this.currentOrder.order_id,
           price: this.selectedProduct.price,
         };
-        const product = await chalan.createProduct(productPayload);
-        this.setOrder({ field: 'product_id', value: product.data.id });
+        try {
+          const product = await chalan.createProduct(productPayload);
+          this.setOrder({ field: 'product_id', value: product.data.id });
+        } catch (error) {
+          this.setLoader(false);
+          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+        }
         const payload = {
           order: this.currentOrder,
           customer: this.customer,

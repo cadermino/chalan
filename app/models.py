@@ -5,7 +5,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
 
-db.metadata.clear()
+# db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)

@@ -74,7 +74,7 @@ class Product:
                 'language': 'es-ES',
                 'key': os.environ.get('GOOGLE_CLOUD_API_KEY')
             }
-            url = 'https://maps.googleapis.com/maps/api/distancematrix/json'
+            url = os.environ.get('GOOGLE_DISTANCE_MATRIX_URL')
             r = requests.get(url = url, params = params)
             data = r.json()
             kilometers = data['rows'][0]['elements'][0]['distance']['value']/1000
