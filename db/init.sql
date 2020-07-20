@@ -259,6 +259,16 @@ VALUES
 	(1, 15000, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1),
 	(2, 300, 1, 1, 'Juárez', 'Lomas de Sotelo', 'Cuauhtémoc', 'Miguel Hidalgo', 'Ciudad de México', 'Ciudad de México', '06600', '11200', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 1);
 
+-- -----------------------------------------------------
+-- Table `calculated_distance`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `calculated_distance` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `address_origin` VARCHAR(200) NULL,
+  `address_destination` VARCHAR(200) NULL,
+  `kilometers` INT(5) NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB CHARSET=utf8;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

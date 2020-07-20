@@ -26,7 +26,7 @@ def get_products():
     }
     product = ProductEntity()
     # products = product.get_active_products(filters)
-    products = product.generate_products(filters)
+    products = product.generate_products(filters, request.args.get('order_id'))
     # if len(products) == 0:
     #     order = Order.query.get(request.args.get('order_id'))
     #     # order.customer_id = customer.id
@@ -40,13 +40,23 @@ def get_products():
     return jsonify(products), 200
     # return products, 200
 
-# @api.route('/products', methods=['GET'])
-# @token_required
-# def generate_products():
-#     # auth_headers = request.headers.get('Authorization', '').split()
-#     # customer = Customer.verify_auth_token(auth_headers[1])
-#     # order.customer_id = customer.id
-#     products = product.generate_products(filters)
+@api.route('/product', methods=['POST'])
+@token_required
+def generate_product():
+    product = Order.query.get(request.json['order_id']).product
+    product_id = None
+    if product is not None:
+        product_id = product.id
+    data = {
+        'product_id': product_id,
+        'vehicle_id': request.json['vehicle_id'],
+        'price': request.json['price'],
+        'active': 1
+    }
+    product = ProductEntity()
+    product = product.create(data)
 
-#     return jsonify(products), 200
+    return jsonify({
+        'id': product.id
+    }), 201
     

@@ -17,8 +17,22 @@ UPDATE vehicles SET charge_per_kilometer = 50 WHERE size = 'medium';
 UPDATE vehicles SET charge_per_kilometer = 75 WHERE size = 'large';
 
 alter TABLE orders
-ADD COLUMN vehicle_id INT(10) DEFAULT NULL after customer_id,
-ADD CONSTRAINT fk_vehicles FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE NO ACTION ON UPDATE NO ACTION;
+ADD COLUMN total_kilometers INT(20) DEFAULT NULL after product_id;
 
 alter TABLE carrier_company
 ADD COLUMN active TINYINT(1) DEFAULT NULL;
+
+ALTER TABLE products
+DROP FOREIGN KEY fk_carrier_company1,
+DROP INDEX fk_carrier_company1,
+DROP COLUMN carrier_company_id,
+DROP COLUMN from_floor,
+DROP COLUMN to_floor,
+DROP COLUMN from_neighborhood,
+DROP COLUMN to_neighborhood,
+DROP COLUMN from_city,
+DROP COLUMN to_city,
+DROP COLUMN from_state,
+DROP COLUMN to_state,
+DROP COLUMN from_zip_code,
+DROP COLUMN to_zip_code;
