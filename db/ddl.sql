@@ -36,3 +36,7 @@ DROP COLUMN from_state,
 DROP COLUMN to_state,
 DROP COLUMN from_zip_code,
 DROP COLUMN to_zip_code;
+
+alter TABLE carrier_company
+ADD COLUMN rfc varchar(12) not null after name,
+ADD COLUMN address varchar(200) not null after rfc;
