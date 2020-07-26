@@ -1,9 +1,32 @@
+import os
+import requests
 from flask import jsonify
 from ...models import Product as ProductModel
 from ...models import Vehicle as VehicleModel
+from ...models import Order as OrderModel
+from ...models import CalculatedDistance as CalculatedDistanceModel
+from ... import db
 
 class Product:
     is_active = 1
+
+    def create(self, data):
+        if data['product_id'] is not None:
+            product = ProductModel.query.get(data['product_id'])
+            product.vehicle_id = data['vehicle_id']
+            product.price = data['price']
+            product.active = data['active']
+
+        else:
+            product = ProductModel(
+                vehicle_id = data['vehicle_id'],
+                price = data['price'],
+                active = data['active']
+            )
+        db.session.add(product)
+        db.session.commit()
+        
+        return product
 
     def get_active_products(self, filters):
         products = ProductModel.query.\
@@ -34,4 +57,55 @@ class Product:
             }
             output.append(prod)
 
+        return output
+
+    def generate_products(self, filters, order_id):
+        order = OrderModel.query.get(order_id)
+
+        origins = '{} {} {} {}'.format(filters['from_neighborhood'], filters['from_zip_code'], filters['from_city'], filters['from_state'])
+        destinations = '{} {} {} {}'.format(filters['to_neighborhood'], filters['to_zip_code'], filters['to_city'], filters['to_state'])
+        calculated_distance = CalculatedDistanceModel.query.filter_by(address_origin = origins).filter_by(address_destination = destinations).first()
+
+        if calculated_distance is None:
+            params = {
+                'origins': origins,
+                'destinations': destinations,
+                'mode': 'driving',
+                'language': 'es-ES',
+                'key': os.environ.get('GOOGLE_CLOUD_API_KEY')
+            }
+            url = os.environ.get('GOOGLE_DISTANCE_MATRIX_URL')
+            r = requests.get(url = url, params = params)
+            data = r.json()
+            kilometers = data['rows'][0]['elements'][0]['distance']['value']/1000
+            order.total_kilometers = kilometers
+            db.session.add(order)
+            db.session.commit()
+            calculated_distance = CalculatedDistanceModel(
+                address_origin = origins,
+                address_destination = destinations,
+                kilometers = kilometers
+            )
+            db.session.add(calculated_distance)
+            db.session.commit()
+
+        vehicles = VehicleModel.query.filter(VehicleModel.active == 1).all()
+        
+        output = []
+        for vehicle in vehicles:
+            raw_amount = (calculated_distance.kilometers * vehicle.charge_per_kilometer) + ((int(filters['from_floor']) + int(filters['to_floor'])) * vehicle.charge_per_floor)
+            chalan_fee = raw_amount * 0.1
+            amount = raw_amount + chalan_fee
+            output.append({    
+                'kms': calculated_distance.kilometers,         
+                'size': vehicle.size,
+                'weight': vehicle.weight,
+                'brand': vehicle.brand,
+                'model': vehicle.model,
+                'picture': vehicle.picture,
+                'price': round(amount, 2),
+                'description': vehicle.description,
+                'vehicle_id': vehicle.id
+            })
+        
         return output

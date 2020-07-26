@@ -72,9 +72,9 @@
               v-bind:value="index"
               v-bind:key="index"
               class="w-full my-5 md:w-1/2 px-3">
-              <div @click="(currentOrder.product_id == product.id) ?
+              <div @click="(selectedProduct.vehicle_id == product.vehicle_id) ?
                         '' : selectProduct(product)"
-                :class="(currentOrder.product_id == product.id) ? 'bg-gray-200' : ''"
+                :class="(selectedProduct.vehicle_id == product.vehicle_id) ? 'bg-gray-200' : ''"
                 class="w-full cursor-pointer">
                 <img class="h-auto
                   w-full
@@ -102,7 +102,7 @@
                             .toLocaleString('en-US', {
                               style: 'currency',
                               currency: 'MXN',
-                              maximumSignificantDigits: 3,
+                              maximumSignificantDigits: 5,
                             }
                           )
                       }}
@@ -125,7 +125,7 @@
                   <div class="flex items-center">
                     <button
                       type="button"
-                      :class="(currentOrder.product_id == product.id) ?
+                      :class="(selectedProduct.vehicle_id == product.vehicle_id) ?
                         'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
                         'bg-green-500 hover:bg-green-700'"
                       class="w-full
@@ -137,7 +137,7 @@
                       rounded
                       focus:outline-none
                       focus:border-blue-400">
-                      {{ (currentOrder.product_id == product.id) ?
+                      {{ (selectedProduct.vehicle_id == product.vehicle_id) ?
                         'Seleccionado' : 'Elegir' }}
                     </button>
                   </div>
@@ -221,9 +221,9 @@ export default {
       selectedSize: 'small',
       productList: [],
       productFields: {
-        product_id: 'id',
+        vehicle_id: 'vehicle_id',
         price: 'price',
-        product_size: 'size',
+        vehicle_size: 'size',
         vehicle_brand: 'brand',
         vehicle_model: 'model',
         vehicle_weight: 'weight',
@@ -235,6 +235,7 @@ export default {
         medium: 'medianos',
         large: 'grandes',
       },
+      selectedProduct: {},
     };
   },
   components: {
@@ -255,10 +256,23 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
-    nextStep() {
+    async nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
         this.setLoader(true);
+        const productPayload = {
+          token: this.customer.token,
+          vehicle_id: this.selectedProduct.vehicle_id,
+          order_id: this.currentOrder.order_id,
+          price: this.selectedProduct.price,
+        };
+        try {
+          const product = await chalan.createProduct(productPayload);
+          this.setOrder({ field: 'product_id', value: product.data.id });
+        } catch (error) {
+          this.setLoader(false);
+          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+        }
         const payload = {
           order: this.currentOrder,
           customer: this.customer,
@@ -271,6 +285,7 @@ export default {
             }
           })
           .catch(() => {
+            this.setLoader(false);
             this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
           });
       }
@@ -297,8 +312,12 @@ export default {
       chalan.getProducts(payload)
         .then((response) => {
           this.productList = response.data;
-          this.selectedSize = this.currentOrder.product_size
-            ? this.currentOrder.product_size : 'small';
+          if (this.currentOrder.vehicle_id) {
+            [this.selectedProduct] = this.productList
+              .filter(product => product.vehicle_id === this.currentOrder.vehicle_id);
+          }
+          this.selectedSize = this.currentOrder.vehicle_size
+            ? this.currentOrder.vehicle_size : 'small';
           if (response.data[0] && this.productListFiltered.length === 0) {
             this.selectedSize = response.data[0].size;
           }
@@ -313,8 +332,9 @@ export default {
         });
     },
     selectProduct(product) {
+      this.selectedProduct = product;
       Object.keys(this.productFields).forEach((field) => {
-        this.setOrder({ field, value: product[this.productFields[field]] });
+        this.setOrder({ field, value: this.selectedProduct[this.productFields[field]] });
       });
     },
   },

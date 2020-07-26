@@ -36,7 +36,7 @@
                         .toLocaleString('en-US', {
                           style: 'currency',
                           currency: 'MXN',
-                          maximumSignificantDigits: 3,
+                          maximumSignificantDigits: 5,
                         }
                       )
                     }}

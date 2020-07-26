@@ -59,7 +59,7 @@
                     order.amount.toLocaleString('en-US', {
                       style: 'currency',
                       currency: 'MXN',
-                      maximumSignificantDigits: 3,
+                      maximumSignificantDigits: 5,
                     }) }}
                   </td>
                   <td class="border px-4 py-2">{{ paymentStatus[order.payment_status] }}</td>

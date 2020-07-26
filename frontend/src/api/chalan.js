@@ -43,6 +43,14 @@ export default {
       },
     });
   },
+  createProduct(payload) {
+    return axios.post(`${process.env.VUE_APP_API_URL}product`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
   login(payload) {
     const data = { email: payload.email, password: payload.password };
     const options = {

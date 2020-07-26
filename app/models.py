@@ -53,6 +53,7 @@ class Order(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
 	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
+	total_kilometers = db.Column(db.Integer)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
 	comments = db.Column(db.String(500))
@@ -80,18 +81,7 @@ class Product(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
 	price = db.Column(db.Float)
-	from_floor = db.Column(db.Integer)
-	to_floor = db.Column(db.Integer)
-	from_neighborhood = db.Column(db.String(45))
-	to_neighborhood = db.Column(db.String(45))
-	from_city = db.Column(db.String(45))
-	to_city = db.Column(db.String(45))
-	from_state = db.Column(db.String(45))
-	to_state = db.Column(db.String(45))
-	from_zip_code = db.Column(db.String(45))
-	to_zip_code = db.Column(db.String(45))
 	description = db.Column(db.String(500))
-	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	active = db.Column(db.Integer)
 
 	vehicle = db.relationship("Vehicle", backref="products")
@@ -100,6 +90,7 @@ class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
+	active = db.Column(db.Integer)
 
 
 class OrderStatus(db.Model):
@@ -131,13 +122,20 @@ class Payment(db.Model):
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
 	id = db.Column(db.Integer, primary_key=True)
+	charge_per_kilometer = db.Column(db.Integer, nullable=False)
+	charge_per_floor = db.Column(db.Integer, nullable=False)
 	size = db.Column(db.Enum('small','medium','large'))
 	plates = db.Column(db.String(45))
 	weight = db.Column(db.String(45))
-	model = db.Column(db.String(45))
+	width = db.Column(db.String(45))
+	height = db.Column(db.String(45))
+	length = db.Column(db.String(45))
 	brand = db.Column(db.String(45))
+	model = db.Column(db.String(45))
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	description = db.Column(db.String(45))
 	picture = db.Column(db.String(45))
+	active = db.Column(db.Integer)
 
 
 class Sepomex(db.Model):
@@ -153,6 +151,13 @@ class Sepomex(db.Model):
 	asentamiento = db.Column(db.String(70), nullable=False)
 	tipo = db.Column(db.String(40), nullable=False)
 
+
+class CalculatedDistance(db.Model):
+	__tablename__ = 'calculated_distance'
+	id = db.Column(db.Integer, primary_key=True)
+	address_origin = db.Column(db.String(200))
+	address_destination = db.Column(db.String(200))
+	kilometers = db.Column(db.Integer)
 
 class CustomerSchema(ma.ModelSchema):
 	class Meta:

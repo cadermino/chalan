@@ -25,7 +25,7 @@ def get_products():
         'to_zip_code': request.args.get('to_zip_code'),
     }
     product = ProductEntity()
-    products = product.get_active_products(filters)
+    products = product.generate_products(filters, request.args.get('order_id'))
     if len(products) == 0:
         order = Order.query.get(request.args.get('order_id'))
         order.customer_id = customer.id
@@ -37,3 +37,24 @@ def get_products():
                    'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone)
 
     return jsonify(products), 200
+
+@api.route('/product', methods=['POST'])
+@token_required
+def generate_product():
+    product = Order.query.get(request.json['order_id']).product
+    product_id = None
+    if product is not None:
+        product_id = product.id
+    data = {
+        'product_id': product_id,
+        'vehicle_id': request.json['vehicle_id'],
+        'price': request.json['price'],
+        'active': 1
+    }
+    product = ProductEntity()
+    product = product.create(data)
+
+    return jsonify({
+        'id': product.id
+    }), 201
+    
