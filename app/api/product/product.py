@@ -93,7 +93,9 @@ class Product:
         
         output = []
         for vehicle in vehicles:
-            amount = (calculated_distance.kilometers * vehicle.charge_per_kilometer) + ((int(filters['from_floor']) + int(filters['to_floor'])) * vehicle.charge_per_floor)
+            raw_amount = (calculated_distance.kilometers * vehicle.charge_per_kilometer) + ((int(filters['from_floor']) + int(filters['to_floor'])) * vehicle.charge_per_floor)
+            chalan_fee = raw_amount * 0.1
+            amount = raw_amount + chalan_fee
             output.append({    
                 'kms': calculated_distance.kilometers,         
                 'size': vehicle.size,
