@@ -75,11 +75,13 @@ def generate_checkout_cash(order_id):
     payment = order.create_cash_payment()
     send_email(
         os.getenv('ADMIN_MAIL'),
-        'Orden id {} pago cash'.format(order_id),
+        '[Pago en efectivo] Orden {} '.format(order_id),
         'email/admin_new_order',
-        bcc=[],
+        bcc=[os.getenv('OPS_MAIL')],
         order=last_order,
-        mobile_phone=customer.mobile_phone
+        mobile_phone=customer.mobile_phone,
+        customer=customer,
+        payment_type='cash'
     )
     send_email(
         customer.email,
@@ -107,11 +109,13 @@ def confirm_stripe_payment(order_id):
         if payment.status == 'paid':
             send_email(
                 os.getenv('ADMIN_MAIL'),
-                'Orden id {} pago stripe completado'.format(order_id),
+                '[Pago con tarjeta] Orden {}'.format(order_id),
                 'email/admin_new_order',
-                bcc=[],
+                bcc=[os.getenv('OPS_MAIL')],
                 order=last_order,
-                mobile_phone=customer.mobile_phone
+                mobile_phone=customer.mobile_phone,
+                customer=customer,
+                payment_type='card'
             )
             send_email(
                 customer.email, 'Tu pago ha sido procesado correctamente',

@@ -515,6 +515,16 @@ export default {
     return {
       viewName: 'step-one',
       floorList: ['Planta baja', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'],
+      stepRequisites: {
+        from_floor_number: null,
+        from_street: null,
+        from_neighborhood: null,
+        from_zip_code: null,
+        to_floor_number: null,
+        to_street: null,
+        to_neighborhood: null,
+        to_zip_code: null,
+      },
     };
   },
   components: {
@@ -522,6 +532,9 @@ export default {
   },
   mounted() {
     this.setLoader(false);
+    Object.keys(this.stepRequisites).forEach((requisite) => {
+      this.stepRequisites[requisite] = this.currentOrder[requisite];
+    });
   },
   props: [
   ],
@@ -536,11 +549,29 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    removeSelectedProduct() {
+      const productFields = {
+        vehicle_id: null,
+        price: null,
+        vehicle_size: null,
+        vehicle_brand: null,
+        vehicle_model: null,
+        vehicle_weight: null,
+        vehicle_picture: null,
+        vehicle_description: null,
+      };
+      Object.keys(productFields).forEach((field) => {
+        this.setOrder({ field, value: '' });
+      });
+    },
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
         this.setOrder({ field: 'created_date', value: this.$moment().format() });
         this.setLoader(true);
+        if (!this.isSameAddress) {
+          this.removeSelectedProduct();
+        }
         if (!this.currentOrder.order_id) {
           const payload = {
             order: this.currentOrder,
@@ -614,6 +645,11 @@ export default {
       'steps',
       'loading',
     ]),
+    isSameAddress() {
+      return Object.keys(this.stepRequisites)
+        .reduce((prev, curr) => prev
+          && (this.currentOrder[curr] === this.stepRequisites[curr]), true);
+    },
     zipcodeFrom: {
       get() {
         return this.currentOrder.from_zip_code;
