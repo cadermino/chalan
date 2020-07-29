@@ -313,8 +313,9 @@ export default {
         .then((response) => {
           this.productList = response.data;
           if (this.currentOrder.vehicle_id) {
-            [this.selectedProduct] = this.productList
-              .filter(product => product.vehicle_id === this.currentOrder.vehicle_id);
+            const product = this.productList
+              .filter(prod => prod.vehicle_id === this.currentOrder.vehicle_id)[0];
+            this.selectProduct(product);
           }
           this.selectedSize = this.currentOrder.vehicle_size
             ? this.currentOrder.vehicle_size : 'small';
