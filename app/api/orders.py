@@ -74,7 +74,6 @@ def generate_checkout_cash(order_id):
     order = OrderEntity(order_id)
     payment = order.create_cash_payment()
     driver_email = last_order.product.vehicle.carrier_company.email
-    print(driver_email)
     
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
     bcc = [os.getenv('ADMIN_MAIL'), driver_email]
@@ -113,6 +112,8 @@ def confirm_stripe_payment(order_id):
     customer = Customer.verify_auth_token(auth_headers[1])
     last_order = customer.orders.order_by(Order.id.desc()).first()
     order = OrderEntity(order_id)
+    driver_email = last_order.product.vehicle.carrier_company.email
+
     try:
         payment = order.confirm_stripe_payment(data['session_id'])
         if payment.status == 'paid':

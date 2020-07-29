@@ -106,7 +106,6 @@ export default {
   },
   mounted() {
     this.$moment.locale('es');
-    this.getPendingOrders();
     if (this.sessionId && this.currentOrder.order_id) {
       const payload = {
         sessionId: this.sessionId,
@@ -116,6 +115,7 @@ export default {
       chalan.confirmStripePayment(payload)
         .then((response) => {
           if (response.status === 200) {
+            this.getPendingOrders();
             this.setViewsMessages({
               view: this.viewName,
               message: 'Su pago ha sido recibido con exito!',
@@ -133,6 +133,8 @@ export default {
             message: 'Hubo un error, intenta después de recargar la página',
           });
         });
+    } else {
+      this.getPendingOrders();
     }
   },
   methods: {
