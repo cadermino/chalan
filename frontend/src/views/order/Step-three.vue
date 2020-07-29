@@ -295,18 +295,6 @@ export default {
     },
     getProducts() {
       this.setViewsMessages({ view: this.viewName, message: '' });
-      // const emptyProduct = {
-      //   brand: '',
-      //   description: '',
-      //   kms: '',
-      //   model: '',
-      //   picture: '',
-      //   price: '',
-      //   size: '',
-      //   vehicle_id: '',
-      //   weight: '',
-      // };
-      // this.selectProduct(emptyProduct);
       const payload = {
         order_id: this.currentOrder.order_id,
         token: this.customer.token,
