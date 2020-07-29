@@ -90,6 +90,9 @@ class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(45))
+	rfc = db.Column(db.String(12))
+	email = db.Column(db.String(45))
+	address = db.Column(db.String(200))
 	active = db.Column(db.Integer)
 
 
@@ -137,6 +140,7 @@ class Vehicle(db.Model):
 	picture = db.Column(db.String(45))
 	active = db.Column(db.Integer)
 
+	carrier_company = db.relationship("CarrierCompany", backref="carrier_company")
 
 class Sepomex(db.Model):
 	__tablename__ = 'sepomex'

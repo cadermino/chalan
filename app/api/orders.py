@@ -73,11 +73,20 @@ def generate_checkout_cash(order_id):
     last_order = customer.orders.order_by(Order.id.desc()).first()
     order = OrderEntity(order_id)
     payment = order.create_cash_payment()
+    driver_email = last_order.product.vehicle.carrier_company.email
+    print(driver_email)
+    
+    subject = '[Pago en efectivo] Orden {} '.format(order_id)
+    bcc = [os.getenv('ADMIN_MAIL'), driver_email]
+    if os.getenv('FLASK_ENV') != 'prod':
+        subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
+        bcc = [os.getenv('ADMIN_MAIL')]
+
     send_email(
         os.getenv('ADMIN_MAIL'),
-        '[Pago en efectivo] Orden {} '.format(order_id),
+        subject,
         'email/admin_new_order',
-        bcc=[os.getenv('OPS_MAIL')],
+        bcc=bcc,
         order=last_order,
         mobile_phone=customer.mobile_phone,
         customer=customer,
@@ -107,11 +116,18 @@ def confirm_stripe_payment(order_id):
     try:
         payment = order.confirm_stripe_payment(data['session_id'])
         if payment.status == 'paid':
+            
+            subject = '[Pago con tarjeta] Orden {}'.format(order_id),
+            bcc = [os.getenv('ADMIN_MAIL'), driver_email]
+            if os.getenv('FLASK_ENV') != 'prod':
+                subject = '[test][Pago con tarjeta] Orden {} '.format(order_id)
+                bcc = [os.getenv('ADMIN_MAIL')]
+            
             send_email(
                 os.getenv('ADMIN_MAIL'),
-                '[Pago con tarjeta] Orden {}'.format(order_id),
+                subject,
                 'email/admin_new_order',
-                bcc=[os.getenv('OPS_MAIL')],
+                bcc=bcc,
                 order=last_order,
                 mobile_phone=customer.mobile_phone,
                 customer=customer,

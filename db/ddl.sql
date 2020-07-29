@@ -40,3 +40,6 @@ DROP COLUMN to_zip_code;
 alter TABLE carrier_company
 ADD COLUMN rfc varchar(12) not null after name,
 ADD COLUMN address varchar(200) not null after rfc;
+
+alter TABLE carrier_company
+ADD COLUMN email varchar(100) not null after rfc;
