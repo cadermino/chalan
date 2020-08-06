@@ -55,6 +55,7 @@ export default new Vuex.Store({
       'step-two': null,
       'step-three': null,
       'step-four': null,
+      'register-login': null,
       dashboard: null,
     },
     formValidationMessages: {
@@ -67,6 +68,7 @@ export default new Vuex.Store({
       to_neighborhood: null,
       to_zip_code: null,
       appointment_date: null,
+      payment_method: null,
     },
     loading: false,
   },
@@ -98,6 +100,7 @@ export default new Vuex.Store({
       state.currentOrder[payload.field] = payload.value;
       state.formValidationMessages[payload.field] = null;
       Object.keys(state.steps).forEach((key) => {
+        state.viewsMessages[key] = null;
         const requisitesValues = [];
         state.steps[key].requisites.forEach((requisite) => {
           requisitesValues.push(state.currentOrder[requisite]);
@@ -160,7 +163,15 @@ export default new Vuex.Store({
           emptyFields.push(field);
         }
       });
-      const message = (emptyFields.length > 0) ? 'Revisa que los campos requeridos * esten llenos.' : null;
+      let message = {};
+      if (emptyFields.length > 0) {
+        message = {
+          type: 'error',
+          text: 'Revisa que los campos requeridos * esten llenos.',
+        };
+      } else {
+        message = null;
+      }
       commit('setViewsMessages', { view: viewName, message });
       emptyFields.forEach((field) => {
         commit('setFormValidationMessages', { field, message: 'no olvides llenar este campo' });

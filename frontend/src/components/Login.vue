@@ -1,23 +1,5 @@
 <template>
   <div>
-    <div class="flex items-center mb-4">
-      <div v-if="errorMessages || infoMessages || successMessages"
-        :class="{'bg-red-100 border-red-400 text-red-700': errorMessages,
-          'bg-blue-100 border-blue-400 text-blue-700': infoMessages,
-          'bg-green-100 border-green-400 text-green-700': successMessages}"
-        class="w-full
-        border
-        px-4
-        py-3
-        rounded
-        relative"
-        role="alert">
-        <strong v-if="errorMessages" class="font-bold">Oops! </strong>
-        <span class="block sm:inline">
-          {{ errorMessages || infoMessages || successMessages }}
-        </span>
-      </div>
-    </div>
     <form v-if="activeForm == 'register'"
       class="bg-white pb-8 sm:p-0 p-5 sm:pb-8">
       <p class="text-center font-bold mb-10">
@@ -26,8 +8,7 @@
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
           <LoginFacebook
-            :redirect="redirect"
-            v-on:error-message="errorMessageEvent"
+            v-on:facebook-logged="emitUserLogged"
           />
         </div>
       </div>
@@ -191,8 +172,7 @@
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
           <LoginFacebook
-            :redirect="redirect"
-            v-on:error-message="errorMessageEvent"
+            v-on:facebook-logged="emitUserLogged"
           />
         </div>
       </div>
@@ -301,7 +281,7 @@
 
 <script>
 import {
-  mapMutations, mapState, mapActions, mapGetters,
+  mapMutations, mapState, mapGetters,
 } from 'vuex';
 import LoginFacebook from './LoginFacebook.vue';
 import chalan from '../api/chalan';
@@ -321,9 +301,6 @@ export default {
         email: null,
         password: null,
       },
-      errorMessages: '',
-      infoMessages: '',
-      successMessages: '',
       registerFormValidationMessages: {
         email: null,
         password: null,
@@ -338,38 +315,20 @@ export default {
       canSubmitRegisterForm: false,
     };
   },
-  props: {
-    redirect: String,
-  },
   mounted() {
     this.setLoader(false);
-    if (this.isUserLogged) {
-      this.$router.push(this.redirect);
-    }
-    if (this.redirect !== '/') {
-      this.infoMessages = 'Para continuar con el proceso registrate o inicia sesión';
-    }
   },
   components: {
     LoginFacebook,
   },
   methods: {
-    ...mapActions([
-      'addDataToLocalStorage',
-    ]),
     ...mapMutations([
-      'setOrder',
       'setCustomerData',
       'setLoader',
+      'setViewsMessages',
     ]),
-    errorMessageEvent(message) {
-      this.resetMessages();
-      this.errorMessages = message;
-    },
-    resetMessages() {
-      this.errorMessages = '';
-      this.infoMessages = '';
-      this.successMessages = '';
+    emitUserLogged() {
+      this.$emit('user-logged');
     },
     validateRequiredFields(form) {
       this.resetFormMessages();
@@ -411,9 +370,12 @@ export default {
       };
     },
     switchForm(form) {
-      this.resetMessages();
       this.activeForm = form;
       this.resetFormMessages();
+      this.setViewsMessages({
+        view: 'register-login',
+        message: null,
+      });
     },
     login() {
       this.validateRequiredFields('requiredFieldsLogin');
@@ -426,16 +388,24 @@ export default {
           .then((response) => {
             if (response.status === 200) {
               this.handleUserData(response.data);
-              this.$router.push(this.redirect);
+              this.emitUserLogged();
             }
           })
           .catch((error) => {
             this.setLoader(false);
+            let errorMessages;
             if (error.response && error.response.data.message === "user doesn't exist") {
-              this.errorMessages = 'El usuario no existe o la contraseña es incorrecta';
+              errorMessages = 'El usuario no existe o la contraseña es incorrecta';
             } else {
-              this.errorMessages = 'Ocurrio un error, por favor intenta nuevamente o recarga la página';
+              errorMessages = 'Ocurrio un error, por favor intenta nuevamente o recarga la página';
             }
+            this.setViewsMessages({
+              view: 'register-login',
+              message: {
+                text: errorMessages,
+                type: 'error',
+              },
+            });
           });
       }
     },
@@ -452,27 +422,30 @@ export default {
           .then((response) => {
             if (response.status === 201) {
               this.handleUserData(response.data);
-              this.$router.push(this.redirect);
+              this.emitUserLogged();
             }
           })
           .catch((error) => {
             this.setLoader(false);
-            this.resetMessages();
             if (error.response && error.response.data.message === 'duplicated email') {
-              this.errorMessages = 'Ya existe un usuario con ese correo';
+              this.setViewsMessages({
+                view: 'register-login',
+                message: {
+                  text: 'Ya existe un usuario con ese correo',
+                  type: 'error',
+                },
+              });
             }
           });
       }
     },
     handleUserData(data) {
-      this.resetMessages();
       this.setCustomerData({ field: 'token', value: data.token });
       this.setCustomerData({ field: 'customer_id', value: this.decodeToken.id });
       this.setCustomerData({ field: 'email', value: data.email });
       this.setCustomerData({ field: 'mobile_phone', value: data.mobile_phone });
       this.setCustomerData({ field: 'customer_name', value: data.name });
       this.setCustomerData({ field: 'picture', value: '' });
-      this.addDataToLocalStorage(['customer']);
     },
     cancel() {
       this.$router.go(-1);
@@ -480,12 +453,10 @@ export default {
   },
   computed: {
     ...mapState([
-      'isLoginFormDisplayed',
       'loading',
     ]),
     ...mapGetters([
       'decodeToken',
-      'isUserLogged',
     ]),
   },
 };

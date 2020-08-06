@@ -5,24 +5,7 @@
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto">
           <form class="bg-white pb-8 sm:p-0 p-5 sm:pb-8">
-            <div class="flex items-center mb-8">
-              <div v-if="viewsMessages[viewName]"
-                class="bg-red-100
-                w-full
-                border
-                border-red-400
-                text-red-700
-                px-4
-                py-3
-                rounded
-                relative"
-                role="alert">
-                <strong class="font-bold">Oops! </strong>
-                <span class="block sm:inline">
-                  {{ viewsMessages[viewName] }}
-                </span>
-              </div>
-            </div>
+            <ViewsMessages :view-name="viewName"/>
             <p class="text-center font-bold mb-10">
               Dirección de donde vamos a recoger tus cosas
             </p>
@@ -462,24 +445,7 @@
               </div>
             </div>
 
-            <div class="flex items-center mb-8">
-              <div v-if="viewsMessages[viewName]"
-                class="bg-red-100
-                w-full
-                border
-                border-red-400
-                text-red-700
-                px-4
-                py-3
-                rounded
-                relative"
-                role="alert">
-                <strong class="font-bold">Oops! </strong>
-                <span class="block sm:inline">
-                  {{ viewsMessages[viewName] }}
-                </span>
-              </div>
-            </div>
+            <ViewsMessages :view-name="viewName"/>
             <div class="flex items-center justify-end">
               <button
                 :disabled="loading"
@@ -507,6 +473,7 @@
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
+import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
 
 export default {
@@ -529,6 +496,7 @@ export default {
   },
   components: {
     Tracker,
+    ViewsMessages,
   },
   mounted() {
     this.setLoader(false);
@@ -589,7 +557,13 @@ export default {
               }
             })
             .catch(() => {
-              this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+              this.setViewsMessages({
+                view: this.viewName,
+                message: {
+                  type: 'error',
+                  text: 'Hubo un error, intenta después de recargar la página',
+                },
+              });
             });
         } else {
           const payload = {
@@ -607,7 +581,13 @@ export default {
               }
             })
             .catch(() => {
-              this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+              this.setViewsMessages({
+                view: this.viewName,
+                message: {
+                  type: 'error',
+                  text: 'Hubo un error, intenta después de recargar la página',
+                },
+              });
             });
         }
       }
@@ -631,7 +611,13 @@ export default {
           this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: 'ingresa un código postal válido' });
         }
       } catch {
-        this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+        this.setViewsMessages({
+          view: this.viewName,
+          message: {
+            type: 'error',
+            text: 'Hubo un error, intenta después de recargar la página',
+          },
+        });
       }
       this.setLoader(false);
     },

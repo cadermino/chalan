@@ -50,7 +50,7 @@ def generate_checkout_session(order_id):
         line_items = [
             {
                 'name': '{} {} {}kg.'.format(order.product.vehicle.brand, order.product.vehicle.model, order.product.vehicle.weight),
-                'description': order.product.description,
+                'description': order.product.vehicle.description,
                 'amount': amount,
                 'currency': 'mxn',
                 'quantity': 1,

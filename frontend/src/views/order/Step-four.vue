@@ -4,7 +4,7 @@
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
-          <div class="flex items-center mb-8">
+          <!-- <div class="flex items-center mb-8">
             <div v-if="viewsMessages[viewName]"
               class="bg-red-100
               w-full
@@ -21,7 +21,8 @@
                 {{ viewsMessages[viewName] }}
               </span>
             </div>
-          </div>
+          </div> -->
+          <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10">
             {{ customer.customer_name }},
              confirma que todo esté en orden antes del pago, además bríndanos tu
@@ -265,6 +266,7 @@
               </div>
             </div>
           </div>
+          <ViewsMessages :view-name="viewName"/>
           <div class="flex items-center justify-between">
             <router-link :to="{ name: steps[viewName].previous }" class="bg-green-500
               hover:bg-green-700
@@ -311,6 +313,7 @@ import {
 import 'moment/locale/es';
 import { StripeCheckout } from 'vue-stripe-checkout';
 import Tracker from '@/components/Tracker.vue';
+import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
 
 export default {
@@ -326,6 +329,7 @@ export default {
   components: {
     Tracker,
     StripeCheckout,
+    ViewsMessages,
   },
   mounted() {
     this.$moment.locale('es');
@@ -397,17 +401,35 @@ export default {
                       }
                     })
                     .catch(() => {
-                      this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+                      this.setViewsMessages({
+                        view: this.viewName,
+                        message: {
+                          text: 'Hubo un error, intenta después de recargar la página',
+                          type: 'error',
+                        },
+                      });
                     });
                 }
               })
               .catch(() => {
-                this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+                this.setViewsMessages({
+                  view: this.viewName,
+                  message: {
+                    text: 'Hubo un error, intenta después de recargar la página',
+                    type: 'error',
+                  },
+                });
               });
           }
         })
         .catch(() => {
-          this.setViewsMessages({ view: 'step-four', message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({
+            view: this.viewName,
+            message: {
+              text: 'Hubo un error, intenta después de recargar la página',
+              type: 'error',
+            },
+          });
         });
     },
     createCashPayment() {
@@ -437,17 +459,35 @@ export default {
                       }
                     })
                     .catch(() => {
-                      this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+                      this.setViewsMessages({
+                        view: this.viewName,
+                        message: {
+                          text: 'Hubo un error, intenta después de recargar la página',
+                          type: 'error',
+                        },
+                      });
                     });
                 }
               })
               .catch(() => {
-                this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+                this.setViewsMessages({
+                  view: this.viewName,
+                  message: {
+                    text: 'Hubo un error, intenta después de recargar la página',
+                    type: 'error',
+                  },
+                });
               });
           }
         })
         .catch(() => {
-          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({
+            view: this.viewName,
+            message: {
+              text: 'Hubo un error, intenta después de recargar la página',
+              type: 'error',
+            },
+          });
         });
     },
   },
