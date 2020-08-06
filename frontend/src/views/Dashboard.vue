@@ -3,23 +3,6 @@
     <div class="flex flex-wrap my-10">
       <div class="w-full mb-4 max-w-4xl mx-auto">
         <div class="">
-          <!-- <div class="flex items-center mb-8"
-             v-if="viewsMessages[viewName]">
-            <div class="bg-blue-100
-              w-full
-              border
-              border-blue-400
-              text-blue-700
-              px-4
-              py-3
-              rounded
-              relative"
-              role="info">
-              <span class="block sm:inline">
-                {{ viewsMessages[viewName] }}
-              </span>
-            </div>
-          </div> -->
           <ViewsMessages :view-name="viewName"/>
           <h1 class="text-center text-xl font-medium mb-10">
             Servicio pediente

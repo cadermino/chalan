@@ -4,24 +4,6 @@
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
-          <!-- <div class="flex items-center mb-8">
-            <div v-if="viewsMessages[viewName]"
-              class="bg-red-100
-              w-full
-              border
-              border-red-400
-              text-red-700
-              px-4
-              py-3
-              rounded
-              relative"
-              role="alert">
-              <strong class="font-bold">Oops! </strong>
-              <span class="block sm:inline">
-                {{ viewsMessages[viewName] }}
-              </span>
-            </div>
-          </div> -->
           <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10">
             {{ customer.customer_name }},
@@ -455,6 +437,13 @@ export default {
                     .then((orderResponse) => {
                       if (orderResponse.status === 200) {
                         this.addDataToLocalStorage(['currentOrder', 'customer']);
+                        this.setViewsMessages({
+                          view: 'dashboard',
+                          message: {
+                            text: 'Muy bien, tu vehículo ha sido agendado!',
+                            type: 'success',
+                          },
+                        });
                         this.$router.push({ name: 'dashboard' });
                       }
                     })
