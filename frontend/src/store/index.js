@@ -164,7 +164,12 @@ export default new Vuex.Store({
         }
       });
       let message = {};
-      if (emptyFields.length > 0) {
+      if (emptyFields.length > 0 && viewName === 'step-three') {
+        message = {
+          type: 'error',
+          text: 'Por favor elige un vehículo',
+        };
+      } else if (emptyFields.length > 0) {
         message = {
           type: 'error',
           text: 'Revisa que los campos requeridos * esten llenos.',
