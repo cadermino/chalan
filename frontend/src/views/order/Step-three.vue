@@ -4,24 +4,7 @@
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
-          <div class="flex items-center mb-8">
-            <div v-if="viewsMessages[viewName]"
-              class="bg-red-100
-              w-full
-              border
-              border-red-400
-              text-red-700
-              px-4
-              py-3
-              rounded
-              relative"
-              role="alert">
-              <strong class="font-bold">Oops! </strong>
-              <span class="block sm:inline">
-                {{ viewsMessages[viewName] }}
-              </span>
-            </div>
-          </div>
+          <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10" id="text-header">
             Elige el tamaño de tu mudanza <span class="text-red-500">*</span>
           </p>
@@ -68,6 +51,9 @@
             </div>
           </div>
           <div class="flex flex-wrap mb-4" v-if="productList.length">
+            <div v-if="productListFiltered.length == 0">
+              En este momento no contamos con vehículos <b>{{ vehicleSizes[selectedSize] }}</b>
+            </div>
             <div v-for="(product, index) in productListFiltered"
               v-bind:value="index"
               v-bind:key="index"
@@ -157,24 +143,7 @@
               los siguientes pasos de tu mudanza.
             </p>
           </div>
-          <div class="flex items-center mb-8">
-            <div v-if="viewsMessages[viewName]"
-              class="bg-red-100
-              w-full
-              border
-              border-red-400
-              text-red-700
-              px-4
-              py-3
-              rounded
-              relative"
-              role="alert">
-              <strong class="font-bold">Oops! </strong>
-              <span class="block sm:inline">
-                {{ viewsMessages[viewName] }}
-              </span>
-            </div>
-          </div>
+          <ViewsMessages :view-name="viewName"/>
           <div class="flex items-center justify-between">
             <router-link :to="{ name: steps[viewName].previous }" class="bg-green-500
               hover:bg-green-700
@@ -212,6 +181,7 @@
 import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
+import ViewsMessages from '@/components/ViewsMessages.vue';
 
 export default {
   name: 'step-three',
@@ -240,6 +210,7 @@ export default {
   },
   components: {
     Tracker,
+    ViewsMessages,
   },
   mounted() {
     this.getProducts();
@@ -271,7 +242,13 @@ export default {
           this.setOrder({ field: 'product_id', value: product.data.id });
         } catch (error) {
           this.setLoader(false);
-          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({
+            view: this.viewName,
+            message: {
+              text: 'Hubo un error, intenta después de recargar la página',
+              type: 'error',
+            },
+          });
         }
         const payload = {
           order: this.currentOrder,
@@ -286,7 +263,13 @@ export default {
           })
           .catch(() => {
             this.setLoader(false);
-            this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+            this.setViewsMessages({
+              view: this.viewName,
+              message: {
+                text: 'Hubo un error, intenta después de recargar la página',
+                type: 'error',
+              },
+            });
           });
       }
     },
@@ -294,7 +277,6 @@ export default {
       this.selectedSize = size;
     },
     getProducts() {
-      this.setViewsMessages({ view: this.viewName, message: '' });
       const payload = {
         order_id: this.currentOrder.order_id,
         token: this.customer.token,
@@ -327,7 +309,10 @@ export default {
         .catch(() => {
           this.setViewsMessages({
             view: this.viewName,
-            message: 'Hubo un error, intenta después de recargar la página',
+            message: {
+              text: 'Hubo un error, intenta después de recargar la página',
+              type: 'error',
+            },
           });
           this.setLoader(false);
         });

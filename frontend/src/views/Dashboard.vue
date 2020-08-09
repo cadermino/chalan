@@ -3,23 +3,7 @@
     <div class="flex flex-wrap my-10">
       <div class="w-full mb-4 max-w-4xl mx-auto">
         <div class="">
-          <div class="flex items-center mb-8"
-             v-if="viewsMessages[viewName]">
-            <div class="bg-blue-100
-              w-full
-              border
-              border-blue-400
-              text-blue-700
-              px-4
-              py-3
-              rounded
-              relative"
-              role="info">
-              <span class="block sm:inline">
-                {{ viewsMessages[viewName] }}
-              </span>
-            </div>
-          </div>
+          <ViewsMessages :view-name="viewName"/>
           <h1 class="text-center text-xl font-medium mb-10">
             Servicio pediente
           </h1>
@@ -89,6 +73,7 @@
 import { mapMutations, mapActions, mapState } from 'vuex';
 import 'moment/locale/es';
 import chalan from '../api/chalan';
+import ViewsMessages from '@/components/ViewsMessages.vue';
 
 export default {
   name: 'dashboard',
@@ -104,6 +89,9 @@ export default {
       },
     };
   },
+  components: {
+    ViewsMessages,
+  },
   mounted() {
     this.$moment.locale('es');
     if (this.sessionId && this.currentOrder.order_id) {
@@ -118,7 +106,10 @@ export default {
             this.getPendingOrders();
             this.setViewsMessages({
               view: this.viewName,
-              message: 'Su pago ha sido recibido con exito!',
+              message: {
+                text: 'Su pago ha sido recibido con exito!',
+                type: 'success',
+              },
             });
             Object.keys(this.currentOrder).forEach((field) => {
               this.setOrder({ field, value: null });
@@ -130,7 +121,10 @@ export default {
         .catch(() => {
           this.setViewsMessages({
             view: this.viewName,
-            message: 'Hubo un error, intenta después de recargar la página',
+            message: {
+              text: 'Hubo un error, intenta después de recargar la página',
+              type: 'error',
+            },
           });
         });
     } else {
@@ -157,7 +151,13 @@ export default {
           this.setLoader(false);
         })
         .catch(() => {
-          this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+          this.setViewsMessages({
+            view: this.viewName,
+            message: {
+              text: 'Hubo un error, intenta después de recargar la página',
+              type: 'error',
+            },
+          });
         });
     },
     goBack() {

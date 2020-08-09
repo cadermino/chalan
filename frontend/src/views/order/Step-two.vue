@@ -4,24 +4,7 @@
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
-          <div class="flex items-center mb-8">
-            <div v-if="viewsMessages[viewName]"
-              class="bg-red-100
-              w-full
-              border
-              border-red-400
-              text-red-700
-              px-4
-              py-3
-              rounded
-              relative"
-              role="alert">
-              <strong class="font-bold">Oops! </strong>
-              <span class="block sm:inline">
-                {{ viewsMessages[viewName] }}
-              </span>
-            </div>
-          </div>
+          <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10">
             Elije el día y la hora de tu mudanza
           </p>
@@ -122,6 +105,7 @@ import { Datetime } from 'vue-datetime';
 import 'vue-datetime/dist/vue-datetime.css';
 import { Settings } from 'luxon';
 import Tracker from '@/components/Tracker.vue';
+import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
 
 Settings.defaultLocale = 'es';
@@ -136,6 +120,7 @@ export default {
   components: {
     Tracker,
     Datetime,
+    ViewsMessages,
   },
   mounted() {
     this.setLoader(false);
@@ -168,7 +153,13 @@ export default {
             }
           })
           .catch(() => {
-            this.setViewsMessages({ view: this.viewName, message: 'Hubo un error, intenta después de recargar la página' });
+            this.setViewsMessages({
+              view: this.viewName,
+              message: {
+                text: 'Hubo un error, intenta después de recargar la página',
+                type: 'error',
+              },
+            });
           });
       }
     },

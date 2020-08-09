@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import { mapMutations, mapActions, mapGetters } from 'vuex';
+import { mapMutations, mapGetters } from 'vuex';
 import VFacebookLogin from 'vue-facebook-login-component';
 import chalan from '../api/chalan';
 
@@ -83,20 +83,15 @@ export default {
       this.registerFormValidationMessages.mobilePhone = 'Proporciona un número móvil válido';
     }
   },
-  props: {
-    redirect: String,
-  },
   components: {
     VFacebookLogin,
   },
   methods: {
-    ...mapActions([
-      'addDataToLocalStorage',
-    ]),
     ...mapMutations([
       'setCustomerData',
       'setFB',
       'setLoader',
+      'setViewsMessages',
     ]),
     getUserData() {
       this.FB.api('/me',
@@ -116,7 +111,7 @@ export default {
               .then((response) => {
                 if (response.status === 201) {
                   this.handleUserData(response.data);
-                  this.$router.push(this.redirect);
+                  this.$emit('facebook-logged');
                 }
               })
               .catch((error) => {
@@ -127,7 +122,13 @@ export default {
                 } else {
                   errorMessages = 'Ocurrio un error, por favor intenta nuevamente o recarga la página';
                 }
-                this.$emit('error-message', errorMessages);
+                this.setViewsMessages({
+                  view: 'register-login',
+                  message: {
+                    text: errorMessages,
+                    type: 'error',
+                  },
+                });
               });
           });
         });
@@ -139,7 +140,6 @@ export default {
       this.setCustomerData({ field: 'email', value: data.email });
       this.setCustomerData({ field: 'mobile_phone', value: this.mobilePhone });
       this.setCustomerData({ field: 'picture', value: this.picture });
-      this.addDataToLocalStorage(['customer']);
     },
     login() {
       this.setLoader(true);
