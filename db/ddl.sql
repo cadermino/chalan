@@ -43,3 +43,7 @@ ADD COLUMN address varchar(200) not null after rfc;
 
 alter TABLE carrier_company
 ADD COLUMN email varchar(100) not null after rfc;
+
+alter TABLE vehicles
+ADD COLUMN base_address varchar(200) DEFAULT null after plates,
+ADD COLUMN base_fee int(10) DEFAULT null COMMENT 'base load price' after charge_per_floor;

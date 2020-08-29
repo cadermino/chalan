@@ -76,7 +76,7 @@ def generate_checkout_cash(order_id):
     driver_email = last_order.product.vehicle.carrier_company.email
     
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
-    bcc = [os.getenv('ADMIN_MAIL'), driver_email]
+    bcc = [os.getenv('OPS_MAIL'), driver_email]
     if os.getenv('FLASK_ENV') != 'prod':
         subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
         bcc = [os.getenv('ADMIN_MAIL')]
@@ -119,7 +119,7 @@ def confirm_stripe_payment(order_id):
         if payment.status == 'paid':
             
             subject = '[Pago con tarjeta] Orden {}'.format(order_id),
-            bcc = [os.getenv('ADMIN_MAIL'), driver_email]
+            bcc = [os.getenv('OPS_MAIL'), driver_email]
             if os.getenv('FLASK_ENV') != 'prod':
                 subject = '[test][Pago con tarjeta] Orden {} '.format(order_id)
                 bcc = [os.getenv('ADMIN_MAIL')]
