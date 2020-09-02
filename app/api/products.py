@@ -31,10 +31,10 @@ def get_products():
         order.customer_id = customer.id
         db.session.add(order)
         db.session.commit()
-        # send_email(customer.email, 'Siguientes pasos para tu mudanza',
-        #            'email/no_product', bcc=[], customer=customer)
-        # send_email(os.getenv('ADMIN_MAIL'), 'Orden id {} sin vehículo'.format(order.id),
-        #            'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone)
+        send_email(customer.email, 'Siguientes pasos para tu mudanza',
+                   'email/no_product', bcc=[], customer=customer)
+        send_email(os.getenv('ADMIN_MAIL'), 'Orden id {} sin vehículo'.format(order.id),
+                   'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone)
 
     return jsonify(products), 200
 
@@ -46,6 +46,7 @@ def generate_product():
     if product is not None:
         product_id = product.id
     data = {
+        'order_id': request.json['order_id'],
         'product_id': product_id,
         'vehicle_id': request.json['vehicle_id'],
         'price': request.json['price'],
