@@ -46,6 +46,7 @@ def generate_product():
     if product is not None:
         product_id = product.id
     data = {
+        'order_id': request.json['order_id'],
         'product_id': product_id,
         'vehicle_id': request.json['vehicle_id'],
         'price': request.json['price'],

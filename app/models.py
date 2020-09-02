@@ -53,7 +53,6 @@ class Order(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
 	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
-	total_kilometers = db.Column(db.Integer)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), default=datetime.now)
 	comments = db.Column(db.String(500))
@@ -81,6 +80,7 @@ class Product(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
 	price = db.Column(db.Float)
+	total_kilometers = db.Column(db.Integer)
 	description = db.Column(db.String(500))
 	active = db.Column(db.Integer)
 
@@ -127,6 +127,9 @@ class Vehicle(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	charge_per_kilometer = db.Column(db.Integer, nullable=False)
 	charge_per_floor = db.Column(db.Integer, nullable=False)
+	driver_fee = db.Column(db.Integer, nullable=False)
+	loader_fee = db.Column(db.Integer, nullable=False)
+	loaders_quantity = db.Column(db.Integer, nullable=False)
 	size = db.Column(db.Enum('small','medium','large'))
 	plates = db.Column(db.String(45))
 	weight = db.Column(db.String(45))
@@ -138,6 +141,7 @@ class Vehicle(db.Model):
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	description = db.Column(db.String(45))
 	picture = db.Column(db.String(45))
+	base_address = db.Column(db.String(200))
 	active = db.Column(db.Integer)
 
 	carrier_company = db.relationship("CarrierCompany", backref="carrier_company")
