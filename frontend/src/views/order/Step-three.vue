@@ -132,15 +132,8 @@
             </div>
           </div>
           <div class="" v-else>
-            <p v-if="customer.mobile_phone">
-              {{ customer.customer_name }}, te escribiremos un
-              mensaje al <span class="font-bold">{{ customer.mobile_phone }}</span> para coordinar
-              los siguientes pasos de tu mudanza.
-            </p>
-            <p v-else>
-              {{ customer.customer_name }}, te enviamos un
-              correo a <span class="font-bold">{{ customer.email }}</span> para coordinar
-              los siguientes pasos de tu mudanza.
+            <p>
+              Estamos cargando tus vehículos...
             </p>
           </div>
           <ViewsMessages :view-name="viewName"/>
