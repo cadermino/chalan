@@ -327,7 +327,16 @@ export default {
       'loading',
     ]),
     productListFiltered() {
-      return this.productList.filter(item => item.size === this.selectedSize);
+      return this.productList.filter(item => item.size === this.selectedSize)
+        .sort((a, b) => {
+          if (a.price > b.price) {
+            return 1;
+          }
+          if (a.price < b.price) {
+            return -1;
+          }
+          return 0;
+        });
     },
   },
 };
