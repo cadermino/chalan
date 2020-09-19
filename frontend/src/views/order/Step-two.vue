@@ -46,7 +46,7 @@
                 text-gray-700
                 text-sm
                 font-bold mb-2" for="address-from-street">
-                    Algún comentario o indicación que nos quieras dar? (opcional)
+                    Lista las cosas que vamos a mover
               </label>
               <textarea class="appearance-none
                 border rounded
@@ -57,9 +57,15 @@
                 leading-tight
                 focus:outline-none
                 focus:border-blue-400"
-                rows="5"
-                placeholder="Ej. La primera dirección es a la altura de Walmart de Toreo
-                y la dirección de destino es a dos cuadras del Ángel de la independencia."
+                rows="8"
+                placeholder="Ejemplo:
+1 cama matrimonial
+1 comedor
+6 sillas
+1 escritorio
+1 ropero grande
+1 refri
+8 cajas grandes"
                 v-model="userComments"
                 id="address-from-street"
                 type="text">
