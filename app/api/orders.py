@@ -42,7 +42,7 @@ def generate_checkout_session(order_id):
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     session = stripe.checkout.Session.create(
         customer_email = customer.email,
-        client_reference_id = customer.id,
+        client_reference_id = order.id,
         locale = 'es',
         success_url = current_app.config['STRIPE_SUCCESS'],
         cancel_url = current_app.config['STRIPE_CANCEL'],
