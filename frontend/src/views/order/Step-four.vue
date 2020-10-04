@@ -160,7 +160,8 @@
                               hover:text-indigo-500
                               transition
                               duration-150
-                              ease-in-out">
+                              ease-in-out
+                              underline">
                               {{ isMobilePhoneFieldActive?'Aceptar':'Editar' }}
                             </div>
                           </div>
@@ -190,6 +191,15 @@
                               <i class="fa fa-credit-card"></i>
                               <span class="ml-2 flex-1 w-0 truncate">
                                 Tarjeta débito/crédito
+                                <span class="text-gray-500 text-xs ml-2">
+                                  {{ currentOrder.price
+                                    .toLocaleString('en-US', {
+                                      style: 'currency',
+                                      currency: 'MXN',
+                                      maximumSignificantDigits: 5,
+                                    })
+                                  }}
+                                </span>
                                 <i class="fa fa-check text-green-400 ml-2"
                                   v-if="currentOrder.payment_method=='card'"
                                 ></i>
@@ -203,7 +213,8 @@
                                 hover:text-indigo-500
                                 transition
                                 duration-150
-                                ease-in-out">
+                                ease-in-out
+                                underline">
                                 {{ currentOrder.payment_method=='card'?'Seleccionado':'Elegir' }}
                               </div>
                             </div>
@@ -221,7 +232,10 @@
                             <div class="w-0 flex-1 flex items-center">
                               <i class="fa fa-money-bill-alt"></i>
                               <span class="ml-2 flex-1 w-0 truncate">
-                                Efectivo
+                                Adelanto
+                                <span class="text-gray-500 text-xs ml-2">
+                                  MX$200
+                                </span>
                                 <i class="fa fa-check text-green-400 ml-2"
                                   v-if="currentOrder.payment_method=='cash'"
                                 ></i>
@@ -235,12 +249,24 @@
                                 hover:text-indigo-500
                                 transition
                                 duration-150
-                                ease-in-out">
+                                ease-in-out
+                                underline">
                                 {{ currentOrder.payment_method=='cash'?'Seleccionado':'Elegir' }}
                               </div>
                             </div>
                           </li>
                         </ul>
+                        <span v-if="currentOrder.payment_method=='cash'"
+                          class="text-gray-500 text-xs">
+                          Haz un pago de $200 pesos para reservar la movilidad
+                          y el restante ({{ (currentOrder.price - 200)
+                                    .toLocaleString('en-US', {
+                                      style: 'currency',
+                                      currency: 'MXN',
+                                      maximumSignificantDigits: 5,
+                                    })
+                          }} pesos) al momento de hacer tu mudanza.
+                        </span>
                       </dd>
                     </div>
                   </dl>
@@ -415,12 +441,20 @@ export default {
         });
     },
     createCashPayment() {
-      chalan.checkoutCash({
+      const payload = {
         orderId: this.currentOrder.order_id,
         token: this.customer.token,
-      })
+        email: this.customer.email,
+        customer_id: this.customer.customer_id,
+        name: this.productName,
+        description: this.currentOrder.vehicle_description,
+        paymentMethod: this.currentOrder.payment_method,
+        amount: this.currentOrder.price * 100,
+      };
+      chalan.checkoutSession(payload)
         .then((response) => {
           if (response.status === 200) {
+            this.sessionId = response.data.session_id;
             const customerPayload = {
               mobilePhone: this.customer.mobile_phone,
               customerId: this.customer.customer_id,
@@ -437,14 +471,7 @@ export default {
                     .then((orderResponse) => {
                       if (orderResponse.status === 200) {
                         this.addDataToLocalStorage(['currentOrder', 'customer']);
-                        this.setViewsMessages({
-                          view: 'dashboard',
-                          message: {
-                            text: 'Muy bien, tu vehículo ha sido agendado!',
-                            type: 'success',
-                          },
-                        });
-                        this.$router.push({ name: 'dashboard' });
+                        this.$refs.checkoutRef.redirectToCheckout();
                       }
                     })
                     .catch(() => {
