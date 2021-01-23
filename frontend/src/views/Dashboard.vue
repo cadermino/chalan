@@ -72,8 +72,8 @@
 <script>
 import { mapMutations, mapActions, mapState } from 'vuex';
 import 'moment/locale/es';
-import chalan from '../api/chalan';
 import ViewsMessages from '@/components/ViewsMessages.vue';
+import chalan from '../api/chalan';
 
 export default {
   name: 'dashboard',

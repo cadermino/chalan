@@ -173,8 +173,8 @@
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
-import chalan from '../../api/chalan';
 import ViewsMessages from '@/components/ViewsMessages.vue';
+import chalan from '../../api/chalan';
 
 export default {
   name: 'step-three',
