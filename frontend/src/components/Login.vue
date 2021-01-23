@@ -7,15 +7,6 @@
       </p>
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
-          <LoginFacebook
-            v-on:facebook-logged="emitUserLogged"
-          />
-        </div>
-      </div>
-      <div class="mt-5 text-center">O con:</div>
-      <div class="border-b border-1 mb-10"></div>
-      <div class="flex flex-wrap -mx-3">
-        <div class="w-full px-3 mb-4">
           <label class="block
             text-gray-700
             text-sm
@@ -122,6 +113,15 @@
             italic">{{ registerFormValidationMessages['password'] }}.</p>
         </div>
       </div>
+      <div class="mt-5 text-center">O con:</div>
+      <div class="border-b border-1 mb-10"></div>
+      <div class="flex flex-wrap -mx-3">
+        <div class="w-full px-3 mb-4">
+          <LoginFacebook
+            v-on:facebook-logged="emitUserLogged"
+          />
+        </div>
+      </div>
       <div class="flex items-center justify-end">
         <button
           type="button"
@@ -169,15 +169,6 @@
       <p class="text-center font-bold mb-10">
         inicio de sesión
       </p>
-      <div class="flex flex-wrap -mx-3">
-        <div class="w-full px-3 mb-4">
-          <LoginFacebook
-            v-on:facebook-logged="emitUserLogged"
-          />
-        </div>
-      </div>
-      <div class="mt-5 text-center">O con:</div>
-      <div class="border-b border-1 mb-10"></div>
       <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
           <label class="block
@@ -230,6 +221,15 @@
             class="text-red-500
             text-xs
             italic">{{ loginFormValidationMessages['password'] }}.</p>
+        </div>
+      </div>
+      <div class="mt-5 text-center">O con:</div>
+      <div class="border-b border-1 mb-10"></div>
+      <div class="flex flex-wrap -mx-3">
+        <div class="w-full px-3 mb-4">
+          <LoginFacebook
+            v-on:facebook-logged="emitUserLogged"
+          />
         </div>
       </div>
       <div class="flex items-center justify-end">

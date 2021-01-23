@@ -287,11 +287,6 @@ export default {
       chalan.getProducts(payload)
         .then((response) => {
           this.productList = response.data;
-          if (this.currentOrder.vehicle_id) {
-            const product = this.productList
-              .filter(prod => prod.vehicle_id === this.currentOrder.vehicle_id)[0];
-            this.selectProduct(product);
-          }
           this.selectedSize = this.currentOrder.vehicle_size
             ? this.currentOrder.vehicle_size : 'small';
           if (response.data[0] && this.productListFiltered.length === 0) {
@@ -315,6 +310,7 @@ export default {
       Object.keys(this.productFields).forEach((field) => {
         this.setOrder({ field, value: this.selectedProduct[this.productFields[field]] });
       });
+      this.nextStep();
     },
   },
   computed: {
