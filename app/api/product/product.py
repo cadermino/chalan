@@ -134,9 +134,13 @@ class Product:
         loaders_quantity = vehicle.loaders_quantity
         kilometers_fee = vehicle.charge_per_kilometer
         floor_fee = vehicle.charge_per_floor
-        chalan_fee = 200
+        chalan_fee = 300
         working_days = 1
         if total_kilometers > 500:
             working_days = 2
 
-        return chalan_fee + (driver_fee * working_days) + (loader_fee * loaders_quantity * working_days) + (kilometers_fee * total_kilometers) + (floor_fee * total_floors)
+        gross_payment = chalan_fee + (driver_fee * working_days) + (loader_fee * loaders_quantity * working_days) + (kilometers_fee * total_kilometers) + (floor_fee * total_floors)
+        stripe_commission = gross_payment * 0.042
+        total = gross_payment + stripe_commission
+        
+        return total
