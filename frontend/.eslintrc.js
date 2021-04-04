@@ -8,9 +8,15 @@ module.exports = {
     '@vue/airbnb',
   ],
   rules: {
-    "import/no-extraneous-dependencies": 'off',
+    'import/no-extraneous-dependencies': 'off',
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    'no-param-reassign': ['error', {
+      props: true,
+      ignorePropertyModificationsFor: [
+        'state',
+      ]
+    }],
   },
   parserOptions: {
     parser: 'babel-eslint',
