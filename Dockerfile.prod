@@ -11,7 +11,7 @@ COPY --from=build-stage /chalan/dist /chalan/frontend/dist
 RUN apk add --no-cache tzdata
 ENV TZ America/Mexico_City
 
-RUN apk update && apk add nginx && rm /etc/nginx/conf.d/default.conf
+RUN apk update && apk add nginx
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx.chalan-prod.conf /etc/nginx/conf.d/
