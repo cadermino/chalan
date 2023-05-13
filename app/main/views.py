@@ -1,18 +1,21 @@
-from flask import render_template, url_for
+from flask import render_template, request
 from . import main
 
 
 @main.route('/', methods=['GET'])
 def index():
-    return render_template('home.html')
+    domain = request.host
+    return render_template('home.html', domain=domain)
 
 @main.route('/preguntas-frecuentes', methods=['GET'])
 def faq():
-    return render_template('faq.html')
+    domain = request.host
+    return render_template('faq.html', domain=domain)
 
 @main.route('/nosotros', methods=['GET'])
 def about():
-    return render_template('about.html')
+    domain = request.host
+    return render_template('about.html', domain=domain)
 
 @main.route('/aviso-de-privacidad', methods=['GET'])
 def privacy():
