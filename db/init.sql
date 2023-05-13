@@ -48,9 +48,9 @@ ENGINE = InnoDB CHARSET=utf8;
 CREATE TABLE IF NOT EXISTS `carrier_company` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(45) DEFAULT NULL,
-  `rfc` varchar(12) NOT NULL DEFAULT '',
+  `rfc` varchar(13) NOT NULL DEFAULT '',
   `email` varchar(100) NOT NULL DEFAULT '',
-  `address` varchar(200) NOT NULL DEFAULT '',
+  `address` varchar(200) NOT NULL,
   `active` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB CHARSET=utf8;
@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `customer_id` INT NULL DEFAULT NULL,
   `product_id` INT NULL DEFAULT NULL,
+  `total_kilometers` int(20) DEFAULT NULL,
   `order_status_id` INT NOT NULL DEFAULT 1,
   `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
   `comments` LONGTEXT NULL,
@@ -176,7 +177,7 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `charge_per_kilometer` int(10) NOT NULL,
   `charge_per_floor` int(10) NOT NULL,
-  `driver_fee` int(10) NOT NULL COMMENT 'driver fee',
+  `driver_fee` int(10) NOT NULL COMMENT 'base load price',
   `loader_fee` int(10) NOT NULL COMMENT 'fee per loader',
   `loaders_quantity` int(2) NOT NULL COMMENT 'quantity of loaders',
   `size` enum('small','medium','large') DEFAULT NULL,
