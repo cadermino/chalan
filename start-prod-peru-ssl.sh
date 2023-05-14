@@ -39,7 +39,7 @@ echo
 
 
 echo "### Starting nginx ..."
-docker compose -f docker-compose.prod.yml up --force-recreate -d web --build-arg COUNTRY=peru
+docker compose -f docker-compose.prod.yml up --force-recreate -d web
 echo
 
 echo "### Deleting dummy certificate for $domains ..."
@@ -77,4 +77,4 @@ docker compose -f docker-compose.prod.yml run --rm --entrypoint "\
 echo
 
 echo "### Reloading nginx ..."
-docker compose -f docker-compose.prod.yml exec web nginx -s reload --build-arg COUNTRY=peru
+docker compose -f docker-compose.prod.yml exec web nginx -s reload
