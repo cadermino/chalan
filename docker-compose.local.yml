@@ -1,18 +1,35 @@
 version: '3'
 services:
-  web:
+  flask:
     build:
       context: .
-      dockerfile: Dockerfile.local
+      dockerfile: flask/Dockerfile.local
     volumes:
       - .:/chalan
     ports:
-      - 80:8000
+      - 8001:8001
     env_file: .env.dev
     restart: always
     links:
       - db:dbserver
-    command: sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' & flask run --host=0.0.0.0 --port=8001"
+  vuex:
+    build:
+      context: .
+      dockerfile: vuex/Dockerfile.local
+    volumes:
+      - ./frontend:/chalan
+      - /chalan/node_modules
+    ports:
+      - 8080:8080
+    env_file: frontend/.env.development
+    restart: always
+  nginx:  
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.local
+    ports:
+      - 80:8000
+    restart: always
   db:
     image: "mysql/mysql-server:5.7"
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci

@@ -17,6 +17,8 @@ module.exports = {
         'state',
       ]
     }],
+    "import/extensions": "off",
+    "import/no-unresolved": "off"
   },
   parserOptions: {
     parser: 'babel-eslint',

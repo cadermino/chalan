@@ -1,0 +1,5 @@
+FROM node:14.16.0-alpine
+WORKDIR /chalan
+COPY /frontend/package.json .
+RUN npm rebuild node-sass && npm install
+CMD ["npm", "run", "serve"]
