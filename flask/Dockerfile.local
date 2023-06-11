@@ -1,9 +1,10 @@
 FROM python:3.6-alpine
 WORKDIR /chalan
-COPY . .
+COPY ./requirements/ requirements/
 
 RUN apk add --no-cache tzdata
 ENV TZ America/Mexico_City
+
 RUN pip install -r requirements/dev.txt
 
 CMD ["flask", "run", "--host=0.0.0.0", "--port=8001"]
