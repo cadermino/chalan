@@ -1,7 +1,7 @@
 FROM node:14.16.0-alpine as build-stage
 WORKDIR /chalan
 COPY /frontend .
-RUN npm rebuild node-sass && npm install && npm run build
+RUN npm install && npm run build
 
 FROM python:3.6-alpine as production-stage
 WORKDIR /chalan
