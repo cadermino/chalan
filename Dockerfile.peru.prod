@@ -3,7 +3,7 @@ WORKDIR /chalan
 COPY /frontend .
 RUN npm install && npm run build
 
-FROM python:3.6-alpine as production-stage
+FROM python:3.8.10-alpine as production-stage
 WORKDIR /chalan
 COPY . .
 COPY --from=build-stage /chalan/dist /chalan/frontend/dist
