@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="flex flex-wrap">
+    <div class="flex flex-wrap bg-black 2xl:bg-white">
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto">
@@ -475,6 +475,7 @@ import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
+import '@/assets/css/tailwind.css';
 
 export default {
   name: 'step-one',
