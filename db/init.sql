@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `order_details` (
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
   `zip_code` VARCHAR(45) NULL,
+  `country` VARCHAR(20) NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_order_details_order`
     FOREIGN KEY (`order_id`)
