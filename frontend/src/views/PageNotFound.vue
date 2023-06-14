@@ -26,7 +26,7 @@
   </div>
 </template>
 
-<style scoped>
+<!--<style scoped>
 .four_zero_four_bg{
   background-image: url(https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif);
   height: 400px;
@@ -47,4 +47,4 @@
 .contant_box_404{
   margin-top:-50px;
 }
-</style>
+</style>-->

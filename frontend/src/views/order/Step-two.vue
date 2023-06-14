@@ -16,8 +16,7 @@
               font-bold mb-2" for="address-from-interior">
                   Elige la fecha y hora <span class="text-red-500">*</span>
               </label>
-              <Datetime v-model="selectedDate"
-                :input-class="datePickerClasses"
+              <!-- <Datetime v-model="selectedDate"
                 type="datetime"
                 :phrases="{ok: 'Aceptar', cancel: 'Salir'}"
                 value-zone="America/Mexico_City"
@@ -28,12 +27,11 @@
                 minute: '2-digit' }"
                 use12-hour
                 :minute-step="5"
-                class="theme-chalan"
                 :min-datetime="minDatetime"
                 :max-datetime="maxDatetime"
                 placeholder="17 de Marzo de 2020 18:00"
               >
-              </Datetime>
+              </Datetime> -->
               <p v-if="formValidationMessages['appointment_date']"
                 class="text-red-500
                 text-xs
@@ -107,8 +105,8 @@
 
 <script>
 import { mapState, mapActions, mapMutations } from 'vuex';
-import { Datetime } from 'vue-datetime';
-import 'vue-datetime/dist/vue-datetime.css';
+// import { Datetime } from 'vue-datetime';
+// import 'vue-datetime/dist/vue-datetime.css';
 import { Settings } from 'luxon';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
@@ -125,7 +123,7 @@ export default {
   },
   components: {
     Tracker,
-    Datetime,
+    // Datetime,
     ViewsMessages,
   },
   mounted() {
@@ -225,7 +223,7 @@ export default {
   },
 };
 </script>
-<style>
+<!--<style>
   .theme-chalan .vdatetime-popup__header,
   .theme-chalan .vdatetime-calendar__month__day--selected > span > span,
   .theme-chalan .vdatetime-calendar__month__day--selected:hover > span > span {
@@ -237,4 +235,4 @@ export default {
   .theme-chalan .vdatetime-popup__actions__button {
     color: #4299e1;
   }
-</style>
+</style>-->

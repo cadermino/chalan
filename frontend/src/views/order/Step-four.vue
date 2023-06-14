@@ -292,7 +292,7 @@
 import {
   mapState, mapActions, mapMutations, mapGetters,
 } from 'vuex';
-import 'moment/locale/es';
+// import 'moment/locale/es';
 import { StripeCheckout } from 'vue-stripe-checkout';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';

@@ -198,7 +198,7 @@ export default {
   },
 };
 </script>
-<style lang="scss">
+<!--<style lang="scss">
 #nav {
   a {
     &.router-link-exact-active {
@@ -206,4 +206,4 @@ export default {
     }
   }
 }
-</style>
+</style>-->
