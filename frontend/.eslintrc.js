@@ -15,10 +15,10 @@ module.exports = {
       props: true,
       ignorePropertyModificationsFor: [
         'state',
-      ]
+      ],
     }],
-    "import/extensions": "off",
-    "import/no-unresolved": "off"
+    'import/extensions': 'off',
+    'import/no-unresolved': 'off',
   },
   parserOptions: {
     parser: 'babel-eslint',

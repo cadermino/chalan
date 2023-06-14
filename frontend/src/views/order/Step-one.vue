@@ -3,240 +3,33 @@
     <div class="flex flex-wrap">
       <div class="w-full mb-4">
         <Tracker :current-view="viewName"></Tracker>
-        <div class="w-full max-w-xl mx-auto">
+        <div class="
+          w-full
+          max-w-6xl
+          mx-auto
+          px-8
+          ">
           <form class="bg-white pb-8 sm:p-0 p-5 sm:pb-8">
             <ViewsMessages :view-name="viewName"/>
             <p class="text-center font-bold mb-10">
               Dirección de donde vamos a recoger tus cosas
             </p>
-            <div class="flex flex-wrap -mx-3 mb-4">
-              <div class="w-full px-3 mb-4">
-                <label class="block
-                  text-gray-700
-                  text-sm
-                  font-bold mb-2" for="address-from-street">
-                      Calle <span class="text-red-500">*</span>
-                </label>
-                <input :class="formValidationMessages['from_street']
-                ?'border-red-300':''"
-                class="appearance-none
-                  border rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  v-model="selectedFromStreet"
-                  id="address-from-street"
-                  placeholder="Ejem: Londres 198"
-                  type="text">
-                <p v-if="formValidationMessages['from_street']"
-                  class="text-red-500
-                  text-xs
-                  italic">{{ formValidationMessages['from_street'] }}.</p>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-interior">
-                    Número interior
-                </label>
-                <input class="appearance-none
-                border rounded
-                w-full
-                py-2
-                px-3
-                text-gray-700
-                leading-tight
-                focus:outline-none
-                focus:border-blue-400"
-                v-model="selectedFromInteriorNumber"
-                id="address-from-interior"
-                placeholder="Ejem: 204"
-                type="text">
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-floor">
-                    Piso de la vivienda <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <select
-                  :class="formValidationMessages['from_floor_number']
-                  ?'border-red-300':''"
-                  class="appearance-none
-                  border
-                  bg-white
-                  rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  id="address-from-floor"
-                  v-model="selectedFromFloor">
-                    <option disabled value="">Selecciona un piso</option>
-                    <option
-                    v-for="(item, index) in floorList"
-                    v-bind:value="index"
-                    v-bind:key="index">
-                      {{ item }}
-                    </option>
-                  </select>
-                  <div class="pointer-events-none
-                      absolute
-                      inset-y-0
-                      right-0
-                      flex
-                      items-center
-                      px-2
-                      text-gray-700">
-                  <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
-                </div>
-                <p v-if="formValidationMessages['from_floor_number']"
-                class="text-red-500
-                text-xs
-                italic">{{ formValidationMessages['from_floor_number'] }}.</p>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-zipcode">
-                    Código postal <span class="text-red-500">*</span>
-                </label>
-                <input :class="formValidationMessages['from_zip_code']
-                  ?'border-red-300':''"
-                class="appearance-none
-                border rounded
-                w-full
-                py-2
-                px-3
-                text-gray-700
-                leading-tight
-                focus:outline-none
-                focus:border-blue-400"
-                v-model="zipcodeFrom"
-                id="address-from-zipcode"
-                type="number">
-                <p v-if="formValidationMessages['from_zip_code']"
-                class="text-red-500
-                text-xs
-                italic">{{ formValidationMessages['from_zip_code'] }}.</p>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-neighborhood">
-                    Colonia <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <select
-                  :class="formValidationMessages['from_neighborhood']
-                    ?'border-red-300':''"
-                  class="appearance-none
-                  border
-                  bg-white
-                  rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  id="address-from-neighborhood"
-                  v-model="selectedFromNeighborhood">
-                    <option disabled value="">Selecciona una colonia</option>
-                    <option
-                    v-for="item in currentOrder.from_neighborhood_list"
-                    v-bind:value="item.asentamiento"
-                    v-bind:key="item.asentamiento">
-                      {{ item.asentamiento }}
-                    </option>
-                  </select>
-                  <div class="pointer-events-none
-                      absolute
-                      inset-y-0
-                      right-0
-                      flex
-                      items-center
-                      px-2
-                      text-gray-700">
-                  <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
-                  <p v-if="formValidationMessages['from_neighborhood']"
-                    class="text-red-500
-                    text-xs
-                    italic">
-                    {{ formValidationMessages['from_neighborhood'] }}
-                  </p>
-                </div>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-city">
-                    Alcaldía/Municipio <span class="text-red-500">*</span>
-                </label>
-                <input class="appearance-none
-                  border rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  disabled
-                  id="address-from-city"
-                  :value="currentOrder.from_city"
-                  type="text">
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-from-state">
-                    Estado <span class="text-red-500">*</span>
-                </label>
-                <input class="appearance-none
-                      border rounded
-                      w-full
-                      py-2
-                      px-3
-                      text-gray-700
-                      leading-tight
-                      focus:outline-none
-                      focus:border-blue-400"
-                      disabled
-                      id="address-from-state"
-                      :value="currentOrder.from_state"
-                      type="text">
-              </div>
-            </div>
-            <div class="border-b border-1 my-10"></div>
-            <p class="text-center font-bold mb-10">Dirección de destino</p>
-
-            <div class="flex flex-wrap -mx-3 mb-4">
-              <div class="w-full px-3 mb-4">
+            <div class="flex flex-wrap">
+              <div class="
+                flex
+                flex-wrap
+                content-start
+                -mx-3
+                mb-4
+                md:w-1/2">
+                <div class="w-full px-3 mb-4">
                   <label class="block
                     text-gray-700
                     text-sm
-                    font-bold mb-2" for="address-to-street">
+                    font-bold mb-2" for="address-from-street">
                         Calle <span class="text-red-500">*</span>
                   </label>
-                  <input :class="formValidationMessages['to_street']
+                  <input :class="formValidationMessages['from_street']
                   ?'border-red-300':''"
                   class="appearance-none
                     border rounded
@@ -247,168 +40,23 @@
                     leading-tight
                     focus:outline-none
                     focus:border-blue-400"
-                    v-model="selectedToStreet"
-                    id="address-to-street"
-                    placeholder="Ejem: Londres 198"
+                    v-model="selectedFromStreet"
+                    id="address-from-street"
+                    placeholder="Ejem: Calle Londres 198 México"
                     type="text">
-                  <p v-if="formValidationMessages['to_street']"
+                  <p v-if="formValidationMessages['from_street']"
                     class="text-red-500
                     text-xs
-                    italic">{{ formValidationMessages['to_street'] }}.</p>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-to-interior">
-                    Número interior
-                </label>
-                <input class="appearance-none
-                border rounded
-                w-full
-                py-2
-                px-3
-                text-gray-700
-                leading-tight
-                focus:outline-none
-                focus:border-blue-400"
-                v-model="selectedToInteriorNumber"
-                id="address-to-interior"
-                placeholder="Ejem: 204"
-                type="text">
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-to-floor">
-                    Piso de la vivienda <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <select
-                  :class="formValidationMessages['to_floor_number']
-                  ?'border-red-300':''"
-                  class="appearance-none
-                  border
-                  bg-white
-                  rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  id="address-to-floor"
-                  v-model="selectedToFloor">
-                    <option disabled value="">Selecciona un piso</option>
-                    <option
-                    v-for="(item, index) in floorList"
-                    v-bind:value="index"
-                    v-bind:key="index">
-                      {{ item }}
-                    </option>
-                  </select>
-                  <div class="pointer-events-none
-                      absolute
-                      inset-y-0
-                      right-0
-                      flex
-                      items-center
-                      px-2
-                      text-gray-700">
-                  <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
+                    italic">{{ formValidationMessages['from_street'] }}.</p>
                 </div>
-                <p v-if="formValidationMessages['to_floor_number']"
-                class="text-red-500
-                text-xs
-                italic">{{ formValidationMessages['to_floor_number'] }}.</p>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-to-zipcode">
-                    Código postal <span class="text-red-500">*</span>
-                </label>
-                <input :class="formValidationMessages['to_zip_code']
-                  ?'border-red-300':''"
-                class="appearance-none
-                border rounded
-                w-full
-                py-2
-                px-3
-                text-gray-700
-                leading-tight
-                focus:outline-none
-                focus:border-blue-400"
-                v-model="zipcodeTo"
-                id="address-to-zipcode"
-                type="number">
-                <p v-if="formValidationMessages['to_zip_code']"
-                class="text-red-500
-                text-xs
-                italic">{{ formValidationMessages['to_zip_code'] }}.</p>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-to-neighborhood">
-                    Colonia <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                  <select
-                  :class="formValidationMessages['to_neighborhood']
-                    ?'border-red-300':''"
-                  class="appearance-none
-                  border
-                  bg-white
-                  rounded
-                  w-full
-                  py-2
-                  px-3
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
                   text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  id="address-to-neighborhood"
-                  v-model="selectedToNeighborhood">
-                    <option disabled value="">Selecciona una colonia</option>
-                    <option
-                    v-for="item in currentOrder.to_neighborhood_list"
-                    v-bind:value="item.asentamiento"
-                    v-bind:key="item.asentamiento">
-                      {{ item.asentamiento }}
-                    </option>
-                  </select>
-                  <div class="pointer-events-none
-                      absolute
-                      inset-y-0
-                      right-0
-                      flex
-                      items-center
-                      px-2
-                      text-gray-700">
-                  <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                  </div>
-                  <p v-if="formValidationMessages['to_neighborhood']"
-                    class="text-red-500
-                    text-xs
-                    italic">
-                    {{ formValidationMessages['to_neighborhood'] }}
-                  </p>
-                </div>
-              </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-to-city">
-                    Alcaldía/Municipio <span class="text-red-500">*</span>
-                </label>
-                <input class="appearance-none
+                  text-sm
+                  font-bold mb-2" for="address-from-interior">
+                      Número interior
+                  </label>
+                  <input class="appearance-none
                   border rounded
                   w-full
                   py-2
@@ -417,19 +65,89 @@
                   leading-tight
                   focus:outline-none
                   focus:border-blue-400"
-                  disabled
-                  id="address-to-city"
-                  :value="currentOrder.to_city"
+                  v-model="selectedFromInteriorNumber"
+                  id="address-from-interior"
+                  placeholder="Ejem: 204"
                   type="text">
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                  text-gray-700
+                  text-sm
+                  font-bold mb-2" for="address-from-floor">
+                      Piso de la vivienda <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <select
+                    :class="formValidationMessages['from_floor_number']
+                    ?'border-red-300':''"
+                    class="appearance-none
+                    border
+                    bg-white
+                    rounded
+                    w-full
+                    py-2
+                    px-3
+                    text-gray-700
+                    leading-tight
+                    focus:outline-none
+                    focus:border-blue-400"
+                    id="address-from-floor"
+                    v-model="selectedFromFloor">
+                      <option disabled value="">Selecciona un piso</option>
+                      <option
+                      v-for="(item, index) in floorList"
+                      v-bind:value="index"
+                      v-bind:key="index">
+                        {{ item }}
+                      </option>
+                    </select>
+                    <div class="pointer-events-none
+                        absolute
+                        inset-y-0
+                        right-0
+                        flex
+                        items-center
+                        px-2
+                        text-gray-700">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+                  <p v-if="formValidationMessages['from_floor_number']"
+                  class="text-red-500
+                  text-xs
+                  italic">{{ formValidationMessages['from_floor_number'] }}.</p>
+                </div>
               </div>
-              <div class="w-full md:w-1/3 px-3 mb-4">
-                <label class="block
-                text-gray-700
-                text-sm
-                font-bold mb-2" for="address-to-state">
-                    Estado <span class="text-red-500">*</span>
-                </label>
-                <input class="appearance-none
+              <div class="md:w-1/2 w-full ml-6">
+                <SearchBoxPlacesApiGoogle
+                  v-on:google-address="fillAddress"
+                  input-id="address-from-street"
+                  map-id="address-from-map"
+                />
+              </div>
+            </div>
+            <div class="border-b border-1 my-10"></div>
+            <p class="text-center font-bold mb-10">Dirección de destino</p>
+
+            <div class="flex flex-wrap">
+              <div class="
+                flex
+                flex-wrap
+                content-start
+                -mx-3
+                mb-4
+                md:w-1/2">
+                <div class="w-full px-3 mb-4">
+                    <label class="block
+                      text-gray-700
+                      text-sm
+                      font-bold mb-2" for="address-to-street">
+                          Calle <span class="text-red-500">*</span>
+                    </label>
+                    <input :class="formValidationMessages['to_street']
+                    ?'border-red-300':''"
+                    class="appearance-none
                       border rounded
                       w-full
                       py-2
@@ -438,10 +156,91 @@
                       leading-tight
                       focus:outline-none
                       focus:border-blue-400"
-                      disabled
-                      id="address-to-state"
-                      :value="currentOrder.to_state"
+                      v-model="selectedToStreet"
+                      id="address-to-street"
+                      placeholder="Ejem: Londres 198"
                       type="text">
+                    <p v-if="formValidationMessages['to_street']"
+                      class="text-red-500
+                      text-xs
+                      italic">{{ formValidationMessages['to_street'] }}.</p>
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                  text-gray-700
+                  text-sm
+                  font-bold mb-2" for="address-to-interior">
+                      Número interior
+                  </label>
+                  <input class="appearance-none
+                  border rounded
+                  w-full
+                  py-2
+                  px-3
+                  text-gray-700
+                  leading-tight
+                  focus:outline-none
+                  focus:border-blue-400"
+                  v-model="selectedToInteriorNumber"
+                  id="address-to-interior"
+                  placeholder="Ejem: 204"
+                  type="text">
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                  text-gray-700
+                  text-sm
+                  font-bold mb-2" for="address-to-floor">
+                      Piso de la vivienda <span class="text-red-500">*</span>
+                  </label>
+                  <div class="relative">
+                    <select
+                    :class="formValidationMessages['to_floor_number']
+                    ?'border-red-300':''"
+                    class="appearance-none
+                    border
+                    bg-white
+                    rounded
+                    w-full
+                    py-2
+                    px-3
+                    text-gray-700
+                    leading-tight
+                    focus:outline-none
+                    focus:border-blue-400"
+                    id="address-to-floor"
+                    v-model="selectedToFloor">
+                      <option disabled value="">Selecciona un piso</option>
+                      <option
+                      v-for="(item, index) in floorList"
+                      v-bind:value="index"
+                      v-bind:key="index">
+                        {{ item }}
+                      </option>
+                    </select>
+                    <div class="pointer-events-none
+                        absolute
+                        inset-y-0
+                        right-0
+                        flex
+                        items-center
+                        px-2
+                        text-gray-700">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+                  <p v-if="formValidationMessages['to_floor_number']"
+                  class="text-red-500
+                  text-xs
+                  italic">{{ formValidationMessages['to_floor_number'] }}.</p>
+                </div>
+              </div>
+              <div class="md:w-1/2 w-full ml-6">
+                <SearchBoxPlacesApiGoogle
+                  v-on:google-address="fillAddress"
+                  input-id="address-to-street"
+                  map-id="address-to-map"
+                />
               </div>
             </div>
 
@@ -474,7 +273,9 @@
 import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
+import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue';
 import chalan from '../../api/chalan';
+import steps from '../../store/steps';
 
 export default {
   name: 'step-one',
@@ -482,27 +283,20 @@ export default {
     return {
       viewName: 'step-one',
       floorList: ['Planta baja', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'],
-      stepRequisites: {
-        from_floor_number: null,
-        from_street: null,
-        from_neighborhood: null,
-        from_zip_code: null,
-        to_floor_number: null,
-        to_street: null,
-        to_neighborhood: null,
-        to_zip_code: null,
-      },
+      stepRequisites: {},
+      selectedFromStreet: '',
+      selectedToStreet: '',
     };
   },
   components: {
     Tracker,
     ViewsMessages,
+    SearchBoxPlacesApiGoogle,
   },
   mounted() {
-    this.setLoader(false);
-    Object.keys(this.stepRequisites).forEach((requisite) => {
-      this.stepRequisites[requisite] = this.currentOrder[requisite];
-    });
+    this.selectedFromStreet = this.currentOrder.from_street;
+    this.selectedToStreet = this.currentOrder.to_street;
+    this.buildRequisites();
   },
   props: [
   ],
@@ -517,6 +311,44 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    buildRequisites() {
+      const {
+        'step-one': {
+          requisites: requisitesList,
+        },
+      } = steps;
+      requisitesList.forEach((requisite) => {
+        this.stepRequisites[requisite] = this.currentOrder[requisite];
+      });
+      this.setLoader(false);
+    },
+    fillAddress(data) {
+      const {
+        place: {
+          formatted_address: formattedAddress,
+          address_components: addressComponents,
+          url,
+        },
+        mapId,
+      } = data;
+      const direction = mapId.split('-')[1];
+      const googleAddress = {};
+      Object.keys(addressComponents).forEach((key) => {
+        googleAddress[addressComponents[key].types[0]] = addressComponents[key];
+      });
+      const {
+        postal_code: {
+          long_name: postalCode,
+        } = null,
+        country: {
+          long_name: country,
+        },
+      } = googleAddress;
+      this.setOrder({ field: `${direction}_street`, value: formattedAddress });
+      this.setOrder({ field: `${direction}_zip_code`, value: postalCode });
+      this.setOrder({ field: `${direction}_country`, value: country });
+      this.setOrder({ field: `${direction}_map_url`, value: url });
+    },
     removeSelectedProduct() {
       const productFields = {
         vehicle_id: null,
@@ -592,35 +424,6 @@ export default {
         }
       }
     },
-    async getAddress(payload) {
-      this.setLoader(true);
-      try {
-        const result = await chalan.getAddress(payload.zipcode);
-        this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: '' });
-        if (result.data.length > 0) {
-          this.setOrder({ field: `${payload.direction}_neighborhood_list`, value: result.data });
-          const cityAndState = {
-            city: result.data[0].municipio,
-            state: result.data[0].estado,
-          };
-          Object.keys(cityAndState).forEach((key) => {
-            this.setOrder({ field: `${payload.direction}_${key}`, value: cityAndState[key] });
-          });
-        } else {
-          this.setOrder({ field: `${payload.direction}_neighborhood_list`, value: [] });
-          this.setFormValidationMessages({ field: `${payload.direction}_zip_code`, message: 'ingresa un código postal válido' });
-        }
-      } catch {
-        this.setViewsMessages({
-          view: this.viewName,
-          message: {
-            type: 'error',
-            text: 'Hubo un error, intenta después de recargar la página',
-          },
-        });
-      }
-      this.setLoader(false);
-    },
   },
   computed: {
     ...mapState([
@@ -636,45 +439,12 @@ export default {
         .reduce((prev, curr) => prev
           && (this.currentOrder[curr] === this.stepRequisites[curr]), true);
     },
-    zipcodeFrom: {
-      get() {
-        return this.currentOrder.from_zip_code;
-      },
-      set(zipcode) {
-        this.setOrder({ value: zipcode, field: 'from_zip_code' });
-        this.selectedFromNeighborhood = null;
-        this.setOrder({ value: null, field: 'from_city' });
-        this.setOrder({ value: null, field: 'from_state' });
-        if (zipcode.length > 3 && zipcode.length < 6) {
-          this.getAddress({ zipcode, direction: 'from' });
-        } else {
-          this.setFormValidationMessages({ field: 'from_zip_code', message: 'ingresa un código postal válido' });
-          this.setOrder({ field: 'from_neighborhood_list', value: [] });
-        }
-      },
-    },
-    selectedFromStreet: {
-      get() {
-        return this.currentOrder.from_street;
-      },
-      set(value) {
-        this.setOrder({ field: 'from_street', value });
-      },
-    },
     selectedFromInteriorNumber: {
       get() {
         return this.currentOrder.from_interior_number;
       },
       set(value) {
         this.setOrder({ field: 'from_interior_number', value });
-      },
-    },
-    selectedFromNeighborhood: {
-      get() {
-        return this.currentOrder.from_neighborhood;
-      },
-      set(value) {
-        this.setOrder({ field: 'from_neighborhood', value });
       },
     },
     selectedFromFloor: {
@@ -685,45 +455,12 @@ export default {
         this.setOrder({ field: 'from_floor_number', value: String(value) });
       },
     },
-    zipcodeTo: {
-      get() {
-        return this.currentOrder.to_zip_code;
-      },
-      set(zipcode) {
-        this.setOrder({ value: zipcode, field: 'to_zip_code' });
-        this.selectedToNeighborhood = null;
-        this.setOrder({ value: null, field: 'to_city' });
-        this.setOrder({ value: null, field: 'to_state' });
-        if (zipcode.length > 3 && zipcode.length < 6) {
-          this.getAddress({ zipcode, direction: 'to' });
-        } else {
-          this.setOrder({ field: 'to_neighborhood_list', value: [] });
-          this.setFormValidationMessages({ field: 'to_zip_code', message: 'ingresa un código postal válido' });
-        }
-      },
-    },
-    selectedToStreet: {
-      get() {
-        return this.currentOrder.to_street;
-      },
-      set(value) {
-        this.setOrder({ field: 'to_street', value });
-      },
-    },
     selectedToInteriorNumber: {
       get() {
         return this.currentOrder.to_interior_number;
       },
       set(value) {
         this.setOrder({ field: 'to_interior_number', value });
-      },
-    },
-    selectedToNeighborhood: {
-      get() {
-        return this.currentOrder.to_neighborhood;
-      },
-      set(value) {
-        this.setOrder({ field: 'to_neighborhood', value });
       },
     },
     selectedToFloor: {
