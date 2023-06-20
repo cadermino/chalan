@@ -112,56 +112,45 @@
             text-xs
             italic">{{ registerFormValidationMessages['password'] }}.</p>
         </div>
-      </div>
-      <div class="mt-5 text-center">O con:</div>
-      <div class="border-b border-1 mb-10"></div>
-      <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
-          <LoginFacebook
-            v-on:facebook-logged="emitUserLogged"
-          />
+          <div class="flex items-center justify-end">
+            <button
+              type="button"
+              class="
+              text-red-400
+              py-2
+              px-4
+              rounded
+              focus:outline-none
+              focus:border-blue-400"
+              @click="cancel">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              :disabled="loading"
+              :class="loading?'opacity-50 cursor-not-allowed':''"
+              class="bg-green-500
+              hover:bg-green-700
+              text-white
+              py-2
+              px-4
+              rounded
+              focus:outline-none
+              focus:border-blue-400"
+              @click="register">
+              Registrame
+            </button>
+          </div>
+          <div class="w-full text-left mt-4">Si ya tienes una cuenta puedes <span
+            @click="switchForm('login')"
+            class="font-bold
+              cursor-pointer
+              text-blue-700
+              focus:outline-none
+              focus:border-blue-400">iniciar sesión</span>
+          </div>
         </div>
-      </div>
-      <div class="flex items-center justify-end">
-        <button
-          type="button"
-          class="
-          text-red-400
-          py-2
-          px-4
-          rounded
-          focus:outline-none
-          focus:border-blue-400"
-          @click="cancel">
-          Cancelar
-        </button>
-        <button
-          type="button"
-          class="
-          text-blue-700
-          py-2
-          px-4
-          rounded
-          focus:outline-none
-          focus:border-blue-400"
-          @click="switchForm('login')">
-          Iniciar sesión
-        </button>
-        <button
-          type="button"
-          :disabled="loading"
-          :class="loading?'opacity-50 cursor-not-allowed':''"
-          class="bg-green-500
-          hover:bg-green-700
-          text-white
-          py-2
-          px-4
-          rounded
-          focus:outline-none
-          focus:border-blue-400"
-          @click="register">
-          Registrame
-        </button>
       </div>
     </form>
     <form v-if="activeForm == 'login'"
@@ -222,58 +211,46 @@
             text-xs
             italic">{{ loginFormValidationMessages['password'] }}.</p>
         </div>
-      </div>
-      <div class="mt-5 text-center">O con:</div>
-      <div class="border-b border-1 mb-10"></div>
-      <div class="flex flex-wrap -mx-3">
         <div class="w-full px-3 mb-4">
-          <LoginFacebook
-            v-on:facebook-logged="emitUserLogged"
-          />
+          <div class="flex items-center justify-end">
+            <button
+              type="button"
+              class="
+              text-red-400
+              py-2
+              px-4
+              rounded
+              focus:outline-none
+              focus:border-blue-400"
+              @click="cancel">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              :disabled="loading"
+              :class="loading?'opacity-50 cursor-not-allowed':''"
+              class="bg-green-500
+              hover:bg-green-700
+              text-white
+              py-2
+              px-2
+              rounded
+              focus:outline-none
+              focus:border-blue-400"
+              @click="login"
+              >
+              Iniciar sesión
+            </button>
+          </div>
+          <div class="w-full text-left mt-4">Si no tienes una cuenta puedes <span
+            @click="switchForm('register')"
+            class="font-bold
+              cursor-pointer
+              text-blue-700
+              focus:outline-none
+              focus:border-blue-400">Registrate</span>
+          </div>
         </div>
-      </div>
-      <div class="flex items-center justify-end">
-        <button
-          type="button"
-          class="
-          text-red-400
-          py-2
-          px-4
-          rounded
-          focus:outline-none
-          focus:border-blue-400"
-          @click="cancel">
-          Cancelar
-        </button>
-        <button
-          type="button"
-          class="
-          text-blue-700
-          py-2
-          px-4
-          rounded
-          focus:outline-none
-          focus:border-blue-400"
-          @click="switchForm('register')"
-          >
-          Registrarme
-        </button>
-        <button
-          type="button"
-          :disabled="loading"
-          :class="loading?'opacity-50 cursor-not-allowed':''"
-          class="bg-green-500
-          hover:bg-green-700
-          text-white
-          py-2
-          px-2
-          rounded
-          focus:outline-none
-          focus:border-blue-400"
-          @click="login"
-          >
-          Iniciar sesión
-        </button>
       </div>
     </form>
   </div>
@@ -283,7 +260,6 @@
 import {
   mapMutations, mapState, mapGetters,
 } from 'vuex';
-import LoginFacebook from './LoginFacebook.vue';
 import chalan from '../api/chalan';
 
 export default {
@@ -317,9 +293,6 @@ export default {
   },
   mounted() {
     this.setLoader(false);
-  },
-  components: {
-    LoginFacebook,
   },
   methods: {
     ...mapMutations([
