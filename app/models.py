@@ -69,9 +69,8 @@ class OrderDetails(db.Model):
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	street = db.Column(db.String(45), nullable=True)
 	interior_number = db.Column(db.String(45), nullable=True)
-	neighborhood = db.Column(db.String(45), nullable=True)
-	city = db.Column(db.String(45), nullable=True)
-	state = db.Column(db.String(45), nullable=True)
+	country = db.Column(db.String(45), nullable=True)
+	map_url = db.Column(db.String(400), nullable=True)
 	zip_code = db.Column(db.String(45), nullable=True)
 
 
