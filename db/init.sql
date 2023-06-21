@@ -28,11 +28,12 @@ CREATE TABLE IF NOT EXISTS `order_details` (
   `order_id` INT NOT NULL,
   `street` VARCHAR(45) NULL,
   `interior_number` VARCHAR(45) NULL,
+  `country` VARCHAR(20) NULL,
+  `map_url` VARCHAR(400) NULL,
   `neighborhood` VARCHAR(45) NULL,
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
   `zip_code` VARCHAR(45) NULL,
-  `country` VARCHAR(20) NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_order_details_order`
     FOREIGN KEY (`order_id`)

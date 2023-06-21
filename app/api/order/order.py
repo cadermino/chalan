@@ -24,20 +24,18 @@ class Order:
         order_details_from.floor_number = order_data['order']['from_floor_number']
         order_details_from.street = order_data['order']['from_street']
         order_details_from.interior_number = order_data['order']['from_interior_number']
-        order_details_from.neighborhood = order_data['order']['from_neighborhood']
-        order_details_from.city = order_data['order']['from_city']
-        order_details_from.state = order_data['order']['from_state']
         order_details_from.zip_code = order_data['order']['from_zip_code']
+        order_details_from.country = order_data['order']['from_country']
+        order_details_from.map_url = order_data['order']['from_map_url']
         db.session.add(order_details_from)
         db.session.commit()
 
         order_details_to.floor_number = order_data['order']['to_floor_number']
         order_details_to.street = order_data['order']['to_street']
         order_details_to.interior_number = order_data['order']['to_interior_number']
-        order_details_to.neighborhood = order_data['order']['to_neighborhood']
-        order_details_to.city = order_data['order']['to_city']
-        order_details_to.state = order_data['order']['to_state']
         order_details_to.zip_code = order_data['order']['to_zip_code']
+        order_details_to.country = order_data['order']['to_country']
+        order_details_to.map_url = order_data['order']['to_map_url']
         db.session.add(order_details_to)
         db.session.commit()
         
@@ -55,9 +53,6 @@ class Order:
             order_id = order.id,
             street = order_data['order']['from_street'],
             interior_number = order_data['order']['from_interior_number'],
-            neighborhood = order_data['order']['from_neighborhood'],
-            city = order_data['order']['from_city'],
-            state = order_data['order']['from_state'],
             zip_code = order_data['order']['from_zip_code'],
         )
         order_details_to = OrderDetails(
@@ -66,9 +61,6 @@ class Order:
             order_id = order.id,
             street = order_data['order']['to_street'],
             interior_number = order_data['order']['to_interior_number'],
-            neighborhood = order_data['order']['to_neighborhood'],
-            city = order_data['order']['to_city'],
-            state = order_data['order']['to_state'],
             zip_code = order_data['order']['to_zip_code'],
         )
         db.session.add(order_details_from)

@@ -353,12 +353,6 @@ export default {
       const productFields = {
         vehicle_id: null,
         price: null,
-        vehicle_size: null,
-        vehicle_brand: null,
-        vehicle_model: null,
-        vehicle_weight: null,
-        vehicle_picture: null,
-        vehicle_description: null,
       };
       Object.keys(productFields).forEach((field) => {
         this.setOrder({ field, value: '' });
