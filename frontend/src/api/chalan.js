@@ -22,23 +22,16 @@ export default {
       },
     });
   },
-  getProducts(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}products`, {
+  getQuotations(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}quotations/${payload.orderId}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
       },
-      params: {
-        order_id: payload.order_id,
-        from_floor: payload.from_floor,
-        to_floor: payload.to_floor,
-        from_zip_code: payload.from_zip_code,
-        to_zip_code: payload.to_zip_code,
-      },
     });
   },
-  createProduct(payload) {
-    return axios.post(`${process.env.VUE_APP_API_URL}product`, payload, {
+  updateQuotation(payload) {
+    return axios.put(`${process.env.VUE_APP_API_URL}quotation/${payload.quotationId}`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,

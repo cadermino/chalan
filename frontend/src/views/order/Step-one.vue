@@ -119,7 +119,7 @@
                   italic">{{ formValidationMessages['from_floor_number'] }}.</p>
                 </div>
               </div>
-              <div class="md:w-1/2 w-full ml-6">
+              <div class="md:w-1/2 w-full md:ml-6">
                 <SearchBoxPlacesApiGoogle
                   v-on:google-address="fillAddress"
                   input-id="address-from-street"
@@ -235,7 +235,7 @@
                   italic">{{ formValidationMessages['to_floor_number'] }}.</p>
                 </div>
               </div>
-              <div class="md:w-1/2 w-full ml-6">
+              <div class="md:w-1/2 w-full md:ml-6">
                 <SearchBoxPlacesApiGoogle
                   v-on:google-address="fillAddress"
                   input-id="address-to-street"
@@ -342,7 +342,7 @@ export default {
         } = null,
         country: {
           long_name: country,
-        },
+        } = null,
       } = googleAddress;
       this.setOrder({ field: `${direction}_street`, value: formattedAddress });
       this.setOrder({ field: `${direction}_zip_code`, value: postalCode });
@@ -390,6 +390,7 @@ export default {
                   text: 'Hubo un error, intenta después de recargar la página',
                 },
               });
+              this.setLoader(false);
             });
         } else {
           const payload = {
@@ -414,6 +415,7 @@ export default {
                   text: 'Hubo un error, intenta después de recargar la página',
                 },
               });
+              this.setLoader(false);
             });
         }
       }

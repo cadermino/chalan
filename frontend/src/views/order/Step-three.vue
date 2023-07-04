@@ -6,61 +6,19 @@
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
           <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10" id="text-header">
-            Elige el tamaño de tu mudanza <span class="text-red-500">*</span>
+            Elige la cotización adecuada para tu mudanza <span class="text-red-500">*</span>
           </p>
-          <div class="flex flex-wrap mb-4">
-            <div class="inline-flex w-full">
-              <button
-                @click="selectSize('small')"
-                :class="selectedSize === 'small'?
-                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
-                class="w-full
-                focus:outline-none
-                hover:bg-gray-500
-                text-gray
-                py-2
-                px-4
-                rounded-l">
-                Pequeño
-              </button>
-              <button
-                @click="selectSize('medium')"
-                :class="selectedSize === 'medium'?
-                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
-                class="w-full
-                focus:outline-none
-                hover:bg-gray-500
-                text-gray
-                py-2
-                px-4">
-                Mediano
-              </button>
-              <button
-                @click="selectSize('large')"
-                :class="selectedSize === 'large'?
-                  'bg-green-400 text-white hover:bg-green-500':'bg-gray-400'"
-                class="w-full
-                focus:outline-none
-                hover:bg-gray-500
-                text-gray
-                py-2
-                px-4
-                rounded-r">
-                Grande
-              </button>
+          <div class="flex flex-wrap mb-4" v-if="quotationsList.length > 0">
+            <div v-if="quotationsList.length == 0">
+              Estamos cargando las cotizaciones...
             </div>
-          </div>
-          <div class="flex flex-wrap mb-4" v-if="productList.length">
-            <div v-if="productListFiltered.length == 0">
-              En este momento no contamos con vehículos <b>{{ vehicleSizes[selectedSize] }}</b>
-            </div>
-            <div v-for="(product, index) in productListFiltered"
+            <div v-for="(quotation, index) in quotationsList"
               v-bind:value="index"
               v-bind:key="index"
               class="w-full my-5 md:w-1/2 px-3">
-              <div @click="(selectedProduct.vehicle_id == product.vehicle_id) ?
-                        '' : selectProduct(product)"
-                :class="(selectedProduct.vehicle_id == product.vehicle_id) ? 'bg-gray-200' : ''"
+              <div @click="(selectedQuotation.id == quotation.id) ?
+                        '' : selectQuotation(quotation)"
+                :class="(selectedQuotation.id == quotation.id) ? 'bg-gray-200' : ''"
                 class="w-full cursor-pointer">
                 <img class="h-auto
                   w-full
@@ -70,7 +28,7 @@
                   rounded-t
                   text-center
                   overflow-hidden"
-                  :src="require(`@/assets/${product.picture}`)"
+                  :src="require(`@/assets/${quotation.picture}`)"
                   alt="Sunset in the mountains">
                 <div class="w-full border-r
                   border-b
@@ -84,7 +42,7 @@
                   leading-normal">
                   <div class="mb-8">
                     <div class="text-gray-900 font-bold text-xl mb-2">
-                      {{  product.price
+                      {{  quotation.amount
                             .toLocaleString('en-US', {
                               style: 'currency',
                               currency: 'MXN',
@@ -95,23 +53,23 @@
                     </div>
                     <ul>
                       <li><span>Marca:</span>
-                        <span class="font-bold"> {{ product.brand }}</span>
+                        <span class="font-bold"> {{ quotation.brand }}</span>
                       </li>
                       <li><span>Modelo:</span>
-                        <span class="font-bold"> {{ product.model }}</span>
+                        <span class="font-bold"> {{ quotation.model }}</span>
                       </li>
                       <li><span>Peso de carga:</span>
-                        <span class="font-bold"> {{ product.weight }} kg</span>
+                        <span class="font-bold"> {{ quotation.weight }} kg</span>
                       </li>
                       <li class="mt-3">
-                        {{ product.description }}
+                        {{ quotation.description }}
                       </li>
                     </ul>
                   </div>
                   <div class="flex items-center">
                     <button
                       type="button"
-                      :class="(selectedProduct.vehicle_id == product.vehicle_id) ?
+                      :class="(selectedQuotation.id == quotation.id) ?
                         'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
                         'bg-green-500 hover:bg-green-700'"
                       class="w-full
@@ -123,7 +81,7 @@
                       rounded
                       focus:outline-none
                       focus:border-blue-400">
-                      {{ (selectedProduct.vehicle_id == product.vehicle_id) ?
+                      {{ (selectedQuotation.id == quotation.id) ?
                         'Seleccionado' : 'Elegir' }}
                     </button>
                   </div>
@@ -131,12 +89,29 @@
               </div>
             </div>
           </div>
-          <div class="" v-else>
-            <p>
-              Estamos cargando tus vehículos...
-            </p>
+          <div class="mb-8" v-else>
+            <div class="flex items-center mb-8">
+              <div class="flex
+                items-center
+                w-full
+                border
+                px-4
+                py-3
+                rounded
+                relative
+                bg-blue-100
+                border-blue-400
+                text-blue-700"
+                role="alert">
+                <svg class="fill-current w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M12.432 0c1.34 0 2.01.912 2.01 1.957 0 1.305-1.164 2.512-2.679 2.512-1.269 0-2.009-.75-1.974-1.99C9.789 1.436 10.67 0 12.432 0zM8.309 20c-1.058 0-1.833-.652-1.093-3.524l1.214-5.092c.211-.814.246-1.141 0-1.141-.317 0-1.689.562-2.502 1.117l-.528-.88c2.572-2.186 5.531-3.467 6.801-3.467 1.057 0 1.233 1.273.705 3.23l-1.391 5.352c-.246.945-.141 1.271.106 1.271.317 0 1.357-.392 2.379-1.207l.6.814C12.098 19.02 9.365 20 8.309 20z"/></svg>
+                <span class="block sm:inline">
+                  Estamos enviando la información de tu
+                  mudanza a nuestos chalanes... En breve recibiras un correo
+                  para que vuelvas a elegir tu cotización.
+                </span>
+              </div>
+            </div>
           </div>
-          <ViewsMessages :view-name="viewName"/>
           <div class="flex items-center justify-between">
             <router-link :to="{ name: steps[viewName].previous }" class="bg-green-500
               hover:bg-green-700
@@ -181,24 +156,18 @@ export default {
   data() {
     return {
       viewName: 'step-three',
-      selectedSize: 'small',
-      productList: [],
-      productFields: {
+      quotationsList: [],
+      quotationFields: {
+        quotation_id: 'id',
+        amount: 'amount',
         vehicle_id: 'vehicle_id',
-        price: 'price',
-        vehicle_size: 'size',
         vehicle_brand: 'brand',
         vehicle_model: 'model',
         vehicle_weight: 'weight',
-        vehicle_picture: 'picture',
         vehicle_description: 'description',
+        vehicle_picture: 'picture',
       },
-      vehicleSizes: {
-        small: 'pequeños',
-        medium: 'medianos',
-        large: 'grandes',
-      },
-      selectedProduct: {},
+      selectedQuotation: {},
     };
   },
   components: {
@@ -206,7 +175,7 @@ export default {
     ViewsMessages,
   },
   mounted() {
-    this.getProducts();
+    this.getQuotations();
   },
   props: [
   ],
@@ -220,20 +189,46 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
-    async nextStep() {
+    nextStep() {
       this.validateRequiredFields(this.viewName);
-      if (this.steps[this.viewName].isComplete) {
-        this.setLoader(true);
-        const productPayload = {
-          token: this.customer.token,
-          vehicle_id: this.selectedProduct.vehicle_id,
-          order_id: this.currentOrder.order_id,
-          price: this.selectedProduct.price,
-        };
-        try {
-          const product = await chalan.createProduct(productPayload);
-          this.setOrder({ field: 'product_id', value: product.data.id });
-        } catch (error) {
+      if (this.isStepComplete) {
+        this.pickQuotation();
+        this.updateOrder();
+        this.addDataToLocalStorage(['currentOrder', 'customer']);
+      }
+    },
+    async pickQuotation() {
+      this.setLoader(true);
+      const quotationPayload = {
+        quotationId: this.selectedQuotation.id,
+        selected: true,
+        token: this.customer.token,
+      };
+      try {
+        await chalan.updateQuotation(quotationPayload);
+      } catch (error) {
+        this.setLoader(false);
+        this.setViewsMessages({
+          view: this.viewName,
+          message: {
+            text: 'Hubo un error, intenta después de recargar la página',
+            type: 'error',
+          },
+        });
+      }
+    },
+    updateOrder() {
+      const payload = {
+        order: this.currentOrder,
+        customer: this.customer,
+      };
+      chalan.updateOrder(payload)
+        .then((response) => {
+          if (response.status === 200) {
+            this.$router.push({ name: this.steps[this.viewName].next });
+          }
+        })
+        .catch(() => {
           this.setLoader(false);
           this.setViewsMessages({
             view: this.viewName,
@@ -242,56 +237,17 @@ export default {
               type: 'error',
             },
           });
-        }
-        const payload = {
-          order: this.currentOrder,
-          customer: this.customer,
-        };
-        chalan.updateOrder(payload)
-          .then((response) => {
-            if (response.status === 200) {
-              this.addDataToLocalStorage(['currentOrder', 'customer']);
-              this.$router.push({ name: this.steps[this.viewName].next });
-            }
-          })
-          .catch(() => {
-            this.setLoader(false);
-            this.setViewsMessages({
-              view: this.viewName,
-              message: {
-                text: 'Hubo un error, intenta después de recargar la página',
-                type: 'error',
-              },
-            });
-          });
-      }
+        });
     },
-    selectSize(size) {
-      this.selectedSize = size;
-    },
-    getProducts() {
+    getQuotations() {
+      this.selectedQuotation.id = this.currentOrder.quotation_id || null;
       const payload = {
-        order_id: this.currentOrder.order_id,
+        orderId: this.currentOrder.order_id,
         token: this.customer.token,
-        from_floor: this.currentOrder.from_floor_number,
-        to_floor: this.currentOrder.to_floor_number,
-        from_neighborhood: this.currentOrder.from_neighborhood,
-        to_neighborhood: this.currentOrder.to_neighborhood,
-        from_city: this.currentOrder.from_city,
-        to_city: this.currentOrder.to_city,
-        from_state: this.currentOrder.from_state,
-        to_state: this.currentOrder.to_state,
-        from_zip_code: this.currentOrder.from_zip_code,
-        to_zip_code: this.currentOrder.to_zip_code,
       };
-      chalan.getProducts(payload)
+      chalan.getQuotations(payload)
         .then((response) => {
-          this.productList = response.data;
-          this.selectedSize = this.currentOrder.vehicle_size
-            ? this.currentOrder.vehicle_size : 'small';
-          if (response.data[0] && this.productListFiltered.length === 0) {
-            this.selectedSize = response.data[0].size;
-          }
+          this.quotationsList = response.data;
           this.setLoader(false);
         })
         .catch(() => {
@@ -305,10 +261,10 @@ export default {
           this.setLoader(false);
         });
     },
-    selectProduct(product) {
-      this.selectedProduct = product;
-      Object.keys(this.productFields).forEach((field) => {
-        this.setOrder({ field, value: this.selectedProduct[this.productFields[field]] });
+    selectQuotation(quotation) {
+      this.selectedQuotation = quotation;
+      Object.keys(this.quotationFields).forEach((field) => {
+        this.setOrder({ field, value: this.selectedQuotation[this.quotationFields[field]] });
       });
       this.nextStep();
     },
@@ -322,17 +278,8 @@ export default {
       'viewsMessages',
       'loading',
     ]),
-    productListFiltered() {
-      return this.productList.filter(item => item.size === this.selectedSize)
-        .sort((a, b) => {
-          if (a.price > b.price) {
-            return 1;
-          }
-          if (a.price < b.price) {
-            return -1;
-          }
-          return 0;
-        });
+    isStepComplete() {
+      return this.steps[this.viewName].isComplete;
     },
   },
 };

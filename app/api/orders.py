@@ -2,6 +2,7 @@ import os
 import stripe
 from flask import jsonify, request, current_app
 from ..models import Customer, Order, OrderSchema
+from ..models import Quotations as QuotationsModel
 from . import api
 from .decorators import token_required
 from .order import Order as OrderEntity
@@ -33,11 +34,11 @@ def generate_checkout_session(order_id):
     auth_headers = request.headers.get('Authorization', '').split()
     customer = Customer.verify_auth_token(auth_headers[1])
     order = customer.orders.order_by(Order.id.desc()).first()
-    price = order.product.price * 100
-    if price % 1 == 0:
-        amount = int(price)
+    quotation = order.quotations.filter(QuotationsModel.selected == 1).first()
+    if quotation.amount % 1 == 0:
+        amount = int(quotation.amount)
     else:
-        amount = price
+        amount = quotation.amount
 
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     session = stripe.checkout.Session.create(
@@ -49,8 +50,8 @@ def generate_checkout_session(order_id):
         payment_method_types = ["card"],
         line_items = [
             {
-                'name': '{} {} {}kg.'.format(order.product.vehicle.brand, order.product.vehicle.model, order.product.vehicle.weight),
-                'description': order.product.vehicle.description,
+                'name': '{} {} {}kg.'.format(quotation.vehicle.brand, quotation.vehicle.model, quotation.vehicle.weight),
+                'description': quotation.vehicle.description,
                 'amount': amount,
                 'currency': 'mxn',
                 'quantity': 1,
@@ -73,10 +74,9 @@ def generate_checkout_cash(order_id):
     last_order = customer.orders.order_by(Order.id.desc()).first()
     order = OrderEntity(order_id)
     payment = order.create_cash_payment()
-    driver_email = last_order.product.vehicle.carrier_company.email
     
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
-    bcc = [os.getenv('OPS_MAIL'), driver_email]
+    bcc = [os.getenv('OPS_MAIL')]
     if os.getenv('FLASK_ENV') != 'prod':
         subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
         bcc = [os.getenv('ADMIN_MAIL')]
@@ -87,6 +87,7 @@ def generate_checkout_cash(order_id):
         'email/admin_new_order',
         bcc=bcc,
         order=last_order,
+        amount=payment.amount,
         mobile_phone=customer.mobile_phone,
         customer=customer,
         payment_type='cash'

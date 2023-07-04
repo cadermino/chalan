@@ -148,7 +148,7 @@
               cursor-pointer
               text-blue-700
               focus:outline-none
-              focus:border-blue-400">iniciar sesión</span>
+              focus:border-blue-400">iniciar sesión.</span>
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@
               cursor-pointer
               text-blue-700
               focus:outline-none
-              focus:border-blue-400">Registrate</span>
+              focus:border-blue-400">Registrate.</span>
           </div>
         </div>
       </div>

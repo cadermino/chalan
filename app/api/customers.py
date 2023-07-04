@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from ..models import Customer, Order, Payment
+from ..models import Customer, Order, Payment, Quotations
 from . import api
 from .decorators import token_required
 from .. import db
@@ -27,12 +27,13 @@ def update_customer(customer_id):
 def customer_orders(customer_id):
     order = Order.query.\
         filter_by(customer_id = customer_id).order_by(Order.id.desc()).first()
+    quotation = order.quotations.filter(Quotations.selected == 1).first()
     if order is None:
         return jsonify([]), 200
     try:
-        vehicle_name = '{} {}'.format(order.product.vehicle.brand, order.product.vehicle.model)
-        weight = order.product.vehicle.weight+' kg.'
-        amount = order.product.price
+        vehicle_name = '{} {}'.format(quotation.vehicle.brand, quotation.vehicle.model)
+        weight = quotation.vehicle.weight+' kg.'
+        amount = quotation.amount
     except:
         vehicle_name = '-'
         weight = '-'

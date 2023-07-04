@@ -14,13 +14,12 @@ const stepTwo = [
   'appointment_date',
 ];
 const stepThree = [
-  'price',
+  'amount',
+  'quotation_id',
   'vehicle_id',
-  'vehicle_size',
 ];
 const stepFour = [
   'payment_method',
-  'product_id',
 ];
 export default {
   'step-one': {
@@ -38,7 +37,7 @@ export default {
     requisites: [...stepOne, ...stepTwo],
   },
   'step-three': {
-    name: 'Información del vehículo',
+    name: 'Cotizaciones',
     previous: 'step-two',
     next: 'step-four',
     isComplete: false,

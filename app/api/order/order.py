@@ -2,6 +2,7 @@ from ... import db
 from ...models import OrderDetails
 from ...models import Order as OrderModel
 from ...models import Payment as PaymentModel
+from ...models import Quotations as QuotationsModel
 
 class Order:
 
@@ -86,9 +87,12 @@ class Order:
     
     def create_cash_payment(self):
         order = OrderModel.query.get(self.order_id)
+        quotation = order.quotations.filter(QuotationsModel.selected == 1).first()
+        print(quotation)
+        driver_email = quotation.vehicle.carrier_company.email
         payment = PaymentModel(
             order_id = self.order_id,
-            amount = order.product.price,
+            amount = quotation.amount,
             lu_payment_type_id = 2,
             status = 'pending',
             active = 1
