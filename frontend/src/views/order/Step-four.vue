@@ -417,7 +417,6 @@ export default {
         });
     },
     createCashPayment() {
-      console.log('this.currentOrder', this.currentOrder);
       this.setLoader(true);
       chalan.checkoutCash({
         orderId: this.currentOrder.order_id,
