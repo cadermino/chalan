@@ -21,6 +21,7 @@ export default new Vuex.Store({
     currentOrder: {
       created_date: null,
       order_id: null,
+      quotation_id: null,
       from_street: null,
       from_interior_number: null,
       from_floor_number: null,
@@ -36,9 +37,14 @@ export default new Vuex.Store({
       appointment_date: null,
       comments: null,
       payment_method: null,
-      price: null,
+      amount: null,
       product_id: null,
       vehicle_id: null,
+      vehicle_picture: null,
+      vehicle_brand: null,
+      vehicle_model: null,
+      vehicle_weight: null,
+      vehicle_description: null,
     },
     viewsMessages: {
       'step-one': null,
@@ -157,7 +163,7 @@ export default new Vuex.Store({
       if (emptyFields.length > 0 && viewName === 'step-three') {
         message = {
           type: 'error',
-          text: 'Por favor elige un vehículo',
+          text: 'Por favor elige una cotización',
         };
       } else if (emptyFields.length > 0) {
         message = {

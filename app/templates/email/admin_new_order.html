@@ -120,7 +120,7 @@
                           <b>Tipo de pago:</b> {% if payment_type == 'card' %} Con tarjeta {% else %} En efectivo {% endif %}
                         </p>
                         <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Monto:</b> {{"${:,.2f}".format(order.product.price)}}
+                          <b>Monto:</b> {{"${:,.2f}".format(amount)}}
                         </p>
                         <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
                           <b>Cliente:</b> {{customer.name}}

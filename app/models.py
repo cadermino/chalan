@@ -4,8 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
+from sqlalchemy import func, text
 
-# db.metadata.clear()
+db.metadata.clear()
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
@@ -13,9 +14,10 @@ class Customer(db.Model):
 	paternal_last_name = db.Column(db.String(45))
 	maternal_last_name = db.Column(db.String(45))
 	email = db.Column(db.String(45), unique=True)
-	password_hash = db.Column('password', db.String(128))
+	password_hash = db.Column('password', db.String(255))
 	mobile_phone = db.Column(db.String(15))
 	phone = db.Column(db.String(15))
+	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 	orders = db.relationship("Order", backref="customer")
 
@@ -53,13 +55,17 @@ class Order(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
 	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
-	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), default='1', nullable=False)
-	appointment_date = db.Column(db.DateTime(), default=datetime.now)
+	total_kilometers = db.Column(db.Integer, nullable=True)
+	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), server_default=text("'1'"), nullable=False)
+	appointment_date = db.Column(db.DateTime(), server_default=func.now())
 	comments = db.Column(db.String(500))
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
 	product = db.relationship("Product", backref="orders")
+	quotations = db.relationship("Quotations", backref="quotations", lazy='dynamic')
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -69,8 +75,11 @@ class OrderDetails(db.Model):
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	street = db.Column(db.String(45), nullable=True)
 	interior_number = db.Column(db.String(45), nullable=True)
-	country = db.Column(db.String(45), nullable=True)
+	country = db.Column(db.String(20), nullable=True)
 	map_url = db.Column(db.String(400), nullable=True)
+	neighborhood = db.Column(db.String(45), nullable=True)
+	city = db.Column(db.String(45), nullable=True)
+	state = db.Column(db.String(45), nullable=True)
 	zip_code = db.Column(db.String(45), nullable=True)
 
 
@@ -81,7 +90,9 @@ class Product(db.Model):
 	price = db.Column(db.Float)
 	total_kilometers = db.Column(db.Integer)
 	description = db.Column(db.String(500))
-	active = db.Column(db.Integer)
+	active = db.Column(db.Integer, nullable=False)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
 	vehicle = db.relationship("Vehicle", backref="products")
 
@@ -104,7 +115,7 @@ class OrderStatus(db.Model):
 class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'
 	id = db.Column(db.Integer, primary_key=True)
-	type = db.Column(db.String)
+	type = db.Column(db.String(45))
 
 	payment = db.relationship("Payment", backref="payment_type")
 
@@ -115,8 +126,9 @@ class Payment(db.Model):
 	amount = db.Column(db.Float)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
-	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False)
-	reference = db.Column(db.String(100))
+	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False, server_default=text("'pending'"))
+	reference = db.Column(db.String(100), comment='Stripe session id')
+	created_date = db.Column(db.DateTime(), server_default=func.now())
 	comments = db.Column(db.String(500))
 	active = db.Column(db.Integer)
 
@@ -130,34 +142,31 @@ class Vehicle(db.Model):
 	loader_fee = db.Column(db.Integer, nullable=False)
 	loaders_quantity = db.Column(db.Integer, nullable=False)
 	size = db.Column(db.Enum('small','medium','large'))
-	plates = db.Column(db.String(45))
 	weight = db.Column(db.String(45))
 	width = db.Column(db.String(45))
 	height = db.Column(db.String(45))
 	length = db.Column(db.String(45))
 	brand = db.Column(db.String(45))
 	model = db.Column(db.String(45))
-	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
-	description = db.Column(db.String(45))
-	picture = db.Column(db.String(45))
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+	description = db.Column(db.String(200))
+	picture = db.Column(db.String(200))
+	plates = db.Column(db.String(45))
 	base_address = db.Column(db.String(200))
-	active = db.Column(db.Integer)
+	active = db.Column(db.Integer, server_default=text("'0'"))
 
 	carrier_company = db.relationship("CarrierCompany", backref="carrier_company")
 
-class Sepomex(db.Model):
-	__tablename__ = 'sepomex'
+class Quotations(db.Model):
+	__tablename__ = 'quotations'
 	id = db.Column(db.Integer, primary_key=True)
-	id_estado = db.Column(db.Integer, nullable=False)
-	estado = db.Column(db.String(35), nullable=False)
-	id_municipio = db.Column(db.Integer, nullable=False)
-	municipio = db.Column(db.String(60), nullable=False)
-	ciudad = db.Column(db.String(60), default='NULL')
-	zona = db.Column(db.String(15), nullable=False)
-	cp = db.Column(db.Integer, nullable=False)
-	asentamiento = db.Column(db.String(70), nullable=False)
-	tipo = db.Column(db.String(40), nullable=False)
-
+	amount = db.Column(db.Integer, nullable=False)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+	selected = db.Column(db.Boolean, server_default=text('False'))
+	
+	order = db.relationship("Order", backref="orders")
+	vehicle = db.relationship("Vehicle", backref="vehicles")
 
 class CalculatedDistance(db.Model):
 	__tablename__ = 'calculated_distance'
@@ -184,8 +193,3 @@ class VehicleSchema(ma.ModelSchema):
 class ProductSchema(ma.ModelSchema):
 	class Meta:
 		model = Product
-
-
-class SepomexSchema(ma.ModelSchema):
-	class Meta:
-		model = Sepomex

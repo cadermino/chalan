@@ -15,7 +15,7 @@
               <div class="bg-white overflow-hidden sm:rounded-lg">
                 <div class="pt-0 px-4 py-5 border-b border-gray-200">
                   <h3 class="text-2xl leading-6 font-medium text-gray-900">
-                    {{ currentOrder.price
+                    {{ currentOrder.amount
                         .toLocaleString('en-US', {
                           style: 'currency',
                           currency: 'MXN',
@@ -334,7 +334,6 @@ export default {
     nextStep(paymentMethod) {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete && this.isUserLogged && this.phoneNumber) {
-        this.setLoader(true);
         if (paymentMethod === 'card') {
           this.createCardPayment();
         } else {
@@ -349,6 +348,7 @@ export default {
       this.isMobilePhoneFieldActive = !this.isMobilePhoneFieldActive;
     },
     createCardPayment() {
+      this.setLoader(true);
       const payload = {
         orderId: this.currentOrder.order_id,
         token: this.customer.token,
@@ -357,7 +357,7 @@ export default {
         name: this.productName,
         description: this.currentOrder.vehicle_description,
         paymentMethod: this.currentOrder.payment_method,
-        amount: this.currentOrder.price * 100,
+        amount: this.currentOrder.amount * 100,
       };
       chalan.checkoutSession(payload)
         .then((response) => {
@@ -383,6 +383,7 @@ export default {
                       }
                     })
                     .catch(() => {
+                      this.setLoader(false);
                       this.setViewsMessages({
                         view: this.viewName,
                         message: {
@@ -394,6 +395,7 @@ export default {
                 }
               })
               .catch(() => {
+                this.setLoader(false);
                 this.setViewsMessages({
                   view: this.viewName,
                   message: {
@@ -415,6 +417,8 @@ export default {
         });
     },
     createCashPayment() {
+      console.log('this.currentOrder', this.currentOrder);
+      this.setLoader(true);
       chalan.checkoutCash({
         orderId: this.currentOrder.order_id,
         token: this.customer.token,
@@ -448,6 +452,7 @@ export default {
                       }
                     })
                     .catch(() => {
+                      this.setLoader(false);
                       this.setViewsMessages({
                         view: this.viewName,
                         message: {
@@ -459,6 +464,7 @@ export default {
                 }
               })
               .catch(() => {
+                this.setLoader(false);
                 this.setViewsMessages({
                   view: this.viewName,
                   message: {
@@ -470,6 +476,7 @@ export default {
           }
         })
         .catch(() => {
+          this.setLoader(false);
           this.setViewsMessages({
             view: this.viewName,
             message: {
@@ -499,10 +506,6 @@ export default {
         ? '- Planta baja' : `- Piso ${this.currentOrder.from_floor_number}`;
       return `${this.currentOrder.from_street},
         ${fromInteriorNumber}
-        ${this.currentOrder.from_neighborhood},
-        ${this.currentOrder.from_city},
-        ${this.currentOrder.from_state},
-        CP. ${this.currentOrder.from_zip_code}
         ${fromFloor}`;
     },
     completeToAddress() {
@@ -512,10 +515,6 @@ export default {
         ? '- Planta baja' : `- Piso ${this.currentOrder.to_floor_number}`;
       return `${this.currentOrder.to_street},
         ${toInteriorNumber}
-        ${this.currentOrder.to_neighborhood},
-        ${this.currentOrder.to_city},
-        ${this.currentOrder.to_state},
-        CP. ${this.currentOrder.to_zip_code}
         ${toFloor}`;
     },
     phoneNumber: {
