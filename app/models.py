@@ -24,11 +24,11 @@ class Customer(db.Model):
 	@property
 	def password(self):
 		raise AttributeError('password is not a readable attribute')
-	
+
 	@password.setter
 	def password(self, password):
 		self.password_hash = generate_password_hash(password)
-	
+
 	def verify_password(self, password):
 		return check_password_hash(self.password_hash, password)
 
@@ -164,7 +164,7 @@ class Quotations(db.Model):
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
 	selected = db.Column(db.Boolean, server_default=text('False'))
-	
+
 	order = db.relationship("Order", backref="orders")
 	vehicle = db.relationship("Vehicle", backref="vehicles")
 

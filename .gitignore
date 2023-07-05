@@ -27,3 +27,6 @@ htmlcov/
 
 #ssl files
 data/
+
+#Except for env.py
+!env.py
