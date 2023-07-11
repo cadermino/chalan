@@ -22,25 +22,22 @@ USE `chalan` ;
 -- Table `order_details`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `order_details` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `type` ENUM('carry_from', 'deliver_to') NOT NULL,
-  `floor_number` INT(3) NULL,
-  `order_id` INT NOT NULL,
-  `street` VARCHAR(45) NULL,
-  `interior_number` VARCHAR(45) NULL,
-  `country` VARCHAR(20) NULL,
-  `map_url` VARCHAR(400) NULL,
-  `neighborhood` VARCHAR(45) NULL,
-  `city` VARCHAR(45) NULL,
-  `state` VARCHAR(45) NULL,
-  `zip_code` VARCHAR(45) NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` enum('carry_from','deliver_to') NOT NULL,
+  `floor_number` int(3) DEFAULT NULL,
+  `order_id` int(11) NOT NULL,
+  `street` varchar(45) DEFAULT NULL,
+  `interior_number` varchar(45) DEFAULT NULL,
+  `country` varchar(20) DEFAULT NULL,
+  `map_url` varchar(400) DEFAULT NULL,
+  `neighborhood` varchar(45) DEFAULT NULL,
+  `city` varchar(45) DEFAULT NULL,
+  `state` varchar(45) DEFAULT NULL,
+  `zip_code` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  CONSTRAINT `fk_order_details_order`
-    FOREIGN KEY (`order_id`)
-    REFERENCES `orders` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB CHARSET=utf8;
+  KEY `fk_order_details_order` (`order_id`),
+  CONSTRAINT `fk_order_details_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 -- -----------------------------------------------------
@@ -55,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `carrier_company` (
   `address` varchar(200) NOT NULL,
   `active` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `carrier_company` (`id`, `name`, `rfc`, `email`, `address`, `active`)
 VALUES
@@ -66,28 +63,28 @@ VALUES
 -- Table `customers`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `customers` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(45) NULL,
-  `paternal_last_name` VARCHAR(45) NULL,
-  `maternal_last_name` VARCHAR(45) NULL,
-  `email` VARCHAR(45) NULL UNIQUE,
-  `password` VARCHAR(255) NULL,
-  `mobile_phone` VARCHAR(15) NULL,
-  `phone` VARCHAR(15) NULL,
-  `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB CHARSET=utf8
-DEFAULT CHARACTER SET = utf8;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) DEFAULT NULL,
+  `paternal_last_name` varchar(45) DEFAULT NULL,
+  `maternal_last_name` varchar(45) DEFAULT NULL,
+  `email` varchar(45) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `mobile_phone` varchar(15) DEFAULT NULL,
+  `phone` varchar(15) DEFAULT NULL,
+  `created_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 -- -----------------------------------------------------
 -- Table `lu_order_status`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `lu_order_status` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `status` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB CHARSET=utf8;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `status` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 INSERT INTO `lu_order_status` (`id`, `status`)
@@ -101,10 +98,10 @@ VALUES
 -- Table `lu_payment_type`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `lu_payment_type` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `type` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB CHARSET=utf8;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 INSERT INTO `lu_payment_type` (`id`, `type`)
@@ -116,59 +113,44 @@ VALUES
 -- Table `orders`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `orders` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `customer_id` INT NULL DEFAULT NULL,
-  `product_id` INT NULL DEFAULT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `customer_id` int(11) DEFAULT NULL,
+  `product_id` int(11) DEFAULT NULL,
   `total_kilometers` int(20) DEFAULT NULL,
-  `order_status_id` INT NOT NULL DEFAULT 1,
-  `appointment_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-  `comments` LONGTEXT NULL,
-  `updated_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+  `order_status_id` int(11) NOT NULL DEFAULT '1',
+  `appointment_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `comments` longtext,
+  `updated_date` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `created_date` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  CONSTRAINT `fk_orders_customers`
-    FOREIGN KEY (`customer_id`)
-    REFERENCES `customers` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_orders_lu_order_status1`
-    FOREIGN KEY (`order_status_id`)
-    REFERENCES `lu_order_status` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_products1`
-    FOREIGN KEY (`product_id`)
-    REFERENCES `products` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB CHARSET=utf8;
+  KEY `fk_orders_customers` (`customer_id`),
+  KEY `fk_orders_lu_order_status1` (`order_status_id`),
+  KEY `fk_products1` (`product_id`),
+  CONSTRAINT `fk_orders_customers` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_orders_lu_order_status1` FOREIGN KEY (`order_status_id`) REFERENCES `lu_order_status` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_products1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 -- -----------------------------------------------------
 -- Table `payments`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `payments` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `amount` FLOAT NULL,
-  `order_id` INT NOT NULL,
-  `lu_payment_type_id` INT NOT NULL,
-  `status` ENUM('pending', 'paid', 'cancelled') NOT NULL DEFAULT 'pending',
-  `reference` VARCHAR(100) NULL COMMENT 'Stripe session id',
-  `created_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
-  `comments` LONGTEXT NULL,
-  `active` TINYINT NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `amount` float DEFAULT NULL,
+  `order_id` int(11) NOT NULL,
+  `lu_payment_type_id` int(11) NOT NULL,
+  `status` enum('pending','paid','cancelled') NOT NULL DEFAULT 'pending',
+  `reference` varchar(100) DEFAULT NULL COMMENT 'Stripe session id',
+  `created_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `comments` longtext,
+  `active` tinyint(4) NOT NULL,
   PRIMARY KEY (`id`),
-  CONSTRAINT `fk_payments_orders1`
-    FOREIGN KEY (`order_id`)
-    REFERENCES `orders` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_payments_lu_payment_type1`
-    FOREIGN KEY (`lu_payment_type_id`)
-    REFERENCES `lu_payment_type` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB CHARSET=utf8;
+  KEY `fk_payments_orders1` (`order_id`),
+  KEY `fk_payments_lu_payment_type1` (`lu_payment_type_id`),
+  CONSTRAINT `fk_payments_lu_payment_type1` FOREIGN KEY (`lu_payment_type_id`) REFERENCES `lu_payment_type` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_payments_orders1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 -- -----------------------------------------------------
@@ -198,7 +180,7 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
   PRIMARY KEY (`id`),
   KEY `fk_carrier_company` (`carrier_company_id`),
   CONSTRAINT `fk_carrier_company` FOREIGN KEY (`carrier_company_id`) REFERENCES `carrier_company` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE = InnoDB CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 INSERT INTO `vehicles` (`id`, `charge_per_kilometer`, `charge_per_floor`, `driver_fee`, `loader_fee`, `loaders_quantity`, `size`, `weight`, `width`, `height`, `length`, `brand`, `model`, `carrier_company_id`, `description`, `picture`, `plates`, `base_address`, `active`)
 VALUES
@@ -238,19 +220,35 @@ CREATE TABLE IF NOT EXISTS `products` (
   PRIMARY KEY (`id`),
   KEY `fk_vehicle1` (`vehicle_id`),
   CONSTRAINT `fk_vehicle1` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 -- -----------------------------------------------------
 -- Table `calculated_distance`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `calculated_distance` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `address_origin` VARCHAR(200) NULL,
-  `address_destination` VARCHAR(200) NULL,
-  `kilometers` INT(5) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB CHARSET=utf8;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `address_origin` varchar(200) DEFAULT NULL,
+  `address_destination` varchar(200) DEFAULT NULL,
+  `kilometers` int(5) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
+CREATE TABLE IF NOT EXISTS `sepomex` (
+  `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `id_estado` smallint(5) unsigned NOT NULL,
+  `estado` varchar(35) NOT NULL,
+  `id_municipio` smallint(5) unsigned NOT NULL,
+  `municipio` varchar(60) NOT NULL,
+  `ciudad` varchar(60) DEFAULT NULL,
+  `zona` varchar(15) NOT NULL,
+  `cp` mediumint(9) NOT NULL,
+  `asentamiento` varchar(70) NOT NULL,
+  `tipo` varchar(40) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

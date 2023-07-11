@@ -8,13 +8,12 @@
 export default {
   name: 'SearchBoxPlacesApiGoogle',
   data() {
-    return {
-      apiKey: 'AIzaSyDxX-BAJw-0JDoukVW4SpPMlP72fmHjHvk',
-    };
+    return {};
   },
   props: {
     inputId: String,
     mapId: String,
+    apiKey: String,
   },
   mounted() {
     this.addScriptToDocumentHeader();

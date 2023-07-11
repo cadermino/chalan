@@ -121,6 +121,7 @@
               </div>
               <div class="md:w-1/2 w-full md:ml-6">
                 <SearchBoxPlacesApiGoogle
+                  :api-key="placesApiKey"
                   v-on:google-address="fillAddress"
                   input-id="address-from-street"
                   map-id="address-from-map"
@@ -237,6 +238,7 @@
               </div>
               <div class="md:w-1/2 w-full md:ml-6">
                 <SearchBoxPlacesApiGoogle
+                  :api-key="placesApiKey"
                   v-on:google-address="fillAddress"
                   input-id="address-to-street"
                   map-id="address-to-map"
@@ -286,6 +288,7 @@ export default {
       stepRequisites: {},
       selectedFromStreet: '',
       selectedToStreet: '',
+      placesApiKey: process.env.VUE_APP_PLACES_API_KEY,
     };
   },
   components: {
