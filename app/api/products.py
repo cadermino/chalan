@@ -6,6 +6,7 @@ from .product import Product as ProductEntity
 from ..models import Customer, Order
 from .decorators import token_required
 from .email import send_email
+from datetime import date
 
 @api.route('/products', methods=['GET'])
 @token_required
@@ -31,10 +32,11 @@ def get_products():
         order.customer_id = customer.id
         db.session.add(order)
         db.session.commit()
+        current_year = date.today().year
         send_email(customer.email, 'Siguientes pasos para tu mudanza',
                    'email/no_product', bcc=[], customer=customer)
         send_email(os.getenv('ADMIN_MAIL'), 'Orden id {} sin vehículo'.format(order.id),
-                   'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone)
+                   'email/admin_new_order', bcc=[], order=order, mobile_phone=customer.mobile_phone, current_year=current_year)
 
     return jsonify(products), 200
 

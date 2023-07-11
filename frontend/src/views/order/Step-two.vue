@@ -31,7 +31,7 @@
                 class="theme-chalan"
                 :min-datetime="minDatetime"
                 :max-datetime="maxDatetime"
-                placeholder="17 de Marzo de 2020 18:00"
+                placeholder="17 de Marzo de 2023 18:00"
               >
               </Datetime>
               <p v-if="formValidationMessages['appointment_date']"

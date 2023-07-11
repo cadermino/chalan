@@ -1,10 +1,12 @@
+import os
 from flask import current_app, jsonify, request
-import datetime
+from datetime import date
 from . import auth
 from ..models import Customer
 from .. import db
 from sqlalchemy import exc
 from facepy import SignedRequest
+from ..api.email import send_email
 
 @auth.route('/register', methods=['POST'])
 def register():
@@ -16,9 +18,19 @@ def register():
                     name=data['name'],
                     password=data['password'],
                     mobile_phone=data['mobile_phone'])
-        
+
         db.session.add(customer)
         db.session.commit()
+        subject = 'Nuevo usuario registrado'
+        current_year = date.today().year
+        send_email(
+            os.getenv('ADMIN_MAIL'),
+            subject,
+            'email/user_registered',
+            bcc='',
+            customer=customer,
+            current_year=current_year
+        )
     except exc.IntegrityError:
         db.session.rollback()
         return jsonify({'message' : 'duplicated email'}), 400
@@ -40,7 +52,7 @@ def login():
         return jsonify({
             'token': customer.generate_auth_token(expiration=3600),
             'expiration': 3600,
-            'name': customer.name, 
+            'name': customer.name,
             'email': customer.email,
             'mobile_phone': customer.mobile_phone
         })
@@ -67,13 +79,13 @@ def login_facebook():
                 mobile_phone=data['mobile_phone'])
         db.session.add(customer)
         db.session.commit()
-    except:    
+    except:
         return jsonify({'message' : 'provide required data'}), 400
 
     return jsonify({
         'message' : 'facebook user logged',
         'token' : customer.generate_auth_token(expiration=3600),
-        'name': customer.name, 
+        'name': customer.name,
         'email': customer.email,
         'mobile_phone': customer.mobile_phone
     }), 201

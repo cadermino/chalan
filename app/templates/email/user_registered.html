@@ -109,40 +109,26 @@
 
               <!-- START MAIN CONTENT AREA -->
               <tr>
+                <td class="wrapper" style="text-align: center; font-family: sans-serif; font-size: 14px; vertical-align: top; box-sizing: border-box; padding: 20px;">
+                  <b>Nuevo usuario</b>
+                </td>
+              </tr>
+              <tr>
                 <td class="wrapper" style="font-family: sans-serif; font-size: 14px; vertical-align: top; box-sizing: border-box; padding: 20px;">
                   <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;">
                     <tr>
                       <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">
                         <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Orden número:</b> {{order.id}}
-                        </p>
-                        <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Tipo de pago:</b> {% if payment_type == 'card' %} Con tarjeta {% else %} En efectivo {% endif %}
-                        </p>
-                        <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Monto:</b> {{"${:,.2f}".format(amount)}}
-                        </p>
-                        <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
                           <b>Cliente:</b> {{customer.name}}
                         </p>
                         <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Teléfono:</b> {{mobile_phone}}
+                          <b>Teléfono:</b> {{customer.mobile_phone}}
                         </p>
                         <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Fecha programada:</b> {{order.appointment_date}}
+                          <b>Id de Cliente:</b> {{customer.id}}
                         </p>
-                        {% for order_detail in order.order_details %}
-                          <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                            {% if order_detail.type == 'carry_from' %}
-                              <b>Dirección de origen:</b> 
-                              {% else %}
-                              <b>Dirección de destino:</b>
-                            {% endif %}
-                            {{order_detail.street}} {% if order_detail.interior_number %}Interior {{order_detail.interior_number}}{% endif %}, {{order_detail.neighborhood}}, {{order_detail.city}}, {{order_detail.state}}, {{order_detail.zip_code}} - <b>Piso:</b> {{order_detail.floor_number}}
-                          </p>
-                        {% endfor %}
                         <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 15px;">
-                          <b>Instrucciones:</b> {{order.comments}}
+                          <b>Email de Cliente:</b> {{customer.email}}
                         </p>
                       </td>
                     </tr>

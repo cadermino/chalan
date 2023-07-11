@@ -1,12 +1,13 @@
 import os
 import stripe
 from flask import jsonify, request, current_app
-from ..models import Customer, Order, OrderSchema
+from ..models import Customer, Order
 from ..models import Quotations as QuotationsModel
 from . import api
 from .decorators import token_required
 from .order import Order as OrderEntity
 from .email import send_email
+from datetime import date
 
 @api.route('/order', methods=['POST'])
 def create_order():
@@ -74,13 +75,13 @@ def generate_checkout_cash(order_id):
     last_order = customer.orders.order_by(Order.id.desc()).first()
     order = OrderEntity(order_id)
     payment = order.create_cash_payment()
-    
+
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
     bcc = [os.getenv('OPS_MAIL')]
     if os.getenv('FLASK_ENV') != 'prod':
         subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
         bcc = [os.getenv('ADMIN_MAIL')]
-
+    current_year = date.today().year
     send_email(
         os.getenv('ADMIN_MAIL'),
         subject,
@@ -90,7 +91,8 @@ def generate_checkout_cash(order_id):
         amount=payment.amount,
         mobile_phone=customer.mobile_phone,
         customer=customer,
-        payment_type='cash'
+        payment_type='cash',
+        current_year=current_year
     )
     send_email(
         customer.email,
@@ -98,7 +100,8 @@ def generate_checkout_cash(order_id):
         'email/cash_payment_selected',
         bcc=[],
         customer_name=customer.name,
-        mobile_phone=customer.mobile_phone
+        mobile_phone=customer.mobile_phone,
+        current_year=current_year
     )
 
     return jsonify({
@@ -118,13 +121,13 @@ def confirm_stripe_payment(order_id):
     try:
         payment = order.confirm_stripe_payment(data['session_id'])
         if payment.status == 'paid':
-            
+
             subject = '[Pago con tarjeta] Orden {}'.format(order_id),
             bcc = [os.getenv('OPS_MAIL'), driver_email]
             if os.getenv('FLASK_ENV') != 'prod':
                 subject = '[test][Pago con tarjeta] Orden {} '.format(order_id)
                 bcc = [os.getenv('ADMIN_MAIL')]
-            
+            current_year = date.today().year
             send_email(
                 os.getenv('ADMIN_MAIL'),
                 subject,
@@ -133,14 +136,16 @@ def confirm_stripe_payment(order_id):
                 order=last_order,
                 mobile_phone=customer.mobile_phone,
                 customer=customer,
-                payment_type='card'
+                payment_type='card',
+                current_year=current_year
             )
             send_email(
                 customer.email, 'Tu pago ha sido procesado correctamente',
                 'email/stripe_payment_completed',
                 bcc=[],
                 customer_name=customer.name,
-                mobile_phone=customer.mobile_phone
+                mobile_phone=customer.mobile_phone,
+                current_year=current_year
             )
             return jsonify({
                 'payment': payment.status,
