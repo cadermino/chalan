@@ -2,9 +2,11 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 import steps from '../store/steps';
 import store from '../store/index';
+import countryData from '../countryData';
 
 const moment = require('moment');
 
+const country = process.env.VUE_APP_COUNTRY;
 Vue.use(VueRouter);
 
 const routes = [
@@ -12,13 +14,16 @@ const routes = [
     path: '/',
     name: 'home',
     beforeEnter() {
-      window.location = '/landing/';
+      window.location = '/landing';
     },
   },
   {
     path: '/order/step-one',
     name: 'step-one',
     component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
+    props: {
+      countryData: countryData[country]['step-one'],
+    },
   },
   {
     path: '/order/step-two',
@@ -31,19 +36,28 @@ const routes = [
     name: 'step-three',
     component: () => import(/* webpackChunkName: "step-three" */ '../views/order/Step-three.vue'),
     meta: { requiresPreviousComplete: true, requiresAuth: true },
+    props: {
+      countryData: countryData[country]['step-three'],
+    },
   },
   {
     path: '/order/step-four',
     name: 'step-four',
     component: () => import(/* webpackChunkName: "step-four" */ '../views/order/Step-four.vue'),
     meta: { requiresPreviousComplete: true, requiresAuth: true },
+    props: {
+      countryData: countryData[country]['step-four'],
+    },
   },
   {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),
     meta: { requiresAuth: true },
-    props: route => ({ sessionId: route.query.session_id }),
+    props: route => ({
+      sessionId: route.query.session_id,
+      countryData: countryData[country].dashboard,
+    }),
   },
   {
     path: '/register-login',

@@ -42,7 +42,7 @@
                   <td class="border px-4 py-2">{{
                     order.amount.toLocaleString('en-US', {
                       style: 'currency',
-                      currency: 'MXN',
+                      currency: countryData.currency,
                       maximumSignificantDigits: 5,
                     }) }}
                   </td>
@@ -77,7 +77,10 @@ import chalan from '../api/chalan';
 
 export default {
   name: 'dashboard',
-  props: ['sessionId'],
+  props: {
+    sessionId: String,
+    countryData: Object,
+  },
   data() {
     return {
       viewName: 'dashboard',

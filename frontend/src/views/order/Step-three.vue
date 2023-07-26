@@ -45,7 +45,7 @@
                       {{  quotation.amount
                             .toLocaleString('en-US', {
                               style: 'currency',
-                              currency: 'MXN',
+                              currency: countryData.currency,
                               maximumSignificantDigits: 5,
                             }
                           )
@@ -177,8 +177,9 @@ export default {
   mounted() {
     this.getQuotations();
   },
-  props: [
-  ],
+  props: {
+    countryData: Object,
+  },
   methods: {
     ...mapActions([
       'validateRequiredFields',
