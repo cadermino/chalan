@@ -1,21 +1,35 @@
+import os
 from flask import render_template, request
 from . import main
+from ..countryData import CountryData
 
+@main.context_processor
+def inject_country():
+    printable_country = CountryData(country()).get_country()
+    return dict(
+        country=country(),
+        site_url=site_url(),
+        printable_country=printable_country
+    )
+
+def country():
+    return os.getenv('COUNTRY')
+
+def site_url():
+    return os.getenv('SITE_URL')
 
 @main.route('/', methods=['GET'])
 def index():
-    domain = request.host
-    return render_template('home.html', domain=domain)
+    return render_template('home.html')
 
 @main.route('/preguntas-frecuentes', methods=['GET'])
 def faq():
-    domain = request.host
-    return render_template('faq.html', domain=domain)
+    data_by_country = CountryData(country()).faq()
+    return render_template('faq.html', data_by_country=data_by_country)
 
 @main.route('/nosotros', methods=['GET'])
 def about():
-    domain = request.host
-    return render_template('about.html', domain=domain)
+    return render_template('about.html')
 
 @main.route('/aviso-de-privacidad', methods=['GET'])
 def privacy():
@@ -23,8 +37,10 @@ def privacy():
 
 @main.route('/contacto', methods=['GET', 'POST'])
 def contact():
-    return render_template('contact.html')
+    data_by_country = CountryData(country()).contact()
+    return render_template('contact.html', data_by_country=data_by_country)
 
 @main.route('/terminos-y-condiciones', methods=['GET'])
 def terms():
-    return render_template('terms.html')
+    data_by_country = CountryData(country()).terms()
+    return render_template('terms.html', data_by_country=data_by_country)

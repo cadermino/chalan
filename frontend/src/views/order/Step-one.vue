@@ -42,7 +42,7 @@
                     focus:border-blue-400"
                     v-model="selectedFromStreet"
                     id="address-from-street"
-                    placeholder="Ejem: Calle Londres 198 México"
+                    :placeholder="countryData.fromStreetPlaceholder"
                     type="text">
                   <p v-if="formValidationMessages['from_street']"
                     class="text-red-500
@@ -96,7 +96,7 @@
                     v-model="selectedFromFloor">
                       <option disabled value="">Selecciona un piso</option>
                       <option
-                      v-for="(item, index) in floorList"
+                      v-for="(item, index) in countryData.floor"
                       v-bind:value="index"
                       v-bind:key="index">
                         {{ item }}
@@ -159,7 +159,7 @@
                       focus:border-blue-400"
                       v-model="selectedToStreet"
                       id="address-to-street"
-                      placeholder="Ejem: Londres 198"
+                      :placeholder="countryData.toStreetPlaceholder"
                       type="text">
                     <p v-if="formValidationMessages['to_street']"
                       class="text-red-500
@@ -213,7 +213,7 @@
                     v-model="selectedToFloor">
                       <option disabled value="">Selecciona un piso</option>
                       <option
-                      v-for="(item, index) in floorList"
+                      v-for="(item, index) in countryData.floor"
                       v-bind:value="index"
                       v-bind:key="index">
                         {{ item }}
@@ -284,7 +284,6 @@ export default {
   data() {
     return {
       viewName: 'step-one',
-      floorList: ['Planta baja', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15'],
       stepRequisites: {},
       selectedFromStreet: '',
       selectedToStreet: '',
@@ -301,8 +300,9 @@ export default {
     this.selectedToStreet = this.currentOrder.to_street;
     this.buildRequisites();
   },
-  props: [
-  ],
+  props: {
+    countryData: Object,
+  },
   methods: {
     ...mapActions([
       'validateRequiredFields',
@@ -342,10 +342,10 @@ export default {
       const {
         postal_code: {
           long_name: postalCode,
-        } = null,
+        } = {},
         country: {
           long_name: country,
-        } = null,
+        } = {},
       } = googleAddress;
       this.setOrder({ field: `${direction}_street`, value: formattedAddress });
       this.setOrder({ field: `${direction}_zip_code`, value: postalCode });

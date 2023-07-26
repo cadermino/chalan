@@ -18,7 +18,7 @@
                     {{ currentOrder.amount
                         .toLocaleString('en-US', {
                           style: 'currency',
-                          currency: 'MXN',
+                          currency: countryData.currency,
                           maximumSignificantDigits: 5,
                         }
                       )
@@ -317,8 +317,9 @@ export default {
     this.$moment.locale('es');
     this.setLoader(false);
   },
-  props: [
-  ],
+  props: {
+    countryData: Object,
+  },
   methods: {
     ...mapActions([
       'validateRequiredFields',

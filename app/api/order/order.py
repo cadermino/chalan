@@ -55,6 +55,8 @@ class Order:
             street = order_data['order']['from_street'],
             interior_number = order_data['order']['from_interior_number'],
             zip_code = order_data['order']['from_zip_code'],
+            country = order_data['order']['from_country'],
+            map_url = order_data['order']['from_map_url']
         )
         order_details_to = OrderDetails(
             type = 'deliver_to',
@@ -63,6 +65,8 @@ class Order:
             street = order_data['order']['to_street'],
             interior_number = order_data['order']['to_interior_number'],
             zip_code = order_data['order']['to_zip_code'],
+            country = order_data['order']['to_country'],
+            map_url = order_data['order']['to_map_url']
         )
         db.session.add(order_details_from)
         db.session.add(order_details_to)
@@ -88,8 +92,6 @@ class Order:
     def create_cash_payment(self):
         order = OrderModel.query.get(self.order_id)
         quotation = order.quotations.filter(QuotationsModel.selected == 1).first()
-        print(quotation)
-        driver_email = quotation.vehicle.carrier_company.email
         payment = PaymentModel(
             order_id = self.order_id,
             amount = quotation.amount,
