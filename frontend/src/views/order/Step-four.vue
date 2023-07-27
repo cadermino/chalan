@@ -197,14 +197,17 @@
                             </div>
                             <div class="ml-4 flex-shrink-0">
                               <div
-                                @click="paymentTypeSelect('card')"
-                                class="cursor-pointer font-medium
+                                class="
+                                opacity-50
+                                cursor-pointer
+                                font-medium
                                 text-indigo-600
                                 hover:text-indigo-500
                                 transition
                                 duration-150
                                 ease-in-out">
-                                {{ currentOrder.payment_method=='card'?'Seleccionado':'Elegir' }}
+                                {{ currentOrder.payment_method=='card'?
+                                  'Seleccionado':'Elegir (No disponible)' }}
                               </div>
                             </div>
                           </li>
