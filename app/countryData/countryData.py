@@ -8,6 +8,8 @@ class CountryData:
         self.email_mexico = "carlos_calderon@chalan.mx"
         self.phone_peru = "972 643 007"
         self.phone_mexico = "56 2145-8596"
+        self.mexico_phone_prefix = "52"
+        self.peru_phone_prefix = "51"
     def contact(self):
         data = {
             "peru": {
@@ -51,5 +53,12 @@ class CountryData:
         data = {
             "peru": "Perú",
             "mexico": "México"
+        }
+        return data[self.country]
+
+    def get_phone(self):
+        data = {
+            "peru": self.peru_phone_prefix + "972643007",
+            "mexico": self.mexico_phone_prefix + "5621458596"
         }
         return data[self.country]

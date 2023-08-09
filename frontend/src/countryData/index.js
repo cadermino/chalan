@@ -5,6 +5,9 @@ arrayFromCeroToNineteen
 
 export default {
   peru: {
+    general: {
+      phone: '51972643007',
+    },
     'step-one': {
       fromStreetPlaceholder: 'Ejem: Calle Londres 198 Perú',
       toStreetPlaceholder: 'Ejem: Calle Londres 198 Perú',
@@ -21,6 +24,9 @@ export default {
     },
   },
   mexico: {
+    general: {
+      phone: '525621458596',
+    },
     'step-one': {
       fromStreetPlaceholder: 'Ejem: Calle Londres 198 México',
       toStreetPlaceholder: 'Ejem: Calle Londres 198 México',

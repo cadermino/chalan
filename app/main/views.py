@@ -5,11 +5,14 @@ from ..countryData import CountryData
 
 @main.context_processor
 def inject_country():
-    printable_country = CountryData(country()).get_country()
+    country_data = CountryData(country())
+    printable_country = country_data.get_country()
+    phone = country_data.get_phone()
     return dict(
         country=country(),
         site_url=site_url(),
-        printable_country=printable_country
+        printable_country=printable_country,
+        phone=phone
     )
 
 def country():

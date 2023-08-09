@@ -30,6 +30,23 @@
     <title>Chalán</title>
   </head>
   <body class="text-gray-700 bg-white" style="font-family: 'Source Sans Pro', sans-serif">
+    <a href="https://api.whatsapp.com/send?phone={{phone}}"
+      target="_blank"
+      id="whatsapp" class="
+      fixed
+      bottom-0
+      right-0
+      mb-5
+      mr-5
+      "><i class="
+        px-3
+        py-1
+        rounded-lg
+        bg-green-400
+        text-white
+        text-5xl
+        fa
+        fa-whatsapp" aria-hidden="true"></i></a>
     {% include 'includes/navbar.html' %}
     {% block body %}{% endblock %}
     {% include 'includes/footer.html' %}

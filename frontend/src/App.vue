@@ -1,5 +1,23 @@
 <template v-cloak>
   <div id="app">
+    <a :href="`https://api.whatsapp.com/send?phone=${phone}`"
+      target="_blank"
+      id="whatsapp" class="
+      z-50
+      fixed
+      bottom-0
+      right-0
+      mb-5
+      mr-5
+      "><i class="
+        px-3
+        py-1
+        rounded-lg
+        bg-green-400
+        text-white
+        text-5xl
+        fa
+        fa-whatsapp" aria-hidden="true"></i></a>
     <div v-if="loading"
       class="w-full
       h-full
@@ -33,8 +51,17 @@
 import { mapActions, mapState } from 'vuex';
 import Navbar from '@/components/Navbar.vue';
 
+import countryData from './countryData';
+
+const country = process.env.VUE_APP_COUNTRY;
+
 export default {
   name: 'app',
+  data() {
+    return {
+      phone: countryData[country].general.phone,
+    };
+  },
   components: {
     Navbar,
   },
