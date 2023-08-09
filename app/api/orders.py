@@ -78,6 +78,7 @@ def generate_checkout_cash(order_id):
 
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
     bcc = [os.getenv('OPS_MAIL')]
+    site_url = os.getenv('SITE_URL')
     if os.getenv('FLASK_ENV') != 'prod':
         subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
         bcc = [os.getenv('ADMIN_MAIL')]
@@ -101,7 +102,8 @@ def generate_checkout_cash(order_id):
         bcc=[],
         customer_name=customer.name,
         mobile_phone=customer.mobile_phone,
-        current_year=current_year
+        current_year=current_year,
+        site_url=site_url
     )
 
     return jsonify({

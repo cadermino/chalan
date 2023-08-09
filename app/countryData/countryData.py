@@ -6,7 +6,7 @@ class CountryData:
         self.country = country
         self.email_peru = "carlos_calderon@chalan.pe"
         self.email_mexico = "carlos_calderon@chalan.mx"
-        self.phone_peru = "957 417 814"
+        self.phone_peru = "972 643 007"
         self.phone_mexico = "56 2145-8596"
     def contact(self):
         data = {
