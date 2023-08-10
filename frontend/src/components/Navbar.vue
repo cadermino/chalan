@@ -96,12 +96,15 @@
         <router-link
           :to="{name: 'step-one'}"
           @click.native="isOpen = false"
-          class="block
-          px-2
-          py-1
-          text-gray
-          rounded">
-          Iniciar
+          class="bg-blue-500
+          hover:bg-blue-700
+          text-white
+            font-normal
+            rounded-full
+            py-1
+            px-4
+            tracking-wider">
+          Cotizar
         </router-link>
         <a href="/landing/contacto" class="mt-1
           block
@@ -129,41 +132,7 @@
           Regístrate/inicia sesión
         </router-link>
         <AccountDropdown v-if="isUserLogged"
-          class="hidden sm:block sm:ml-6"/>
-      </div>
-      <div v-if="isUserLogged"
-        class="px-4 py-5 border-t border-gray-300 sm:hidden">
-        <div v-if= "isUserLogged" class="flex items-center mb-4">
-          <i v-if="!customer.picture"
-          class="py-2
-          px-3
-          fa
-          fa-user
-          h-10
-          w-10
-          border-2
-          border-gray-600
-          rounded-full"
-          aria-hidden="true"></i>
-          <img v-if="customer.picture"
-            class="h-10
-            w-10
-            border-2
-            border-gray-600
-            rounded-full
-            object-cover"
-            :src="customer.picture.data.url" alt="Your avatar">
-          <span class="ml-3 font-semibold text-grey">{{ customer.customer_name }}</span>
-        </div>
-        <div class="">
-          <router-link
-            :to="{name: 'dashboard'}"
-            @click.native="isOpen = false"
-            class="block text-gray hover:text-gray-500">
-            Mis ordenes
-          </router-link>
-          <a @click="logout" class="mt-2 block text-gray hover:text-white">Salir</a>
-        </div>
+          class=""/>
       </div>
     </nav>
   </header>
