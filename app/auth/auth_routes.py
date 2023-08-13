@@ -37,7 +37,7 @@ def register():
 
     return jsonify({
         'message' : 'usuario registrado',
-        'token' : customer.generate_auth_token(expiration=3600),
+        'token' : customer.generate_auth_token(expiration=86400),
         'name': customer.name,
         'email': customer.email,
         'mobile_phone': customer.mobile_phone
@@ -50,8 +50,8 @@ def login():
     customer = Customer.query.filter_by(email=data['email'].lower()).first()
     if customer is not None and customer.verify_password(data['password']):
         return jsonify({
-            'token': customer.generate_auth_token(expiration=3600),
-            'expiration': 3600,
+            'token': customer.generate_auth_token(expiration=86400),
+            'expiration': 86400,
             'name': customer.name,
             'email': customer.email,
             'mobile_phone': customer.mobile_phone
@@ -84,7 +84,7 @@ def login_facebook():
 
     return jsonify({
         'message' : 'facebook user logged',
-        'token' : customer.generate_auth_token(expiration=3600),
+        'token' : customer.generate_auth_token(expiration=86400),
         'name': customer.name,
         'email': customer.email,
         'mobile_phone': customer.mobile_phone
