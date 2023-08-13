@@ -6,7 +6,7 @@
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
           <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10">
-            {{ customer.customer_name }},
+            {{ customer.customer_name }}
              confirma que todo esté en orden antes del pago, además bríndanos tu
              número de celular para mantener la comunicación
           </p>
@@ -114,8 +114,8 @@
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Carga
                       </dt>
-                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
-                        {{ currentOrder.comments }}
+                      <dd class="mt-1 text-xs leading-4 text-gray-900 sm:mt-0 sm:col-span-2">
+                        <pre>{{ itemsToMoveList }}</pre>
                       </dd>
                     </div>
                     <div class="bg-gray-50 px-4 py-2">
@@ -502,6 +502,9 @@ export default {
     ...mapGetters([
       'isUserLogged',
     ]),
+    itemsToMoveList() {
+      return this.currentOrder.comments;
+    },
     completeFromAddress() {
       const fromInteriorNumber = this.currentOrder.from_interior_number
         ? `interior ${this.currentOrder.from_interior_number},` : '';
