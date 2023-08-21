@@ -84,13 +84,7 @@ router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
   store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
-  const orderCreatedDate = moment(store.state.currentOrder.created_date);
-  const isLocalStorageOutdated = moment().diff(orderCreatedDate, 'hours') >= 24;
-  if (isLocalStorageOutdated) {
-    localStorage.removeItem('currentOrder');
-    localStorage.removeItem('customer');
-    window.location.reload();
-  }
+
   if (to.matched.some(record => record.meta.requiresPreviousComplete
     && record.meta.requiresAuth)) {
     if (store.getters.isUserLogged) {
