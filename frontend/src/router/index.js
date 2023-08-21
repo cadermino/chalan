@@ -4,8 +4,6 @@ import steps from '../store/steps';
 import store from '../store/index';
 import countryData from '../countryData';
 
-const moment = require('moment');
-
 const country = process.env.VUE_APP_COUNTRY;
 Vue.use(VueRouter);
 
