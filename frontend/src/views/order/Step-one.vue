@@ -43,7 +43,8 @@
                     v-model="selectedFromStreet"
                     id="address-from-street"
                     :placeholder="countryData.fromStreetPlaceholder"
-                    type="text">
+                    type="text"
+                    autocomplete="on">
                   <p v-if="formValidationMessages['from_street']"
                     class="text-red-500
                     text-xs
@@ -160,7 +161,8 @@
                       v-model="selectedToStreet"
                       id="address-to-street"
                       :placeholder="countryData.toStreetPlaceholder"
-                      type="text">
+                      type="text"
+                      autocomplete="on">
                     <p v-if="formValidationMessages['to_street']"
                       class="text-red-500
                       text-xs

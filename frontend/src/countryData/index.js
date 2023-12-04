@@ -22,6 +22,10 @@ export default {
     dashboard: {
       currency: 'PEN',
     },
+    'carrier-company': {
+      currency: 'PEN',
+      phone: '51972643007',
+    },
   },
   mexico: {
     general: {
@@ -40,6 +44,10 @@ export default {
     },
     dashboard: {
       currency: 'MXN',
+    },
+    'carrier-company': {
+      currency: 'PEN',
+      phone: '51972643007',
     },
   },
 };

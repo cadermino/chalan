@@ -16,6 +16,15 @@ const routes = [
     },
   },
   {
+    path: '/carrier-company/:id',
+    name: 'carrier-company',
+    component: () => import(/* webpackChunkName: "carrier-company" */ '../views/carrier-company'),
+    props: route => ({
+      carrierId: route.params.id,
+      countryData: countryData[country]['carrier-company'],
+    }),
+  },
+  {
     path: '/order/step-one',
     name: 'step-one',
     component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
@@ -78,10 +87,19 @@ const router = new VueRouter({
   },
 });
 
+function hasQueryParams(route) {
+  return !!Object.keys(route.query).length;
+}
+
 router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
   store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
+
+  let queryParams;
+  if (!hasQueryParams(to) && hasQueryParams(from)) {
+    queryParams = from.query;
+  }
 
   if (to.matched.some(record => record.meta.requiresPreviousComplete
     && record.meta.requiresAuth)) {
@@ -95,7 +113,11 @@ router.beforeEach((to, from, next) => {
           name: steps[to.name].previous,
         });
       } else if (steps[steps[to.name].previous].isComplete) {
-        next();
+        if (!hasQueryParams(to) && hasQueryParams(from)) {
+          next({ name: to.name, query: queryParams });
+        } else {
+          next();
+        }
       }
     } else {
       next({
@@ -113,11 +135,19 @@ router.beforeEach((to, from, next) => {
         name: steps[to.name].previous,
       });
     } else if (steps[steps[to.name].previous].isComplete) {
-      next();
+      if (!hasQueryParams(to) && hasQueryParams(from)) {
+        next({ name: to.name, query: queryParams });
+      } else {
+        next();
+      }
     }
   } else if (to.matched.some(record => record.meta.requiresAuth)) {
     if (store.getters.isUserLogged) {
-      next();
+      if (!hasQueryParams(to) && hasQueryParams(from)) {
+        next({ name: to.name, query: queryParams });
+      } else {
+        next();
+      }
     } else {
       next({
         path: '/register-login',

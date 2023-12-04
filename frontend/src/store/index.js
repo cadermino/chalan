@@ -52,6 +52,7 @@ export default new Vuex.Store({
       'step-three': null,
       'step-four': null,
       'register-login': null,
+      'carrier-company': null,
       dashboard: null,
     },
     formValidationMessages: {
@@ -87,6 +88,18 @@ export default new Vuex.Store({
     isUserLogged: (state, getters) => (state.customer.customer_id
       && state.customer.token
       && getters.isTokenValid) || false,
+    getFirstIncompleteStep(state) {
+      let lastStep = {};
+      Object.keys(state.steps).every((viewName) => {
+        if (!state.steps[viewName].isComplete) {
+          lastStep = state.steps[viewName];
+          lastStep.viewName = viewName;
+          return false;
+        }
+        return true;
+      });
+      return lastStep;
+    },
   },
   mutations: {
     setFB(state, FB) {

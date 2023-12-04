@@ -106,7 +106,9 @@
             focus:border-blue-400"
             v-model="requiredFieldsRegister.password"
             id="password"
-            type="password">
+            type="password"
+            name="password"
+            autocomplete="on">
           <p v-if="registerFormValidationMessages['password']"
             class="text-red-500
             text-xs
@@ -205,7 +207,9 @@
             focus:border-blue-400"
             v-model="requiredFieldsLogin.password"
             id="password"
-            type="password">
+            type="password"
+            name="password"
+            autocomplete="on">
           <p v-if="loginFormValidationMessages['password']"
             class="text-red-500
             text-xs

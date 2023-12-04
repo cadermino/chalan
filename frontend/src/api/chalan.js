@@ -137,4 +137,11 @@ export default {
       },
     });
   },
+  getCarrierCompany(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}carrier-company/${payload.carrierId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
 };
