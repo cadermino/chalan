@@ -5,6 +5,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
 from .api.errors import bad_request
 from sqlalchemy import func, text
+from marshmallow_sqlalchemy.fields import Nested
 
 db.metadata.clear()
 class Customer(db.Model):
@@ -18,8 +19,6 @@ class Customer(db.Model):
 	mobile_phone = db.Column(db.String(15))
 	phone = db.Column(db.String(15))
 	created_date = db.Column(db.DateTime(), server_default=func.now())
-
-	orders = db.relationship("Order", backref="customer")
 
 	@property
 	def password(self):
@@ -64,8 +63,7 @@ class Order(db.Model):
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
-	product = db.relationship("Product", backref="orders")
-	quotations = db.relationship("Quotations", backref="quotations", lazy='dynamic')
+	quotations = db.relationship("Quotations", backref="order", lazy='dynamic')
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -82,56 +80,15 @@ class OrderDetails(db.Model):
 	state = db.Column(db.String(45), nullable=True)
 	zip_code = db.Column(db.String(45), nullable=True)
 
-
-class Product(db.Model):
-	__tablename__ = 'products'
+class Quotations(db.Model):
+	__tablename__ = 'quotations'
 	id = db.Column(db.Integer, primary_key=True)
-	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
-	price = db.Column(db.Float)
-	total_kilometers = db.Column(db.Integer)
-	description = db.Column(db.String(500))
-	active = db.Column(db.Integer, nullable=False)
-	created_date = db.Column(db.DateTime(), server_default=func.now())
-	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
-
-	vehicle = db.relationship("Vehicle", backref="products")
-
-class CarrierCompany(db.Model):
-	__tablename__ = 'carrier_company'
-	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(45))
-	rfc = db.Column(db.String(12))
-	email = db.Column(db.String(45))
-	address = db.Column(db.String(200))
-	active = db.Column(db.Integer)
-
-
-class OrderStatus(db.Model):
-	__tablename__ = 'lu_order_status'
-	id = db.Column(db.Integer, primary_key=True)
-	status = db.Column(db.String(45))
-
-
-class PaymentType(db.Model):
-	__tablename__ = 'lu_payment_type'
-	id = db.Column(db.Integer, primary_key=True)
-	type = db.Column(db.String(45))
-
-	payment = db.relationship("Payment", backref="payment_type")
-
-
-class Payment(db.Model):
-	__tablename__ = 'payments'
-	id = db.Column(db.Integer, primary_key=True)
-	amount = db.Column(db.Float)
+	amount = db.Column(db.Integer, nullable=False)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
-	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False, server_default=text("'pending'"))
-	reference = db.Column(db.String(100), comment='Stripe session id')
-	created_date = db.Column(db.DateTime(), server_default=func.now())
-	comments = db.Column(db.String(500))
-	active = db.Column(db.Integer)
+	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+	selected = db.Column(db.Boolean, server_default=text('False'))
 
+	vehicle = db.relationship("Vehicle", backref="quotations")
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
@@ -155,18 +112,54 @@ class Vehicle(db.Model):
 	base_address = db.Column(db.String(200))
 	active = db.Column(db.Integer, server_default=text("'0'"))
 
-	carrier_company = db.relationship("CarrierCompany", backref="carrier_company")
-
-class Quotations(db.Model):
-	__tablename__ = 'quotations'
+class Product(db.Model):
+	__tablename__ = 'products'
 	id = db.Column(db.Integer, primary_key=True)
-	amount = db.Column(db.Integer, nullable=False)
-	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
-	selected = db.Column(db.Boolean, server_default=text('False'))
+	price = db.Column(db.Float)
+	total_kilometers = db.Column(db.Integer)
+	description = db.Column(db.String(500))
+	active = db.Column(db.Integer, nullable=False)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
-	order = db.relationship("Order", backref="orders")
-	vehicle = db.relationship("Vehicle", backref="vehicles")
+class CarrierCompany(db.Model):
+	__tablename__ = 'carrier_company'
+	id = db.Column(db.Integer, primary_key=True)
+	name = db.Column(db.String(45))
+	rfc = db.Column(db.String(12))
+	email = db.Column(db.String(45))
+	address = db.Column(db.String(200))
+	active = db.Column(db.Integer)
+
+	vehicles = db.relationship("Vehicle", backref="carrier_company")
+
+class OrderStatus(db.Model):
+	__tablename__ = 'lu_order_status'
+	id = db.Column(db.Integer, primary_key=True)
+	status = db.Column(db.String(45))
+
+
+class PaymentType(db.Model):
+	__tablename__ = 'lu_payment_type'
+	id = db.Column(db.Integer, primary_key=True)
+	type = db.Column(db.String(45))
+
+	payment = db.relationship("Payment", backref="lu_payment_type")
+
+
+class Payment(db.Model):
+	__tablename__ = 'payments'
+	id = db.Column(db.Integer, primary_key=True)
+	amount = db.Column(db.Float)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
+	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False, server_default=text("'pending'"))
+	reference = db.Column(db.String(100), comment='Stripe session id')
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	comments = db.Column(db.String(500))
+	active = db.Column(db.Integer)
+
 
 class CalculatedDistance(db.Model):
 	__tablename__ = 'calculated_distance'
@@ -188,8 +181,14 @@ class OrderSchema(ma.ModelSchema):
 class VehicleSchema(ma.ModelSchema):
 	class Meta:
 		model = Vehicle
+		fields = ('brand',
+				'model',
+				'description',
+				'picture',
+				'plates',
+				'active')
 
 
-class ProductSchema(ma.ModelSchema):
+class CarrierCompanySchema(ma.ModelSchema):
 	class Meta:
-		model = Product
+		model = CarrierCompany
