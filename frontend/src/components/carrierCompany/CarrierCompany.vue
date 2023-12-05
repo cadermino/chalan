@@ -459,7 +459,6 @@ export default {
         })
         .catch((error) => {
           if (error.response && error.response.status === 404) {
-            console.log('error', error.response);
             this.setViewsMessages({
               view: this.viewName,
               message: {
