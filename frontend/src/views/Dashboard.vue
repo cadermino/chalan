@@ -26,8 +26,7 @@
               <thead>
                 <tr>
                   <th class="px-4 py-2">Fecha agendada</th>
-                  <th class="px-4 py-2">Vehículo</th>
-                  <th class="px-4 py-2">Peso</th>
+                  <th class="px-4 py-2">Chalán</th>
                   <th class="px-4 py-2">Monto</th>
                   <th class="px-4 py-2">Estado del pago</th>
                 </tr>
@@ -37,8 +36,7 @@
                     v-bind:key="index">
                   <td class="border px-4 py-2">{{ order.appointment_date |
                     moment("dddd D MMMM - h:mm A") }}</td>
-                  <td class="border px-4 py-2">{{ order.vehicle_name }}</td>
-                  <td class="border px-4 py-2">{{ order.weight }}</td>
+                  <td class="border px-4 py-2">{{ order.carrier_company_name }}</td>
                   <td class="border px-4 py-2">{{
                     order.amount.toLocaleString('en-US', {
                       style: 'currency',

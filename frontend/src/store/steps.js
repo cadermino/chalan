@@ -16,7 +16,7 @@ const stepTwo = [
 const stepThree = [
   'amount',
   'quotation_id',
-  'vehicle_id',
+  'carrier_company_id',
 ];
 const stepFour = [
   'payment_method',

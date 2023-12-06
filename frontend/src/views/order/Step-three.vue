@@ -160,7 +160,7 @@ export default {
       quotationFields: {
         quotation_id: 'id',
         amount: 'amount',
-        vehicle_id: 'vehicle_id',
+        carrier_company_id: 'carrier_company_id',
         vehicle_brand: 'brand',
         vehicle_model: 'model',
         vehicle_weight: 'weight',
