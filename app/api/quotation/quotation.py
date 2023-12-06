@@ -10,7 +10,7 @@ class Quotation:
     def listByOrderId(self, order_id):
         self.quotations = QuotationsModel.query.filter_by(order_id = order_id).all()
         return self
-    
+
     def pickQuotation(self, quotation_id=None):
         picked_quotation = QuotationsModel.query.get(self.quotation_id)
         quotations = picked_quotation.order.quotations
@@ -24,17 +24,18 @@ class Quotation:
     def toJson(self):
         output = []
         for quotation in self.quotations:
-            vehicle = quotation.vehicle
+            carrier_company = quotation.carrier_company
+            vehicle = carrier_company.vehicles
             output.append({
                 'id': quotation.id,
                 'amount': quotation.amount,
                 'order_id': quotation.order_id,
-                'vehicle_id': quotation.vehicle_id,
-                'size': vehicle.size,
-                'weight': vehicle.weight,
-                'brand': vehicle.brand,
-                'model': vehicle.model,
-                'picture': vehicle.picture
+                'carrier_company_id': quotation.carrier_company.id,
+                'size': vehicle[0].size,
+                'weight': vehicle[0].weight,
+                'brand': vehicle[0].brand,
+                'model': vehicle[0].model,
+                'picture': vehicle[0].picture
             })
-        
+
         return jsonify(output)

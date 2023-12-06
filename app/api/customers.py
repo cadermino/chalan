@@ -31,12 +31,8 @@ def customer_orders(customer_id):
     if order is None:
         return jsonify([]), 200
     try:
-        vehicle_name = '{} {}'.format(quotation.vehicle.brand, quotation.vehicle.model)
-        weight = quotation.vehicle.weight+' kg.'
         amount = quotation.amount
     except:
-        vehicle_name = '-'
-        weight = '-'
         amount = '-'
     try:
         payment_status = order.payments.order_by(Payment.id.desc()).first().status
@@ -48,8 +44,7 @@ def customer_orders(customer_id):
         appointment_date = '-'
     orders_datils = {
         'appointment_date': appointment_date,
-        'vehicle_name': vehicle_name,
-        'weight': weight,
+        'carrier_company_name': quotation.carrier_company.name,
         'amount': amount,
         'payment_status': payment_status
     }

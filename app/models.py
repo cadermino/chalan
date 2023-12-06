@@ -3,9 +3,7 @@ from flask import current_app, request, url_for, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from . import db, ma
-from .api.errors import bad_request
 from sqlalchemy import func, text
-from marshmallow_sqlalchemy.fields import Nested
 
 db.metadata.clear()
 class Customer(db.Model):
@@ -53,7 +51,7 @@ class Order(db.Model):
 	__tablename__ = 'orders'
 	id = db.Column(db.Integer, primary_key=True)
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
-	product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True)
+	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
 	total_kilometers = db.Column(db.Integer, nullable=True)
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), server_default=text("'1'"), nullable=False)
 	appointment_date = db.Column(db.DateTime(), server_default=func.now())
@@ -85,10 +83,10 @@ class Quotations(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	amount = db.Column(db.Integer, nullable=False)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	selected = db.Column(db.Boolean, server_default=text('False'))
 
-	vehicle = db.relationship("Vehicle", backref="quotations")
+	carrier_company = db.relationship("CarrierCompany", backref="quotations")
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
@@ -112,24 +110,19 @@ class Vehicle(db.Model):
 	base_address = db.Column(db.String(200))
 	active = db.Column(db.Integer, server_default=text("'0'"))
 
-class Product(db.Model):
-	__tablename__ = 'products'
-	id = db.Column(db.Integer, primary_key=True)
-	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
-	price = db.Column(db.Float)
-	total_kilometers = db.Column(db.Integer)
-	description = db.Column(db.String(500))
-	active = db.Column(db.Integer, nullable=False)
-	created_date = db.Column(db.DateTime(), server_default=func.now())
-	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
-
 class CarrierCompany(db.Model):
 	__tablename__ = 'carrier_company'
 	id = db.Column(db.Integer, primary_key=True)
+	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
 	name = db.Column(db.String(45))
+	description = db.Column(db.String(200))
 	rfc = db.Column(db.String(12))
 	email = db.Column(db.String(45))
+	phone = db.Column(db.String(45))
 	address = db.Column(db.String(200))
+	cover_image = db.Column(db.String(200))
+	facebook = db.Column(db.String(200))
+	youtube = db.Column(db.String(200))
 	active = db.Column(db.Integer)
 
 	vehicles = db.relationship("Vehicle", backref="carrier_company")
@@ -167,6 +160,11 @@ class CalculatedDistance(db.Model):
 	address_origin = db.Column(db.String(200))
 	address_destination = db.Column(db.String(200))
 	kilometers = db.Column(db.Integer)
+
+class LuCountry(db.Model):
+	__tablename__ = 'lu_country'
+	id = db.Column(db.Integer, primary_key=True, nullable=False)
+	country = db.Column(db.String(40))
 
 class CustomerSchema(ma.ModelSchema):
 	class Meta:
