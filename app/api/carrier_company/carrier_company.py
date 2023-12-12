@@ -18,6 +18,21 @@ class CarrierCompany:
     def get_email(self):
         return self.carrier_company.email
 
+    def get_description(self):
+        return self.carrier_company.description
+
+    def get_phone(self):
+        return self.carrier_company.phone
+
+    def get_cover_image(self):
+        return self.carrier_company.cover_image
+
+    def get_facebook(self):
+        return self.carrier_company.facebook
+
+    def get_youtube(self):
+        return self.carrier_company.youtube
+
     def get_is_active(self):
         return self.carrier_company.active
 

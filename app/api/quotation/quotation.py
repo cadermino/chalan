@@ -29,6 +29,7 @@ class Quotation:
             output.append({
                 'id': quotation.id,
                 'amount': quotation.amount,
+                'selected': quotation.selected,
                 'order_id': quotation.order_id,
                 'carrier_company_id': quotation.carrier_company.id,
                 'size': vehicle[0].size,
