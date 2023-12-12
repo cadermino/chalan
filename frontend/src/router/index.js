@@ -20,7 +20,7 @@ const routes = [
     name: 'carrier-company',
     component: () => import(/* webpackChunkName: "carrier-company" */ '../views/carrier-company'),
     props: route => ({
-      carrierId: route.params.id,
+      carrierId: Number(route.params.id),
       countryData: countryData[country]['carrier-company'],
     }),
   },
@@ -95,7 +95,6 @@ router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
   store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
-
   let queryParams;
   if (!hasQueryParams(to) && hasQueryParams(from)) {
     queryParams = from.query;

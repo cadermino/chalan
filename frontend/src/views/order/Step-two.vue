@@ -154,7 +154,6 @@ export default {
   methods: {
     ...mapActions([
       'validateRequiredFields',
-      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -172,7 +171,6 @@ export default {
         chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
-              this.addDataToLocalStorage(['currentOrder', 'customer']);
               this.$router.push({ name: this.steps[this.viewName].next });
             }
           })

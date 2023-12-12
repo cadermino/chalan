@@ -6,7 +6,7 @@
         <img
           alt="ecommerce"
           class="lg:w-1/2 w-full lg:h-auto h-64 object-cover object-center rounded"
-          :src="require(`@/assets/${vehicles[0].picture}`)"
+          :src="coverImage"
         />
         <div class="lg:w-1/2 w-full lg:pl-10 lg:py-6 mt-6 lg:mt-0">
           <h2 class="text-sm title-font text-gray-500 tracking-widest">
@@ -15,8 +15,8 @@
           <h1 class="text-gray-900 text-3xl title-font font-medium mb-1">
             {{name}}
           </h1>
-          <div class="flex mb-4 stars">
-            <span class="flex items-center">
+          <div class="flex mb-4">
+            <span id="stars" class="flex items-center">
               <svg
                 fill="currentColor"
                 stroke="currentColor"
@@ -144,10 +144,12 @@
               </svg>
               <span class="text-gray-600 ml-3">0 Evaluaciones</span>
             </span>
-            <span
+            <span id="social"
               class="flex ml-3 pl-3 py-2 border-l-2 border-gray-200 space-x-2s"
             >
-              <a class="text-gray-500">
+              <a v-if="facebook" class="text-gray-500 mr-3"
+                :href="facebook"
+                target="_blank">
                 <svg
                   fill="currentColor"
                   stroke-linecap="round"
@@ -161,7 +163,7 @@
                   ></path>
                 </svg>
               </a>
-              <a class="text-gray-500">
+              <a v-if="twitter" class="text-gray-500 mr-3">
                 <svg
                   fill="currentColor"
                   stroke-linecap="round"
@@ -207,9 +209,62 @@
                   ></path>
                 </svg>
               </a>
-              <a :href="`https://api.whatsapp.com/send?phone=${phone}`"
-                target="_blank"
-                class="text-gray-500">
+              <a v-if="youtube" class="text-gray-500 mr-3"
+                :href="youtube"
+                target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 256 180">
+                  <path fill="#A0AFC0" d="M250.346
+                    28.075A32.18
+                    32.18
+                    0
+                    0
+                    0
+                    227.69
+                    5.418C207.824
+                    0
+                    127.87
+                    0
+                    127.87
+                    0S47.912.164
+                    28.046
+                    5.582A32.18
+                    32.18
+                    0
+                    0
+                    0
+                    5.39
+                    28.24c-6.009
+                    35.298-8.34
+                    89.084.165
+                    122.97a32.18
+                    32.18
+                    0
+                    0
+                    0
+                    22.656
+                    22.657c19.866
+                    5.418
+                    99.822
+                    5.418
+                    99.822
+                    5.418s79.955
+                    0
+                    99.82-5.418a32.18
+                    32.18
+                    0
+                    0
+                    0
+                    22.657-22.657c6.338-35.348
+                    8.291-89.1-.164-123.134Z"/>
+                  <path fill="#FFF" d="m102.421 128.06l66.328-38.418l-66.328-38.418z"/>
+                </svg>
+              </a>
+              <a v-if="phone" class="text-gray-500 mr-3"
+                :href="`https://api.whatsapp.com/send?phone=${phone}`"
+                target="_blank">
                 <svg fill="currentColor"
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -372,13 +427,20 @@
           </p>
           <div class="flex">
             <span class="title-font font-medium text-2xl text-gray-900"
-              >{{amount}}</span
+              >{{formattedAmount}}</span
             >
-            <router-link :to="{
-              name: firstIncompleteStepName, query: { 'carrier-id': carrierId},
-            }"
+            <button @click="$router.go(-1)"
               class="flex
+              text-bg-blue-500
+              underline
               ml-auto
+              border-0
+              py-2
+              px-6
+              rounded">Regresar</button>
+            <button @click="goToOrderSteps"
+              class="flex
+              ml-7
               text-white
               bg-blue-500
               border-0
@@ -388,7 +450,7 @@
               hover:bg-blue-600
               rounded">
               {{currentOrder.amount ? 'Agendar' : 'Cotizar'}}
-            </router-link>
+            </button>
           </div>
         </div>
       </div>
@@ -404,31 +466,41 @@ export default {
   name: 'CarrierCompany',
   data() {
     return {
-      address: null,
-      country: null,
-      description: null,
       name: null,
-      vehicles: null,
+      address: null,
+      description: null,
       phone: this.countryData.phone,
+      coverImage: null,
+      facebook: null,
+      youtube: null,
+      twitter: null,
+      vehicles: null,
     };
   },
   mounted() {
     this.getCarrierCompanyData();
+    this.setOrder({ field: 'carrier_company_id', value: this.carrierId });
   },
   props: {
-    carrierId: String,
+    carrierId: Number,
     viewName: String,
     countryData: Object,
+    amount: Number,
+    quotationId: Number,
   },
   computed: {
     ...mapState([
       'currentOrder',
+      'customer',
     ]),
     ...mapGetters([
       'getFirstIncompleteStep',
     ]),
-    amount() {
-      return this.currentOrder.amount?.toLocaleString('en-US', {
+    formattedAmount() {
+      if (!this.currentOrder.amount) {
+        return null;
+      }
+      return this.currentOrder.amount.toLocaleString('en-US', {
         style: 'currency',
         currency: this.countryData.currency,
         maximumSignificantDigits: 5,
@@ -440,13 +512,44 @@ export default {
   },
   methods: {
     ...mapMutations([
+      'setOrder',
       'setViewsMessages',
+      'setLoader',
     ]),
+    goToOrderSteps() {
+      if (this.currentOrder.quotation_id) {
+        this.pickQuotation();
+      }
+      this.$router.push({ name: this.firstIncompleteStepName, query: { 'carrier-id': this.carrierId } });
+    },
+    async pickQuotation() {
+      this.setLoader(true);
+      const quotationPayload = {
+        quotationId: this.currentOrder.quotation_id,
+        selected: true,
+        token: this.customer.token,
+      };
+      try {
+        await chalan.updateQuotation(quotationPayload);
+      } catch (error) {
+        this.setLoader(false);
+        this.setViewsMessages({
+          view: this.viewName,
+          message: {
+            text: 'Hubo un error, intenta después de recargar la página',
+            type: 'error',
+          },
+        });
+      }
+    },
     mapCarrierCompanyData(data) {
-      this.address = data.address;
-      this.country = data.country;
-      this.description = data.description;
       this.name = data.name;
+      this.address = data.address;
+      this.description = data.description;
+      this.coverImage = data.cover_image;
+      this.facebook = data.facebook;
+      this.youtube = data.youtube;
+      this.twitter = data.twitter;
       this.vehicles = data.vehicles;
     },
     getCarrierCompanyData() {

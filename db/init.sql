@@ -54,11 +54,6 @@ CREATE TABLE IF NOT EXISTS `carrier_company` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT INTO `carrier_company` (`id`, `name`, `rfc`, `email`, `address`, `active`)
-VALUES
-	(1, 'José Pablo Salgado Hernandez', 'test', 'salgadohernandezjosepablo482@gmail.com', 'Calle Lago Texcoco Manzana 7 Lote 379 Colonia Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1);
-
-
 -- -----------------------------------------------------
 -- Table `customers`
 -- -----------------------------------------------------
@@ -86,14 +81,6 @@ CREATE TABLE IF NOT EXISTS `lu_order_status` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-INSERT INTO `lu_order_status` (`id`, `status`)
-VALUES
-  (1, 'pending'),
-  (2, 'in progress'),
-  (3, 'completed'),
-  (4, 'cancelled');
-
 -- -----------------------------------------------------
 -- Table `lu_payment_type`
 -- -----------------------------------------------------
@@ -102,12 +89,6 @@ CREATE TABLE IF NOT EXISTS `lu_payment_type` (
   `type` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-INSERT INTO `lu_payment_type` (`id`, `type`)
-VALUES
-  (1, 'card'),
-  (2, 'cash');
 
 -- -----------------------------------------------------
 -- Table `orders`
@@ -181,28 +162,6 @@ CREATE TABLE IF NOT EXISTS `vehicles` (
   KEY `fk_carrier_company` (`carrier_company_id`),
   CONSTRAINT `fk_carrier_company` FOREIGN KEY (`carrier_company_id`) REFERENCES `carrier_company` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-INSERT INTO `vehicles` (`id`, `charge_per_kilometer`, `charge_per_floor`, `driver_fee`, `loader_fee`, `loaders_quantity`, `size`, `weight`, `width`, `height`, `length`, `brand`, `model`, `carrier_company_id`, `description`, `picture`, `plates`, `base_address`, `active`)
-VALUES
-	(1, 25, 100, 400, 300, 2, 'small', '0–2,722', NULL, NULL, NULL, 'Chevrolet', 'Colorado/GMC Canyon', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'Chevrolet_Colorado.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 0),
-	(2, 25, 100, 400, 300, 2, 'small', '0–2,722', NULL, NULL, NULL, 'Ford', 'Ranger', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'ford-ranger.webp', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(3, 25, 100, 400, 300, 2, 'small', '0–2,722', NULL, NULL, NULL, 'Nissan', 'Frontier', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'nissan-frontier.webp', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(4, 25, 100, 400, 300, 2, 'small', '0–2,722', NULL, NULL, NULL, 'Jeep', 'Comanche', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'truck-medium.svg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(5, 25, 100, 400, 300, 2, 'small', '0–2,722', NULL, NULL, NULL, 'Toyota', 'Tacoma', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'toyota-tacoma.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(6, 25, 100, 400, 300, 2, 'small', '0–2,722', NULL, NULL, NULL, 'Honda', 'Ridgeline FWD', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'truck-medium.svg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(7, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'Chevrolet', 'Silverado/GMC Sierra 5500', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'chevrolet-silverado.webp', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(8, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'Ford', 'F-550', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'ford-f550.jpeg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(9, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'Ram', '5500', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'ram-5500.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(10, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'Kenworth', 'T170', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'kenworth-t170.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(11, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'Peterbilt', '325', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'peterbilt-325.png', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(12, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'International', 'TerraStar', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'International-terrastar.jpeg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(13, 50, 150, 600, 300, 4, 'medium', '7,258–8,845', NULL, NULL, NULL, 'Isuzu', 'NRR', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'isuzu-nrr.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(14, 75, 200, 800, 300, 6, 'large', '11,794–14,969', NULL, NULL, NULL, 'Autocar', 'ACMD', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'autocar-acmd.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(15, 75, 200, 800, 300, 6, 'large', '11,794–14,969', NULL, NULL, NULL, 'GMC', 'C7500', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'gmc-c7500.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(16, 75, 200, 800, 300, 6, 'large', '11,794–14,969', NULL, NULL, NULL, 'Kenworth', 'T470 & T440 & T370', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'kenworth-t470.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(17, 75, 200, 800, 300, 6, 'large', '11,794–14,969', NULL, NULL, NULL, 'Peterbilt', '220 & 337', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'peterbilt-337.png', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1),
-	(18, 75, 200, 800, 300, 6, 'large', '11,794–14,969', NULL, NULL, NULL, 'Ford', 'F-750', 1, 'I\'m baby drinking vinegar vape pok pok sriracha. Franzen kale chips trust fund vexillologist, activated charcoal snackwave sriracha keytar. Mixtape hella lumbersexual, flexitarian literally freegan PB', 'ford-f750.jpg', '464gfg', 'Ejido de Guadalupe 54745 Cuautitlan Izcalli México', 1);
-
 
 -- -----------------------------------------------------
 -- Table `products`

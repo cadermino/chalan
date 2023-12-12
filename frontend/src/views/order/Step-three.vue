@@ -16,10 +16,8 @@
               v-bind:value="index"
               v-bind:key="index"
               class="w-full my-5 md:w-1/2 px-3">
-              <div @click="(selectedQuotation.id == quotation.id) ?
-                        '' : selectQuotation(quotation)"
-                :class="(selectedQuotation.id == quotation.id) ? 'bg-gray-200' : ''"
-                class="w-full cursor-pointer">
+              <div :class="(selectedQuotation.id == quotation.id) ? 'bg-gray-200' : ''"
+                class="w-full">
                 <img class="h-auto
                   w-full
                   flex-none
@@ -41,6 +39,136 @@
                   justify-between
                   leading-normal">
                   <div class="mb-8">
+                    <div>
+                      <span id="stars" class="flex items-center">
+                        <svg
+                          fill="currentColor"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          class="w-4 h-4 text-blue-500"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12
+                            2l3.09
+                            6.26L22
+                            9.27l-5
+                            4.87
+                            1.18
+                            6.88L12
+                            17.77l-6.18
+                            3.25L7
+                            14.14
+                            2
+                            9.27l6.91-1.01L12
+                            2z"
+                          ></path>
+                        </svg>
+                        <svg
+                          fill="currentColor"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          class="w-4 h-4 text-blue-500"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12
+                            2l3.09
+                            6.26L22
+                            9.27l-5
+                            4.87
+                            1.18
+                            6.88L12
+                            17.77l-6.18
+                            3.25L7
+                            14.14
+                            2
+                            9.27l6.91-1.01L12
+                            2z"
+                          ></path>
+                        </svg>
+                        <svg
+                          fill="currentColor"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          class="w-4 h-4 text-blue-500"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12
+                            2l3.09
+                            6.26L22
+                            9.27l-5
+                            4.87
+                            1.18
+                            6.88L12
+                            17.77l-6.18
+                            3.25L7
+                            14.14
+                            2
+                            9.27l6.91-1.01L12
+                            2z"
+                          ></path>
+                        </svg>
+                        <svg
+                          fill="currentColor"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          class="w-4 h-4 text-blue-500"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12
+                            2l3.09
+                            6.26L22
+                            9.27l-5
+                            4.87
+                            1.18
+                            6.88L12
+                            17.77l-6.18
+                            3.25L7
+                            14.14
+                            2
+                            9.27l6.91-1.01L12
+                            2z"
+                          ></path>
+                        </svg>
+                        <svg
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          class="w-4 h-4 text-blue-500"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12
+                            2l3.09
+                            6.26L22
+                            9.27l-5
+                            4.87
+                            1.18
+                            6.88L12
+                            17.77l-6.18
+                            3.25L7
+                            14.14
+                            2
+                            9.27l6.91-1.01L12
+                            2z"
+                          ></path>
+                        </svg>
+                        <span class="text-gray-600 ml-3">0 Evaluaciones</span>
+                      </span>
+                    </div>
                     <div class="text-gray-900 font-bold text-xl mb-2">
                       {{  quotation.amount
                             .toLocaleString('en-US', {
@@ -67,7 +195,8 @@
                     </ul>
                   </div>
                   <div class="flex items-center">
-                    <button
+                    <button @click="(selectedQuotation.id == quotation.id) ?
+                        '' : selectQuotation({quotation})"
                       type="button"
                       :class="(selectedQuotation.id == quotation.id) ?
                         'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
@@ -83,6 +212,12 @@
                       focus:border-blue-400">
                       {{ (selectedQuotation.id == quotation.id) ?
                         'Seleccionado' : 'Elegir' }}
+                    </button>
+                    <button @click="goToCarrierCompanyView(quotation)"
+                      type="button"
+                      class="py-2 px-4focus:outline-none underline
+                      focus:border-blue-400 w-full ml-10">
+                      {{ 'Ver más' }}
                     </button>
                   </div>
                 </div>
@@ -183,19 +318,24 @@ export default {
   methods: {
     ...mapActions([
       'validateRequiredFields',
-      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
       'setLoader',
     ]),
+    goToCarrierCompanyView(quotation) {
+      this.selectQuotation({ quotation, jumpToNextStep: false });
+      this.$router.push({
+        name: 'carrier-company',
+        params: { id: quotation.carrier_company_id },
+      });
+    },
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.isStepComplete) {
         this.pickQuotation();
         this.updateOrder();
-        this.addDataToLocalStorage(['currentOrder', 'customer']);
       }
     },
     async pickQuotation() {
@@ -249,6 +389,11 @@ export default {
       chalan.getQuotations(payload)
         .then((response) => {
           this.quotationsList = response.data;
+          this.quotationsList.forEach((quotation) => {
+            if (quotation.selected) {
+              this.selectQuotation({ quotation, jumpToNextStep: false });
+            }
+          });
           this.setLoader(false);
         })
         .catch(() => {
@@ -262,12 +407,14 @@ export default {
           this.setLoader(false);
         });
     },
-    selectQuotation(quotation) {
+    selectQuotation({ quotation, jumpToNextStep = true }) {
       this.selectedQuotation = quotation;
       Object.keys(this.quotationFields).forEach((field) => {
         this.setOrder({ field, value: this.selectedQuotation[this.quotationFields[field]] });
       });
-      this.nextStep();
+      if (jumpToNextStep) {
+        this.nextStep();
+      }
     },
   },
   computed: {

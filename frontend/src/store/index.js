@@ -22,6 +22,7 @@ export default new Vuex.Store({
       created_date: null,
       order_id: null,
       quotation_id: null,
+      country_id: null,
       from_street: null,
       from_interior_number: null,
       from_floor_number: null,
@@ -106,6 +107,7 @@ export default new Vuex.Store({
     },
     setOrder(state, payload) {
       state.currentOrder[payload.field] = payload.value;
+      localStorage.setItem('currentOrder', JSON.stringify(state.currentOrder));
       state.formValidationMessages[payload.field] = null;
       Object.keys(state.steps).forEach((key) => {
         state.viewsMessages[key] = null;
@@ -119,6 +121,7 @@ export default new Vuex.Store({
     },
     setCustomerData(state, payload) {
       state.customer[payload.field] = payload.value;
+      localStorage.setItem('customer', JSON.stringify(state.customer));
     },
     setViewsMessages(state, payload) {
       state.viewsMessages[payload.view] = payload.message;

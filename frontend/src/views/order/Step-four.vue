@@ -326,7 +326,6 @@ export default {
   methods: {
     ...mapActions([
       'validateRequiredFields',
-      'addDataToLocalStorage',
     ]),
     ...mapMutations([
       'setOrder',
@@ -382,7 +381,6 @@ export default {
                   chalan.updateOrder(orderPayload)
                     .then((orderResponse) => {
                       if (orderResponse.status === 200) {
-                        this.addDataToLocalStorage(['currentOrder', 'customer']);
                         this.$refs.checkoutRef.redirectToCheckout();
                       }
                     })
@@ -443,7 +441,6 @@ export default {
                   chalan.updateOrder(orderPayload)
                     .then((orderResponse) => {
                       if (orderResponse.status === 200) {
-                        this.addDataToLocalStorage(['currentOrder', 'customer']);
                         this.setViewsMessages({
                           view: 'dashboard',
                           message: {

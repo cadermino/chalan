@@ -1,7 +1,11 @@
 <template>
   <div>
     <ViewsMessages :view-name="viewName" class="lg:w-4/5 mx-auto mt-8"/>
-    <CarrierCompany :carrier-id="carrierId" :view-name="viewName" :country-data="countryData" />
+    <CarrierCompany
+      :carrier-id="carrierId"
+      :view-name="viewName"
+      :country-data="countryData"
+    />
   </div>
 </template>
 <script>
@@ -11,7 +15,7 @@ import CarrierCompany from '@/components/carrierCompany/CarrierCompany';
 export default {
   name: 'carrier-company',
   props: {
-    carrierId: String,
+    carrierId: Number,
     countryData: Object,
   },
   data() {

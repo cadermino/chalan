@@ -115,7 +115,7 @@ class CarrierCompany(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
 	name = db.Column(db.String(45))
-	description = db.Column(db.String(200))
+	description = db.Column(db.String(2000))
 	rfc = db.Column(db.String(12))
 	email = db.Column(db.String(45))
 	phone = db.Column(db.String(45))
@@ -164,7 +164,7 @@ class CalculatedDistance(db.Model):
 class LuCountry(db.Model):
 	__tablename__ = 'lu_country'
 	id = db.Column(db.Integer, primary_key=True, nullable=False)
-	country = db.Column(db.String(40))
+	country = db.Column(db.String(40), nullable=False)
 
 class CustomerSchema(ma.ModelSchema):
 	class Meta:
