@@ -9,6 +9,9 @@ class CarrierCompany:
             carrier_company = CarrierCompanyModel.query.get(id)
             self.carrier_company = carrier_company
 
+    def get_id(self):
+        return self.carrier_company.id
+
     def get_address(self):
         return self.carrier_company.address
 
@@ -39,4 +42,3 @@ class CarrierCompany:
     def get_vehicles(self):
         vehicle_schema = VehicleSchema(many=True)
         return vehicle_schema.dump(self.carrier_company.vehicles)
-

@@ -7,6 +7,7 @@ from .. import db
 from sqlalchemy import exc
 from facepy import SignedRequest
 from ..api.email import send_email
+from ..api.quotation import Quotation as QuoationEntity
 
 @auth.route('/register', methods=['POST'])
 def register():
@@ -89,3 +90,11 @@ def login_facebook():
         'email': customer.email,
         'mobile_phone': customer.mobile_phone
     }), 201
+
+@auth.route('/generate-quotation-token', methods=['POST'])
+def quotation_token():
+    data = request.json
+    return jsonify({
+        'token': QuoationEntity().generate_quotation_token(864000, data['order_id'], data['carrier_company_id']),
+        'expiration': 864000,
+    })

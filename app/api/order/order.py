@@ -4,6 +4,7 @@ from ...models import OrderDetails
 from ...models import Order as OrderModel
 from ...models import Payment as PaymentModel
 from ...models import Quotations as QuotationsModel
+from ...models import OrderSchema, OrderDetailsSchema, QuotationsSchema
 
 class Order:
 
@@ -42,6 +43,21 @@ class Order:
         db.session.commit()
 
         return order
+
+    def details(self):
+        order = OrderModel.query.get(self.order_id)
+
+        order_schema = OrderSchema()
+        order_details_schema = OrderDetailsSchema(many=True)
+        quotations_schema = QuotationsSchema(many=True)
+
+        order_details_data = order_details_schema.dump(order.order_details)
+        quotations_data = quotations_schema.dump(order.quotations)
+        order_data = order_schema.dump(order)
+
+        order_data['order_details'] = order_details_data
+        order_data['quotations'] = quotations_data
+        return order_data
 
     def update(self, order_data):
         order = OrderModel.query.get(self.order_id)

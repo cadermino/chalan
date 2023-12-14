@@ -144,4 +144,20 @@ export default {
       },
     });
   },
+  getOrderDetails(token) {
+    return axios.get(`${process.env.VUE_APP_API_URL}orders/details`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+  createQuotation(payload) {
+    return axios.post(`${process.env.VUE_APP_API_URL}quotations`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
 };

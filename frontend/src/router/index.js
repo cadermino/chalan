@@ -72,6 +72,14 @@ const routes = [
     component: () => import(/* webpackChunkName: "register-login" */ '../views/RegisterLogin.vue'),
   },
   {
+    path: '/quotation/:token',
+    name: 'quotation',
+    component: () => import(/* webpackChunkName: "quotation" */ '../views/carrier-company/quotation'),
+    props: route => ({
+      token: route.params.token,
+    }),
+  },
+  {
     path: '*',
     name: 'page-not-found',
     component: () => import(/* webpackChunkName: "page-not-found" */ '../views/PageNotFound.vue'),
