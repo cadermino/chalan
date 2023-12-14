@@ -54,6 +54,7 @@ export default new Vuex.Store({
       'register-login': null,
       'carrier-company': null,
       dashboard: null,
+      quotation: null,
     },
     formValidationMessages: {
       from_floor_number: null,
@@ -66,6 +67,7 @@ export default new Vuex.Store({
       to_zip_code: null,
       appointment_date: null,
       payment_method: null,
+      quotation_amount: null,
     },
     loading: false,
   },

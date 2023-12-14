@@ -4,8 +4,9 @@ from flask import jsonify, request, current_app
 from ..models import Customer, Order
 from ..models import Quotations as QuotationsModel
 from . import api
-from .decorators import token_required
+from .decorators import token_required, quotation_token_required
 from .order import Order as OrderEntity
+from .quotation import Quotation as QuotationEntity
 from .email import send_email
 from datetime import date
 
@@ -27,6 +28,17 @@ def update_order(order_id):
     return jsonify({
         'message': 'order {id} updated!'.format(id=order.id),
         'order_id': order.id
+    }), 200
+
+@api.route('/orders/details', methods=['GET'])
+@quotation_token_required
+def order_detail():
+    auth_headers = request.headers.get('Authorization', '').split()
+    data = QuotationEntity.verify_quotation_token(auth_headers[1])
+    order = OrderEntity(data['order_id'])
+    return jsonify({
+        'order': order.details(),
+        'carrier_company_id': data['carrier_company_id'],
     }), 200
 
 @api.route('/order/checkout/<int:order_id>', methods=['PUT'])
