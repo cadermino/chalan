@@ -225,8 +225,9 @@
             </div>
           </div>
           <div class="mb-8" v-else>
-            <div class="flex items-center mb-8">
+            <div class="items-center mb-8">
               <div class="flex
+                mb-8
                 text-sm
                 items-center
                 w-full
@@ -245,8 +246,13 @@
                   cotizaciones que más se ajusten a tu mudanza.
                 </span>
               </div>
+              <div class="md:flex mb-8">
+                <CardSkeleton class="mb-8 md:mb-0"/>
+                <CardSkeleton class="md:ml-8" />
+              </div>
             </div>
           </div>
+
           <div class="flex items-center justify-between">
             <router-link :to="{ name: steps[viewName].previous }" class="bg-green-500
               hover:bg-green-700
@@ -259,8 +265,8 @@
               Atras
             </router-link>
             <button
-              :disabled="loading"
-              :class="loading?'opacity-50 cursor-not-allowed':''"
+              :disabled="loading || !isStepComplete"
+              :class="(loading || !isStepComplete)?'opacity-50 cursor-not-allowed':''"
               type="button"
               class="bg-green-500
               hover:bg-green-700
@@ -284,6 +290,7 @@
 import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
+import CardSkeleton from '@/components/CardSkeleton.vue';
 import chalan from '../../api/chalan';
 
 export default {
@@ -291,6 +298,8 @@ export default {
   data() {
     return {
       viewName: 'step-three',
+      getQuotationsDelayInMilliseconds: 5000,
+      intervalId: null,
       quotationsList: [],
       quotationFields: {
         quotation_id: 'id',
@@ -308,9 +317,14 @@ export default {
   components: {
     Tracker,
     ViewsMessages,
+    CardSkeleton,
   },
   mounted() {
     this.getQuotations();
+    this.getRecurrentQuotations();
+  },
+  beforeDestroy() {
+    clearInterval(this.intervalId);
   },
   props: {
     countryData: Object,
@@ -324,6 +338,10 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    getRecurrentQuotations() {
+      this.intervalId = setInterval(() => this.getQuotations(),
+        this.getQuotationsDelayInMilliseconds);
+    },
     goToCarrierCompanyView(quotation) {
       this.selectQuotation({ quotation, jumpToNextStep: false });
       this.$router.push({
