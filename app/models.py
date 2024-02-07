@@ -69,7 +69,7 @@ class OrderDetails(db.Model):
 	type = db.Column(db.Enum('carry_from','deliver_to'), nullable=False)
 	floor_number = db.Column(db.Integer, nullable=True)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-	street = db.Column(db.String(45), nullable=True)
+	street = db.Column(db.String(200), nullable=True)
 	interior_number = db.Column(db.String(45), nullable=True)
 	country = db.Column(db.String(20), nullable=True)
 	map_url = db.Column(db.String(400), nullable=True)
