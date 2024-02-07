@@ -12,6 +12,7 @@ const stepOne = [
 ];
 const stepTwo = [
   'appointment_date',
+  'comments',
 ];
 const stepThree = [
   'amount',

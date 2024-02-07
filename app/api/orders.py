@@ -6,7 +6,11 @@ from ..models import Quotations as QuotationsModel
 from . import api
 from .decorators import token_required, quotation_token_required
 from .order import Order as OrderEntity
+from .order.steps.addresses import Addresses as AddressesStep
+from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
 from .quotation import Quotation as QuotationEntity
+from .quotation.quotation_status import QuotationStatus
+from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
 from datetime import date
 
@@ -23,6 +27,8 @@ def create_order():
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json
+    send_email_to_carrier_companies(order_data)
+
     order = OrderEntity(order_id)
     order = order.update(order_data=order_data)
     return jsonify({
@@ -168,3 +174,47 @@ def confirm_stripe_payment(order_id):
         return jsonify({
             'message': 'There was a problem processing the payment.'
         }), 400
+
+
+def send_email_to_carrier_companies(order_data):
+    order = order_data["order"]
+    try:
+        order_data['step']
+    except KeyError:
+        return
+    if order_data['step'] != 'step-two':
+        return
+    address_step = AddressesStep(order['order_id'])
+    has_address_step_changed = address_step.has_changed(order)
+
+    belongings_appointment_date_step = BelongingsAppointmentDateStep(order['order_id'])
+    is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
+    has_belongings_appointment_date_step_changed = belongings_appointment_date_step.has_changed(order)
+
+    carrier_companies = CarrierCompanyEntity().get_active_carrier_companies()
+    if is_belongings_appointment_date_step_complete:
+        for carrier_company in carrier_companies:
+            quotation_url = QuotationEntity().generate_quotation_url(
+                order['order_id'],
+                carrier_company['id'],
+                os.getenv('SITE_URL')
+            )
+            quotation = QuotationEntity().get(order['order_id'], carrier_company['id'])
+            if quotation is None or \
+                has_address_step_changed or \
+                has_belongings_appointment_date_step_changed:
+                send_email(
+                    carrier_company['email'],
+                    'Nueva cotización Chalán',
+                    'email/ask_for_quotation',
+                    bcc=[],
+                    quotation_url=quotation_url,
+                    current_year=date.today().year,
+                    site_url=os.getenv('SITE_URL')
+                )
+            if quotation is not None and \
+                (has_address_step_changed or \
+                has_belongings_appointment_date_step_changed):
+                QuotationEntity(quotation.id).update({
+                    'quotation_status_id': QuotationStatus.Cancelled(),
+                })

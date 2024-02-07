@@ -321,7 +321,7 @@ export default {
   },
   mounted() {
     this.getQuotations();
-    this.getRecurrentQuotations();
+    this.getQuotationsInLoop();
   },
   beforeDestroy() {
     clearInterval(this.intervalId);
@@ -338,7 +338,7 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
-    getRecurrentQuotations() {
+    getQuotationsInLoop() {
       this.intervalId = setInterval(() => this.getQuotations(),
         this.getQuotationsDelayInMilliseconds);
     },
@@ -406,6 +406,7 @@ export default {
       };
       chalan.getQuotations(payload)
         .then((response) => {
+          this.unSelectQuotation();
           this.quotationsList = response.data;
           this.quotationsList.forEach((quotation) => {
             if (quotation.selected) {
@@ -433,6 +434,11 @@ export default {
       if (jumpToNextStep) {
         this.nextStep();
       }
+    },
+    unSelectQuotation() {
+      Object.keys(this.quotationFields).forEach((field) => {
+        this.setOrder({ field, value: null });
+      });
     },
   },
   computed: {

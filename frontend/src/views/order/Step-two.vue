@@ -46,7 +46,7 @@
                 text-gray-700
                 text-sm
                 font-bold mb-2" for="address-from-street">
-                    Lista las cosas que vamos a mover
+                    Lista las cosas que vamos a mover <span class="text-red-500">*</span>
               </label>
               <textarea class="appearance-none
                 border rounded
@@ -167,6 +167,7 @@ export default {
         const payload = {
           order: this.currentOrder,
           customer: this.customer,
+          step: this.viewName,
         };
         chalan.updateOrder(payload)
           .then((response) => {
@@ -175,6 +176,7 @@ export default {
             }
           })
           .catch(() => {
+            this.setLoader(false);
             this.setViewsMessages({
               view: this.viewName,
               message: {
