@@ -85,8 +85,14 @@ class Quotations(db.Model):
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	selected = db.Column(db.Boolean, server_default=text('False'))
+	quotation_status_id = db.Column(db.Integer, db.ForeignKey("lu_quotation_status.id"), server_default=text("'1'"), nullable=False)
 
 	carrier_company = db.relationship("CarrierCompany", backref="quotations")
+
+class LuQuotationStatus(db.Model):
+	__tablename__ = 'lu_quotation_status'
+	id = db.Column(db.Integer, primary_key=True)
+	status = db.Column(db.String(45))
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
