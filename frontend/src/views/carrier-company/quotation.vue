@@ -280,7 +280,7 @@
             </div>
           </div>
         </div>
-        <div v-if="amountFromDatabase" class="max-w-3xl mx-auto mt-8 space-y-4">
+        <div v-if="hasQuotation" class="max-w-3xl mx-auto mt-8 space-y-4">
           <p>
             <span class="font-bold
               mr-1">Cotización actual:
@@ -288,7 +288,7 @@
             {{amountFromDatabase}}
           </p>
         </div>
-        <div v-if="!amountFromDatabase" class="max-w-3xl mx-auto mt-8 space-y-4">
+        <div v-if="!hasQuotation" class="max-w-3xl mx-auto mt-8 space-y-4">
           <div class="
             rounded-lg
             flex
@@ -364,8 +364,9 @@ export default {
       viewName: 'quotation',
       orderData: {},
       orderDetails: [],
+      carrierCompanyId: null,
       amount: null,
-      amountFromDatabase: null,
+      quotations: [],
     };
   },
   mounted() {
@@ -400,6 +401,17 @@ export default {
     itemsToMoveList() {
       return this.orderData?.comments;
     },
+    hasQuotation() {
+      return Boolean(this.amountFromDatabase) || false;
+    },
+    amountFromDatabase() {
+      const currentQuotation = this.quotations
+        .filter(quotation => quotation.carrier_company === this.carrierCompanyId);
+      if (currentQuotation.length === 0) {
+        return null;
+      }
+      return currentQuotation[0].amount;
+    },
   },
   methods: {
     ...mapMutations([
@@ -425,8 +437,9 @@ export default {
         .then((response) => {
           if (response.status === 200) {
             this.orderData = response.data.order;
+            this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
-            this.amountFromDatabase = this.orderData.quotations[0]?.amount || null;
+            this.quotations = this.orderData.quotations;
           }
         })
         .catch((error) => {
@@ -465,7 +478,11 @@ export default {
         .createQuotation(payload)
         .then((response) => {
           if (response.status >= 200) {
-            this.amountFromDatabase = response.data.amount;
+            const amountFromDatabase = response.data.amount;
+            this.quotations.push({
+              amount: amountFromDatabase,
+              carrier_company: this.carrierCompanyId,
+            });
           }
         })
         .catch((error) => {

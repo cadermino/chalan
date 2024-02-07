@@ -444,7 +444,7 @@ export default {
         return this.currentOrder.from_floor_number;
       },
       set(value) {
-        this.setOrder({ field: 'from_floor_number', value: String(value) });
+        this.setOrder({ field: 'from_floor_number', value: Number(value) });
       },
     },
     selectedToInteriorNumber: {
@@ -460,7 +460,7 @@ export default {
         return this.currentOrder.to_floor_number;
       },
       set(value) {
-        this.setOrder({ field: 'to_floor_number', value: String(value) });
+        this.setOrder({ field: 'to_floor_number', value: Number(value) });
       },
     },
   },

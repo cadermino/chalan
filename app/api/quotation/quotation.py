@@ -1,6 +1,7 @@
 from flask import jsonify, current_app
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from ...models import Quotations as QuotationsModel
+from .quotation_status import QuotationStatus
 from ... import db
 
 class Quotation:
@@ -18,30 +19,45 @@ class Quotation:
         db.session.commit()
         return quotation
 
+    def update(self, quotationData):
+        quotation = QuotationsModel.query.\
+            filter(QuotationsModel.id == self.quotation_id).\
+            update(quotationData)
+        db.session.commit()
+        return quotation
+
     def get(self, order_id=None, carrier_company_id=None):
         quotation = QuotationsModel.query.\
             filter(QuotationsModel.order_id == order_id).\
-            filter(QuotationsModel.carrier_company_id == carrier_company_id).first()
+            filter(QuotationsModel.carrier_company_id == carrier_company_id).\
+            filter(QuotationsModel.quotation_status_id != QuotationStatus.Cancelled()).first()
 
         return quotation
 
     def listByOrderId(self, order_id):
-        self.quotations = QuotationsModel.query.filter_by(order_id = order_id).all()
+        self.quotations = QuotationsModel.query.\
+            filter(QuotationsModel.order_id == order_id).\
+            filter(QuotationsModel.quotation_status_id != QuotationStatus.Cancelled()).\
+            all()
         return self
 
     def pickQuotation(self, quotation_id=None):
         picked_quotation = QuotationsModel.query.get(self.quotation_id)
         quotations = picked_quotation.order.quotations
         for quotation in quotations:
-            quotation.selected = False
-            db.session.add(quotation)
-        picked_quotation.selected = True
+            if quotation.quotation_status_id == QuotationStatus.Selected():
+                quotation.quotation_status_id = QuotationStatus.Active()
+                db.session.add(quotation)
+        picked_quotation.quotation_status_id = QuotationStatus.Selected()
         db.session.add(picked_quotation)
         db.session.commit()
 
     def generate_quotation_token(self, expiration, order_id, carrier_company_id):
         s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
         return s.dumps({'carrier_company_id': carrier_company_id, 'order_id': order_id}).decode('utf-8')
+
+    def generate_quotation_url(self, order_id, carrier_company_id, site_url):
+        return site_url + 'quotation/' + self.generate_quotation_token(864000, order_id, carrier_company_id)
 
     @staticmethod
     def verify_quotation_token(token):
@@ -57,10 +73,14 @@ class Quotation:
         for quotation in self.quotations:
             carrier_company = quotation.carrier_company
             vehicle = carrier_company.vehicles
+            if quotation.quotation_status_id == QuotationStatus.Selected():
+                selected = True
+            else:
+                selected = False
             output.append({
                 'id': quotation.id,
                 'amount': quotation.amount,
-                'selected': quotation.selected,
+                'selected': selected,
                 'order_id': quotation.order_id,
                 'carrier_company_id': quotation.carrier_company.id,
                 'size': vehicle[0].size,

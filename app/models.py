@@ -188,6 +188,12 @@ class OrderDetailsSchema(ma.ModelSchema):
 class QuotationsSchema(ma.ModelSchema):
 	class Meta:
 		model = Quotations
+		fields = ('id',
+				'amount',
+				'order_id',
+				'carrier_company_id',
+				'quotation_status_id')
+
 
 
 class VehicleSchema(ma.ModelSchema):

@@ -1,5 +1,5 @@
 from ...models import CarrierCompany as CarrierCompanyModel
-from ...models import VehicleSchema
+from ...models import VehicleSchema, CarrierCompanySchema
 
 class CarrierCompany:
 
@@ -42,3 +42,9 @@ class CarrierCompany:
     def get_vehicles(self):
         vehicle_schema = VehicleSchema(many=True)
         return vehicle_schema.dump(self.carrier_company.vehicles)
+
+    @staticmethod
+    def get_active_carrier_companies():
+        carrier_companies = CarrierCompanyModel.query.filter_by(active = True).all()
+        carrier_companies_schema = CarrierCompanySchema(many=True)
+        return carrier_companies_schema.dump(carrier_companies)
