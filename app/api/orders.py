@@ -182,15 +182,12 @@ def send_email_to_carrier_companies(order_data):
         order_data['step']
     except KeyError:
         return
-    if order_data['step'] != 'step-two':
-        return
     address_step = AddressesStep(order['order_id'])
     has_address_step_changed = address_step.has_changed(order)
 
     belongings_appointment_date_step = BelongingsAppointmentDateStep(order['order_id'])
     is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
     has_belongings_appointment_date_step_changed = belongings_appointment_date_step.has_changed(order)
-
     carrier_companies = CarrierCompanyEntity().get_active_carrier_companies()
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
