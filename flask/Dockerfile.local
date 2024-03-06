@@ -4,6 +4,10 @@ COPY ./requirements/ requirements/
 
 RUN apk add --no-cache tzdata
 ENV TZ America/Mexico_City
+RUN apk update && apk add python3-dev \
+                          gcc \
+                          libc-dev \
+                          libffi-dev
 
 RUN pip install -r requirements/dev.txt
 

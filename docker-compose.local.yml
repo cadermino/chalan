@@ -31,11 +31,11 @@ services:
       - 80:8000
     restart: always
   db:
-    image: "mysql/mysql-server:5.7"
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    image: mysql:8.0.35
+    command: mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports:
       - "3307:3306"
     env_file: .env.mysql.dev
     restart: always
     volumes:
-      - ./db:/docker-entrypoint-initdb.d/:ro
+      - ./db:/docker-entrypoint-initdb.d
