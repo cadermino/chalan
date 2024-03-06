@@ -8,10 +8,14 @@ WORKDIR /chalan
 COPY . .
 COPY --from=build-stage /chalan/dist /chalan/frontend/dist
 
-RUN apk add --no-cache tzdata
+RUN apk update && apk add --no-cache tzdata
 ENV TZ America/Mexico_City
+RUN apk add python3-dev \
+                    gcc \
+                    libc-dev \
+                    libffi-dev
 
-RUN apk update && apk add nginx
+RUN apk add nginx
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx.chalan-prod.conf /etc/nginx/conf.d/
