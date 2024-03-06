@@ -8,6 +8,7 @@ WORKDIR /chalan
 COPY . .
 COPY --from=build-stage /chalan/dist /chalan/frontend/dist
 
+RUN pip install --upgrade pip
 RUN apk update && apk add --no-cache tzdata
 ENV TZ America/Lima
 RUN apk add python3-dev \
