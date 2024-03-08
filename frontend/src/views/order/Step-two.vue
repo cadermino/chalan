@@ -167,7 +167,7 @@ export default {
         const payload = {
           order: this.currentOrder,
           customer: this.customer,
-          step: this.viewName,
+          requestQuotationFromCarrierCompany: true,
         };
         chalan.updateOrder(payload)
           .then((response) => {

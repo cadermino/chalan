@@ -132,6 +132,7 @@ class CarrierCompany(db.Model):
 	active = db.Column(db.Integer)
 
 	vehicles = db.relationship("Vehicle", backref="carrier_company")
+	country = db.relationship("LuCountry", backref="carrier_company")
 
 class OrderStatus(db.Model):
 	__tablename__ = 'lu_order_status'

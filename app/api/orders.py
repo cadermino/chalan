@@ -27,13 +27,14 @@ def create_order():
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json
-    send_email_to_carrier_companies(order_data)
+    emails_sent = send_email_to_carrier_companies(order_data)
 
     order = OrderEntity(order_id)
     order = order.update(order_data=order_data)
     return jsonify({
         'message': 'order {id} updated!'.format(id=order.id),
-        'order_id': order.id
+        'order_id': order.id,
+        'emails_sent_by_company_id': emails_sent
     }), 200
 
 @api.route('/orders/details', methods=['GET'])
@@ -177,18 +178,20 @@ def confirm_stripe_payment(order_id):
 
 
 def send_email_to_carrier_companies(order_data):
-    order = order_data["order"]
+    emails_sent = []
     try:
-        order_data['step']
+        order_data['requestQuotationFromCarrierCompany']
     except KeyError:
-        return
+        return emails_sent
+
+    order = order_data["order"]
     address_step = AddressesStep(order['order_id'])
     has_address_step_changed = address_step.has_changed(order)
 
     belongings_appointment_date_step = BelongingsAppointmentDateStep(order['order_id'])
     is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
     has_belongings_appointment_date_step_changed = belongings_appointment_date_step.has_changed(order)
-    carrier_companies = CarrierCompanyEntity().get_active_carrier_companies()
+    carrier_companies = get_carrier_companies(order)
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
             quotation_url = QuotationEntity().generate_quotation_url(
@@ -209,9 +212,23 @@ def send_email_to_carrier_companies(order_data):
                     current_year=date.today().year,
                     site_url=os.getenv('SITE_URL')
                 )
+                emails_sent.append(carrier_company['id'])
             if quotation is not None and \
                 (has_address_step_changed or \
                 has_belongings_appointment_date_step_changed):
                 QuotationEntity(quotation.id).update({
                     'quotation_status_id': QuotationStatus.Cancelled(),
                 })
+    return emails_sent
+
+def get_carrier_companies(order):
+    carrier_company_id = order['carrier_company_id']
+    if carrier_company_id is not None:
+        carrier_company = CarrierCompanyEntity(carrier_company_id)
+        return [{
+            'id': carrier_company.get_id(),
+            'email': carrier_company.get_email()
+        }]
+    carrier_companies = CarrierCompanyEntity().get_active_carrier_companies()
+    filtered = list(filter(lambda carrier: carrier['country'] == int(os.getenv('COUNTRY_ID')), carrier_companies))
+    return filtered

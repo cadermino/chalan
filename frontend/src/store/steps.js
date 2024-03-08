@@ -15,9 +15,7 @@ const stepTwo = [
   'comments',
 ];
 const stepThree = [
-  'amount',
   'quotation_id',
-  'carrier_company_id',
 ];
 const stepFour = [
   'payment_method',
