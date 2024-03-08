@@ -406,7 +406,7 @@ export default {
     },
     amountFromDatabase() {
       const currentQuotation = this.quotations
-        .filter(quotation => quotation.carrier_company === this.carrierCompanyId);
+        .filter(quotation => quotation.carrier_company_id === this.carrierCompanyId);
       if (currentQuotation.length === 0) {
         return null;
       }

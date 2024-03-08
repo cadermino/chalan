@@ -27,7 +27,7 @@
                     text-gray-700
                     text-sm
                     font-bold mb-2" for="address-from-street">
-                        Calle <span class="text-red-500">*</span>
+                        Calle y número <span class="text-red-500">*</span>
                   </label>
                   <input :class="formValidationMessages['from_street']
                   ?'border-red-300':''"
@@ -145,7 +145,7 @@
                       text-gray-700
                       text-sm
                       font-bold mb-2" for="address-to-street">
-                          Calle <span class="text-red-500">*</span>
+                          Calle y número <span class="text-red-500">*</span>
                     </label>
                     <input :class="formValidationMessages['to_street']
                     ?'border-red-300':''"
