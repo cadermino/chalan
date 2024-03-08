@@ -32,13 +32,15 @@
                   <td class="border px-4 py-2">{{ order.customers.name }}</td>
                   <td class="border px-4 py-2">{{ order.customers.mobile_phone }}</td>
                   <td class="border px-4 py-2">{{
-                    order.payments[0].amount.toLocaleString('en-US', {
+                    lastPayment(order.payments).amount.toLocaleString('en-US', {
                       style: 'currency',
                       currency: countryData.currency,
                       maximumSignificantDigits: 5,
                     }) }}
                   </td>
-                  <td class="border px-4 py-2">{{ paymentStatus[order.payments[0].status] }}</td>
+                  <td class="border px-4 py-2">{{ paymentStatus[lastPayment(
+                            order.payments
+                            ).status] }}</td>
                   <td class="border px-4 py-2 text-xs">
                     <router-link :to="{
                         name: 'carrierCompanyOrderDetails',
@@ -92,6 +94,9 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    lastPayment(payments) {
+      return payments[payments.length - 1];
+    },
     getPendingOrders() {
       const payload = {
         token: this.token,

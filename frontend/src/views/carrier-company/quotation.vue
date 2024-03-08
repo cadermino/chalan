@@ -367,6 +367,10 @@ export default {
       carrierCompanyId: null,
       amount: null,
       quotations: [],
+      quotationStatus: {
+        active: 1,
+        cancelled: 3,
+      },
     };
   },
   mounted() {
@@ -406,7 +410,8 @@ export default {
     },
     amountFromDatabase() {
       const currentQuotation = this.quotations
-        .filter(quotation => quotation.carrier_company_id === this.carrierCompanyId);
+        .filter(quotation => quotation.carrier_company_id === this.carrierCompanyId
+          && quotation.quotation_status_id !== this.quotationStatus.cancelled);
       if (currentQuotation.length === 0) {
         return null;
       }
@@ -478,10 +483,10 @@ export default {
         .createQuotation(payload)
         .then((response) => {
           if (response.status >= 200) {
-            const amountFromDatabase = response.data.amount;
             this.quotations.push({
-              amount: amountFromDatabase,
-              carrier_company: this.carrierCompanyId,
+              amount: response.data.amount,
+              carrier_company_id: this.carrierCompanyId,
+              quotation_status_id: response.data.quotation_status_id,
             });
           }
         })

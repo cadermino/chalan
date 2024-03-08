@@ -93,12 +93,11 @@ class Order:
 
         return order
 
-    def get_orders(self, data):
+    def query_orders(self, data):
         query = OrderModel.query
         for attr,value in data.items():
             query = query.filter(getattr(OrderModel, attr) == value)
-        orders = query.all()
-        return OrderSchema(many=True).dump(orders)
+        return query.all()
 
     def create_stripe_payment(self, session_id):
         order = OrderModel.query.get(self.order_id)

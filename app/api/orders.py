@@ -90,40 +90,37 @@ def generate_checkout_session(order_id):
 @api.route('/order/checkout-cash/<int:order_id>', methods=['PUT'])
 @token_required
 def generate_checkout_cash(order_id):
+    site_url = os.getenv('SITE_URL')
     auth_headers = request.headers.get('Authorization', '').split()
     customer = Customer.verify_auth_token(auth_headers[1])
-    last_order = customer.orders.order_by(Order.id.desc()).first()
-    order = OrderEntity(order_id)
-    payment = order.create_cash_payment()
+    order_entity = OrderEntity(order_id)
+    order_model = order_entity.query_orders({'id': order_id})
+    quotation = order_model[0].quotations.filter_by(quotation_status_id = 2).first()
+    carrier_company = quotation.carrier_company
+    payment = order_entity.create_cash_payment()
+    carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
 
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
     bcc = [os.getenv('OPS_MAIL')]
-    site_url = os.getenv('SITE_URL')
+
     if os.getenv('FLASK_ENV') != 'prod':
         subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
         bcc = [os.getenv('ADMIN_MAIL')]
-    current_year = date.today().year
+
     send_email(
-        os.getenv('ADMIN_MAIL'),
+        carrier_company.email,
         subject,
         'email/admin_new_order',
         bcc=bcc,
-        order=last_order,
-        amount=payment.amount,
-        mobile_phone=customer.mobile_phone,
-        customer=customer,
-        payment_type='cash',
-        current_year=current_year
+        carrier_company_orders_url=carrier_company_orders_url,
     )
     send_email(
         customer.email,
-        'Hemos recibido tu solicitud',
+        'Hemos agendado tu mudanza!',
         'email/cash_payment_selected',
         bcc=[],
         customer_name=customer.name,
         mobile_phone=customer.mobile_phone,
-        current_year=current_year,
-        site_url=site_url
     )
 
     return jsonify({
@@ -159,7 +156,6 @@ def confirm_stripe_payment(order_id):
                 mobile_phone=customer.mobile_phone,
                 customer=customer,
                 payment_type='card',
-                current_year=current_year
             )
             send_email(
                 customer.email, 'Tu pago ha sido procesado correctamente',
@@ -167,7 +163,6 @@ def confirm_stripe_payment(order_id):
                 bcc=[],
                 customer_name=customer.name,
                 mobile_phone=customer.mobile_phone,
-                current_year=current_year
             )
             return jsonify({
                 'payment': payment.status,
@@ -210,8 +205,6 @@ def send_email_to_carrier_companies(order_data):
                     'email/ask_for_quotation',
                     bcc=[],
                     quotation_url=quotation_url,
-                    current_year=date.today().year,
-                    site_url=os.getenv('SITE_URL')
                 )
                 emails_sent.append(carrier_company['id'])
             if quotation is not None and \

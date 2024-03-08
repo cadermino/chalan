@@ -30,7 +30,6 @@ def register():
             'email/user_registered',
             bcc='',
             customer=customer,
-            current_year=current_year
         )
     except exc.IntegrityError:
         db.session.rollback()
