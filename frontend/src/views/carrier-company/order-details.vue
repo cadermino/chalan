@@ -280,7 +280,7 @@
             </div>
           </div>
         </div>
-        <div v-if="hasQuotation" class="max-w-3xl mx-auto mt-8 space-y-4">
+        <div class="max-w-3xl mx-auto mt-8 space-y-4">
           <p>
             <span class="font-bold
               mr-1">Cotización actual:
@@ -324,7 +324,7 @@ export default {
       orderDetails: [],
       carrierCompanyId: null,
       amount: null,
-      quotations: [],
+      payments: [],
     };
   },
   mounted() {
@@ -359,16 +359,8 @@ export default {
     itemsToMoveList() {
       return this.orderData?.comments;
     },
-    hasQuotation() {
-      return Boolean(this.amountFromDatabase) || false;
-    },
     amountFromDatabase() {
-      const currentQuotation = this.quotations
-        .filter(quotation => quotation.carrier_company_id === this.carrierCompanyId);
-      if (currentQuotation.length === 0) {
-        return null;
-      }
-      return currentQuotation[0].amount;
+      return this.payments[0].amount;
     },
   },
   methods: {
@@ -404,7 +396,7 @@ export default {
             this.orderData = response.data.order;
             this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
-            this.quotations = this.orderData.quotations;
+            this.payments = this.orderData.payments;
           }
         })
         .catch((error) => {

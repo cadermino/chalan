@@ -68,3 +68,8 @@ class CarrierCompany:
         except:
             return None
         return data
+
+    def generate_orders_url(self, order_id, site_url):
+        return site_url +\
+            'carrier-company/orders/' +\
+            self.generate_carrier_company_token(864000, order_id, self.id)

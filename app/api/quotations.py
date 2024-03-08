@@ -31,8 +31,9 @@ def create_quotation():
     token_data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
+    amount = int(quotation_data['amount']) + (int(quotation_data['amount']) * 0.05)
     data = {
-        'amount': quotation_data['amount'],
+        'amount': amount,
         'order_id': order_id,
         'carrier_company_id': carrier_company_id,
     }
@@ -42,11 +43,13 @@ def create_quotation():
         return jsonify({
             'message': 'quotation {id} created!'.format(id=quotation.id),
             'quotation_id': quotation.id,
-            'amount': quotation.amount
+            'amount': quotation.amount,
+            'quotation_status_id': quotation.quotation_status_id,
         }), 201
 
     return jsonify({
         'message': 'quotation {id} found!'.format(id=previous_quotation.id),
         'quotation_id': previous_quotation.id,
-        'amount': previous_quotation.amount
+        'amount': previous_quotation.amount,
+        'quotation_status_id': previous_quotation.quotation_status_id,
     }), 200
