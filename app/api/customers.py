@@ -1,7 +1,8 @@
 from flask import jsonify, request
-from ..models import Customer, Order, Payment, Quotations
 from . import api
+from .quotation.quotation_status import QuotationStatus
 from .decorators import token_required
+from ..models import Customer, Order, Payment, Quotations
 from .. import db
 
 @api.route('/customer/<int:customer_id>', methods=['PATCH'])
@@ -27,7 +28,7 @@ def update_customer(customer_id):
 def customer_orders(customer_id):
     order = Order.query.\
         filter_by(customer_id = customer_id).order_by(Order.id.desc()).first()
-    quotation = order.quotations.filter(Quotations.selected == 1).first()
+    quotation = order.quotations.filter(Quotations.quotation_status_id == QuotationStatus.Selected()).first()
     if order is None:
         return jsonify([]), 200
     try:

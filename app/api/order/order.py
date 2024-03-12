@@ -1,10 +1,11 @@
 import os
+from ..quotation.quotation_status import QuotationStatus
 from ... import db
 from ...models import OrderDetails
 from ...models import Order as OrderModel
 from ...models import Payment as PaymentModel
 from ...models import Quotations as QuotationsModel
-from ...models import OrderSchema, OrderDetailsSchema, QuotationsSchema
+from ...models import OrderSchema, OrderDetailsSchema, QuotationsSchema, CustomerSchema, PaymentSchema
 
 class Order:
 
@@ -47,16 +48,16 @@ class Order:
     def details(self):
         order = OrderModel.query.get(self.order_id)
 
-        order_schema = OrderSchema()
-        order_details_schema = OrderDetailsSchema(many=True)
-        quotations_schema = QuotationsSchema(many=True)
-
-        order_details_data = order_details_schema.dump(order.order_details)
-        quotations_data = quotations_schema.dump(order.quotations)
-        order_data = order_schema.dump(order)
+        order_data = OrderSchema().dump(order)
+        order_details_data = OrderDetailsSchema(many=True).dump(order.order_details)
+        quotations_data = QuotationsSchema(many=True).dump(order.quotations)
+        customer_data = CustomerSchema().dump(order.customers)
+        payment_data = PaymentSchema(many=True).dump(order.payments)
 
         order_data['order_details'] = order_details_data
         order_data['quotations'] = quotations_data
+        order_data['customers'] = customer_data
+        order_data['payments'] = payment_data
         return order_data
 
     def update(self, order_data):
@@ -65,6 +66,7 @@ class Order:
         order.customer_id = order_data['customer']['customer_id']
         order.appointment_date = order_data['order']['appointment_date']
         order.comments = order_data['order']['comments']
+        order.order_status_id = order_data['order']['order_status_id']
         db.session.add(order)
         db.session.commit()
 
@@ -91,6 +93,13 @@ class Order:
 
         return order
 
+    def get_orders(self, data):
+        query = OrderModel.query
+        for attr,value in data.items():
+            query = query.filter(getattr(OrderModel, attr) == value)
+        orders = query.all()
+        return OrderSchema(many=True).dump(orders)
+
     def create_stripe_payment(self, session_id):
         order = OrderModel.query.get(self.order_id)
         payment = PaymentModel(
@@ -108,7 +117,8 @@ class Order:
 
     def create_cash_payment(self):
         order = OrderModel.query.get(self.order_id)
-        quotation = order.quotations.filter(QuotationsModel.selected == 1).first()
+        quotation = order.quotations.filter(QuotationsModel.quotation_status_id\
+                                            == QuotationStatus.Selected()).first()
         payment = PaymentModel(
             order_id = self.order_id,
             amount = quotation.amount,

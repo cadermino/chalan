@@ -309,6 +309,10 @@ export default {
       isMobilePhoneFieldActive: false,
       publishableKey: process.env.VUE_APP_STRIPE,
       sessionId: null,
+      orderStatusId: {
+        pending: 1,
+        'in progress': 2,
+      },
     };
   },
   components: {
@@ -434,6 +438,7 @@ export default {
             chalan.updateCustomerProfile(customerPayload)
               .then((res) => {
                 if (res.status === 204) {
+                  this.setOrder({ field: 'order_status_id', value: this.orderStatusId['in progress'] });
                   const orderPayload = {
                     order: this.currentOrder,
                     customer: this.customer,

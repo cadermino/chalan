@@ -21,6 +21,7 @@ export default new Vuex.Store({
     currentOrder: {
       created_date: null,
       order_id: null,
+      order_status_id: null,
       quotation_id: null,
       country_id: null,
       from_street: null,

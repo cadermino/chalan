@@ -1,8 +1,9 @@
 from flask import jsonify, request
 from . import api
 from .quotation import Quotation as QuotationEntity
+from .decorators import token_required, carrier_company_token_required
+from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from ..models import Customer
-from .decorators import token_required, quotation_token_required
 
 @api.route('/quotations/<int:order_id>', methods=['GET'])
 @token_required
@@ -23,11 +24,11 @@ def pick_quotation(quotation_id):
     }), 200
 
 @api.route('/quotations', methods=['POST'])
-@quotation_token_required
+@carrier_company_token_required
 def create_quotation():
     quotation_data = request.json
     auth_headers = request.headers.get('Authorization', '').split()
-    token_data = QuotationEntity.verify_quotation_token(auth_headers[1])
+    token_data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
     data = {

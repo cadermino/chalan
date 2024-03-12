@@ -290,6 +290,10 @@ export default {
       selectedFromStreet: '',
       selectedToStreet: '',
       placesApiKey: process.env.VUE_APP_PLACES_API_KEY,
+      orderStatusId: {
+        pending: 1,
+        'in progress': 2,
+      },
     };
   },
   components: {
@@ -379,6 +383,7 @@ export default {
             .then((response) => {
               if (response.status === 201) {
                 this.setOrder({ field: 'order_id', value: response.data.order_id });
+                this.setOrder({ field: 'order_status_id', value: this.orderStatusId.pending });
                 this.$router.push({ name: this.steps[this.viewName].next });
               }
             })
