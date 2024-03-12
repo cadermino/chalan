@@ -160,4 +160,12 @@ export default {
       },
     });
   },
+  getOrdersByCarrierCompany(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}carrier-company/orders`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
 };

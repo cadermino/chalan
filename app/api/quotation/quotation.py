@@ -1,7 +1,7 @@
-from flask import jsonify, current_app
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from ...models import Quotations as QuotationsModel
+from flask import jsonify
 from .quotation_status import QuotationStatus
+from ..carrier_company import CarrierCompany as CarrierCompanyEntity
+from ...models import Quotations as QuotationsModel
 from ... import db
 
 class Quotation:
@@ -52,21 +52,8 @@ class Quotation:
         db.session.add(picked_quotation)
         db.session.commit()
 
-    def generate_quotation_token(self, expiration, order_id, carrier_company_id):
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'carrier_company_id': carrier_company_id, 'order_id': order_id}).decode('utf-8')
-
     def generate_quotation_url(self, order_id, carrier_company_id, site_url):
-        return site_url + 'quotation/' + self.generate_quotation_token(864000, order_id, carrier_company_id)
-
-    @staticmethod
-    def verify_quotation_token(token):
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            data = s.loads(token)
-        except:
-            return None
-        return data
+        return site_url + 'quotation/' + CarrierCompanyEntity().generate_carrier_company_token(864000, order_id, carrier_company_id)
 
     def toJson(self):
         output = []

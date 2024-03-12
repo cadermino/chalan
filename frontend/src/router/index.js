@@ -16,6 +16,24 @@ const routes = [
     },
   },
   {
+    path: '/carrier-company/orders/:token',
+    name: 'ordersByCarrierCompany',
+    component: () => import(/* webpackChunkName: "orders" */ '../views/carrier-company/orders'),
+    props: route => ({
+      token: route.params.token,
+      countryData: countryData[country].dashboard,
+    }),
+  },
+  {
+    path: '/carrier-company/order/:token',
+    name: 'carrierCompanyOrderDetails',
+    component: () => import(/* webpackChunkName: "order-details" */ '../views/carrier-company/order-details'),
+    props: route => ({
+      token: route.params.token,
+      countryData: countryData[country].dashboard,
+    }),
+  },
+  {
     path: '/carrier-company/:id',
     name: 'carrier-company',
     component: () => import(/* webpackChunkName: "carrier-company" */ '../views/carrier-company'),

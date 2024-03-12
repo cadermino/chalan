@@ -1,5 +1,7 @@
 from ...models import CarrierCompany as CarrierCompanyModel
-from ...models import VehicleSchema, CarrierCompanySchema
+from ...models import VehicleSchema
+from flask import jsonify, current_app
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
 class CarrierCompany:
 
@@ -47,7 +49,22 @@ class CarrierCompany:
         return vehicle_schema.dump(self.carrier_company.vehicles)
 
     @staticmethod
-    def get_active_carrier_companies():
-        carrier_companies = CarrierCompanyModel.query.filter_by(active = True).all()
-        carrier_companies_schema = CarrierCompanySchema(many=True)
-        return carrier_companies_schema.dump(carrier_companies)
+    def get(data):
+        query = CarrierCompanyModel.query
+        for attr, value in data.items():
+            query = query.filter(getattr(CarrierCompanyModel, attr) == value)
+        carrier_companies = query.all()
+        return carrier_companies
+
+    def generate_carrier_company_token(self, expiration, order_id, carrier_company_id):
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'carrier_company_id': carrier_company_id, 'order_id': order_id}).decode('utf-8')
+
+    @staticmethod
+    def verify_carrier_company_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return data

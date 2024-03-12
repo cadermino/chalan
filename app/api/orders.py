@@ -3,8 +3,9 @@ import stripe
 from flask import jsonify, request, current_app
 from ..models import Customer, Order
 from ..models import Quotations as QuotationsModel
+from ..models import CarrierCompanySchema
 from . import api
-from .decorators import token_required, quotation_token_required
+from .decorators import token_required, carrier_company_token_required
 from .order import Order as OrderEntity
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
@@ -38,10 +39,10 @@ def update_order(order_id):
     }), 200
 
 @api.route('/orders/details', methods=['GET'])
-@quotation_token_required
+@carrier_company_token_required
 def order_detail():
     auth_headers = request.headers.get('Authorization', '').split()
-    data = QuotationEntity.verify_quotation_token(auth_headers[1])
+    data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order = OrderEntity(data['order_id'])
     return jsonify({
         'order': order.details(),
@@ -229,6 +230,8 @@ def get_carrier_companies(order):
             'id': carrier_company.get_id(),
             'email': carrier_company.get_email()
         }]
-    carrier_companies = CarrierCompanyEntity().get_active_carrier_companies()
-    filtered = list(filter(lambda carrier: carrier['country'] == int(os.getenv('COUNTRY_ID')), carrier_companies))
-    return filtered
+    carrier_companies = CarrierCompanyEntity.get({
+        'country_id': int(os.getenv('COUNTRY_ID')),
+        'active': True
+    })
+    return CarrierCompanySchema(many=True).dump(carrier_companies)

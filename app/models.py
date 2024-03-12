@@ -139,6 +139,7 @@ class OrderStatus(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	status = db.Column(db.String(45))
 
+	order = db.relationship("Order", backref="lu_order_status")
 
 class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'
@@ -176,6 +177,16 @@ class LuCountry(db.Model):
 class CustomerSchema(ma.ModelSchema):
 	class Meta:
 		model = Customer
+		fields = (
+			'id',
+			'name',
+			'paternal_last_name',
+			'maternal_last_name',
+			'email',
+			'mobile_phone',
+			'phone',
+			'created_date',
+		)
 
 
 class OrderSchema(ma.ModelSchema):
@@ -211,3 +222,7 @@ class VehicleSchema(ma.ModelSchema):
 class CarrierCompanySchema(ma.ModelSchema):
 	class Meta:
 		model = CarrierCompany
+
+class PaymentSchema(ma.ModelSchema):
+	class Meta:
+		model = Payment
