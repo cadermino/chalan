@@ -26,7 +26,7 @@
                   rounded-t
                   text-center
                   overflow-hidden"
-                  :src="require(`@/assets/${quotation.picture}`)"
+                  :src="quotation.picture"
                   alt="Sunset in the mountains">
                 <div class="w-full border-r
                   border-b
