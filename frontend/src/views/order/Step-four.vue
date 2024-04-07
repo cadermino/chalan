@@ -51,7 +51,7 @@
                           overflow-hidden"
                           style="background-image: url('/img/card-left.jpg')"
                           :style="{ backgroundImage:
-                            'url(' + require(`@/assets/${currentOrder.vehicle_picture}`) + ')'}">
+                            'url(' + `${currentOrder.vehicle_picture}` + ')'}">
                           </div>
                           <div class="border-r
                           border-b
