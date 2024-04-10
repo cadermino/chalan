@@ -6,6 +6,31 @@ from . import db, ma
 from sqlalchemy import func, text
 
 db.metadata.clear()
+class CalculatedDistance(db.Model):
+	__tablename__ = 'calculated_distance'
+	id = db.Column(db.Integer, primary_key=True)
+	address_origin = db.Column(db.String(200))
+	address_destination = db.Column(db.String(200))
+	kilometers = db.Column(db.Integer)
+
+class CarrierCompany(db.Model):
+	__tablename__ = 'carrier_company'
+	id = db.Column(db.Integer, primary_key=True)
+	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
+	name = db.Column(db.String(45))
+	description = db.Column(db.String(2000))
+	rfc = db.Column(db.String(12))
+	email = db.Column(db.String(45))
+	phone = db.Column(db.String(45))
+	address = db.Column(db.String(200))
+	cover_image = db.Column(db.String(200))
+	facebook = db.Column(db.String(200))
+	youtube = db.Column(db.String(200))
+	active = db.Column(db.Integer)
+
+	vehicles = db.relationship("Vehicle", backref="carrier_company")
+	country = db.relationship("LuCountry", backref="carrier_company")
+
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
@@ -47,6 +72,22 @@ class Customer(db.Model):
 
 	orders = db.relationship("Order", backref="customers", lazy='dynamic')
 
+class LuCountry(db.Model):
+	__tablename__ = 'lu_country'
+	id = db.Column(db.Integer, primary_key=True, nullable=False)
+	country = db.Column(db.String(40), nullable=False)
+
+class LuQuotationStatus(db.Model):
+	__tablename__ = 'lu_quotation_status'
+	id = db.Column(db.Integer, primary_key=True)
+	status = db.Column(db.String(45))
+
+class LuServices(db.Model):
+	__tablename__ = 'lu_services'
+	id = db.Column(db.Integer, primary_key=True)
+	service = db.Column(db.String(50))
+	description = db.Column(db.String(200))
+
 class Order(db.Model):
 	__tablename__ = 'orders'
 	id = db.Column(db.Integer, primary_key=True)
@@ -77,6 +118,40 @@ class OrderDetails(db.Model):
 	city = db.Column(db.String(45), nullable=True)
 	state = db.Column(db.String(45), nullable=True)
 	zip_code = db.Column(db.String(45), nullable=True)
+	has_elevator = db.Column(db.Integer, server_default=text("'0'"))
+	approximate_distance_from_parking = db.Column(db.Integer, nullable=True)
+
+class OrdersServices(db.Model):
+	__tablename__ = 'orders_services'
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	service_id = db.Column(db.Integer, db.ForeignKey('lu_services.id'), nullable=False)
+
+class OrderStatus(db.Model):
+	__tablename__ = 'lu_order_status'
+	id = db.Column(db.Integer, primary_key=True)
+	status = db.Column(db.String(45))
+
+	order = db.relationship("Order", backref="lu_order_status")
+
+class Payment(db.Model):
+	__tablename__ = 'payments'
+	id = db.Column(db.Integer, primary_key=True)
+	amount = db.Column(db.Float)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
+	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False, server_default=text("'pending'"))
+	reference = db.Column(db.String(100), comment='Stripe session id')
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	comments = db.Column(db.String(500))
+	active = db.Column(db.Integer)
+
+class PaymentType(db.Model):
+	__tablename__ = 'lu_payment_type'
+	id = db.Column(db.Integer, primary_key=True)
+	type = db.Column(db.String(45))
+
+	payment = db.relationship("Payment", backref="lu_payment_type")
 
 class Quotations(db.Model):
 	__tablename__ = 'quotations'
@@ -88,11 +163,6 @@ class Quotations(db.Model):
 	quotation_status_id = db.Column(db.Integer, db.ForeignKey("lu_quotation_status.id"), server_default=text("'1'"), nullable=False)
 
 	carrier_company = db.relationship("CarrierCompany", backref="quotations")
-
-class LuQuotationStatus(db.Model):
-	__tablename__ = 'lu_quotation_status'
-	id = db.Column(db.Integer, primary_key=True)
-	status = db.Column(db.String(45))
 
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
@@ -116,63 +186,6 @@ class Vehicle(db.Model):
 	base_address = db.Column(db.String(200))
 	active = db.Column(db.Integer, server_default=text("'0'"))
 
-class CarrierCompany(db.Model):
-	__tablename__ = 'carrier_company'
-	id = db.Column(db.Integer, primary_key=True)
-	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
-	name = db.Column(db.String(45))
-	description = db.Column(db.String(2000))
-	rfc = db.Column(db.String(12))
-	email = db.Column(db.String(45))
-	phone = db.Column(db.String(45))
-	address = db.Column(db.String(200))
-	cover_image = db.Column(db.String(200))
-	facebook = db.Column(db.String(200))
-	youtube = db.Column(db.String(200))
-	active = db.Column(db.Integer)
-
-	vehicles = db.relationship("Vehicle", backref="carrier_company")
-	country = db.relationship("LuCountry", backref="carrier_company")
-
-class OrderStatus(db.Model):
-	__tablename__ = 'lu_order_status'
-	id = db.Column(db.Integer, primary_key=True)
-	status = db.Column(db.String(45))
-
-	order = db.relationship("Order", backref="lu_order_status")
-
-class PaymentType(db.Model):
-	__tablename__ = 'lu_payment_type'
-	id = db.Column(db.Integer, primary_key=True)
-	type = db.Column(db.String(45))
-
-	payment = db.relationship("Payment", backref="lu_payment_type")
-
-
-class Payment(db.Model):
-	__tablename__ = 'payments'
-	id = db.Column(db.Integer, primary_key=True)
-	amount = db.Column(db.Float)
-	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
-	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False, server_default=text("'pending'"))
-	reference = db.Column(db.String(100), comment='Stripe session id')
-	created_date = db.Column(db.DateTime(), server_default=func.now())
-	comments = db.Column(db.String(500))
-	active = db.Column(db.Integer)
-
-
-class CalculatedDistance(db.Model):
-	__tablename__ = 'calculated_distance'
-	id = db.Column(db.Integer, primary_key=True)
-	address_origin = db.Column(db.String(200))
-	address_destination = db.Column(db.String(200))
-	kilometers = db.Column(db.Integer)
-
-class LuCountry(db.Model):
-	__tablename__ = 'lu_country'
-	id = db.Column(db.Integer, primary_key=True, nullable=False)
-	country = db.Column(db.String(40), nullable=False)
 
 class CustomerSchema(ma.ModelSchema):
 	class Meta:
@@ -188,6 +201,9 @@ class CustomerSchema(ma.ModelSchema):
 			'created_date',
 		)
 
+class CarrierCompanySchema(ma.ModelSchema):
+	class Meta:
+		model = CarrierCompany
 
 class OrderSchema(ma.ModelSchema):
 	class Meta:
@@ -196,6 +212,14 @@ class OrderSchema(ma.ModelSchema):
 class OrderDetailsSchema(ma.ModelSchema):
 	class Meta:
 		model = OrderDetails
+
+class OrdersServicesSchema(ma.ModelSchema):
+	class Meta:
+		model = OrdersServices
+
+class PaymentSchema(ma.ModelSchema):
+	class Meta:
+		model = Payment
 
 class QuotationsSchema(ma.ModelSchema):
 	class Meta:
@@ -206,8 +230,6 @@ class QuotationsSchema(ma.ModelSchema):
 				'carrier_company_id',
 				'quotation_status_id')
 
-
-
 class VehicleSchema(ma.ModelSchema):
 	class Meta:
 		model = Vehicle
@@ -217,12 +239,3 @@ class VehicleSchema(ma.ModelSchema):
 				'picture',
 				'plates',
 				'active')
-
-
-class CarrierCompanySchema(ma.ModelSchema):
-	class Meta:
-		model = CarrierCompany
-
-class PaymentSchema(ma.ModelSchema):
-	class Meta:
-		model = Payment
