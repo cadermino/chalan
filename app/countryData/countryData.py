@@ -4,8 +4,8 @@ class CountryData:
 
     def __init__(self, country=None):
         self.country = country
-        self.email_peru = "carlos_calderon@chalan.pe"
-        self.email_mexico = "carlos_calderon@chalan.mx"
+        self.email_peru = "carlos.calderon@chalan.pe"
+        self.email_mexico = "carlos.calderon@chalan.mx"
         self.phone_peru = "972 643 007"
         self.phone_mexico = "56 2145-8596"
         self.mexico_phone_prefix = "52"
