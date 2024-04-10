@@ -1,3 +1,4 @@
+import os
 from flask import jsonify, request
 from . import api
 from .quotation import Quotation as QuotationEntity
@@ -31,7 +32,8 @@ def create_quotation():
     token_data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
-    amount = int(quotation_data['amount']) + (int(quotation_data['amount']) * 0.05)
+    platform_fee = float(os.getenv('PLATFORM_FEE'))
+    amount = float(quotation_data['amount']) + (float(quotation_data['amount']) * platform_fee)
     data = {
         'amount': amount,
         'order_id': order_id,

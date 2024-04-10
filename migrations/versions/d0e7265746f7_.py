@@ -45,7 +45,7 @@ def upgrade():
                     'id': 1,
                     'name': 'José Pablo Salgado Hernandez',
                     'rfc': 'test',
-                    'email': 'carlos_calderon@chalan.pe',
+                    'email': 'carlos.calderon@chalan.pe',
                     'address': 'Calle Lago Texcoco Manzana 7 Lote 379 Colonia Ejido de Guadalupe 54745 Cuautitlan Izcalli México',
                     'active': 1,
                     'country_id': 1,
