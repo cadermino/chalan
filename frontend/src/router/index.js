@@ -21,7 +21,7 @@ const routes = [
     component: () => import(/* webpackChunkName: "orders" */ '../views/carrier-company/orders'),
     props: route => ({
       token: route.params.token,
-      countryData: countryData[country].dashboard,
+      countryData: countryData[country].general,
     }),
   },
   {
@@ -30,7 +30,7 @@ const routes = [
     component: () => import(/* webpackChunkName: "order-details" */ '../views/carrier-company/order-details'),
     props: route => ({
       token: route.params.token,
-      countryData: countryData[country].dashboard,
+      countryData: countryData[country].general,
     }),
   },
   {
@@ -95,6 +95,7 @@ const routes = [
     component: () => import(/* webpackChunkName: "quotation" */ '../views/carrier-company/quotation'),
     props: route => ({
       token: route.params.token,
+      countryData: countryData[country].general,
     }),
   },
   {
@@ -119,6 +120,9 @@ function hasQueryParams(route) {
 
 router.beforeEach((to, from, next) => {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
+  store.dispatch('getDataFromLocalStorage', 'orderDetailsOrigin');
+  store.dispatch('getDataFromLocalStorage', 'orderDetailsDestination');
+  store.dispatch('getDataFromLocalStorage', 'services');
   store.dispatch('getDataFromLocalStorage', 'customer');
   store.commit('setNowDate');
   let queryParams;

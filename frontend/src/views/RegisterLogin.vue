@@ -65,6 +65,9 @@ export default {
       if (this.currentOrder.order_id) {
         const payload = {
           order: this.currentOrder,
+          orderDetailsOrigin: this.orderDetailsOrigin,
+          orderDetailsDestination: this.orderDetailsDestination,
+          services: this.services,
           customer: this.customer,
           requestQuotationFromCarrierCompany: true,
         };
@@ -74,6 +77,9 @@ export default {
               this.setLoader(false);
               this.addDataToLocalStorage([
                 'currentOrder',
+                'orderDetailsOrigin',
+                'orderDetailsDestination',
+                'services',
                 'customer',
               ]);
               this.$router.push(this.redirect);
@@ -92,6 +98,9 @@ export default {
       } else {
         this.addDataToLocalStorage([
           'currentOrder',
+          'orderDetailsOrigin',
+          'orderDetailsDestination',
+          'services',
           'customer',
         ]);
         this.$router.push(this.redirect);
@@ -102,6 +111,9 @@ export default {
     ...mapState([
       'currentOrder',
       'customer',
+      'orderDetailsDestination',
+      'orderDetailsOrigin',
+      'services',
       'viewsMessages',
     ]),
     ...mapGetters([

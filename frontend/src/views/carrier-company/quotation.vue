@@ -12,7 +12,7 @@
               sm:text-2xl
               lg:text-2xl"
           >
-            Cotización orden número {{orderData.id}}
+            Cotización orden {{orderData.id}}
           </h2>
         </div>
         <div class="max-w-3xl mx-auto mt-8 space-y-4 md:mt-16">
@@ -67,6 +67,23 @@
                   mr-1">Fecha de mudanza: </span>
                 {{ orderData.appointment_date |
                           moment("dddd D MMMM YYYY - h:mm A") }}
+              </p>
+              <p v-if="distanceBetweenAddress">
+                <span class="font-bold
+                  mr-1">Distancia entre las dos direcciones: </span>
+                <a :href="distanceBetweenAddress"
+                  class="underline"
+                  target="_blank">Link a la dirección</a>
+              </p>
+              <p>
+                <span class="font-bold
+                  mr-1">Servicio de embalaje: </span>
+                {{ packagingService }}
+              </p>
+              <p>
+                <span class="font-bold
+                  mr-1">Requiere cargadores: </span>
+                {{ cargoService }}
               </p>
             </div>
           </div>
@@ -133,20 +150,15 @@
                   mr-1">Piso: </span>
                 {{fromAddress.floor_number}}
               </p>
-              <!-- <p>
-                <span class="font-bold
-                  mr-1">Elevador: </span>
-                Sí
-              </p> -->
-              <!-- <p>
-                <span class="font-bold
-                  mr-1">Distancia del estacionamiento a la puerta: </span>
-                10mts.
-              </p> -->
               <p>
                 <span class="font-bold
-                  mr-1">Servicio de empacado: </span>
-                Sí
+                  mr-1">Elevador: </span>
+                {{ fromAddress.has_elevator === 1 ? 'Sí' : 'No' }}
+              </p>
+              <p>
+                <span class="font-bold
+                  mr-1">Distancia del estacionamiento a la puerta: </span>
+                {{ fromAddress.approximate_distance_from_parking }} mts.
               </p>
             </div>
           </div>
@@ -212,20 +224,15 @@
                   mr-1">Piso: </span>
                 {{toAddress.floor_number}}
               </p>
-              <!-- <p>
-                <span class="font-bold
-                  mr-1">Elevador: </span>
-                No
-              </p> -->
-              <!-- <p>
-                <span class="font-bold
-                  mr-1">Distancia del estacionamiento a la puerta: </span>
-                2mts.
-              </p> -->
               <p>
                 <span class="font-bold
-                  mr-1">Servicio de empacado: </span>
-                Sí
+                  mr-1">Elevador: </span>
+                {{ toAddress.has_elevator === 1 ? 'Sí' : 'No' }}
+              </p>
+              <p>
+                <span class="font-bold
+                  mr-1">Distancia del estacionamiento a la puerta: </span>
+                {{ toAddress.approximate_distance_from_parking }} mts.
               </p>
             </div>
           </div>
@@ -285,7 +292,12 @@
             <span class="font-bold
               mr-1">Cotización actual:
             </span>
-            {{amountFromDatabase}}
+            {{
+              amountFromDatabase.toLocaleString('en-US', {
+                style: 'currency',
+                currency: countryData.currency,
+                maximumSignificantDigits: 5,
+              }) }}
           </p>
         </div>
         <div v-if="!hasQuotation" class="max-w-3xl mx-auto mt-8 space-y-4">
@@ -358,6 +370,7 @@ export default {
   name: 'quotation',
   props: {
     token: String,
+    countryData: Object,
   },
   data() {
     return {
@@ -367,10 +380,12 @@ export default {
       carrierCompanyId: null,
       amount: null,
       quotations: [],
+      services: [],
       quotationStatus: {
         active: 1,
         cancelled: 3,
       },
+      googleDistanceUrl: process.env.VUE_APP_GOOGLE_DISTANCE_URL,
     };
   },
   mounted() {
@@ -383,6 +398,8 @@ export default {
   computed: {
     ...mapState([
       'formValidationMessages',
+      'orderDetailsOrigin',
+      'orderDetailsDestination',
     ]),
     fromAddress() {
       let carryFrom;
@@ -417,6 +434,23 @@ export default {
       }
       return currentQuotation[0].amount;
     },
+    packagingService() {
+      return this.services.filter(item => item.name === 'packaging').length === 0 ? 'No' : 'Sí';
+    },
+    cargoService() {
+      return this.services.filter(item => item.name === 'cargo').length === 0 ? 'No' : 'Sí';
+    },
+    distanceBetweenAddress() {
+      let fromParams = '';
+      let toParams = '';
+      if (this.fromAddress) {
+        fromParams = this.cleanMapQueryStrings(this.fromAddress.map_url);
+      }
+      if (this.toAddress) {
+        toParams = this.cleanMapQueryStrings(this.toAddress.map_url);
+      }
+      return `${this.googleDistanceUrl}${fromParams}/${toParams}`;
+    },
   },
   methods: {
     ...mapMutations([
@@ -424,6 +458,11 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    cleanMapQueryStrings(url) {
+      const parsedUrl = new URL(url);
+      const params = new URLSearchParams(parsedUrl.search);
+      return params.get('q');
+    },
     accordionButton(contentTagElementId, arrowTagElementId) {
       const content = document.getElementById(contentTagElementId);
       const arrow = document.getElementById(arrowTagElementId);
@@ -445,6 +484,7 @@ export default {
             this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
             this.quotations = this.orderData.quotations;
+            this.services = this.orderData.services;
           }
         })
         .catch((error) => {

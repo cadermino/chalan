@@ -7,6 +7,7 @@ export default {
   peru: {
     general: {
       phone: '51972643007',
+      currency: 'PEN',
     },
     'step-one': {
       fromStreetPlaceholder: 'Ejem: Calle Londres 198 Perú',
@@ -30,6 +31,7 @@ export default {
   mexico: {
     general: {
       phone: '525621458596',
+      currency: 'MXN',
     },
     'step-one': {
       fromStreetPlaceholder: 'Ejem: Calle Londres 198 México',

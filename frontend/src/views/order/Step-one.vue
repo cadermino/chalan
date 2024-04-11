@@ -15,8 +15,7 @@
               Dirección de donde vamos a recoger tus cosas
             </p>
             <div class="flex flex-wrap">
-              <div class="
-                flex
+              <div class="flex
                 flex-wrap
                 content-start
                 -mx-3
@@ -118,6 +117,66 @@
                   class="text-red-500
                   text-xs
                   italic">{{ formValidationMessages['from_floor_number'] }}.</p>
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                    text-gray-700
+                    text-sm
+                    font-bold mb-2" for="from-parking-distance">
+                      Distancia aproximanada al estacionamiento<span class="text-red-500">*</span>
+                      <span class="font-normal text-xs"> (mts.)</span>
+                  </label>
+                  <input :class="formValidationMessages['from_approximate_distance_from_parking']
+                    ?'border-red-300':''"
+                    class="appearance-none
+                    border rounded
+                    w-full
+                    py-2
+                    px-3
+                    text-gray-700
+                    leading-tight
+                    focus:outline-none
+                    focus:border-blue-400"
+                    v-model="fromParkingDistance"
+                    id="from-parking-distance"
+                    placeholder="Ej. 5"
+                    type="number">
+                    <p v-if="formValidationMessages['from_approximate_distance_from_parking']"
+                      class="text-red-500
+                      text-xs
+                      italic">
+                      {{ formValidationMessages['from_approximate_distance_from_parking'] }}.
+                    </p>
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                    text-gray-700
+                    text-sm
+                    font-bold mb-6">
+                      El edificio cuenta con elevador? <span class="text-red-500">*</span>
+                  </label>
+                  <div>
+                    <input type="radio"
+                      id="from-has-elevator-1"
+                      name="from-has-elevator-1"
+                      v-model="fromHasElevator"
+                      :value="'1'" />
+                    <label class="ml-2" for="from-has-elevator-1">Sí</label>
+                  </div>
+                  <div>
+                    <input type="radio"
+                      id="from-has-elevator-0"
+                      name="from-has-elevator-0"
+                      v-model="fromHasElevator"
+                      :value="'0'" />
+                    <label class="ml-2" for="from-has-elevator-0">No</label>
+                  </div>
+                  <p v-if="formValidationMessages['from_has_elevator']"
+                    class="text-red-500
+                    text-xs
+                    italic">
+                    {{ formValidationMessages['from_has_elevator'] }}.
+                  </p>
                 </div>
               </div>
               <div class="md:w-1/2 w-full md:ml-6">
@@ -237,6 +296,66 @@
                   text-xs
                   italic">{{ formValidationMessages['to_floor_number'] }}.</p>
                 </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                    text-gray-700
+                    text-sm
+                    font-bold mb-2" for="to-parking-distance">
+                      Distancia aproximanada al estacionamiento<span class="text-red-500">*</span>
+                      <span class="font-normal text-xs"> (mts.)</span>
+                  </label>
+                  <input :class="formValidationMessages['to_approximate_distance_from_parking']
+                    ?'border-red-300':''"
+                    class="appearance-none
+                    border rounded
+                    w-full
+                    py-2
+                    px-3
+                    text-gray-700
+                    leading-tight
+                    focus:outline-none
+                    focus:border-blue-400"
+                    v-model="toParkingDistance"
+                    id="to-parking-distance"
+                    placeholder="Ej. 5"
+                    type="number">
+                    <p v-if="formValidationMessages['to_approximate_distance_from_parking']"
+                      class="text-red-500
+                      text-xs
+                      italic">
+                      {{ formValidationMessages['to_approximate_distance_from_parking'] }}.
+                    </p>
+                </div>
+                <div class="w-full md:w-1/2 px-3 mb-4">
+                  <label class="block
+                    text-gray-700
+                    text-sm
+                    font-bold mb-6">
+                      El edificio cuenta con elevador? <span class="text-red-500">*</span>
+                  </label>
+                  <div>
+                    <input type="radio"
+                      id="to-has-elevator-1"
+                      name="to-has-elevator-1"
+                      v-model="toHasElevator"
+                      :value="'1'" />
+                    <label class="ml-2" for="to-has-elevator-1">Sí</label>
+                  </div>
+                  <div>
+                    <input type="radio"
+                      id="to-has-elevator-0"
+                      name="to-has-elevator-0"
+                      v-model="toHasElevator"
+                      :value="'0'" />
+                    <label class="ml-2" for="to-has-elevator-0">No</label>
+                  </div>
+                  <p v-if="formValidationMessages['to_has_elevator']"
+                    class="text-red-500
+                    text-xs
+                    italic">
+                    {{ formValidationMessages['to_has_elevator'] }}.
+                  </p>
+                </div>
               </div>
               <div class="md:w-1/2 w-full md:ml-6">
                 <SearchBoxPlacesApiGoogle
@@ -302,8 +421,8 @@ export default {
     SearchBoxPlacesApiGoogle,
   },
   mounted() {
-    this.selectedFromStreet = this.currentOrder.from_street;
-    this.selectedToStreet = this.currentOrder.to_street;
+    this.selectedFromStreet = this.orderDetailsOrigin.from_street;
+    this.selectedToStreet = this.orderDetailsDestination.to_street;
     this.buildRequisites();
   },
   props: {
@@ -325,8 +444,9 @@ export default {
           requisites: requisitesList,
         },
       } = steps;
+      const stepOneRequisites = { ...this.orderDetailsOrigin, ...this.orderDetailsDestination };
       requisitesList.forEach((requisite) => {
-        this.stepRequisites[requisite] = this.currentOrder[requisite];
+        this.stepRequisites[requisite] = stepOneRequisites[requisite];
       });
       this.setLoader(false);
     },
@@ -352,10 +472,11 @@ export default {
           long_name: country,
         } = {},
       } = googleAddress;
-      this.setOrder({ field: `${direction}_street`, value: formattedAddress });
-      this.setOrder({ field: `${direction}_zip_code`, value: postalCode });
-      this.setOrder({ field: `${direction}_country`, value: country });
-      this.setOrder({ field: `${direction}_map_url`, value: url });
+      const section = direction === 'from' ? 'orderDetailsOrigin' : 'orderDetailsDestination';
+      this.setOrder({ section, field: `${direction}_street`, value: formattedAddress });
+      this.setOrder({ section, field: `${direction}_zip_code`, value: postalCode });
+      this.setOrder({ section, field: `${direction}_country`, value: country });
+      this.setOrder({ section, field: `${direction}_map_url`, value: url });
     },
     removeSelectedProduct() {
       const productFields = {
@@ -363,13 +484,13 @@ export default {
         price: null,
       };
       Object.keys(productFields).forEach((field) => {
-        this.setOrder({ field, value: '' });
+        this.setOrder({ section: 'currentOrder', field, value: '' });
       });
     },
     nextStep() {
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
-        this.setOrder({ field: 'created_date', value: this.$moment().format() });
+        this.setOrder({ section: 'currentOrder', field: 'created_date', value: this.$moment().format() });
         this.setLoader(true);
         if (!this.isSameAddress) {
           this.removeSelectedProduct();
@@ -377,13 +498,16 @@ export default {
         if (!this.currentOrder.order_id) {
           const payload = {
             order: this.currentOrder,
+            orderDetailsOrigin: this.orderDetailsOrigin,
+            orderDetailsDestination: this.orderDetailsDestination,
+            services: this.services,
             customer: this.customer,
           };
           chalan.createOrder(payload)
             .then((response) => {
               if (response.status === 201) {
-                this.setOrder({ field: 'order_id', value: response.data.order_id });
-                this.setOrder({ field: 'order_status_id', value: this.orderStatusId.pending });
+                this.setOrder({ section: 'currentOrder', field: 'order_id', value: response.data.order_id });
+                this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId.pending });
                 this.$router.push({ name: this.steps[this.viewName].next });
               }
             })
@@ -400,6 +524,9 @@ export default {
         } else {
           const payload = {
             order: this.currentOrder,
+            orderDetailsOrigin: this.orderDetailsOrigin,
+            orderDetailsDestination: this.orderDetailsDestination,
+            services: this.services,
             customer: this.customer,
           };
           chalan.updateOrder(payload)
@@ -425,6 +552,9 @@ export default {
   computed: {
     ...mapState([
       'currentOrder',
+      'orderDetailsOrigin',
+      'orderDetailsDestination',
+      'services',
       'customer',
       'formValidationMessages',
       'viewsMessages',
@@ -432,40 +562,73 @@ export default {
       'loading',
     ]),
     isSameAddress() {
+      const stepOneRequisites = { ...this.orderDetailsOrigin, ...this.orderDetailsDestination };
       return Object.keys(this.stepRequisites)
         .reduce((prev, curr) => prev
-          && (this.currentOrder[curr] === this.stepRequisites[curr]), true);
+          && (stepOneRequisites[curr] === this.stepRequisites[curr]), true);
     },
     selectedFromInteriorNumber: {
       get() {
-        return this.currentOrder.from_interior_number;
+        return this.orderDetailsOrigin.from_interior_number;
       },
       set(value) {
-        this.setOrder({ field: 'from_interior_number', value });
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_interior_number', value });
       },
     },
     selectedFromFloor: {
       get() {
-        return this.currentOrder.from_floor_number;
+        return this.orderDetailsOrigin.from_floor_number;
       },
       set(value) {
-        this.setOrder({ field: 'from_floor_number', value: Number(value) });
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_floor_number', value: Number(value) });
       },
     },
     selectedToInteriorNumber: {
       get() {
-        return this.currentOrder.to_interior_number;
+        return this.orderDetailsDestination.to_interior_number;
       },
       set(value) {
-        this.setOrder({ field: 'to_interior_number', value });
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_interior_number', value });
       },
     },
     selectedToFloor: {
       get() {
-        return this.currentOrder.to_floor_number;
+        return this.orderDetailsDestination.to_floor_number;
       },
       set(value) {
-        this.setOrder({ field: 'to_floor_number', value: Number(value) });
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_floor_number', value: Number(value) });
+      },
+    },
+    fromParkingDistance: {
+      get() {
+        return this.orderDetailsOrigin.from_approximate_distance_from_parking;
+      },
+      set(value) {
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_approximate_distance_from_parking', value: Number(value) });
+      },
+    },
+    toParkingDistance: {
+      get() {
+        return this.orderDetailsDestination.to_approximate_distance_from_parking;
+      },
+      set(value) {
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_approximate_distance_from_parking', value: Number(value) });
+      },
+    },
+    fromHasElevator: {
+      get() {
+        return this.orderDetailsOrigin.from_has_elevator;
+      },
+      set(value) {
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_has_elevator', value });
+      },
+    },
+    toHasElevator: {
+      get() {
+        return this.orderDetailsDestination.to_has_elevator;
+      },
+      set(value) {
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_has_elevator', value });
       },
     },
   },

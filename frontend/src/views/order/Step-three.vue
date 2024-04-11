@@ -379,6 +379,9 @@ export default {
       const payload = {
         order: this.currentOrder,
         customer: this.customer,
+        orderDetailsOrigin: this.orderDetailsOrigin,
+        orderDetailsDestination: this.orderDetailsDestination,
+        services: this.services,
       };
       chalan.updateOrder(payload)
         .then((response) => {
@@ -414,7 +417,7 @@ export default {
           });
           this.setLoader(false);
         })
-        .catch(() => {
+        .catch((e) => {
           this.setViewsMessages({
             view: this.viewName,
             message: {
@@ -423,12 +426,13 @@ export default {
             },
           });
           this.setLoader(false);
+          throw new Error(e);
         });
     },
     selectQuotation({ quotation, jumpToNextStep = true }) {
       this.selectedQuotation = quotation;
       Object.keys(this.quotationFields).forEach((field) => {
-        this.setOrder({ field, value: this.selectedQuotation[this.quotationFields[field]] });
+        this.setOrder({ section: 'currentOrder', field, value: this.selectedQuotation[this.quotationFields[field]] });
       });
       if (jumpToNextStep) {
         this.nextStep();
@@ -436,7 +440,7 @@ export default {
     },
     unSelectQuotation() {
       Object.keys(this.quotationFields).forEach((field) => {
-        this.setOrder({ field, value: null });
+        this.setOrder({ section: 'currentOrder', field, value: null });
       });
     },
   },
@@ -444,6 +448,9 @@ export default {
     ...mapState([
       'currentOrder',
       'customer',
+      'orderDetailsOrigin',
+      'orderDetailsDestination',
+      'services',
       'formValidationMessages',
       'steps',
       'viewsMessages',

@@ -13,12 +13,13 @@
               <label class="block
               text-gray-700
               text-sm
-              font-bold mb-2" for="address-from-interior">
+              font-bold mb-2" for="datetime">
                   Elige la fecha y hora <span class="text-red-500">*</span>
               </label>
               <Datetime v-model="selectedDate"
                 :input-class="datePickerClasses"
                 type="datetime"
+                input-id="datetime"
                 :phrases="{ok: 'Aceptar', cancel: 'Salir'}"
                 value-zone="America/Mexico_City"
                 :format="{ year: 'numeric',
@@ -31,7 +32,7 @@
                 class="theme-chalan"
                 :min-datetime="minDatetime"
                 :max-datetime="maxDatetime"
-                placeholder="17 de Marzo de 2023 18:00"
+                placeholder="17 de diciembre de 2024 18:00"
               >
               </Datetime>
               <p v-if="formValidationMessages['appointment_date']"
@@ -42,14 +43,21 @@
               </p>
             </div>
             <div class="w-full px-3 mb-4">
-              <label class="block
-                text-gray-700
+              <label class="text-gray-700
                 text-sm
-                font-bold mb-2" for="address-from-street">
+                font-bold"
+                for="address-from-street">
                     Lista las cosas que vamos a mover <span class="text-red-500">*</span>
               </label>
-              <textarea class="appearance-none
+              <span v-if="formValidationMessages['comments']"
+                      class="text-red-500
+                      text-xs
+                      italic">{{ formValidationMessages['comments'] }}.</span>
+              <textarea :class="formValidationMessages['comments']
+                    ?'border-red-300':''"
+                class="appearance-none
                 border rounded
+                mt-2
                 w-full
                 py-2
                 px-3
@@ -70,6 +78,7 @@
                 id="address-from-street"
                 type="text">
               </textarea>
+
               <div class="flex
                 text-sm
                 items-center
@@ -87,6 +96,62 @@
                 <span class="block sm:inline">
                   Ten en cuenta que las cosas que no estén en la lista tendrán un costo extra.
                 </span>
+              </div>
+            </div>
+            <div class="w-full px-3 mb-4"
+              :class="formValidationMessages['cargo']
+                    ?'border-red-300':''">
+              <label class="text-gray-700
+                text-sm
+                font-bold">
+                    Requiere cargadores? <span class="text-red-500">*</span>
+              </label>
+              <span v-if="formValidationMessages['cargo']"
+                      class="text-red-500
+                      text-xs
+                      italic"> {{ formValidationMessages['cargo'] }}.</span>
+              <div class="mt-2">
+                <input type="radio"
+                  id="cargo-service-1"
+                  name="cargo-service-1"
+                  v-model="cargoService"
+                  :value="'1'" />
+                <label class="ml-2" for="cargo-service-1">Sí</label>
+              </div>
+              <div>
+                <input type="radio"
+                  id="cargo-service-0"
+                  name="cargo-service-0"
+                  v-model="cargoService"
+                  :value="'0'" />
+                <label class="ml-2" for="cargo-service-0">No</label>
+              </div>
+            </div>
+            <div class="w-full px-3 mb-4">
+              <label class="text-gray-700
+                text-sm
+                font-bold">
+                    Requiere servicio de embalaje? <span class="text-red-500">*</span>
+              </label>
+              <span v-if="formValidationMessages['packaging']"
+                      class="text-red-500
+                      text-xs
+                      italic"> {{ formValidationMessages['packaging'] }}.</span>
+              <div class="mt-2">
+                <input type="radio"
+                  id="packaging-service-1"
+                  name="packaging-service-1"
+                  v-model="packagingService"
+                  :value="'1'" />
+                <label class="ml-2" for="packaging-service-1">Sí</label>
+              </div>
+              <div>
+                <input type="radio"
+                  id="packaging-service-0"
+                  name="packaging-service-0"
+                  v-model="packagingService"
+                  :value="'0'" />
+                <label class="ml-2" for="packaging-service-0">No</label>
               </div>
             </div>
           </div>
@@ -166,6 +231,9 @@ export default {
         this.setLoader(true);
         const payload = {
           order: this.currentOrder,
+          orderDetailsOrigin: this.orderDetailsOrigin,
+          orderDetailsDestination: this.orderDetailsDestination,
+          services: this.services,
           customer: this.customer,
           requestQuotationFromCarrierCompany: true,
         };
@@ -190,12 +258,15 @@ export default {
   },
   computed: {
     ...mapState([
-      'formValidationMessages',
-      'steps',
-      'viewsMessages',
       'currentOrder',
       'customer',
+      'formValidationMessages',
       'loading',
+      'orderDetailsOrigin',
+      'orderDetailsDestination',
+      'services',
+      'steps',
+      'viewsMessages',
     ]),
     selectedDate: {
       get() {
@@ -204,7 +275,7 @@ export default {
       set(value) {
         if (value) {
           const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
-          this.setOrder({ field: 'appointment_date', value: appointmentDate });
+          this.setOrder({ section: 'currentOrder', field: 'appointment_date', value: appointmentDate });
         }
       },
     },
@@ -213,7 +284,7 @@ export default {
         return this.currentOrder.comments;
       },
       set(value) {
-        this.setOrder({ field: 'comments', value });
+        this.setOrder({ section: 'currentOrder', field: 'comments', value });
       },
     },
     minDatetime() {
@@ -239,6 +310,22 @@ export default {
         classes.push('border-red-300');
       }
       return classes;
+    },
+    packagingService: {
+      get() {
+        return this.services.packaging;
+      },
+      set(value) {
+        this.setOrder({ section: 'services', field: 'packaging', value });
+      },
+    },
+    cargoService: {
+      get() {
+        return this.services.cargo;
+      },
+      set(value) {
+        this.setOrder({ section: 'services', field: 'cargo', value });
+      },
     },
   },
 };

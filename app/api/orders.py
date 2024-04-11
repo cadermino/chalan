@@ -19,7 +19,7 @@ from datetime import date
 def create_order():
     order_data = request.json
     order = OrderEntity()
-    order = order.create(order_data=order_data)
+    order = order.create(request=order_data)
     return jsonify({
         'message': 'order {id} created!'.format(id=order.id),
         'order_id': order.id,
@@ -31,7 +31,7 @@ def update_order(order_id):
     emails_sent = send_email_to_carrier_companies(order_data)
 
     order = OrderEntity(order_id)
-    order = order.update(order_data=order_data)
+    order = order.update(request=order_data)
     return jsonify({
         'message': 'order {id} updated!'.format(id=order.id),
         'order_id': order.id,
@@ -182,11 +182,11 @@ def send_email_to_carrier_companies(order_data):
 
     order = order_data["order"]
     address_step = AddressesStep(order['order_id'])
-    has_address_step_changed = address_step.has_changed(order)
+    has_address_step_changed = address_step.has_changed(order_data)
 
     belongings_appointment_date_step = BelongingsAppointmentDateStep(order['order_id'])
     is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
-    has_belongings_appointment_date_step_changed = belongings_appointment_date_step.has_changed(order)
+    has_belongings_appointment_date_step_changed = belongings_appointment_date_step.has_changed(order_data)
     carrier_companies = get_carrier_companies(order)
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
@@ -199,9 +199,12 @@ def send_email_to_carrier_companies(order_data):
             if quotation is None or \
                 has_address_step_changed or \
                 has_belongings_appointment_date_step_changed:
+                subject = 'Nueva cotización Chalán'
+                if os.getenv('FLASK_ENV') != 'prod':
+                    subject = '[test]Nueva cotización Chalán'
                 send_email(
                     carrier_company['email'],
-                    'Nueva cotización Chalán',
+                    subject,
                     'email/ask_for_quotation',
                     bcc=[],
                     quotation_url=quotation_url,
