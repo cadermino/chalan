@@ -3,6 +3,23 @@ import Vuex from 'vuex';
 import VueJwtDecode from 'vue-jwt-decode';
 import steps from './steps';
 
+function checkCompleteStep(state) {
+  const allStepsData = {
+    ...state.currentOrder,
+    ...state.orderDetailsOrigin,
+    ...state.orderDetailsDestination,
+    ...state.services,
+  };
+  Object.keys(state.steps).forEach((key) => {
+    state.viewsMessages[key] = null;
+    const requisitesValues = [];
+    state.steps[key].requisites.forEach((requisite) => {
+      requisitesValues.push(allStepsData[requisite]);
+    });
+    state.steps[key].isComplete = requisitesValues
+      .reduce((prev, curr) => prev && Boolean(curr), true);
+  });
+}
 Vue.use(Vuex);
 
 export default new Vuex.Store({
@@ -24,18 +41,6 @@ export default new Vuex.Store({
       order_status_id: null,
       quotation_id: null,
       country_id: null,
-      from_street: null,
-      from_interior_number: null,
-      from_floor_number: null,
-      from_zip_code: null,
-      from_country: null,
-      from_map_url: null,
-      to_street: null,
-      to_interior_number: null,
-      to_floor_number: null,
-      to_zip_code: null,
-      to_country: null,
-      to_map_url: null,
       appointment_date: null,
       comments: null,
       payment_method: null,
@@ -46,6 +51,30 @@ export default new Vuex.Store({
       vehicle_model: null,
       vehicle_weight: null,
       vehicle_description: null,
+    },
+    orderDetailsOrigin: {
+      from_street: null,
+      from_interior_number: null,
+      from_floor_number: null,
+      from_zip_code: null,
+      from_country: null,
+      from_map_url: null,
+      from_approximate_distance_from_parking: null,
+      from_has_elevator: null,
+    },
+    orderDetailsDestination: {
+      to_street: null,
+      to_interior_number: null,
+      to_floor_number: null,
+      to_zip_code: null,
+      to_country: null,
+      to_map_url: null,
+      to_approximate_distance_from_parking: null,
+      to_has_elevator: null,
+    },
+    services: {
+      packaging: null,
+      cargo: null,
     },
     viewsMessages: {
       'step-one': null,
@@ -62,13 +91,20 @@ export default new Vuex.Store({
       from_street: null,
       from_neighborhood: null,
       from_zip_code: null,
+      from_parking_distance: null,
+      from_has_elevator: null,
       to_floor_number: null,
       to_street: null,
       to_neighborhood: null,
       to_zip_code: null,
+      to_parking_distance: null,
+      to_has_elevator: null,
       appointment_date: null,
-      payment_method: null,
+      comments: null,
+      packaging: null,
+      cargo: null,
       quotation_amount: null,
+      payment_method: null,
     },
     loading: false,
   },
@@ -109,18 +145,10 @@ export default new Vuex.Store({
       state.FB = FB;
     },
     setOrder(state, payload) {
-      state.currentOrder[payload.field] = payload.value;
-      localStorage.setItem('currentOrder', JSON.stringify(state.currentOrder));
+      state[payload.section][payload.field] = payload.value;
+      localStorage.setItem(payload.section, JSON.stringify(state[payload.section]));
       state.formValidationMessages[payload.field] = null;
-      Object.keys(state.steps).forEach((key) => {
-        state.viewsMessages[key] = null;
-        const requisitesValues = [];
-        state.steps[key].requisites.forEach((requisite) => {
-          requisitesValues.push(state.currentOrder[requisite]);
-        });
-        state.steps[key].isComplete = requisitesValues
-          .reduce((prev, curr) => prev && Boolean(curr), true);
-      });
+      checkCompleteStep(state);
     },
     setCustomerData(state, payload) {
       state.customer[payload.field] = payload.value;
@@ -157,23 +185,33 @@ export default new Vuex.Store({
     getDataFromLocalStorage({ commit }, location) {
       const mutations = {
         currentOrder: 'setOrder',
+        orderDetailsOrigin: 'setOrder',
+        orderDetailsDestination: 'setOrder',
+        services: 'setOrder',
         customer: 'setCustomerData',
       };
       if (localStorage.getItem(location)) {
         try {
           const data = JSON.parse(localStorage.getItem(location));
           Object.keys(data).forEach((key) => {
-            commit(mutations[location], { field: key, value: data[key] });
+            commit(mutations[location], { section: location, field: key, value: data[key] });
           });
         } catch (e) {
           localStorage.removeItem(location);
+          throw new Error(e);
         }
       }
     },
     validateRequiredFields({ commit, state }, viewName) {
       const emptyFields = [];
+      const stepOneRequisites = {
+        ...state.currentOrder,
+        ...state.orderDetailsOrigin,
+        ...state.orderDetailsDestination,
+        ...state.services,
+      };
       state.steps[viewName].requisites.forEach((field) => {
-        if (!state.currentOrder[field]) {
+        if (!stepOneRequisites[field]) {
           emptyFields.push(field);
         }
       });

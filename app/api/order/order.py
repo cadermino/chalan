@@ -1,46 +1,42 @@
 import os
 from ..quotation.quotation_status import QuotationStatus
 from ... import db
-from ...models import OrderDetails
+from ...models import LuServices as LuServicesModel
+from ...models import OrderDetails as OrderDetailsModel
 from ...models import Order as OrderModel
+from ...models import OrdersServices as OrdersServicesModel
 from ...models import Payment as PaymentModel
 from ...models import Quotations as QuotationsModel
-from ...models import OrderSchema, OrderDetailsSchema, QuotationsSchema, CustomerSchema, PaymentSchema
+from ...models import OrderSchema, OrderDetailsSchema, QuotationsSchema, CustomerSchema, PaymentSchema, OrdersServicesSchema
 
 class Order:
 
     def __init__(self, order_id=None):
         self.order_id = order_id
 
-    def create(self, order_data):
+    def create(self, request):
         order = OrderModel(
-            customer_id = order_data['customer']['customer_id'],
+            customer_id = request['customer']['customer_id'],
             country_id = os.getenv('COUNTRY_ID')
         )
         db.session.add(order)
         db.session.commit()
-        order_details_from = OrderDetails(
-            type = 'carry_from',
-            floor_number = order_data['order']['from_floor_number'],
-            order_id = order.id,
-            street = order_data['order']['from_street'],
-            interior_number = order_data['order']['from_interior_number'],
-            zip_code = order_data['order']['from_zip_code'],
-            country = order_data['order']['from_country'],
-            map_url = order_data['order']['from_map_url']
-        )
-        order_details_to = OrderDetails(
-            type = 'deliver_to',
-            floor_number = order_data['order']['to_floor_number'],
-            order_id = order.id,
-            street = order_data['order']['to_street'],
-            interior_number = order_data['order']['to_interior_number'],
-            zip_code = order_data['order']['to_zip_code'],
-            country = order_data['order']['to_country'],
-            map_url = order_data['order']['to_map_url']
-        )
+        order_details_from = OrderDetailsModel()
+        for key in request['orderDetailsOrigin']:
+            row = key[5:]
+            setattr(order_details_from, row, request['orderDetailsOrigin'][key])
+        order_details_from.type = 'carry_from'
+        order_details_from.order_id = order.id
         db.session.add(order_details_from)
+
+        order_details_to = OrderDetailsModel()
+        for key in request['orderDetailsDestination']:
+            row = key[3:]
+            setattr(order_details_to, row, request['orderDetailsDestination'][key])
+        order_details_to.type = 'deliver_to'
+        order_details_to.order_id = order.id
         db.session.add(order_details_to)
+
         db.session.commit()
 
         return order
@@ -53,43 +49,54 @@ class Order:
         quotations_data = QuotationsSchema(many=True).dump(order.quotations)
         customer_data = CustomerSchema().dump(order.customers)
         payment_data = PaymentSchema(many=True).dump(order.payments)
+        services = OrdersServicesSchema(many=True).dump(order.services)
+        for service in services:
+            name = order.services.filter_by(id = service["id"]).first().service.service
+            service["name"] = name
 
         order_data['order_details'] = order_details_data
         order_data['quotations'] = quotations_data
         order_data['customers'] = customer_data
         order_data['payments'] = payment_data
+        order_data['services'] = services
         return order_data
 
-    def update(self, order_data):
+    def update(self, request):
         order = OrderModel.query.get(self.order_id)
 
-        order.customer_id = order_data['customer']['customer_id']
-        order.appointment_date = order_data['order']['appointment_date']
-        order.comments = order_data['order']['comments']
-        order.order_status_id = order_data['order']['order_status_id']
+        order.customer_id = request['customer']['customer_id']
+        order.appointment_date = request['order']['appointment_date']
+        order.comments = request['order']['comments']
+        order.order_status_id = request['order']['order_status_id']
         db.session.add(order)
         db.session.commit()
 
         order_details_from = order.order_details.filter_by(type = 'carry_from').first()
-        order_details_to = order.order_details.filter_by(type = 'deliver_to').first()
-
-        order_details_from.floor_number = order_data['order']['from_floor_number']
-        order_details_from.street = order_data['order']['from_street']
-        order_details_from.interior_number = order_data['order']['from_interior_number']
-        order_details_from.zip_code = order_data['order']['from_zip_code']
-        order_details_from.country = order_data['order']['from_country']
-        order_details_from.map_url = order_data['order']['from_map_url']
+        for key in request['orderDetailsOrigin']:
+            row = key[5:]
+            setattr(order_details_from, row, request['orderDetailsOrigin'][key])
         db.session.add(order_details_from)
         db.session.commit()
 
-        order_details_to.floor_number = order_data['order']['to_floor_number']
-        order_details_to.street = order_data['order']['to_street']
-        order_details_to.interior_number = order_data['order']['to_interior_number']
-        order_details_to.zip_code = order_data['order']['to_zip_code']
-        order_details_to.country = order_data['order']['to_country']
-        order_details_to.map_url = order_data['order']['to_map_url']
+        order_details_to = order.order_details.filter_by(type = 'deliver_to').first()
+        for key in request['orderDetailsDestination']:
+            row = key[3:]
+            setattr(order_details_to, row, request['orderDetailsDestination'][key])
         db.session.add(order_details_to)
         db.session.commit()
+
+        for service in request['services']:
+            service_id = LuServicesModel.query.filter(LuServicesModel.service == service).first().id
+            order_service_model = OrdersServicesModel.query.\
+                                filter(OrdersServicesModel.service_id == service_id).\
+                                filter(OrdersServicesModel.order_id == self.order_id)
+            order_service = order_service_model.first()
+            if request['services'][service] == '1' and order_service is None:
+                order_service = OrdersServicesModel(order_id = self.order_id, service_id = service_id)
+                db.session.add(order_service)
+            if request['services'][service] == '0' and order_service is not None:
+                order_service_model.delete()
+            db.session.commit()
 
         return order
 

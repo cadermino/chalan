@@ -7,8 +7,7 @@
           <ViewsMessages :view-name="viewName"/>
           <p class="text-center font-bold mb-10">
             {{ customer.customer_name }}
-             confirma que todo esté en orden antes del pago, además bríndanos tu
-             número de celular para mantener la comunicación
+             confirma que todo esté en orden antes del pago
           </p>
           <div class="flex flex-wrap mb-4">
             <div class="w-full pxx-3 mb-4">
@@ -349,7 +348,7 @@ export default {
       }
     },
     paymentTypeSelect(payment) {
-      this.setOrder({ field: 'payment_method', value: payment });
+      this.setOrder({ section: 'currentOrder', field: 'payment_method', value: payment });
     },
     editMobilePhone() {
       this.isMobilePhoneFieldActive = !this.isMobilePhoneFieldActive;
@@ -381,6 +380,9 @@ export default {
                   const orderPayload = {
                     order: this.currentOrder,
                     customer: this.customer,
+                    orderDetailsOrigin: this.orderDetailsOrigin,
+                    orderDetailsDestination: this.orderDetailsDestination,
+                    services: this.services,
                   };
                   chalan.updateOrder(orderPayload)
                     .then((orderResponse) => {
@@ -438,10 +440,13 @@ export default {
             chalan.updateCustomerProfile(customerPayload)
               .then((res) => {
                 if (res.status === 204) {
-                  this.setOrder({ field: 'order_status_id', value: this.orderStatusId['in progress'] });
+                  this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId['in progress'] });
                   const orderPayload = {
                     order: this.currentOrder,
                     customer: this.customer,
+                    orderDetailsOrigin: this.orderDetailsOrigin,
+                    orderDetailsDestination: this.orderDetailsDestination,
+                    services: this.services,
                   };
                   chalan.updateOrder(orderPayload)
                     .then((orderResponse) => {
@@ -499,6 +504,9 @@ export default {
       'viewsMessages',
       'currentOrder',
       'customer',
+      'orderDetailsOrigin',
+      'orderDetailsDestination',
+      'services',
       'loading',
     ]),
     ...mapGetters([
@@ -508,20 +516,20 @@ export default {
       return this.currentOrder.comments;
     },
     completeFromAddress() {
-      const fromInteriorNumber = this.currentOrder.from_interior_number
-        ? `interior ${this.currentOrder.from_interior_number},` : '';
-      const fromFloor = this.currentOrder.from_floor_number === '0'
-        ? '- Planta baja' : `- Piso ${this.currentOrder.from_floor_number}`;
-      return `${this.currentOrder.from_street},
+      const fromInteriorNumber = this.orderDetailsOrigin.from_interior_number
+        ? `interior ${this.orderDetailsOrigin.from_interior_number},` : '';
+      const fromFloor = this.orderDetailsOrigin.from_floor_number === '0'
+        ? '- Planta baja' : `- Piso ${this.orderDetailsOrigin.from_floor_number}`;
+      return `${this.orderDetailsOrigin.from_street},
         ${fromInteriorNumber}
         ${fromFloor}`;
     },
     completeToAddress() {
-      const toInteriorNumber = this.currentOrder.to_interior_number
-        ? `interior ${this.currentOrder.to_interior_number},` : '';
-      const toFloor = this.currentOrder.to_floor_number === 0
-        ? '- Planta baja' : `- Piso ${this.currentOrder.to_floor_number}`;
-      return `${this.currentOrder.to_street},
+      const toInteriorNumber = this.orderDetailsDestination.to_interior_number
+        ? `interior ${this.orderDetailsDestination.to_interior_number},` : '';
+      const toFloor = this.orderDetailsDestination.to_floor_number === 0
+        ? '- Planta baja' : `- Piso ${this.orderDetailsDestination.to_floor_number}`;
+      return `${this.orderDetailsDestination.to_street},
         ${toInteriorNumber}
         ${toFloor}`;
     },

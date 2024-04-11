@@ -103,7 +103,6 @@ export default {
                 icon,
                 title: place.name,
                 position: place.geometry.location,
-                // draggable: true,
               });
               // Create a marker for each place.
               markers.push(

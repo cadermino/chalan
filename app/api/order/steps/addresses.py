@@ -60,9 +60,11 @@ class Addresses:
         return is_complete[0]
 
     def has_changed(self, data):
+        complete_address_data_from_request = data['orderDetailsOrigin']
+        complete_address_data_from_request.update(data['orderDetailsDestination'])
         address_from_request = {}
         for requisite in self.requisites():
-            address_from_request[requisite] = data[requisite]
+            address_from_request[requisite] = complete_address_data_from_request[requisite]
 
         address_from_database = self.from_address
         address_from_database.update(self.to_address)

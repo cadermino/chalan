@@ -4,15 +4,21 @@ const stepOne = [
   'from_zip_code',
   'from_country',
   'from_map_url',
+  'from_approximate_distance_from_parking',
+  'from_has_elevator',
   'to_street',
   'to_floor_number',
   'to_zip_code',
   'to_country',
   'to_map_url',
+  'to_approximate_distance_from_parking',
+  'to_has_elevator',
 ];
 const stepTwo = [
   'appointment_date',
   'comments',
+  'packaging',
+  'cargo',
 ];
 const stepThree = [
   'quotation_id',

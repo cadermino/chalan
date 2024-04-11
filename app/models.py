@@ -103,6 +103,7 @@ class Order(db.Model):
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
 	quotations = db.relationship("Quotations", backref="order", lazy='dynamic')
+	services = db.relationship("OrdersServices", backref="order", lazy='dynamic')
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -126,6 +127,8 @@ class OrdersServices(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	service_id = db.Column(db.Integer, db.ForeignKey('lu_services.id'), nullable=False)
+
+	service = db.relationship("LuServices", backref="services")
 
 class OrderStatus(db.Model):
 	__tablename__ = 'lu_order_status'
