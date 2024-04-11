@@ -133,20 +133,20 @@
                   mr-1">Piso: </span>
                 {{fromAddress.floor_number}}
               </p>
-              <p>
+              <!-- <p>
                 <span class="font-bold
                   mr-1">Elevador: </span>
                 Sí
-              </p>
-              <p>
+              </p> -->
+              <!-- <p>
                 <span class="font-bold
                   mr-1">Distancia del estacionamiento a la puerta: </span>
                 10mts.
-              </p>
+              </p> -->
               <p>
                 <span class="font-bold
                   mr-1">Servicio de empacado: </span>
-                No
+                Sí
               </p>
             </div>
           </div>
@@ -212,20 +212,20 @@
                   mr-1">Piso: </span>
                 {{toAddress.floor_number}}
               </p>
-              <p>
+              <!-- <p>
                 <span class="font-bold
                   mr-1">Elevador: </span>
                 No
-              </p>
-              <p>
+              </p> -->
+              <!-- <p>
                 <span class="font-bold
                   mr-1">Distancia del estacionamiento a la puerta: </span>
                 2mts.
-              </p>
+              </p> -->
               <p>
                 <span class="font-bold
                   mr-1">Servicio de empacado: </span>
-                No
+                Sí
               </p>
             </div>
           </div>
