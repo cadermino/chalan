@@ -479,7 +479,7 @@ export default {
   },
   mounted() {
     this.getCarrierCompanyData();
-    this.setOrder({ field: 'carrier_company_id', value: this.carrierId });
+    this.setOrder({ section: 'currentOrder', field: 'carrier_company_id', value: this.carrierId });
   },
   props: {
     carrierId: Number,
