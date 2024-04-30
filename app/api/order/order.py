@@ -68,6 +68,7 @@ class Order:
         order.appointment_date = request['order']['appointment_date']
         order.comments = request['order']['comments']
         order.order_status_id = request['order']['order_status_id']
+        order.approximate_budget = request['order']['approximate_budget']
         db.session.add(order)
         db.session.commit()
 

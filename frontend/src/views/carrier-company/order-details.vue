@@ -85,6 +85,16 @@
                   mr-1">Requiere cargadores: </span>
                 {{ cargoService }}
               </p>
+              <p>
+                <span class="font-bold
+                  mr-1">Presupuesto aproximado: </span>
+                {{
+                  approximateBudget.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: countryData.currency,
+                    maximumSignificantDigits: 5,
+                  }) }}
+              </p>
             </div>
           </div>
           <div
@@ -400,6 +410,9 @@ export default {
         toParams = this.cleanMapQueryStrings(this.toAddress.map_url);
       }
       return `${this.googleDistanceUrl}${fromParams}/${toParams}`;
+    },
+    approximateBudget() {
+      return this.orderData.approximate_budget;
     },
   },
   methods: {

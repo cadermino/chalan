@@ -97,6 +97,8 @@ class Order(db.Model):
 	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), server_default=text("'1'"), nullable=False)
 	appointment_date = db.Column(db.DateTime(), server_default=func.now())
 	comments = db.Column(db.String(500))
+	total_amount = db.Column(db.Float, nullable=True)
+	approximate_budget = db.Column(db.Float, nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
@@ -164,6 +166,8 @@ class Quotations(db.Model):
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	selected = db.Column(db.Boolean, server_default=text('False'))
 	quotation_status_id = db.Column(db.Integer, db.ForeignKey("lu_quotation_status.id"), server_default=text("'1'"), nullable=False)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
 
 	carrier_company = db.relationship("CarrierCompany", backref="quotations")
 
