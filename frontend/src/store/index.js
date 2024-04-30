@@ -43,6 +43,7 @@ export default new Vuex.Store({
       country_id: null,
       appointment_date: null,
       comments: null,
+      approximate_budget: null,
       payment_method: null,
       amount: null,
       carrier_company_id: null,

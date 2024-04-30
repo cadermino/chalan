@@ -46,7 +46,7 @@
               <label class="text-gray-700
                 text-sm
                 font-bold"
-                for="address-from-street">
+                for="list-of-belongings">
                     Lista las cosas que vamos a mover <span class="text-red-500">*</span>
               </label>
               <span v-if="formValidationMessages['comments']"
@@ -75,7 +75,7 @@
                   1 refri
                   8 cajas grandes"
                 v-model="userComments"
-                id="address-from-street"
+                id="list-of-belongings"
                 type="text">
               </textarea>
 
@@ -153,6 +153,28 @@
                   :value="'0'" />
                 <label class="ml-2" for="packaging-service-0">No</label>
               </div>
+            </div>
+            <div class="w-full px-3 mb-4">
+              <label class="text-gray-700
+                text-sm
+                font-bold"
+                for="approximate-budget">
+                    Presupuesto aproximado
+              </label>
+              <input class="appearance-none
+                  border rounded
+                  w-full
+                  py-2
+                  px-3
+                  text-gray-700
+                  leading-tight
+                  focus:outline-none
+                  focus:border-blue-400"
+                  id="approximate-budget"
+                  v-model="approximateBudget"
+                  type="number"
+                  placeholder="Ej. 300"
+                  autocomplete="on">
             </div>
           </div>
           <div class="flex items-center justify-between">
@@ -325,6 +347,14 @@ export default {
       },
       set(value) {
         this.setOrder({ section: 'services', field: 'cargo', value });
+      },
+    },
+    approximateBudget: {
+      get() {
+        return this.currentOrder.approximate_budget;
+      },
+      set(value) {
+        this.setOrder({ section: 'currentOrder', field: 'approximate_budget', value });
       },
     },
   },
