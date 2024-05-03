@@ -354,7 +354,8 @@ export default {
         return this.currentOrder.approximate_budget;
       },
       set(value) {
-        this.setOrder({ section: 'currentOrder', field: 'approximate_budget', value });
+        const defaultValue = value === '' ? null : value;
+        this.setOrder({ section: 'currentOrder', field: 'approximate_budget', value: defaultValue });
       },
     },
   },

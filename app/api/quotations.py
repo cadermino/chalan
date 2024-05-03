@@ -2,9 +2,11 @@ import os
 from flask import jsonify, request
 from . import api
 from .quotation import Quotation as QuotationEntity
+from .order import Order as OrderEntity
 from .decorators import token_required, carrier_company_token_required
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from ..models import Customer
+from .email import send_email
 
 @api.route('/quotations/<int:order_id>', methods=['GET'])
 @token_required
@@ -40,18 +42,37 @@ def create_quotation():
         'carrier_company_id': carrier_company_id,
     }
     previous_quotation = QuotationEntity().get(order_id, carrier_company_id)
+    customer = OrderEntity().query_orders({'id': order_id})[0].customers
     if previous_quotation is None:
         quotation = QuotationEntity().create(data)
-        return jsonify({
-            'message': 'quotation {id} created!'.format(id=quotation.id),
-            'quotation_id': quotation.id,
-            'amount': quotation.amount,
-            'quotation_status_id': quotation.quotation_status_id,
-        }), 201
+        message = 'quotation {id} created!'.format(id=quotation.id)
+        quotation_id = quotation.id
+        quotation_amount = quotation.amount
+        quotation_status_id = quotation.quotation_status_id
+        status_response = 201
+
+        step_three_url = os.getenv('SITE_URL') + 'order/step-three'
+        subject = 'Tienes un nueva cotización para tu mudanza Chalán'
+        if os.getenv('FLASK_ENV') != 'prod':
+            subject = '[test]Tienes un nueva cotización para tu mudanza Chalán'
+        send_email(
+            customer.email,
+            subject,
+            'email/new_quotation_arrived',
+            bcc=[os.getenv('ADMIN_MAIL')],
+            step_three_url=step_three_url,
+            customer_name=customer.name
+        )
+    else:
+        message = 'quotation {id} created!'.format(id=previous_quotation.id)
+        quotation_id = previous_quotation.id
+        quotation_amount = previous_quotation.amount
+        quotation_status_id = previous_quotation.quotation_status_id
+        status_response = 200
 
     return jsonify({
-        'message': 'quotation {id} found!'.format(id=previous_quotation.id),
-        'quotation_id': previous_quotation.id,
-        'amount': previous_quotation.amount,
-        'quotation_status_id': previous_quotation.quotation_status_id,
-    }), 200
+        'message': message,
+        'quotation_id': quotation_id,
+        'amount': quotation_amount,
+        'quotation_status_id': quotation_status_id,
+    }), status_response

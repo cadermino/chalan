@@ -451,17 +451,15 @@ export default {
       return this.services.filter(item => item.name === 'cargo').length === 0 ? 'No' : 'Sí';
     },
     distanceBetweenAddress() {
-      let fromParams = '';
-      let toParams = '';
-      if (this.fromAddress) {
-        fromParams = this.cleanMapQueryStrings(this.fromAddress.map_url);
+      if (!this.fromAddress) {
+        return false;
       }
-      if (this.toAddress) {
-        toParams = this.cleanMapQueryStrings(this.toAddress.map_url);
-      }
-      return `${this.googleDistanceUrl}${fromParams}/${toParams}`;
+      return `${this.googleDistanceUrl}${this.fromAddress.street}/${this.toAddress.street}`;
     },
     approximateBudget() {
+      if (!this.orderData.approximate_budget) {
+        return 0;
+      }
       return this.orderData.approximate_budget;
     },
   },
@@ -471,11 +469,6 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
-    cleanMapQueryStrings(url) {
-      const parsedUrl = new URL(url);
-      const params = new URLSearchParams(parsedUrl.search);
-      return params.get('q');
-    },
     accordionButton(contentTagElementId, arrowTagElementId) {
       const content = document.getElementById(contentTagElementId);
       const arrow = document.getElementById(arrowTagElementId);
