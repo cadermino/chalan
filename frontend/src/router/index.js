@@ -5,6 +5,15 @@ import store from '../store/index';
 import countryData from '../countryData';
 
 const country = process.env.VUE_APP_COUNTRY;
+const HTTP_RESPONSE = {
+  BAD_REQUEST: 400,
+  NOT_FOUND: 404,
+};
+const RESPONSE_MESSAGE = {
+  NOT_FOUND: {
+    404: 'La orden no existe',
+  },
+};
 Vue.use(VueRouter);
 
 const routes = [
@@ -57,7 +66,7 @@ const routes = [
     meta: { requiresPreviousComplete: true },
   },
   {
-    path: '/order/step-three',
+    path: '/order/:order_id?/step-three',
     name: 'step-three',
     component: () => import(/* webpackChunkName: "step-three" */ '../views/order/Step-three.vue'),
     meta: { requiresPreviousComplete: true, requiresAuth: true },
@@ -66,7 +75,7 @@ const routes = [
     },
   },
   {
-    path: '/order/step-four',
+    path: '/order/:order_id?/step-four',
     name: 'step-four',
     component: () => import(/* webpackChunkName: "step-four" */ '../views/order/Step-four.vue'),
     meta: { requiresPreviousComplete: true, requiresAuth: true },
@@ -118,13 +127,49 @@ function hasQueryParams(route) {
   return !!Object.keys(route.query).length;
 }
 
-router.beforeEach((to, from, next) => {
+function getDataFromLocalStorage() {
   store.dispatch('getDataFromLocalStorage', 'currentOrder');
   store.dispatch('getDataFromLocalStorage', 'orderDetailsOrigin');
   store.dispatch('getDataFromLocalStorage', 'orderDetailsDestination');
   store.dispatch('getDataFromLocalStorage', 'services');
   store.dispatch('getDataFromLocalStorage', 'customer');
+  store.dispatch('getDataFromLocalStorage', 'viewsMessages');
+}
+
+async function getOrderFromDataBase(to, next) {
+  localStorage.removeItem('viewsMessages');
+  if (to.params.order_id) {
+    const { order_id: orderId } = to.params;
+    try {
+      await store.dispatch('getOrderFromDataBase', orderId);
+    } catch (error) {
+      let message = '';
+      if (error.response?.status === HTTP_RESPONSE.NOT_FOUND) {
+        message = RESPONSE_MESSAGE.NOT_FOUND[error.response.status];
+      }
+      store.commit('setViewsMessages', {
+        view: to.name,
+        message: {
+          text: message,
+          type: 'error',
+        },
+      });
+      store.dispatch('addDataToLocalStorage', ['viewsMessages']);
+      if (error.response?.status === HTTP_RESPONSE.BAD_REQUEST) {
+        next({
+          path: '/register-login',
+          query: { redirect: to.fullPath },
+        });
+      }
+    }
+  }
+}
+
+router.beforeEach(async (to, from, next) => {
+  getDataFromLocalStorage();
   store.commit('setNowDate');
+  getOrderFromDataBase(to, next);
+
   let queryParams;
   if (!hasQueryParams(to) && hasQueryParams(from)) {
     queryParams = from.query;
@@ -140,10 +185,15 @@ router.beforeEach((to, from, next) => {
       } else if (!steps[steps[to.name].previous].isComplete) {
         next({
           name: steps[to.name].previous,
+          params: to.params,
         });
       } else if (steps[steps[to.name].previous].isComplete) {
         if (!hasQueryParams(to) && hasQueryParams(from)) {
-          next({ name: to.name, query: queryParams });
+          next({
+            name: to.name,
+            query: queryParams,
+            params: to.params,
+          });
         } else {
           next();
         }
@@ -162,10 +212,15 @@ router.beforeEach((to, from, next) => {
     } else if (!steps[steps[to.name].previous].isComplete) {
       next({
         name: steps[to.name].previous,
+        params: to.params,
       });
     } else if (steps[steps[to.name].previous].isComplete) {
       if (!hasQueryParams(to) && hasQueryParams(from)) {
-        next({ name: to.name, query: queryParams });
+        next({
+          name: to.name,
+          query: queryParams,
+          params: to.params,
+        });
       } else {
         next();
       }

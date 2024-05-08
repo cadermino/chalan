@@ -20,7 +20,7 @@
         @click="isOpen = false"
         tabindex="-1"
         class="fixed inset-0 h-full w-full bg-black opacity-50 cursor-default"></button>
-      <div v-if="isOpen" class="absolute right-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl">
+      <div v-if="isOpen" class="absolute right-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl z-50">
         <router-link
           :to="{name: 'dashboard'}"
           @click.native="isOpen = false"

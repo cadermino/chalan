@@ -103,7 +103,9 @@ export default {
           'services',
           'customer',
         ]);
-        this.$router.push(this.redirect);
+        this.$router.push({
+          path: this.redirect,
+        });
       }
     },
   },

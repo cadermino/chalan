@@ -168,4 +168,12 @@ export default {
       },
     });
   },
+  getOrderByCustomer(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}order/${payload.orderId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
 };

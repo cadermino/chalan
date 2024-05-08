@@ -2,13 +2,11 @@
   <div id="app">
     <a :href="`https://api.whatsapp.com/send?phone=${phone}`"
       target="_blank"
-      id="whatsapp" class="
-      z-50
+      id="whatsapp" class="z-50
       fixed
-      bottom-0
+      bottom-1/2
       right-0
       mb-5
-      mr-5
       "><i class="
         px-3
         py-1

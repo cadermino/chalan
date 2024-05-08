@@ -137,10 +137,13 @@
                     leading-tight
                     focus:outline-none
                     focus:border-blue-400"
+                    @wheel="$event.target.blur()"
                     v-model="fromParkingDistance"
                     id="from-parking-distance"
+                    type="number"
+                    min="0"
                     placeholder="Ej. 5"
-                    type="number">
+                    >
                     <p v-if="formValidationMessages['from_approximate_distance_from_parking']"
                       class="text-red-500
                       text-xs
@@ -315,10 +318,13 @@
                     leading-tight
                     focus:outline-none
                     focus:border-blue-400"
+                    @wheel="$event.target.blur()"
                     v-model="toParkingDistance"
                     id="to-parking-distance"
+                    type="number"
+                    min="0"
                     placeholder="Ej. 5"
-                    type="number">
+                    >
                     <p v-if="formValidationMessages['to_approximate_distance_from_parking']"
                       class="text-red-500
                       text-xs
@@ -508,7 +514,9 @@ export default {
               if (response.status === 201) {
                 this.setOrder({ section: 'currentOrder', field: 'order_id', value: response.data.order_id });
                 this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId.pending });
-                this.$router.push({ name: this.steps[this.viewName].next });
+                this.$router.push({
+                  name: this.steps[this.viewName].next,
+                });
               }
             })
             .catch(() => {
@@ -532,7 +540,9 @@ export default {
           chalan.updateOrder(payload)
             .then((response) => {
               if (response.status === 200) {
-                this.$router.push({ name: 'step-two' });
+                this.$router.push({
+                  name: 'step-two',
+                });
               }
             })
             .catch(() => {

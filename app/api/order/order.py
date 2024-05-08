@@ -7,7 +7,13 @@ from ...models import Order as OrderModel
 from ...models import OrdersServices as OrdersServicesModel
 from ...models import Payment as PaymentModel
 from ...models import Quotations as QuotationsModel
-from ...models import OrderSchema, OrderDetailsSchema, QuotationsSchema, CustomerSchema, PaymentSchema, OrdersServicesSchema
+from ...models import OrderSchema, \
+    OrderDetailsSchema,\
+    QuotationsSchema,\
+    CustomerSchema,\
+    PaymentSchema,\
+    OrdersServicesSchema,\
+    VehicleSchema
 
 class Order:
 
@@ -46,7 +52,14 @@ class Order:
 
         order_data = OrderSchema().dump(order)
         order_details_data = OrderDetailsSchema(many=True).dump(order.order_details)
-        quotations_data = QuotationsSchema(many=True).dump(order.quotations)
+        selected_quotation = order.quotations.filter_by(quotation_status_id = QuotationStatus.Selected()).first()
+        if selected_quotation is not None:
+            quotation_data = QuotationsSchema().dump(selected_quotation)
+            vehicle = selected_quotation.carrier_company.vehicles[0]
+            vehicle_data = VehicleSchema().dump(vehicle)
+            order_data['selected_quotation_id'] = quotation_data['id']
+            order_data['amount'] = quotation_data['amount']
+            order_data['vehicle'] = vehicle_data
         customer_data = CustomerSchema().dump(order.customers)
         payment_data = PaymentSchema(many=True).dump(order.payments)
         services = OrdersServicesSchema(many=True).dump(order.services)
@@ -55,7 +68,6 @@ class Order:
             service["name"] = name
 
         order_data['order_details'] = order_details_data
-        order_data['quotations'] = quotations_data
         order_data['customers'] = customer_data
         order_data['payments'] = payment_data
         order_data['services'] = services

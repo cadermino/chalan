@@ -2,6 +2,9 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import VueJwtDecode from 'vue-jwt-decode';
 import steps from './steps';
+import chalan from '../api/chalan';
+
+const isEmpty = arr => !arr.length;
 
 function checkCompleteStep(state) {
   const allStepsData = {
@@ -39,12 +42,11 @@ export default new Vuex.Store({
       created_date: null,
       order_id: null,
       order_status_id: null,
-      quotation_id: null,
       country_id: null,
       appointment_date: null,
       comments: null,
       approximate_budget: null,
-      payment_method: null,
+      quotation_id: null,
       amount: null,
       carrier_company_id: null,
       vehicle_picture: null,
@@ -52,6 +54,7 @@ export default new Vuex.Store({
       vehicle_model: null,
       vehicle_weight: null,
       vehicle_description: null,
+      payment_method: null,
     },
     orderDetailsOrigin: {
       from_street: null,
@@ -169,6 +172,78 @@ export default new Vuex.Store({
     },
   },
   actions: {
+    async getOrderFromDataBase({ commit, state }, orderId) {
+      const payload = {
+        token: state.customer.token,
+        orderId,
+      };
+      const order = await chalan.getOrderByCustomer(payload)
+        .catch(err => Promise.reject(err));
+      const currentOrder = {};
+      ({
+        amount: currentOrder.amount,
+        appointment_date: currentOrder.appointment_date,
+        approximate_budget: currentOrder.approximate_budget,
+        comments: currentOrder.comments,
+        created_date: currentOrder.created_date,
+        lu_order_status: currentOrder.order_status_id,
+        id: currentOrder.order_id,
+        selected_quotation_id: currentOrder.quotation_id,
+        vehicle: { brand: currentOrder.vehicle_brand } = {},
+        vehicle: { model: currentOrder.vehicle_model } = {},
+        vehicle: { picture: currentOrder.vehicle_picture } = {},
+        vehicle: { weight: currentOrder.vehicle_weight } = {},
+        vehicle: { description: currentOrder.vehicle_description } = {},
+      } = order.data.order);
+      Object.keys(currentOrder).forEach((key) => {
+        commit('setOrder', { section: 'currentOrder', field: key, value: currentOrder[key] });
+      });
+      const {
+        order_details: orderDetails,
+        services,
+      } = order.data.order;
+      const orderDetailsOrigin = orderDetails.filter(item => item.type === 'carry_from')[0];
+      const from = {};
+      ({
+        street: from.from_street,
+        interior_number: from.from_interior_number,
+        floor_number: from.from_floor_number,
+        zip_code: from.from_zip_code,
+        country: from.from_country,
+        map_url: from.from_map_url,
+        approximate_distance_from_parking: from.from_approximate_distance_from_parking,
+        has_elevator: from.from_has_elevator,
+      } = orderDetailsOrigin);
+      from.from_has_elevator = String(from.from_has_elevator);
+      Object.keys(from).forEach((key) => {
+        commit('setOrder', { section: 'orderDetailsOrigin', field: key, value: from[key] });
+      });
+      const orderDetailsDestination = orderDetails.filter(item => item.type === 'deliver_to')[0];
+      const to = {};
+      ({
+        street: to.to_street,
+        interior_number: to.to_interior_number,
+        floor_number: to.to_floor_number,
+        zip_code: to.to_zip_code,
+        country: to.to_country,
+        map_url: to.to_map_url,
+        approximate_distance_from_parking: to.to_approximate_distance_from_parking,
+        has_elevator: to.to_has_elevator,
+      } = orderDetailsDestination);
+      from.to_has_elevator = String(to.to_has_elevator);
+      Object.keys(to).forEach((key) => {
+        commit('setOrder', { section: 'orderDetailsDestination', field: key, value: to[key] });
+      });
+      let packaging = null;
+      let cargo = null;
+      if (!isEmpty(services)) {
+        packaging = services.find(item => item.name === 'packaging');
+        cargo = services.find(item => item.name === 'cargo');
+      }
+      commit('setOrder', { section: 'services', field: 'packaging', value: packaging ? '1' : '0' });
+      commit('setOrder', { section: 'services', field: 'cargo', value: cargo ? '1' : '0' });
+      return true;
+    },
     logout({ state, dispatch, commit }) {
       if (state.FB) {
         state.FB.logout();
@@ -190,12 +265,16 @@ export default new Vuex.Store({
         orderDetailsDestination: 'setOrder',
         services: 'setOrder',
         customer: 'setCustomerData',
+        viewsMessages: 'setViewsMessages',
       };
       if (localStorage.getItem(location)) {
         try {
           const data = JSON.parse(localStorage.getItem(location));
           Object.keys(data).forEach((key) => {
             commit(mutations[location], { section: location, field: key, value: data[key] });
+            if (location === 'viewsMessages') {
+              commit(mutations[location], { section: location, view: key, message: data[key] });
+            }
           });
         } catch (e) {
           localStorage.removeItem(location);

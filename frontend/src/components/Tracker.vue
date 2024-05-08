@@ -66,7 +66,7 @@
 </template>
 
 <script>
-import { mapMutations, mapActions } from 'vuex';
+import { mapMutations, mapActions, mapState } from 'vuex';
 
 export default {
   name: 'Tracker',
@@ -87,11 +87,16 @@ export default {
     ]),
     goToView(key) {
       if (key !== this.currentView) {
-        this.$router.push({ name: key }).catch(() => {});
+        this.$router.push({
+          name: key,
+        }).catch(() => {});
       }
     },
   },
   computed: {
+    ...mapState([
+      'currentOrder',
+    ]),
     steps() {
       return this.$store.state.steps;
     },

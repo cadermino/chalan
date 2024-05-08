@@ -14,6 +14,7 @@ from .quotation.quotation_status import QuotationStatus
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
 from datetime import date
+from .errors import not_found
 
 @api.route('/order', methods=['POST'])
 def create_order():
@@ -29,7 +30,6 @@ def create_order():
 def update_order(order_id):
     order_data = request.json
     emails_sent = send_email_to_carrier_companies(order_data)
-
     order = OrderEntity(order_id)
     order = order.update(request=order_data)
     return jsonify({
@@ -47,6 +47,20 @@ def order_detail():
     return jsonify({
         'order': order.details(),
         'carrier_company_id': data['carrier_company_id'],
+    }), 200
+
+@api.route('/order/<int:order_id>', methods=['GET'])
+@token_required
+def get_order(order_id):
+    auth_headers = request.headers.get('Authorization', '').split()
+    customer = Customer.verify_auth_token(auth_headers[1])
+    order = customer.orders.filter_by(id = order_id).first()
+    if order is not None:
+        order_detail = OrderEntity(order_id).details()
+    else:
+        return not_found('order not found')
+    return jsonify({
+        'order': order_detail,
     }), 200
 
 @api.route('/order/checkout/<int:order_id>', methods=['PUT'])

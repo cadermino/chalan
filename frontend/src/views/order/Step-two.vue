@@ -171,6 +171,8 @@
                   focus:outline-none
                   focus:border-blue-400"
                   id="approximate-budget"
+                  @wheel="$event.target.blur()"
+                  min="0"
                   v-model="approximateBudget"
                   type="number"
                   placeholder="Ej. 300"
@@ -262,7 +264,9 @@ export default {
         chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
-              this.$router.push({ name: this.steps[this.viewName].next });
+              this.$router.push({
+                name: this.steps[this.viewName].next,
+              }).catch(() => {});
             }
           })
           .catch(() => {

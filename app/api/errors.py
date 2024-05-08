@@ -20,8 +20,9 @@ def forbidden(message):
     response.status_code = 403
     return response
 
-def not_found(message, error):
-    print(error.args[0], file=sys.stderr)
+def not_found(message, error=None):
+    if error is not None:
+        print(error.args[0], file=sys.stderr)
     response = jsonify({'error': 'not found', 'message': message})
     response.status_code = 404
     return response
