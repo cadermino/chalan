@@ -55,9 +55,10 @@ const routes = [
     path: '/order/step-one',
     name: 'step-one',
     component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
-    props: {
+    props: route => ({
+      carrierId: Number(route.query['carrier-id']),
       countryData: countryData[country]['step-one'],
-    },
+    }),
   },
   {
     path: '/order/step-two',
