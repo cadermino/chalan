@@ -39,6 +39,7 @@ export default new Vuex.Store({
       picture: null,
     },
     currentOrder: {
+      is_tenant: null,
       created_date: null,
       order_id: null,
       order_status_id: null,

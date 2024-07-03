@@ -430,8 +430,14 @@ export default {
     this.selectedFromStreet = this.orderDetailsOrigin.from_street;
     this.selectedToStreet = this.orderDetailsDestination.to_street;
     this.buildRequisites();
+    console.log('carrierUrl', this.carrierUrl);
+    if (this.carrierId) {
+      this.setOrder({ section: 'currentOrder', field: 'carrier_company_id', value: this.carrierId });
+      this.setOrder({ section: 'currentOrder', field: 'is_tenant', value: true });
+    }
   },
   props: {
+    carrierId: Number,
     countryData: Object,
   },
   methods: {

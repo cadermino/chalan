@@ -13,7 +13,7 @@
         py-1
         text-gray
         rounded">
-        <img class="w-2/3" src="../../src/assets/logo_chalan.png" alt="chalan">
+        <img class="w-2/3" :src=logoImage alt="chalan">
       </router-link>
       <div class="sm:hidden">
         <button @click="isOpen = !isOpen" type="button" class="block
@@ -112,14 +112,18 @@
           py-1
           text-gray
           sm:mt-0
-          sm:ml-2">Contacto</a>
+          sm:ml-2">
+          Contacto
+        </a>
         <a href="/landing/nosotros" class="mt-1
           block
           px-2
           py-1
           text-gray
           sm:mt-0
-          sm:ml-2">Nosotros</a>
+          sm:ml-2">
+          Nosotros
+        </a>
         <router-link  v-if="!isUserLogged"
           :to="{name: 'register-login'}"
           @click.native="isOpen = false"
@@ -163,7 +167,11 @@ export default {
     ]),
     ...mapState([
       'customer',
+      'currentOrder',
     ]),
+    logoImage() {
+      return this.currentOrder.carrier_company_url ? 'https://placehold.co/300x80' : '../../src/assets/logo_chalan.png';
+    },
   },
 };
 </script>
