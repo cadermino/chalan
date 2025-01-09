@@ -53,18 +53,3 @@ TZ=America/Mexico_City
 ```
 docker-compose -f docker-compose.local.yml up
 ```
-
-## Frontend installation
-1. Go to /frontend and create .env.development
-```
-VUE_APP_BASE_URL=/
-VUE_APP_API_URL=http://localhost/api/v1/
-VUE_APP_AUTH_API_URL=http://localhost/api/auth/
-VUE_APP_FB_ID=
-VUE_APP_STRIPE=
-```
-2. To install the frontend go to /frontend and run:
-```
-rm -rf dist && npm run build-dev
-```
-2. Go to http://localhost/landing/
