@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+import jwt
 from . import db, ma
 from sqlalchemy import func, text
 
@@ -55,17 +55,28 @@ class Customer(db.Model):
 		return check_password_hash(self.password_hash, password)
 
 	def generate_auth_token(self, expiration):
-		s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
-		return s.dumps({'id': self.id}).decode('utf-8')
+		"""Generate a JWT token with expiration."""
+		payload = {
+			'id': self.id,
+			'exp': datetime.now(timezone.utc) + timedelta(seconds=expiration),
+			'iat': datetime.now(timezone.utc)
+		}
+		return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
 	@staticmethod
 	def verify_auth_token(token):
-		s = Serializer(current_app.config['SECRET_KEY'])
+		"""Verify a JWT token and return the customer if valid."""
 		try:
-			data = s.loads(token)
-		except:
-			return None
-		return Customer.query.get(data['id'])
+			data = jwt.decode(
+				token,
+				current_app.config['SECRET_KEY'],
+				algorithms=['HS256']
+			)
+		except jwt.ExpiredSignatureError:
+			return None  # Token expired
+		except jwt.InvalidTokenError:
+			return None  # Invalid token
+		return db.session.get(Customer, data['id'])
 
 	def __repr__(self):
 		return '<Customer %r>' % self.name
@@ -94,13 +105,13 @@ class Order(db.Model):
 	customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
 	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
 	total_kilometers = db.Column(db.Integer, nullable=True)
-	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), server_default=text("'1'"), nullable=False)
+	order_status_id = db.Column(db.Integer, db.ForeignKey("lu_order_status.id"), server_default='1', nullable=False)
 	appointment_date = db.Column(db.DateTime(), server_default=func.now())
 	comments = db.Column(db.String(500))
 	total_amount = db.Column(db.Float, nullable=True)
 	approximate_budget = db.Column(db.Float, nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
-	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
@@ -110,7 +121,7 @@ class Order(db.Model):
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
 	id = db.Column(db.Integer, primary_key=True)
-	type = db.Column(db.Enum('carry_from','deliver_to'), nullable=False)
+	type = db.Column(db.Enum('carry_from','deliver_to', name='order_detail_type'), nullable=False)
 	floor_number = db.Column(db.Integer, nullable=True)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	street = db.Column(db.String(200), nullable=True)
@@ -121,7 +132,7 @@ class OrderDetails(db.Model):
 	city = db.Column(db.String(45), nullable=True)
 	state = db.Column(db.String(45), nullable=True)
 	zip_code = db.Column(db.String(45), nullable=True)
-	has_elevator = db.Column(db.Integer, server_default=text("'0'"))
+	has_elevator = db.Column(db.Integer, server_default='0')
 	approximate_distance_from_parking = db.Column(db.Integer, nullable=True)
 
 class OrdersServices(db.Model):
@@ -145,7 +156,7 @@ class Payment(db.Model):
 	amount = db.Column(db.Float)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
-	status = db.Column(db.Enum('pending', 'paid', 'cancelled'), nullable=False, server_default=text("'pending'"))
+	status = db.Column(db.Enum('pending', 'paid', 'cancelled', name='payment_status'), nullable=False, server_default='pending')
 	reference = db.Column(db.String(100), comment='Stripe session id')
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	comments = db.Column(db.String(500))
@@ -164,10 +175,10 @@ class Quotations(db.Model):
 	amount = db.Column(db.Integer, nullable=False)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
-	selected = db.Column(db.Boolean, server_default=text('False'))
-	quotation_status_id = db.Column(db.Integer, db.ForeignKey("lu_quotation_status.id"), server_default=text("'1'"), nullable=False)
+	selected = db.Column(db.SmallInteger, server_default='0')
+	quotation_status_id = db.Column(db.Integer, db.ForeignKey("lu_quotation_status.id"), server_default='1', nullable=False)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
-	updated_date = db.Column(db.DateTime(), server_default=text('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'))
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
 	carrier_company = db.relationship("CarrierCompany", backref="quotations")
 
@@ -179,7 +190,7 @@ class Vehicle(db.Model):
 	driver_fee = db.Column(db.Integer, nullable=False)
 	loader_fee = db.Column(db.Integer, nullable=False)
 	loaders_quantity = db.Column(db.Integer, nullable=False)
-	size = db.Column(db.Enum('small','medium','large'))
+	size = db.Column(db.Enum('small','medium','large', name='vehicle_size'))
 	weight = db.Column(db.String(45))
 	width = db.Column(db.String(45))
 	height = db.Column(db.String(45))
@@ -191,12 +202,13 @@ class Vehicle(db.Model):
 	picture = db.Column(db.String(200))
 	plates = db.Column(db.String(45))
 	base_address = db.Column(db.String(200))
-	active = db.Column(db.Integer, server_default=text("'0'"))
+	active = db.Column(db.Integer, server_default='0')
 
 
-class CustomerSchema(ma.ModelSchema):
+class CustomerSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Customer
+		load_instance = True
 		fields = (
 			'id',
 			'name',
@@ -208,38 +220,45 @@ class CustomerSchema(ma.ModelSchema):
 			'created_date',
 		)
 
-class CarrierCompanySchema(ma.ModelSchema):
+class CarrierCompanySchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = CarrierCompany
+		load_instance = True
 
-class OrderSchema(ma.ModelSchema):
+class OrderSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Order
+		load_instance = True
 
-class OrderDetailsSchema(ma.ModelSchema):
+class OrderDetailsSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = OrderDetails
+		load_instance = True
 
-class OrdersServicesSchema(ma.ModelSchema):
+class OrdersServicesSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = OrdersServices
+		load_instance = True
 
-class PaymentSchema(ma.ModelSchema):
+class PaymentSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Payment
+		load_instance = True
 
-class QuotationsSchema(ma.ModelSchema):
+class QuotationsSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Quotations
+		load_instance = True
 		fields = ('id',
 				'amount',
 				'order_id',
 				'carrier_company_id',
 				'quotation_status_id')
 
-class VehicleSchema(ma.ModelSchema):
+class VehicleSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Vehicle
+		load_instance = True
 		fields = ('brand',
 				'model',
 				'description',

@@ -436,6 +436,9 @@ export default {
       return Boolean(this.amountFromDatabase) || false;
     },
     amountFromDatabase() {
+      if (!this.quotations || this.quotations.length === 0) {
+        return null;
+      }
       const currentQuotation = this.quotations
         .filter(quotation => quotation.carrier_company_id === this.carrierCompanyId
           && quotation.quotation_status_id !== this.quotationStatus.cancelled);
@@ -445,9 +448,15 @@ export default {
       return currentQuotation[0].amount;
     },
     packagingService() {
+      if (!this.services || this.services.length === 0) {
+        return 'No';
+      }
       return this.services.filter(item => item.name === 'packaging').length === 0 ? 'No' : 'Sí';
     },
     cargoService() {
+      if (!this.services || this.services.length === 0) {
+        return 'No';
+      }
       return this.services.filter(item => item.name === 'cargo').length === 0 ? 'No' : 'Sí';
     },
     distanceBetweenAddress() {
@@ -472,6 +481,9 @@ export default {
     accordionButton(contentTagElementId, arrowTagElementId) {
       const content = document.getElementById(contentTagElementId);
       const arrow = document.getElementById(arrowTagElementId);
+      if (!content || !arrow) {
+        return;
+      }
       if (content.style.display === 'none' || content.style.display === '') {
         content.style.display = 'block';
         arrow.style.transform = 'rotate(0deg)';
@@ -482,23 +494,28 @@ export default {
     },
     getOrder() {
       this.setLoader(true);
+      console.log('Token recibido:', this.token);
       chalan
         .getOrderDetails(this.token)
         .then((response) => {
+          console.log('Respuesta del servidor:', response);
           if (response.status === 200) {
             this.orderData = response.data.order;
             this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
             this.quotations = this.orderData.quotations;
             this.services = this.orderData.services;
+            console.log('orderData asignado:', this.orderData);
           }
+          this.setLoader(false);
         })
         .catch((error) => {
+          console.error('Error en getOrder:', error);
           let message = '';
-          if (error.response.status === 400) {
+          if (error.response && error.response.status === 400) {
             message = 'El token es inválido';
-          } else if (error.response.status === 401) {
-            message = 'Proporciona un toke por favor';
+          } else if (error.response && error.response.status === 401) {
+            message = 'Proporciona un token por favor';
           } else {
             message = 'Hubo un error, intenta después de recargar la página';
           }
@@ -509,8 +526,8 @@ export default {
               type: 'error',
             },
           });
+          this.setLoader(false);
         });
-      this.setLoader(false);
     },
     sendQuotation() {
       if (!this.amount) {

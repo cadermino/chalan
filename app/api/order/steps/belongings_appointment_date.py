@@ -50,7 +50,7 @@ class BelongingsAppointmentDate:
         lu_services_model = LuServicesModel.query.all()
         services_from_database = {}
         for lu_service in lu_services_model:
-            service = list(filter(lambda service: service['service'] == lu_service.id, services))
+            service = list(filter(lambda s: s.get('name') == lu_service.service or s.get('id') == lu_service.id, services))
             services_from_database[lu_service.service] = "1"
             if len(service) == 0:
                 services_from_database[lu_service.service] = "0"

@@ -48,7 +48,7 @@ class Order:
         return order
 
     def details(self):
-        order = OrderModel.query.get(self.order_id)
+        order = db.session.get(OrderModel, self.order_id)
 
         order_data = OrderSchema().dump(order)
         order_details_data = OrderDetailsSchema(many=True).dump(order.order_details)
@@ -74,7 +74,7 @@ class Order:
         return order_data
 
     def update(self, request):
-        order = OrderModel.query.get(self.order_id)
+        order = db.session.get(OrderModel, self.order_id)
 
         order.customer_id = request['customer']['customer_id']
         order.appointment_date = request['order']['appointment_date']
@@ -100,7 +100,10 @@ class Order:
         db.session.commit()
 
         for service in request['services']:
-            service_id = LuServicesModel.query.filter(LuServicesModel.service == service).first().id
+            service_record = LuServicesModel.query.filter(LuServicesModel.service == service).first()
+            if service_record is None:
+                continue  # Skip unknown services
+            service_id = service_record.id
             order_service_model = OrdersServicesModel.query.\
                                 filter(OrdersServicesModel.service_id == service_id).\
                                 filter(OrdersServicesModel.order_id == self.order_id)
@@ -121,7 +124,7 @@ class Order:
         return query.all()
 
     def create_stripe_payment(self, session_id):
-        order = OrderModel.query.get(self.order_id)
+        order = db.session.get(OrderModel, self.order_id)
         payment = PaymentModel(
             order_id = self.order_id,
             amount = order.product.price,
@@ -136,7 +139,7 @@ class Order:
         return payment
 
     def create_cash_payment(self):
-        order = OrderModel.query.get(self.order_id)
+        order = db.session.get(OrderModel, self.order_id)
         quotation = order.quotations.filter(QuotationsModel.quotation_status_id\
                                             == QuotationStatus.Selected()).first()
         payment = PaymentModel(
