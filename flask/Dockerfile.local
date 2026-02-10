@@ -1,4 +1,4 @@
-FROM python:3.8.10-alpine
+FROM python:3.11-alpine
 WORKDIR /chalan
 COPY ./requirements/ requirements/
 
@@ -8,7 +8,8 @@ ENV TZ America/Mexico_City
 RUN apk update && apk add python3-dev \
                           gcc \
                           libc-dev \
-                          libffi-dev
+                          libffi-dev \
+                          postgresql-dev
 
 RUN pip install -r requirements/dev.txt
 
