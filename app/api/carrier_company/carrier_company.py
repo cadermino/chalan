@@ -1,14 +1,16 @@
+from datetime import datetime, timedelta, timezone
 from ...models import CarrierCompany as CarrierCompanyModel
 from ...models import VehicleSchema
 from flask import jsonify, current_app
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from ... import db
+import jwt
 
 class CarrierCompany:
 
     def __init__(self, id=None):
         self.id = id
         if id:
-            carrier_company = CarrierCompanyModel.query.get(id)
+            carrier_company = db.session.get(CarrierCompanyModel, id)
             self.carrier_company = carrier_company
 
     def get_id(self):
@@ -57,16 +59,28 @@ class CarrierCompany:
         return carrier_companies
 
     def generate_carrier_company_token(self, expiration, order_id, carrier_company_id):
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'carrier_company_id': carrier_company_id, 'order_id': order_id}).decode('utf-8')
+        """Generate a JWT token for carrier company access."""
+        payload = {
+            'carrier_company_id': carrier_company_id,
+            'order_id': order_id,
+            'exp': datetime.now(timezone.utc) + timedelta(seconds=expiration),
+            'iat': datetime.now(timezone.utc)
+        }
+        return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
     @staticmethod
     def verify_carrier_company_token(token):
-        s = Serializer(current_app.config['SECRET_KEY'])
+        """Verify a carrier company JWT token."""
         try:
-            data = s.loads(token)
-        except:
-            return None
+            data = jwt.decode(
+                token,
+                current_app.config['SECRET_KEY'],
+                algorithms=['HS256']
+            )
+        except jwt.ExpiredSignatureError:
+            return None  # Token expired
+        except jwt.InvalidTokenError:
+            return None  # Invalid token
         return data
 
     def generate_orders_url(self, order_id, site_url):

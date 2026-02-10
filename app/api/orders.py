@@ -242,6 +242,6 @@ def get_carrier_companies(order):
         }]
     carrier_companies = CarrierCompanyEntity.get({
         'country_id': int(os.getenv('COUNTRY_ID')),
-        'active': True
+        'active': 1
     })
     return CarrierCompanySchema(many=True).dump(carrier_companies)

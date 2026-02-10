@@ -1,4 +1,3 @@
-version: '3'
 services:
   flask:
     build:
@@ -31,11 +30,14 @@ services:
       - 80:8000
     restart: always
   db:
-    image: mysql:8.0.35
-    command: mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    image: postgres:17-alpine
     ports:
-      - "3307:3306"
-    env_file: .env.mysql.dev
+      - "5432:5432"
+    env_file: .env.postgres.dev
     restart: always
     volumes:
       - ./db:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

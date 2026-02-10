@@ -42,7 +42,7 @@ class Quotation:
         return self
 
     def pickQuotation(self, quotation_id=None):
-        picked_quotation = QuotationsModel.query.get(self.quotation_id)
+        picked_quotation = db.session.get(QuotationsModel, self.quotation_id)
         quotations = picked_quotation.order.quotations
         for quotation in quotations:
             if quotation.quotation_status_id == QuotationStatus.Selected():
