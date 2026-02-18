@@ -494,23 +494,19 @@ export default {
     },
     getOrder() {
       this.setLoader(true);
-      console.log('Token recibido:', this.token);
       chalan
         .getOrderDetails(this.token)
         .then((response) => {
-          console.log('Respuesta del servidor:', response);
           if (response.status === 200) {
             this.orderData = response.data.order;
             this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
             this.quotations = this.orderData.quotations;
             this.services = this.orderData.services;
-            console.log('orderData asignado:', this.orderData);
           }
           this.setLoader(false);
         })
         .catch((error) => {
-          console.error('Error en getOrder:', error);
           let message = '';
           if (error.response && error.response.status === 400) {
             message = 'El token es inválido';
