@@ -18,7 +18,10 @@
           <div class="flex mb-4">
             <span id="stars" class="flex items-center">
               <svg
-                fill="currentColor"
+                v-for="star in 5"
+                :key="star"
+                :fill="star <= Math.round(averageRating)
+                  ? 'currentColor' : 'none'"
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -42,107 +45,13 @@
                   2z"
                 ></path>
               </svg>
-              <svg
-                fill="currentColor"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                class="w-4 h-4 text-blue-500"
-                viewBox="0 0 24 24"
+              <a
+                :href="`/v2/reviews/${carrierId}`"
+                target="_blank"
+                class="text-blue-600 ml-3 hover:underline"
               >
-                <path
-                  d="M12
-                  2l3.09
-                  6.26L22
-                  9.27l-5
-                  4.87
-                  1.18
-                  6.88L12
-                  17.77l-6.18
-                  3.25L7
-                  14.14
-                  2
-                  9.27l6.91-1.01L12
-                  2z"
-                ></path>
-              </svg>
-              <svg
-                fill="currentColor"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                class="w-4 h-4 text-blue-500"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12
-                  2l3.09
-                  6.26L22
-                  9.27l-5
-                  4.87
-                  1.18
-                  6.88L12
-                  17.77l-6.18
-                  3.25L7
-                  14.14
-                  2
-                  9.27l6.91-1.01L12
-                  2z"
-                ></path>
-              </svg>
-              <svg
-                fill="currentColor"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                class="w-4 h-4 text-blue-500"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12
-                  2l3.09
-                  6.26L22
-                  9.27l-5
-                  4.87
-                  1.18
-                  6.88L12
-                  17.77l-6.18
-                  3.25L7
-                  14.14
-                  2
-                  9.27l6.91-1.01L12
-                  2z"
-                ></path>
-              </svg>
-              <svg
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                class="w-4 h-4 text-blue-500"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M12
-                  2l3.09
-                  6.26L22
-                  9.27l-5
-                  4.87
-                  1.18
-                  6.88L12
-                  17.77l-6.18
-                  3.25L7
-                  14.14
-                  2
-                  9.27l6.91-1.01L12
-                  2z"
-                ></path>
-              </svg>
-              <span class="text-gray-600 ml-3">0 Evaluaciones</span>
+                {{ totalReviews }} Evaluaciones
+              </a>
             </span>
             <span id="social"
               class="flex ml-3 pl-3 py-2 border-l-2 border-gray-200 space-x-2s"
@@ -455,11 +364,81 @@
         </div>
       </div>
     </div>
+    <!-- Reviews Section -->
+    <div class="container px-5 py-10 mx-auto"
+      v-if="reviews.length > 0">
+      <div class="lg:w-4/5 mx-auto">
+        <h2 class="text-2xl font-bold mb-6 text-gray-900">
+          Evaluaciones ({{ totalReviews }})
+        </h2>
+        <div class="space-y-4">
+          <div v-for="review in reviews"
+            :key="review.id"
+            class="bg-white rounded-lg border
+              border-gray-200 p-6">
+            <div class="flex justify-between
+              items-start mb-2">
+              <p class="font-medium text-gray-900">
+                {{ review.customer_name }}
+              </p>
+              <div class="flex items-center">
+                <svg
+                  v-for="s in 5"
+                  :key="s"
+                  :fill="s <= review.rating
+                    ? 'currentColor' : 'none'"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  class="w-4 h-4 text-blue-500"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M12
+                    2l3.09
+                    6.26L22
+                    9.27l-5
+                    4.87
+                    1.18
+                    6.88L12
+                    17.77l-6.18
+                    3.25L7
+                    14.14
+                    2
+                    9.27l6.91-1.01L12
+                    2z"
+                  ></path>
+                </svg>
+                <span class="text-sm
+                  text-gray-500 ml-2">
+                  {{ formatDate(review.created_date) }}
+                </span>
+              </div>
+            </div>
+            <p class="text-gray-700">
+              {{ review.comment }}
+            </p>
+          </div>
+        </div>
+        <div class="mt-6 text-center">
+          <a
+            :href="`/v2/reviews/${carrierId}`"
+            target="_blank"
+            class="text-blue-600 hover:underline
+              font-medium"
+          >
+            Ver todas las evaluaciones →
+          </a>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
 <script>
 import { mapState, mapMutations, mapGetters } from 'vuex';
+import axios from 'axios';
 import chalan from '../../api/chalan';
 
 export default {
@@ -475,6 +454,9 @@ export default {
       youtube: null,
       twitter: null,
       vehicles: null,
+      averageRating: 0,
+      totalReviews: 0,
+      reviews: [],
     };
   },
   mounted() {
@@ -559,6 +541,7 @@ export default {
       chalan.getCarrierCompany(payload)
         .then((response) => {
           this.mapCarrierCompanyData(response.data);
+          this.fetchReviews();
         })
         .catch((error) => {
           if (error.response && error.response.status === 404) {
@@ -571,6 +554,27 @@ export default {
             });
           }
         });
+    },
+    fetchReviews() {
+      const url = process.env.VUE_APP_API_URL;
+      axios
+        .get(`${url}reviews/company/${this.carrierId}`)
+        .then((response) => {
+          const { data } = response;
+          this.averageRating = data.average_rating || 0;
+          this.totalReviews = data.total_reviews || 0;
+          this.reviews = data.reviews || [];
+        })
+        .catch(() => {
+          this.averageRating = 0;
+          this.totalReviews = 0;
+          this.reviews = [];
+        });
+    },
+    formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('es-PE');
     },
   },
 };

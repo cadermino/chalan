@@ -1,13 +1,23 @@
-FROM node:18-alpine as build-stage
+FROM node:18-alpine as vue-build-stage
 WORKDIR /chalan
 COPY /frontend .
 ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN npm install && npm run build
 
+FROM node:18-alpine as react-build-stage
+WORKDIR /app
+COPY /frontend-react/package.json ./
+RUN npm install
+COPY /frontend-react .
+RUN npm run build
+
 FROM python:3.11-alpine as production-stage
 WORKDIR /chalan
 COPY . .
-COPY --from=build-stage /chalan/dist /chalan/frontend/dist
+COPY --from=vue-build-stage /chalan/dist /chalan/frontend/dist
+COPY --from=react-build-stage /app/.next/standalone /chalan/frontend-react-standalone
+COPY --from=react-build-stage /app/.next/static /chalan/frontend-react-standalone/.next/static
+COPY --from=react-build-stage /app/public /chalan/frontend-react-standalone/public
 
 RUN pip install --upgrade pip
 RUN apk update && apk add --no-cache tzdata
@@ -16,7 +26,8 @@ RUN apk add python3-dev \
                     gcc \
                     libc-dev \
                     libffi-dev \
-                    postgresql-dev
+                    postgresql-dev \
+                    nodejs
 
 RUN apk add nginx
 

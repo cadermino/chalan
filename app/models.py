@@ -204,6 +204,20 @@ class Vehicle(db.Model):
 	base_address = db.Column(db.String(200))
 	active = db.Column(db.Integer, server_default='0')
 
+class Review(db.Model):
+	__tablename__ = 'reviews'
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+	rating = db.Column(db.Integer, nullable=False)
+	comment = db.Column(db.String(1000))
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+	order = db.relationship("Order", backref="reviews")
+	customer = db.relationship("Customer", backref="reviews")
+	carrier_company = db.relationship("CarrierCompany", backref="reviews")
+
 
 class CustomerSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
@@ -265,3 +279,10 @@ class VehicleSchema(ma.SQLAlchemyAutoSchema):
 				'picture',
 				'plates',
 				'active')
+
+class ReviewSchema(ma.SQLAlchemyAutoSchema):
+	class Meta:
+		model = Review
+		load_instance = True
+		fields = ('id', 'order_id', 'customer_id', 'carrier_company_id',
+				'rating', 'comment', 'created_date')

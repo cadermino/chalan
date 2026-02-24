@@ -42,7 +42,12 @@
                     <div>
                       <span id="stars" class="flex items-center">
                         <svg
-                          fill="currentColor"
+                          v-for="star in 5"
+                          :key="star"
+                          :fill="starFill(
+                            quotation.carrier_company_id,
+                            star
+                          )"
                           stroke="currentColor"
                           stroke-linecap="round"
                           stroke-linejoin="round"
@@ -51,122 +56,19 @@
                           viewBox="0 0 24 24"
                         >
                           <path
-                            d="M12
-                            2l3.09
-                            6.26L22
-                            9.27l-5
-                            4.87
-                            1.18
-                            6.88L12
-                            17.77l-6.18
-                            3.25L7
-                            14.14
-                            2
-                            9.27l6.91-1.01L12
+                            d="M12 2l3.09 6.26L22 9.27l-5
+                            4.87 1.18 6.88L12 17.77l-6.18
+                            3.25L7 14.14 2 9.27l6.91-1.01L12
                             2z"
                           ></path>
                         </svg>
-                        <svg
-                          fill="currentColor"
-                          stroke="currentColor"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          class="w-4 h-4 text-blue-500"
-                          viewBox="0 0 24 24"
+                        <a
+                          :href="`/v2/reviews/${quotation.carrier_company_id}`"
+                          target="_blank"
+                          class="text-blue-600 ml-3 hover:underline"
                         >
-                          <path
-                            d="M12
-                            2l3.09
-                            6.26L22
-                            9.27l-5
-                            4.87
-                            1.18
-                            6.88L12
-                            17.77l-6.18
-                            3.25L7
-                            14.14
-                            2
-                            9.27l6.91-1.01L12
-                            2z"
-                          ></path>
-                        </svg>
-                        <svg
-                          fill="currentColor"
-                          stroke="currentColor"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          class="w-4 h-4 text-blue-500"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M12
-                            2l3.09
-                            6.26L22
-                            9.27l-5
-                            4.87
-                            1.18
-                            6.88L12
-                            17.77l-6.18
-                            3.25L7
-                            14.14
-                            2
-                            9.27l6.91-1.01L12
-                            2z"
-                          ></path>
-                        </svg>
-                        <svg
-                          fill="currentColor"
-                          stroke="currentColor"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          class="w-4 h-4 text-blue-500"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M12
-                            2l3.09
-                            6.26L22
-                            9.27l-5
-                            4.87
-                            1.18
-                            6.88L12
-                            17.77l-6.18
-                            3.25L7
-                            14.14
-                            2
-                            9.27l6.91-1.01L12
-                            2z"
-                          ></path>
-                        </svg>
-                        <svg
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          class="w-4 h-4 text-blue-500"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M12
-                            2l3.09
-                            6.26L22
-                            9.27l-5
-                            4.87
-                            1.18
-                            6.88L12
-                            17.77l-6.18
-                            3.25L7
-                            14.14
-                            2
-                            9.27l6.91-1.01L12
-                            2z"
-                          ></path>
-                        </svg>
-                        <span class="text-gray-600 ml-3">0 Evaluaciones</span>
+                          {{ getCompanyReviewCount(quotation.carrier_company_id) }} Evaluaciones
+                        </a>
                       </span>
                     </div>
                     <div class="text-gray-900 font-bold text-xl mb-2">
@@ -291,6 +193,7 @@ import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import CardSkeleton from '@/components/CardSkeleton.vue';
+import axios from 'axios';
 import chalan from '../../api/chalan';
 
 export default {
@@ -301,6 +204,7 @@ export default {
       getQuotationsDelayInMilliseconds: 5000,
       intervalId: null,
       quotationsList: [],
+      companyRatings: {},
       quotationFields: {
         quotation_id: 'id',
         amount: 'amount',
@@ -347,6 +251,39 @@ export default {
         name: 'carrier-company',
         params: { id: quotation.carrier_company_id },
       });
+    },
+    getCompanyRating(carrierCompanyId) {
+      const data = this.companyRatings[carrierCompanyId];
+      return data ? data.average_rating : 0;
+    },
+    starFill(carrierCompanyId, star) {
+      const rating = this.getCompanyRating(carrierCompanyId);
+      return star <= Math.round(rating)
+        ? 'currentColor' : 'none';
+    },
+    getCompanyReviewCount(carrierCompanyId) {
+      const data = this.companyRatings[carrierCompanyId];
+      return data ? data.total_reviews : 0;
+    },
+    async fetchCompanyRatings(companyIds) {
+      const uniqueIds = [...new Set(companyIds)]
+        .filter(id => this.companyRatings[id] === undefined);
+      const url = process.env.VUE_APP_API_URL;
+      const requests = uniqueIds.map(id => axios
+        .get(`${url}reviews/company/${id}`)
+        .then((response) => {
+          this.$set(this.companyRatings, id, {
+            average_rating: response.data.average_rating || 0,
+            total_reviews: response.data.total_reviews || 0,
+          });
+        })
+        .catch(() => {
+          this.$set(this.companyRatings, id, {
+            average_rating: 0,
+            total_reviews: 0,
+          });
+        }));
+      await Promise.all(requests);
     },
     nextStep() {
       this.validateRequiredFields(this.viewName);
@@ -415,6 +352,10 @@ export default {
               this.selectQuotation({ quotation, jumpToNextStep: false });
             }
           });
+          const companyIds = this.quotationsList.map(q => q.carrier_company_id);
+          if (companyIds.length > 0) {
+            this.fetchCompanyRatings(companyIds);
+          }
           this.setLoader(false);
         })
         .catch((e) => {
