@@ -1,0 +1,44 @@
+@baseUrl = http://localhost/api/v1
+
+### ============================
+### REVIEWS API
+### ============================
+
+### Obtener empresas mejor calificadas
+GET {{baseUrl}}/reviews/top-companies HTTP/1.1
+
+###
+
+### Obtener reseñas recientes
+GET {{baseUrl}}/reviews/recent HTTP/1.1
+
+###
+
+### Obtener reseñas de una empresa específica (cambiar ID)
+GET {{baseUrl}}/reviews/company/1 HTTP/1.1
+
+###
+
+### Crear una nueva reseña
+POST {{baseUrl}}/reviews HTTP/1.1
+Content-Type: application/json
+
+{
+  "order_id": 1,
+  "carrier_company_id": 1,
+  "rating": 5,
+  "comment": "Excelente servicio de mudanza, muy puntuales y cuidadosos con los muebles."
+}
+
+###
+
+### Crear reseña con calificación baja
+POST {{baseUrl}}/reviews HTTP/1.1
+Content-Type: application/json
+
+{
+  "order_id": 2,
+  "carrier_company_id": 1,
+  "rating": 3,
+  "comment": "El servicio fue regular, llegaron un poco tarde pero el trato fue amable."
+}

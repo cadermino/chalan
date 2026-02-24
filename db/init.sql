@@ -253,3 +253,22 @@ CREATE TRIGGER update_orders_updated_date
     BEFORE UPDATE ON orders
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_date_column();
+
+-- -----------------------------------------------------
+-- Table reviews
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS reviews (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER NOT NULL REFERENCES orders(id),
+  customer_id INTEGER NOT NULL REFERENCES customers(id),
+  carrier_company_id INTEGER NOT NULL REFERENCES carrier_company(id),
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment VARCHAR(1000),
+  created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(order_id, customer_id)
+);
+
+CREATE INDEX idx_reviews_carrier_company ON reviews(carrier_company_id);
+CREATE INDEX idx_reviews_customer ON reviews(customer_id);
+CREATE INDEX idx_reviews_rating ON reviews(rating);
+

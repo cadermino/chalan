@@ -22,6 +22,18 @@ services:
       - 8080:8080
     env_file: frontend/.env.development
     restart: always
+  nextjs:
+    build:
+      context: .
+      dockerfile: nextjs/Dockerfile.local
+    volumes:
+      - ./frontend-react/src:/app/src
+    ports:
+      - 3000:3000
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost
+      - INTERNAL_API_URL=http://flask:8001
+    restart: always
   nginx:
     build:
       context: .
