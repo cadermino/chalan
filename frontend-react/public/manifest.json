@@ -1,0 +1,9 @@
+{
+  "name": "Chalan",
+  "short_name": "Chalan",
+  "icons": [],
+  "start_url": "/v2",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#f9fafb"
+}
