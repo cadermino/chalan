@@ -11,7 +11,7 @@ services:
       - 443:443
     env_file: .env.prod
     restart: always
-    command: sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' & cd /chalan/frontend-react-standalone && node server.js & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
+    command: sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' & cd /chalan/frontend-react-standalone && HOSTNAME=0.0.0.0 node server.js & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
   certbot:
     image: certbot/certbot
     restart: unless-stopped
