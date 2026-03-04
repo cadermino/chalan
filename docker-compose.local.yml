@@ -28,6 +28,7 @@ services:
       dockerfile: nextjs/Dockerfile.local
     volumes:
       - ./frontend-react/src:/app/src
+      - ./frontend-react/public:/app/public
     ports:
       - 3000:3000
     environment:

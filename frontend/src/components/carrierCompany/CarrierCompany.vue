@@ -46,8 +46,7 @@
                 ></path>
               </svg>
               <a
-                :href="`/v2/reviews/${carrierId}`"
-                target="_blank"
+                :href="`/reviews/${carrierId}`"
                 class="text-blue-600 ml-3 hover:underline"
               >
                 {{ totalReviews }} Evaluaciones
@@ -423,8 +422,7 @@
         </div>
         <div class="mt-6 text-center">
           <a
-            :href="`/v2/reviews/${carrierId}`"
-            target="_blank"
+            :href="`/reviews/${carrierId}`"
             class="text-blue-600 hover:underline
               font-medium"
           >

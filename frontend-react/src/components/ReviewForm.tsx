@@ -108,7 +108,7 @@ export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
               onMouseLeave={() => setHoverRating(0)}
               className={`text-2xl transition-colors ${
                 star <= (hoverRating || rating)
-                  ? "text-amber-500"
+                  ? "text-blue-500"
                   : "text-gray-300"
               }`}
             >

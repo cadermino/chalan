@@ -21,7 +21,7 @@ const routes = [
     path: '/',
     name: 'home',
     beforeEnter() {
-      window.location = '/landing';
+      window.location = '/';
     },
   },
   {

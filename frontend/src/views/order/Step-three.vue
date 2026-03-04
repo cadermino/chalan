@@ -63,8 +63,7 @@
                           ></path>
                         </svg>
                         <a
-                          :href="`/v2/reviews/${quotation.carrier_company_id}`"
-                          target="_blank"
+                          :href="`/reviews/${quotation.carrier_company_id}`"
                           class="text-blue-600 ml-3 hover:underline"
                         >
                           {{ getCompanyReviewCount(quotation.carrier_company_id) }} Evaluaciones

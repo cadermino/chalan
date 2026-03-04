@@ -16,7 +16,7 @@ export function StarRating({ rating, size = "md" }: StarRatingProps) {
         <span
           key={star}
           className={
-            star <= Math.round(rating) ? "text-amber-500" : "text-gray-300"
+            star <= Math.round(rating) ? "text-blue-500" : "text-gray-300"
           }
         >
           ★
