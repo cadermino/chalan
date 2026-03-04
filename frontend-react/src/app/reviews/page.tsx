@@ -53,26 +53,6 @@ export default async function ReviewsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="bg-white shadow-sm">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-blue-600">
-            Chalán
-          </Link>
-          <div className="flex gap-4 items-center">
-            <Link href="/reviews" className="text-blue-600 font-medium">
-              Reseñas
-            </Link>
-            <Link
-              href="/"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
-            >
-              Cotizar mudanza
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       <div className="container mx-auto px-6 py-12">
         <h1 className="text-4xl font-bold mb-2">Reseñas de mudanceros</h1>
         <p className="text-gray-600 mb-10">
@@ -93,9 +73,17 @@ export default async function ReviewsPage() {
                   className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl flex-shrink-0">
-                      {company.name.charAt(0)}
-                    </div>
+                    {company.cover_image ? (
+                      <img
+                        src={company.cover_image}
+                        alt={company.name}
+                        className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl flex-shrink-0">
+                        {company.name.charAt(0)}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <h3 className="font-semibold text-lg truncate">
                         {company.name}

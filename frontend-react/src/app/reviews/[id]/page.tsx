@@ -69,26 +69,6 @@ export default async function CompanyReviewsPage({
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="bg-white shadow-sm">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-blue-600">
-            Chalán
-          </Link>
-          <div className="flex gap-4 items-center">
-            <Link href="/reviews" className="text-blue-600 font-medium">
-              Reseñas
-            </Link>
-            <Link
-              href="/"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
-            >
-              Cotizar mudanza
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       <div className="container mx-auto px-6 py-12">
         <Link
           href="/reviews"
@@ -100,9 +80,17 @@ export default async function CompanyReviewsPage({
         {/* Company Header */}
         <div className="bg-white rounded-xl p-8 shadow-sm mb-8">
           <div className="flex items-start gap-6">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl flex-shrink-0">
-              {company.name.charAt(0)}
-            </div>
+            {company.cover_image ? (
+              <img
+                src={company.cover_image}
+                alt={company.name}
+                className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl flex-shrink-0">
+                {company.name.charAt(0)}
+              </div>
+            )}
             <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2">{company.name}</h1>
               <p className="text-gray-600 mb-4">{company.description}</p>
@@ -132,10 +120,10 @@ export default async function CompanyReviewsPage({
                 {ratingDistribution.map(({ star, count, percentage }) => (
                   <div key={star} className="flex items-center gap-2">
                     <span className="text-sm w-3">{star}</span>
-                    <span className="text-amber-500 text-sm">★</span>
+                    <span className="text-blue-500 text-sm">★</span>
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-amber-500 h-2 rounded-full"
+                        className="bg-blue-500 h-2 rounded-full"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
