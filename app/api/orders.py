@@ -3,7 +3,7 @@ import stripe
 from flask import jsonify, request, current_app
 from ..models import Customer, Order
 from ..models import Quotations as QuotationsModel
-from ..models import CarrierCompanySchema
+from ..models import CarrierCompanySchema, QuotationsSchema
 from . import api
 from .decorators import token_required, carrier_company_token_required
 from .order import Order as OrderEntity
@@ -44,8 +44,11 @@ def order_detail():
     auth_headers = request.headers.get('Authorization', '').split()
     data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order = OrderEntity(data['order_id'])
+    order_details = order.details()
+    quotations = QuotationEntity().listByOrderId(data['order_id'])
+    order_details['quotations'] = QuotationsSchema(many=True).dump(quotations.quotations)
     return jsonify({
-        'order': order.details(),
+        'order': order_details,
         'carrier_company_id': data['carrier_company_id'],
     }), 200
 
