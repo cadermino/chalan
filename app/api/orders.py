@@ -29,9 +29,9 @@ def create_order():
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json
-    emails_sent = send_email_to_carrier_companies(order_data)
     order = OrderEntity(order_id)
     order = order.update(request=order_data)
+    emails_sent = send_email_to_carrier_companies(order_data)
     return jsonify({
         'message': 'order {id} updated!'.format(id=order.id),
         'order_id': order.id,
