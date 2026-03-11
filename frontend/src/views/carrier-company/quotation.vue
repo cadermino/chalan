@@ -501,7 +501,7 @@ export default {
             this.orderData = response.data.order;
             this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
-            this.quotations = this.orderData.quotations;
+            this.quotations = this.orderData.quotations || [];
             this.services = this.orderData.services;
           }
           this.setLoader(false);
@@ -559,9 +559,9 @@ export default {
         })
         .catch((error) => {
           let message = '';
-          if (error.response.status === 400) {
+          if (error.response && error.response.status === 400) {
             message = 'El token es inválido';
-          } else if (error.response.status === 401) {
+          } else if (error.response && error.response.status === 401) {
             message = 'Proporciona un token por favor';
           } else {
             message = 'Hubo un error, intenta después de recargar la página';
