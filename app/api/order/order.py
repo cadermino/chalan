@@ -67,6 +67,7 @@ class Order:
             name = order.services.filter_by(id = service["id"]).first().service.service
             service["name"] = name
 
+        order_data['order_status_id'] = order.order_status_id
         order_data['order_details'] = order_details_data
         order_data['customers'] = customer_data
         order_data['payments'] = payment_data

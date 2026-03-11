@@ -40,7 +40,7 @@ def orders_by_carrier_company():
             quotation.order_id,
             data['carrier_company_id']
         )
-        if details['lu_order_status'] == OrderStatus.in_progress() \
+        if details['order_status_id'] == OrderStatus.in_progress() \
             and quotation.quotation_status_id == QuotationStatus.Selected():
             orders.append(details)
 
