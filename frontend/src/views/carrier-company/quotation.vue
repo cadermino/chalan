@@ -547,14 +547,22 @@ export default {
               carrier_company_id: this.carrierCompanyId,
               quotation_status_id: response.data.quotation_status_id,
             });
+            this.setViewsMessages({
+              view: this.viewName,
+              message: {
+                text: 'Cotización enviada exitosamente',
+                type: 'success',
+              },
+            });
           }
+          this.setLoader(false);
         })
         .catch((error) => {
           let message = '';
           if (error.response.status === 400) {
             message = 'El token es inválido';
           } else if (error.response.status === 401) {
-            message = 'Proporciona un toke por favor';
+            message = 'Proporciona un token por favor';
           } else {
             message = 'Hubo un error, intenta después de recargar la página';
           }
@@ -565,8 +573,8 @@ export default {
               type: 'error',
             },
           });
+          this.setLoader(false);
         });
-      this.setLoader(false);
     },
   },
 };
