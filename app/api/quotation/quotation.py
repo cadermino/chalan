@@ -59,7 +59,10 @@ class Quotation:
         output = []
         for quotation in self.quotations:
             carrier_company = quotation.carrier_company
-            vehicle = carrier_company.vehicles
+            vehicles = carrier_company.vehicles
+            if not vehicles:
+                continue
+            vehicle = vehicles[0]
             if quotation.quotation_status_id == QuotationStatus.Selected():
                 selected = True
             else:
@@ -69,12 +72,12 @@ class Quotation:
                 'amount': quotation.amount,
                 'selected': selected,
                 'order_id': quotation.order_id,
-                'carrier_company_id': quotation.carrier_company.id,
-                'size': vehicle[0].size,
-                'weight': vehicle[0].weight,
-                'brand': vehicle[0].brand,
-                'model': vehicle[0].model,
-                'picture': vehicle[0].picture
+                'carrier_company_id': carrier_company.id,
+                'size': vehicle.size,
+                'weight': vehicle.weight,
+                'brand': vehicle.brand,
+                'model': vehicle.model,
+                'picture': vehicle.picture
             })
 
         return jsonify(output)
