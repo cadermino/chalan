@@ -256,7 +256,6 @@ def get_carrier_companies(order):
 
 
 @api.route('/order/recognize-items', methods=['POST'])
-@token_required
 def recognize_items():
     if 'image' not in request.files:
         return jsonify({'message': 'No image provided'}), 400
@@ -264,6 +263,10 @@ def recognize_items():
     order_id = request.form.get('order_id')
     if not order_id:
         return jsonify({'message': 'order_id is required'}), 400
+
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'message': 'Order not found'}), 404
 
     image_file = request.files['image']
 

@@ -358,7 +358,6 @@ export default {
 
         const payload = {
           image: file,
-          token: this.customer.token,
           orderId: this.currentOrder.order_id,
         };
         chalan.recognizeItems(payload)
