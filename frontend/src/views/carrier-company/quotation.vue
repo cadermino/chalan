@@ -288,9 +288,10 @@
                 ></path>
               </svg>
             </button>
-            <div v-if="itemsToMoveList || orderImages.length"
+            <div
               id="answer3"
-              class="px-4 pb-5 sm:px-6 sm:pb-6">
+              class="px-4 pb-5 sm:px-6 sm:pb-6"
+              style="display: none">
               <p v-if="itemsToMoveList">
                 <pre>{{ itemsToMoveList }}</pre>
               </p>
