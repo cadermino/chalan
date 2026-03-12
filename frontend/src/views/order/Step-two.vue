@@ -326,7 +326,7 @@ export default {
   mounted() {
     this.setLoader(false);
     if (this.currentOrder.comments) {
-      this.recognizedItems = this.currentOrder.comments.split('\n').filter((item) => item.trim());
+      this.recognizedItems = this.currentOrder.comments.split('\n').filter(item => item.trim());
     }
   },
   props: [
@@ -343,11 +343,11 @@ export default {
     handlePhotoSelect(event) {
       const files = Array.from(event.target.files);
       this.processPhotos(files);
-      event.target.value = '';
+      this.$refs.photoInput.value = '';
     },
     handleDrop(event) {
       this.dragOver = false;
-      const files = Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+      const files = Array.from(event.dataTransfer.files).filter(f => f.type.startsWith('image/'));
       this.processPhotos(files);
     },
     processPhotos(files) {
