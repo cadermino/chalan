@@ -290,8 +290,7 @@
             </button>
             <div
               id="answer3"
-              class="px-4 pb-5 sm:px-6 sm:pb-6"
-              style="display: none">
+              class="px-4 pb-5 sm:px-6 sm:pb-6">
               <p v-if="itemsToMoveList">
                 <pre>{{ itemsToMoveList }}</pre>
               </p>
