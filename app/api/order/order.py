@@ -13,6 +13,7 @@ from ...models import OrderSchema, \
     CustomerSchema,\
     PaymentSchema,\
     OrdersServicesSchema,\
+    OrderImageSchema,\
     VehicleSchema
 
 class Order:
@@ -72,6 +73,7 @@ class Order:
         order_data['customers'] = customer_data
         order_data['payments'] = payment_data
         order_data['services'] = services
+        order_data['images'] = OrderImageSchema(many=True).dump(order.images)
         return order_data
 
     def update(self, request):
@@ -80,7 +82,8 @@ class Order:
         order.customer_id = request['customer']['customer_id']
         order.appointment_date = request['order']['appointment_date']
         order.comments = request['order']['comments']
-        order.order_status_id = request['order']['order_status_id']
+        if request['order'].get('order_status_id') is not None:
+            order.order_status_id = request['order']['order_status_id']
         approximate_budget = request['order']['approximate_budget']
         order.approximate_budget = approximate_budget if approximate_budget is not None else 0
         db.session.add(order)

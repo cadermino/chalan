@@ -10,7 +10,7 @@ import os
 db = SQLAlchemy()
 ma = Marshmallow()
 migrate = Migrate()
-cors = CORS(origins=os.environ.get('CORS'))
+cors = CORS(origins=os.environ.get('CORS'), allow_headers=['Content-Type', 'Authorization'])
 mail = Mail()
 
 def create_app(config_name):

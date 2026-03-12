@@ -53,31 +53,74 @@
                       class="text-red-500
                       text-xs
                       italic">{{ formValidationMessages['comments'] }}.</span>
-              <textarea :class="formValidationMessages['comments']
-                    ?'border-red-300':''"
-                class="appearance-none
-                border rounded
-                mt-2
-                w-full
-                py-2
-                px-3
-                text-gray-700
-                leading-tight
-                focus:outline-none
-                focus:border-blue-400"
-                rows="8"
-                placeholder="Ejemplo:
-                  1 cama matrimonial
-                  1 comedor
-                  6 sillas
-                  1 escritorio
-                  1 ropero grande
-                  1 refri
-                  8 cajas grandes"
-                v-model="userComments"
-                id="list-of-belongings"
-                type="text">
-              </textarea>
+
+              <div class="mt-2 mb-3 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-green-400 transition-colors"
+                @click="$refs.photoInput.click()"
+                @dragover.prevent="dragOver = true"
+                @dragleave.prevent="dragOver = false"
+                @drop.prevent="handleDrop"
+                :class="{ 'border-green-400 bg-green-50': dragOver }">
+                <input type="file"
+                  ref="photoInput"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  multiple
+                  class="hidden"
+                  @change="handlePhotoSelect" />
+                <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <p class="text-sm text-gray-600">
+                  <span class="text-green-500 font-semibold">Sube fotos</span> de tus cosas y la IA las identificará
+                </p>
+                <p class="text-xs text-gray-400 mt-1">JPG, PNG, WebP o GIF (máx. 10MB)</p>
+              </div>
+
+              <div v-if="photoThumbnails.length" class="flex flex-wrap gap-2 mb-3">
+                <div v-for="(thumb, index) in photoThumbnails" :key="index" class="relative">
+                  <img :src="thumb.url" class="w-16 h-16 object-cover rounded border" />
+                  <button type="button"
+                    @click="removePhoto(index)"
+                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-700">
+                    ×
+                  </button>
+                  <div v-if="thumb.processing" class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded">
+                    <svg class="animate-spin h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3 border rounded p-3" :class="recognizedItems.length ? 'bg-gray-50' : ''">
+                <div v-if="recognizedItems.length">
+                  <p class="text-sm font-bold text-gray-700 mb-2">Cosas a mover (edita o elimina):</p>
+                  <div v-for="(item, index) in recognizedItems" :key="'item-'+index" class="flex items-center mb-1">
+                    <input type="text"
+                      v-model="recognizedItems[index]"
+                      class="flex-1 appearance-none border rounded py-1 px-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400" />
+                    <button type="button"
+                      @click="removeRecognizedItem(index)"
+                      class="ml-2 text-red-500 hover:text-red-700 text-sm font-bold">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-400 text-center py-2">Sube una foto o agrega items manualmente</p>
+                <div class="flex mt-2">
+                  <input type="text"
+                    v-model="manualItem"
+                    @keyup.enter="addManualItem"
+                    placeholder="Ej: 1 cama matrimonial"
+                    class="flex-1 appearance-none border rounded py-1 px-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400" />
+                  <button type="button"
+                    @click="addManualItem"
+                    class="ml-2 bg-green-500 hover:bg-green-700 text-white text-sm py-1 px-3 rounded">
+                    + Agregar
+                  </button>
+                </div>
+              </div>
 
               <div class="flex
                 text-sm
@@ -228,6 +271,10 @@ export default {
   data() {
     return {
       viewName: 'step-two',
+      dragOver: false,
+      photoThumbnails: [],
+      recognizedItems: [],
+      manualItem: '',
     };
   },
   components: {
@@ -237,6 +284,9 @@ export default {
   },
   mounted() {
     this.setLoader(false);
+    if (this.currentOrder.comments) {
+      this.recognizedItems = this.currentOrder.comments.split('\n').filter((item) => item.trim());
+    }
   },
   props: [
   ],
@@ -249,7 +299,91 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    handlePhotoSelect(event) {
+      const files = Array.from(event.target.files);
+      this.processPhotos(files);
+      event.target.value = '';
+    },
+    handleDrop(event) {
+      this.dragOver = false;
+      const files = Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+      this.processPhotos(files);
+    },
+    processPhotos(files) {
+      files.forEach((file) => {
+        const url = URL.createObjectURL(file);
+        const thumbIndex = this.photoThumbnails.length;
+        this.photoThumbnails.push({ url, file, processing: true });
+
+        const payload = {
+          image: file,
+          token: this.customer.token,
+          orderId: this.currentOrder.order_id,
+        };
+        chalan.recognizeItems(payload)
+          .then((response) => {
+            if (response.data.items) {
+              this.mergeItems(response.data.items);
+              this.syncComments();
+            }
+            this.photoThumbnails[thumbIndex].processing = false;
+          })
+          .catch(() => {
+            this.photoThumbnails[thumbIndex].processing = false;
+            this.setViewsMessages({
+              view: this.viewName,
+              message: {
+                text: 'No se pudo analizar la imagen, intenta con otra foto',
+                type: 'error',
+              },
+            });
+          });
+      });
+    },
+    parseItem(item) {
+      const match = item.match(/^(\d+)\s+(.+)$/);
+      if (match) {
+        return { qty: parseInt(match[1], 10), name: match[2].toLowerCase().trim() };
+      }
+      return { qty: 1, name: item.toLowerCase().trim() };
+    },
+    mergeItems(newItems) {
+      newItems.forEach((newItem) => {
+        const parsed = this.parseItem(newItem);
+        const existingIndex = this.recognizedItems.findIndex((existing) => {
+          const existingParsed = this.parseItem(existing);
+          return existingParsed.name === parsed.name;
+        });
+        if (existingIndex !== -1) {
+          const existingParsed = this.parseItem(this.recognizedItems[existingIndex]);
+          const totalQty = existingParsed.qty + parsed.qty;
+          this.$set(this.recognizedItems, existingIndex, `${totalQty} ${existingParsed.name}`);
+        } else {
+          this.recognizedItems.push(newItem);
+        }
+      });
+    },
+    removePhoto(index) {
+      URL.revokeObjectURL(this.photoThumbnails[index].url);
+      this.photoThumbnails.splice(index, 1);
+    },
+    removeRecognizedItem(index) {
+      this.recognizedItems.splice(index, 1);
+      this.syncComments();
+    },
+    addManualItem() {
+      if (this.manualItem.trim()) {
+        this.mergeItems([this.manualItem.trim()]);
+        this.manualItem = '';
+        this.syncComments();
+      }
+    },
+    syncComments() {
+      const comments = this.recognizedItems.join('\n');
+      this.setOrder({ section: 'currentOrder', field: 'comments', value: comments || null });
+    },
     nextStep() {
+      this.syncComments();
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
         this.setLoader(true);
@@ -303,14 +437,6 @@ export default {
           const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
           this.setOrder({ section: 'currentOrder', field: 'appointment_date', value: appointmentDate });
         }
-      },
-    },
-    userComments: {
-      get() {
-        return this.currentOrder.comments;
-      },
-      set(value) {
-        this.setOrder({ section: 'currentOrder', field: 'comments', value });
       },
     },
     minDatetime() {

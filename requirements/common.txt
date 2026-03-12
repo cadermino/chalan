@@ -49,6 +49,12 @@ gunicorn==22.0.0
 # Environment
 python-dotenv==1.0.1
 
+# AI
+openai>=1.50.0
+
+# Storage
+boto3>=1.34.0
+
 # Utils
 typing_extensions==4.12.2
 importlib-metadata==8.2.0

@@ -1,7 +1,10 @@
 import os
+import base64
+import uuid
 import stripe
 from flask import jsonify, request, current_app
-from ..models import Customer, Order
+from openai import OpenAI
+from ..models import Customer, Order, OrderImage, OrderImageSchema
 from ..models import Quotations as QuotationsModel
 from ..models import CarrierCompanySchema, QuotationsSchema
 from . import api
@@ -15,6 +18,8 @@ from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
 from datetime import date
 from .errors import not_found
+from .. import db
+from ..storage import get_storage
 
 @api.route('/order', methods=['POST'])
 def create_order():
@@ -248,3 +253,86 @@ def get_carrier_companies(order):
         'active': 1
     })
     return CarrierCompanySchema(many=True).dump(carrier_companies)
+
+
+@api.route('/order/recognize-items', methods=['POST'])
+@token_required
+def recognize_items():
+    if 'image' not in request.files:
+        return jsonify({'message': 'No image provided'}), 400
+
+    order_id = request.form.get('order_id')
+    if not order_id:
+        return jsonify({'message': 'order_id is required'}), 400
+
+    image_file = request.files['image']
+
+    allowed_types = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+    if image_file.content_type not in allowed_types:
+        return jsonify({'message': 'Invalid image type'}), 400
+
+    max_size = 10 * 1024 * 1024
+    image_data = image_file.read()
+    if len(image_data) > max_size:
+        return jsonify({'message': 'Image too large (max 10MB)'}), 400
+
+    ext = image_file.content_type.split('/')[-1]
+    storage_key = f'orders/{order_id}/{uuid.uuid4().hex}.{ext}'
+
+    try:
+        storage = get_storage()
+        url = storage.upload(image_data, storage_key, image_file.content_type)
+
+        order_image = OrderImage(order_id=order_id, url=url, storage_key=storage_key)
+        db.session.add(order_image)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(f'Image upload error: {str(e)}')
+        return jsonify({'message': 'Error uploading image'}), 500
+
+    base64_image = base64.b64encode(image_data).decode('utf-8')
+    mime_type = image_file.content_type
+
+    try:
+        client = OpenAI(api_key=current_app.config['OPENAI_API_KEY'])
+        response = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[
+                {
+                    'role': 'user',
+                    'content': [
+                        {
+                            'type': 'text',
+                            'text': (
+                                'Analiza esta imagen e identifica todos los muebles y objetos visibles '
+                                'que se necesitarían mover en una mudanza. '
+                                'Responde SOLO con una lista, un objeto por línea, con la cantidad al inicio. '
+                                'Formato: "1 sofá grande", "2 sillas", etc. '
+                                'No incluyas explicaciones ni texto adicional.'
+                            ),
+                        },
+                        {
+                            'type': 'image_url',
+                            'image_url': {
+                                'url': f'data:{mime_type};base64,{base64_image}',
+                                'detail': 'low',
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens=500,
+        )
+        items_text = response.choices[0].message.content.strip()
+        items = [line.strip() for line in items_text.split('\n') if line.strip()]
+        return jsonify({
+            'items': items,
+            'image': OrderImageSchema().dump(order_image),
+        }), 200
+    except Exception as e:
+        current_app.logger.error(f'OpenAI Vision error: {str(e)}')
+        return jsonify({
+            'items': [],
+            'image': OrderImageSchema().dump(order_image),
+            'message': 'Image saved but could not identify items',
+        }), 200
