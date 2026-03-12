@@ -54,7 +54,11 @@
                       text-xs
                       italic">{{ formValidationMessages['comments'] }}.</span>
 
-              <div class="mt-2 mb-3 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-green-400 transition-colors"
+              <div
+                class="mt-2 mb-3 p-4 border-2 border-dashed
+                  border-gray-300 rounded-lg text-center
+                  cursor-pointer hover:border-green-400
+                  transition-colors"
                 @click="$refs.photoInput.click()"
                 @dragover.prevent="dragOver = true"
                 @dragleave.prevent="dragOver = false"
@@ -66,12 +70,19 @@
                   multiple
                   class="hidden"
                   @change="handlePhotoSelect" />
-                <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- eslint-disable max-len -->
+                <svg
+                  class="mx-auto h-10 w-10 text-gray-400 mb-2"
+                  fill="none" stroke="currentColor"
+                  viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
+                <!-- eslint-enable max-len -->
                 <p class="text-sm text-gray-600">
-                  <span class="text-green-500 font-semibold">Sube fotos</span> de tus cosas y la IA las identificará
+                  <span class="text-green-500 font-semibold">
+                    Sube fotos
+                  </span> de tus cosas y la IA las identificará
                 </p>
                 <p class="text-xs text-gray-400 mt-1">JPG, PNG, WebP o GIF (máx. 10MB)</p>
               </div>
@@ -81,42 +92,70 @@
                   <img :src="thumb.url" class="w-16 h-16 object-cover rounded border" />
                   <button type="button"
                     @click="removePhoto(index)"
-                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-700">
+                    class="absolute -top-2 -right-2 bg-red-500
+                      text-white rounded-full w-5 h-5 text-xs
+                      flex items-center justify-center
+                      hover:bg-red-700">
                     ×
                   </button>
-                  <div v-if="thumb.processing" class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded">
-                    <svg class="animate-spin h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <div v-if="thumb.processing"
+                    class="absolute inset-0 bg-white bg-opacity-70
+                      flex items-center justify-center rounded">
+                    <!-- eslint-disable max-len -->
+                    <svg
+                      class="animate-spin h-5 w-5 text-green-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                     </svg>
+                    <!-- eslint-enable max-len -->
                   </div>
                 </div>
               </div>
 
-              <div class="mb-3 border rounded p-3" :class="recognizedItems.length ? 'bg-gray-50' : ''">
+              <div class="mb-3 border rounded p-3"
+                :class="recognizedItems.length
+                  ? 'bg-gray-50' : ''">
                 <div v-if="recognizedItems.length">
-                  <p class="text-sm font-bold text-gray-700 mb-2">Cosas a mover (edita o elimina):</p>
-                  <div v-for="(item, index) in recognizedItems" :key="'item-'+index" class="flex items-center mb-1">
+                  <p class="text-sm font-bold text-gray-700 mb-2">
+                    Cosas a mover (edita o elimina):
+                  </p>
+                  <div v-for="(item, index) in recognizedItems"
+                    :key="'item-'+index"
+                    class="flex items-center mb-1">
                     <input type="text"
                       v-model="recognizedItems[index]"
-                      class="flex-1 appearance-none border rounded py-1 px-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400" />
+                      class="flex-1 appearance-none border
+                        rounded py-1 px-2 text-sm text-gray-700
+                        focus:outline-none
+                        focus:border-blue-400" />
                     <button type="button"
                       @click="removeRecognizedItem(index)"
-                      class="ml-2 text-red-500 hover:text-red-700 text-sm font-bold">
+                      class="ml-2 text-red-500
+                        hover:text-red-700 text-sm font-bold">
                       ✕
                     </button>
                   </div>
                 </div>
-                <p v-else class="text-sm text-gray-400 text-center py-2">Sube una foto o agrega items manualmente</p>
+                <p v-else class="text-sm text-gray-400
+                  text-center py-2">
+                  Sube una foto o agrega items manualmente
+                </p>
                 <div class="flex mt-2">
                   <input type="text"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
                     placeholder="Ej: 1 cama matrimonial"
-                    class="flex-1 appearance-none border rounded py-1 px-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400" />
+                    class="flex-1 appearance-none border
+                      rounded py-1 px-2 text-sm text-gray-700
+                      focus:outline-none
+                      focus:border-blue-400" />
                   <button type="button"
                     @click="addManualItem"
-                    class="ml-2 bg-green-500 hover:bg-green-700 text-white text-sm py-1 px-3 rounded">
+                    class="ml-2 bg-green-500
+                      hover:bg-green-700 text-white text-sm
+                      py-1 px-3 rounded">
                     + Agregar
                   </button>
                 </div>
@@ -135,7 +174,9 @@
                 border-blue-400
                 text-blue-700"
                 role="alert">
+                <!-- eslint-disable max-len -->
                 <svg class="fill-current w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M12.432 0c1.34 0 2.01.912 2.01 1.957 0 1.305-1.164 2.512-2.679 2.512-1.269 0-2.009-.75-1.974-1.99C9.789 1.436 10.67 0 12.432 0zM8.309 20c-1.058 0-1.833-.652-1.093-3.524l1.214-5.092c.211-.814.246-1.141 0-1.141-.317 0-1.689.562-2.502 1.117l-.528-.88c2.572-2.186 5.531-3.467 6.801-3.467 1.057 0 1.233 1.273.705 3.23l-1.391 5.352c-.246.945-.141 1.271.106 1.271.317 0 1.357-.392 2.379-1.207l.6.814C12.098 19.02 9.365 20 8.309 20z"/></svg>
+                <!-- eslint-enable max-len -->
                 <span class="block sm:inline">
                   Ten en cuenta que las cosas que no estén en la lista tendrán un costo extra.
                 </span>
@@ -434,8 +475,13 @@ export default {
       },
       set(value) {
         if (value) {
-          const appointmentDate = this.$moment(value).format('YYYY-MM-DD HH:mm:ss');
-          this.setOrder({ section: 'currentOrder', field: 'appointment_date', value: appointmentDate });
+          const appointmentDate = this.$moment(value)
+            .format('YYYY-MM-DD HH:mm:ss');
+          this.setOrder({
+            section: 'currentOrder',
+            field: 'appointment_date',
+            value: appointmentDate,
+          });
         }
       },
     },
@@ -485,7 +531,11 @@ export default {
       },
       set(value) {
         const defaultValue = value === '' ? null : value;
-        this.setOrder({ section: 'currentOrder', field: 'approximate_budget', value: defaultValue });
+        this.setOrder({
+          section: 'currentOrder',
+          field: 'approximate_budget',
+          value: defaultValue,
+        });
       },
     },
   },
