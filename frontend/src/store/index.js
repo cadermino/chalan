@@ -196,7 +196,7 @@ export default new Vuex.Store({
         approximate_budget: currentOrder.approximate_budget,
         comments: currentOrder.comments,
         created_date: currentOrder.created_date,
-        lu_order_status: currentOrder.order_status_id,
+        order_status_id: currentOrder.order_status_id,
         id: currentOrder.order_id,
         selected_quotation_id: currentOrder.quotation_id,
         vehicle: { brand: currentOrder.vehicle_brand } = {},
