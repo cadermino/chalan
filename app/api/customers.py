@@ -1,6 +1,8 @@
 from flask import jsonify, request
 from . import api
 from .quotation.quotation_status import QuotationStatus
+from .order.order_status import OrderStatus
+from .order import Order as OrderEntity
 from .decorators import token_required
 from ..models import Customer, Order, Payment, Quotations
 from .. import db
@@ -22,6 +24,19 @@ def update_customer(customer_id):
                 db.session.commit()
 
         return {}, 204
+
+@api.route('/customer/<int:customer_id>/last-pending-order', methods=['GET'])
+@token_required
+def customer_last_pending_order(customer_id):
+    auth_headers = request.headers.get('Authorization', '').split()
+    customer = Customer.verify_auth_token(auth_headers[1])
+    order = customer.orders.filter(
+        Order.order_status_id.in_([OrderStatus.pending(), OrderStatus.in_progress()])
+    ).order_by(Order.id.desc()).first()
+    if order is None:
+        return jsonify({'order': None}), 200
+    order_detail = OrderEntity(order.id).details()
+    return jsonify({'order': order_detail}), 200
 
 @api.route('/customer/<int:customer_id>/orders', methods=['GET'])
 @token_required

@@ -56,6 +56,7 @@ export default {
   methods: {
     ...mapActions([
       'addDataToLocalStorage',
+      'fetchLastPendingOrder',
     ]),
     ...mapMutations([
       'setViewsMessages',
@@ -96,16 +97,29 @@ export default {
             });
           });
       } else {
-        this.addDataToLocalStorage([
-          'currentOrder',
-          'orderDetailsOrigin',
-          'orderDetailsDestination',
-          'services',
-          'customer',
-        ]);
-        this.$router.push({
-          path: this.redirect,
-        });
+        this.fetchLastPendingOrder()
+          .then(() => {
+            this.addDataToLocalStorage([
+              'currentOrder',
+              'orderDetailsOrigin',
+              'orderDetailsDestination',
+              'services',
+              'customer',
+            ]);
+            this.setLoader(false);
+            this.$router.push(this.redirect);
+          })
+          .catch(() => {
+            this.addDataToLocalStorage([
+              'currentOrder',
+              'orderDetailsOrigin',
+              'orderDetailsDestination',
+              'services',
+              'customer',
+            ]);
+            this.setLoader(false);
+            this.$router.push(this.redirect);
+          });
       }
     },
   },
