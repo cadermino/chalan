@@ -41,7 +41,13 @@ class BelongingsAppointmentDate:
         for requisite in self.requisites():
             step_data_from_request[requisite] = complete_step_data_from_request[requisite]
             step_data_from_database[requisite] = complete_step_data_from_database[requisite]
-        step_data_from_request["appointment_date"] = datetime.strptime(data["order"]["appointment_date"], "%Y-%m-%d %H:%M:%S")
+        raw_request_date = data["order"]["appointment_date"]
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+            try:
+                step_data_from_request["appointment_date"] = datetime.strptime(raw_request_date, fmt)
+                break
+            except (ValueError, TypeError):
+                continue
         raw_date = database_order.get('appointment_date', '')
         for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
             try:
