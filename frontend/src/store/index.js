@@ -240,7 +240,7 @@ export default new Vuex.Store({
         approximate_distance_from_parking: to.to_approximate_distance_from_parking,
         has_elevator: to.to_has_elevator,
       } = orderDetailsDestination);
-      from.to_has_elevator = String(to.to_has_elevator);
+      to.to_has_elevator = String(to.to_has_elevator);
       Object.keys(to).forEach((key) => {
         commit('setOrder', { section: 'orderDetailsDestination', field: key, value: to[key] });
       });
