@@ -294,6 +294,20 @@
               <p>
                 <pre>{{ itemsToMoveList }}</pre>
               </p>
+              <div v-if="orderImages.length" class="mt-4">
+                <p class="font-bold mb-2">Fotos de la carga:</p>
+                <div class="flex flex-wrap gap-3">
+                  <a v-for="(img, index) in orderImages"
+                    :key="index"
+                    :href="img.url"
+                    target="_blank"
+                    class="block">
+                    <img :src="img.url"
+                      class="w-32 h-32 object-cover rounded border hover:opacity-80 transition-opacity"
+                      :alt="'Foto ' + (index + 1)" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -431,6 +445,9 @@ export default {
     },
     itemsToMoveList() {
       return this.orderData?.comments;
+    },
+    orderImages() {
+      return this.orderData?.images || [];
     },
     hasQuotation() {
       return Boolean(this.amountFromDatabase) || false;

@@ -184,4 +184,15 @@ export default {
       },
     });
   },
+  recognizeItems(payload) {
+    const formData = new FormData();
+    formData.append('image', payload.image);
+    formData.append('order_id', payload.orderId);
+    return axios.post(`${process.env.VUE_APP_API_URL}order/recognize-items`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
 };

@@ -18,6 +18,12 @@ class Config:
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
     STRIPE_SUCCESS = os.environ.get('STRIPE_SUCCESS')
     STRIPE_CANCEL = os.environ.get('STRIPE_CANCEL')
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    STORAGE_BACKEND = os.environ.get('STORAGE_BACKEND', 's3')
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_S3_BUCKET = os.environ.get('AWS_S3_BUCKET')
+    AWS_S3_REGION = os.environ.get('AWS_S3_REGION', 'us-west-2')
 
     @staticmethod
     def init_app(app):

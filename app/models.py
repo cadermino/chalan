@@ -117,6 +117,7 @@ class Order(db.Model):
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
 	quotations = db.relationship("Quotations", backref="order", lazy='dynamic')
 	services = db.relationship("OrdersServices", backref="order", lazy='dynamic')
+	images = db.relationship("OrderImage", backref="order", lazy='dynamic')
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -218,6 +219,14 @@ class Review(db.Model):
 	customer = db.relationship("Customer", backref="reviews")
 	carrier_company = db.relationship("CarrierCompany", backref="reviews")
 
+class OrderImage(db.Model):
+	__tablename__ = 'order_images'
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	url = db.Column(db.String(500), nullable=False)
+	storage_key = db.Column(db.String(300), nullable=False)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
 
 class CustomerSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
@@ -248,6 +257,12 @@ class OrderDetailsSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = OrderDetails
 		load_instance = True
+
+class OrderImageSchema(ma.SQLAlchemyAutoSchema):
+	class Meta:
+		model = OrderImage
+		load_instance = True
+		fields = ('id', 'url', 'created_date')
 
 class OrdersServicesSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
