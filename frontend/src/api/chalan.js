@@ -191,7 +191,6 @@ export default {
     return axios.post(`${process.env.VUE_APP_API_URL}order/recognize-items`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${payload.token}`,
       },
     });
   },
