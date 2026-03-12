@@ -303,7 +303,9 @@
                     target="_blank"
                     class="block">
                     <img :src="img.url"
-                      class="w-32 h-32 object-cover rounded border hover:opacity-80 transition-opacity"
+                      class="w-32 h-32 object-cover rounded
+                        border hover:opacity-80
+                        transition-opacity"
                       :alt="'Foto ' + (index + 1)" />
                   </a>
                 </div>
