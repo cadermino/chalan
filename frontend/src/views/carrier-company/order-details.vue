@@ -288,12 +288,31 @@
                 ></path>
               </svg>
             </button>
-            <div v-if="itemsToMoveList"
+            <div
               id="answer3"
-              class="px-4 pb-5 sm:px-6 sm:pb-6">
-              <p>
+              class="px-4 pb-5 sm:px-6 sm:pb-6"
+              style="display: none">
+              <p v-if="itemsToMoveList">
                 <pre>{{ itemsToMoveList }}</pre>
               </p>
+              <div v-if="orderImages.length" class="mt-4">
+                <p class="font-bold mb-2">
+                  Fotos de la carga:
+                </p>
+                <div class="flex flex-wrap gap-3">
+                  <a v-for="(img, index) in orderImages"
+                    :key="index"
+                    :href="img.url"
+                    target="_blank"
+                    class="block">
+                    <img :src="img.url"
+                      class="w-32 h-32 object-cover rounded
+                        border hover:opacity-80
+                        transition-opacity"
+                      :alt="'Foto ' + (index + 1)" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -390,6 +409,9 @@ export default {
     },
     itemsToMoveList() {
       return this.orderData?.comments;
+    },
+    orderImages() {
+      return this.orderData?.images || [];
     },
     amountFromDatabase() {
       return this.payment[0]?.amount;
