@@ -288,14 +288,16 @@
                 ></path>
               </svg>
             </button>
-            <div v-if="itemsToMoveList"
+            <div v-if="itemsToMoveList || orderImages.length"
               id="answer3"
               class="px-4 pb-5 sm:px-6 sm:pb-6">
-              <p>
+              <p v-if="itemsToMoveList">
                 <pre>{{ itemsToMoveList }}</pre>
               </p>
               <div v-if="orderImages.length" class="mt-4">
-                <p class="font-bold mb-2">Fotos de la carga:</p>
+                <p class="font-bold mb-2">
+                  Fotos de la carga:
+                </p>
                 <div class="flex flex-wrap gap-3">
                   <a v-for="(img, index) in orderImages"
                     :key="index"
