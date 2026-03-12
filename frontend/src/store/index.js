@@ -172,6 +172,16 @@ export default new Vuex.Store({
     },
   },
   actions: {
+    async fetchLastPendingOrder({ dispatch, state }) {
+      const payload = {
+        token: state.customer.token,
+        customerId: state.customer.customer_id,
+      };
+      const response = await chalan.getLastPendingOrder(payload);
+      if (response.data.order) {
+        await dispatch('getOrderFromDataBase', response.data.order.id);
+      }
+    },
     async getOrderFromDataBase({ commit, state }, orderId) {
       const payload = {
         token: state.customer.token,

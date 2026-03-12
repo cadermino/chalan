@@ -176,4 +176,12 @@ export default {
       },
     });
   },
+  getLastPendingOrder(payload) {
+    return axios.get(`${process.env.VUE_APP_API_URL}customer/${payload.customerId}/last-pending-order`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${payload.token}`,
+      },
+    });
+  },
 };
