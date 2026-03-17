@@ -17,22 +17,9 @@
               v-bind:key="index"
               class="w-full my-5 md:w-1/2 px-3">
               <div :class="(selectedQuotation.id == quotation.id) ? 'bg-gray-200' : ''"
-                class="w-full">
-                <img class="h-auto
-                  w-full
-                  flex-none
-                  bg-cover
-                  border-l border-r border-b-0 border-t border-gray-400
-                  rounded-t
-                  text-center
-                  overflow-hidden"
-                  :src="quotation.picture"
-                  alt="Sunset in the mountains">
-                <div class="w-full border-r
-                  border-b
-                  border-l
-                  border-gray-400
-                  rounded-b
+                class="w-full border-l border-r border-b border-t border-gray-400
+                  rounded">
+                <div class="w-full
                   p-4
                   flex
                   flex-col
