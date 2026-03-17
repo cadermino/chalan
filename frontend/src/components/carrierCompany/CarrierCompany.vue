@@ -6,7 +6,7 @@
         <img
           alt="vehicle-image"
           class="lg:w-1/2 w-full lg:h-auto h-64 object-cover object-center rounded"
-          :src="coverImage"
+          :src="require('../../assets/peterbilt-337.png')"
         />
         <div class="lg:w-1/2 w-full lg:pl-10 lg:py-6 mt-6 lg:mt-0">
           <h2 class="text-sm title-font text-gray-500 tracking-widest">
