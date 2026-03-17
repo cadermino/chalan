@@ -35,23 +35,6 @@
                       </dt>
                       <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
                         <div class="max-w-sm w-full lg:max-w-full lg:flex">
-                          <div class=" mt-2
-                          h-48 lg:h-auto
-                          lg:w-64
-                          flex-none
-                          lg:bg-contain
-                          lg:bg-cente
-                          lg:bg-no-repeat
-                          bg-cover
-                          rounded-t
-                          lg:rounded-t-none
-                          lg:rounded-l
-                          text-center
-                          overflow-hidden"
-                          style="background-image: url('/img/card-left.jpg')"
-                          :style="{ backgroundImage:
-                            'url(' + `${currentOrder.vehicle_picture}` + ')'}">
-                          </div>
                           <div class="border-r
                           border-b
                           border-l
@@ -63,7 +46,6 @@
                           lg:rounded-b-none
                           lg:rounded-r
                           pt-0
-                          p-4
                           flex
                           flex-col
                           justify-between
