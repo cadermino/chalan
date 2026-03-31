@@ -9,7 +9,7 @@
     "build-dev": "vue-cli-service build --mode development"
   },
   "dependencies": {
-    "axios": "0.21.2",
+    "axios": "0.30.3",
     "core-js": "3.4.4",
     "luxon": "1.28.1",
     "tailwindcss": "1.9.6",
