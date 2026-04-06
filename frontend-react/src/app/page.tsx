@@ -77,7 +77,7 @@ export default function Home() {
       <section className="parallax-section" style={{ minHeight: "100vh" }}>
         <div
           className="parallax-bg"
-          style={{ backgroundImage: "url('/images/hero-bg.png')" }}
+          style={{ backgroundImage: "url('/images/hero-bg.webp')" }}
         />
         <div className="parallax-content">
           <div className="container mx-auto px-6 text-center pt-24">
@@ -154,7 +154,7 @@ export default function Home() {
         <div
           className="parallax-bg"
           style={{
-            backgroundImage: "url('/images/testimonials-bg.png')",
+            backgroundImage: "url('/images/testimonials-bg.webp')",
           }}
         />
         <div className="parallax-content">
@@ -173,7 +173,7 @@ export default function Home() {
               <div className="reveal stagger-1 glass-card p-8">
                 <div className="flex items-center gap-4 mb-4">
                   <Image
-                    src="/images/sofia.jpg"
+                    src="/images/sofia.webp"
                     alt="Foto de Sofía P., clienta de Chalán"
                     width={56}
                     height={56}
@@ -209,7 +209,7 @@ export default function Home() {
               <div className="reveal stagger-2 glass-card p-8">
                 <div className="flex items-center gap-4 mb-4">
                   <Image
-                    src="/images/demian.jpg"
+                    src="/images/demian.webp"
                     alt="Foto de Demian M., cliente de Chalán"
                     width={56}
                     height={56}
@@ -245,7 +245,7 @@ export default function Home() {
               <div className="reveal stagger-3 glass-card p-8">
                 <div className="flex items-center gap-4 mb-4">
                   <Image
-                    src="/images/daniel.jpg"
+                    src="/images/daniel.webp"
                     alt="Foto de Daniel N., cliente de Chalán"
                     width={56}
                     height={56}
@@ -386,7 +386,7 @@ export default function Home() {
               <div className="reveal-left">
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                   <Image
-                    src="/images/vehicles-bg.png"
+                    src="/images/vehicles-bg.webp"
                     alt="Vehículos de mudanza disponibles en Chalán"
                     width={600}
                     height={400}
