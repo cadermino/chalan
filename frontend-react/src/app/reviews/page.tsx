@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { StarRating } from "@/components/StarRating";
 import { getApiBase } from "@/lib/api";
 import type { Metadata } from "next";
@@ -93,7 +92,7 @@ export default async function ReviewsPage() {
                 >
                   <div className="flex items-center gap-4 mb-4">
                     {company.cover_image ? (
-                      <Image
+                      <img
                         src={company.cover_image}
                         alt={company.name}
                         width={56}

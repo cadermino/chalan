@@ -174,7 +174,7 @@ export default async function CompanyReviewsPage({
         <div className="bg-white rounded-xl p-8 shadow-sm mb-8">
           <div className="flex items-start gap-6">
             {company.cover_image ? (
-              <Image
+              <img
                 src={company.cover_image}
                 alt={company.name}
                 width={80}
