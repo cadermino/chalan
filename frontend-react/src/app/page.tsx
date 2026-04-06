@@ -45,6 +45,12 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-6">
             <Link
+              href="/blog"
+              className="text-white/80 hover:text-white transition-colors hidden sm:inline font-medium"
+            >
+              Blog
+            </Link>
+            <Link
               href="/contacto"
               className="text-white/80 hover:text-white transition-colors hidden sm:inline font-medium"
             >
