@@ -13,7 +13,7 @@
         py-1
         text-gray
         rounded">
-        <img class="w-2/3" src="../../src/assets/logo_chalan.png" alt="chalan">
+        <img class="w-2/3" src=".git " alt="chalan">
       </router-link>
       <div class="sm:hidden">
         <button @click="isOpen = !isOpen" type="button" class="block
@@ -106,14 +106,14 @@
             tracking-wider">
           Cotizar
         </router-link>
-        <a href="/landing/contacto" class="mt-1
+        <a href="/contacto" class="mt-1
           block
           px-2
           py-1
           text-gray
           sm:mt-0
           sm:ml-2">Contacto</a>
-        <a href="/landing/nosotros" class="mt-1
+        <a href="/nosotros" class="mt-1
           block
           px-2
           py-1
