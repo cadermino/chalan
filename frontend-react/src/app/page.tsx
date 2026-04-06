@@ -174,7 +174,7 @@ export default function Home() {
                 <div className="flex items-center gap-4 mb-4">
                   <Image
                     src="/images/sofia.jpg"
-                    alt="Sofía P."
+                    alt="Foto de Sofía P., clienta de Chalán"
                     width={56}
                     height={56}
                     className="w-14 h-14 rounded-full object-cover flex-shrink-0"
@@ -210,7 +210,7 @@ export default function Home() {
                 <div className="flex items-center gap-4 mb-4">
                   <Image
                     src="/images/demian.jpg"
-                    alt="Demian M."
+                    alt="Foto de Demian M., cliente de Chalán"
                     width={56}
                     height={56}
                     className="w-14 h-14 rounded-full object-cover flex-shrink-0"
@@ -246,7 +246,7 @@ export default function Home() {
                 <div className="flex items-center gap-4 mb-4">
                   <Image
                     src="/images/daniel.jpg"
-                    alt="Daniel N."
+                    alt="Foto de Daniel N., cliente de Chalán"
                     width={56}
                     height={56}
                     className="w-14 h-14 rounded-full object-cover flex-shrink-0"
@@ -391,7 +391,6 @@ export default function Home() {
                     width={600}
                     height={400}
                     className="w-full h-auto"
-                    priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/30 to-transparent" />
                 </div>

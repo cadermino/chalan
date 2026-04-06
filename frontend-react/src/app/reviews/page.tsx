@@ -101,9 +101,10 @@ export default async function ReviewsPage() {
                     {company.cover_image ? (
                       <img
                         src={company.cover_image}
-                        alt={company.name}
+                        alt={`Logo de ${company.name}, empresa de mudanzas`}
                         width={56}
                         height={56}
+                        loading="lazy"
                         className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
