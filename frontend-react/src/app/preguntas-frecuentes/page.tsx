@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { Footer } from "@/components/Footer";
+import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes sobre mudanzas y fletes - Chalán",
@@ -99,21 +100,7 @@ export default function PreguntasFrecuentes() {
           { name: "Preguntas frecuentes", url: "https://chalan.pe/preguntas-frecuentes" },
         ]}
       />
-      <nav className="bg-indigo-950 text-white">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold tracking-tight">
-              Chal<span className="text-amber-400">á</span>n
-            </span>
-          </Link>
-          <Link
-            href="/order/step-one"
-            className="px-5 py-2 rounded-full bg-amber-400 text-indigo-950 font-semibold text-sm hover:bg-amber-300 transition-colors"
-          >
-            Cotizar mudanza
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
