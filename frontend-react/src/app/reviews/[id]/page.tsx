@@ -180,9 +180,10 @@ export default async function CompanyReviewsPage({
             {company.cover_image ? (
               <img
                 src={company.cover_image}
-                alt={company.name}
+                alt={`Logo de ${company.name}, empresa de mudanzas`}
                 width={80}
                 height={80}
+                loading="lazy"
                 className="w-20 h-20 rounded-full object-cover flex-shrink-0"
               />
             ) : (
@@ -214,7 +215,7 @@ export default async function CompanyReviewsPage({
           {/* Rating Distribution */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-              <h3 className="font-semibold mb-4">Distribución de calificaciones</h3>
+              <h2 className="font-semibold mb-4">Distribución de calificaciones</h2>
               <div className="space-y-2">
                 {ratingDistribution.map(({ star, count, percentage }) => (
                   <div key={star} className="flex items-center gap-2">
@@ -234,7 +235,7 @@ export default async function CompanyReviewsPage({
 
             {/* Write Review Form */}
             <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-semibold mb-4">Escribe una reseña</h3>
+              <h2 className="font-semibold mb-4">Escribe una reseña</h2>
               <ReviewForm carrierCompanyId={company.id} />
             </div>
           </div>

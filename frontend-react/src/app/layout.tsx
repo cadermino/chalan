@@ -34,6 +34,13 @@ export const metadata: Metadata = {
       "En Chalán te ayudamos a encontrar el vehículo ideal para tu mudanza o flete. Compara precios y múdate fácil.",
     images: ["https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png"],
   },
+  other: {
+    "theme-color": "#1e1b4b",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.svg",
+  },
 };
 
 export default function RootLayout({

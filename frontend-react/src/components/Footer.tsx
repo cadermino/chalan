@@ -37,6 +37,11 @@ export function Footer() {
                   Preguntas frecuentes
                 </Link>
               </li>
+              <li>
+                <Link href="/reviews" className="footer-link">
+                  Reseñas
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -49,6 +54,11 @@ export function Footer() {
               <li>
                 <Link href="/aviso-de-privacidad" className="footer-link">
                   Aviso de privacidad
+                </Link>
+              </li>
+              <li>
+                <Link href="/terminos-y-condiciones" className="footer-link">
+                  Términos y condiciones
                 </Link>
               </li>
             </ul>
