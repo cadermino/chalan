@@ -13,7 +13,7 @@
         py-1
         text-gray
         rounded">
-        <img class="w-2/3" src=".git " alt="chalan">
+        <img class="w-2/3" src="@/assets/logo_chalan.png" alt="Chalán - Mudanzas y fletes">
       </router-link>
       <div class="sm:hidden">
         <button @click="isOpen = !isOpen" type="button" class="block
