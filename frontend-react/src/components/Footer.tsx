@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="bg-gray-950 text-white pt-16 pb-8" role="contentinfo">
       <div className="container mx-auto px-6">
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+        <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
             <h3 className="text-2xl font-bold mb-4">
@@ -40,6 +40,35 @@ export function Footer() {
               <li>
                 <Link href="/reviews" className="footer-link">
                   Reseñas
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Servicios */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/40 mb-4">
+              Servicios
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/mudanzas-lima" className="footer-link">
+                  Mudanzas en Lima
+                </Link>
+              </li>
+              <li>
+                <Link href="/mudanzas-huancayo" className="footer-link">
+                  Mudanzas en Huancayo
+                </Link>
+              </li>
+              <li>
+                <Link href="/fletes-peru" className="footer-link">
+                  Fletes en Perú
+                </Link>
+              </li>
+              <li>
+                <Link href="/como-funciona" className="footer-link">
+                  ¿Cómo funciona?
                 </Link>
               </li>
             </ul>
