@@ -1,6 +1,25 @@
 import Link from "next/link";
+import Image from "next/image";
 import { StarRating } from "@/components/StarRating";
 import { getApiBase } from "@/lib/api";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Reviews de empresas transportistas - Chalán",
+  description:
+    "Lee las reseñas y calificaciones de empresas de mudanzas y fletes en Perú. Encuentra la mejor empresa transportista basada en experiencias reales de clientes.",
+  keywords:
+    "reviews mudanzas, empresa transporte lima, calificaciones fletes peru, mejores empresas mudanzas",
+  alternates: {
+    canonical: "/reviews",
+  },
+  openGraph: {
+    title: "Reviews de empresas transportistas - Chalán",
+    description:
+      "Lee las reseñas y calificaciones de empresas de mudanzas y fletes en Perú. Encuentra la mejor empresa transportista.",
+    url: "https://chalan.pe/reviews",
+  },
+};
 
 interface Review {
   id: number;
@@ -74,9 +93,11 @@ export default async function ReviewsPage() {
                 >
                   <div className="flex items-center gap-4 mb-4">
                     {company.cover_image ? (
-                      <img
+                      <Image
                         src={company.cover_image}
                         alt={company.name}
+                        width={56}
+                        height={56}
                         className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (

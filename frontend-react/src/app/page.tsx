@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ScrollEffects } from "@/components/ScrollEffects";
 
 const jsonLd = {
@@ -170,9 +171,11 @@ export default function Home() {
               {/* Testimonial 1 - Sofía */}
               <div className="reveal stagger-1 glass-card p-8">
                 <div className="flex items-center gap-4 mb-4">
-                  <img
+                  <Image
                     src="/images/sofia.jpg"
                     alt="Sofía P."
+                    width={56}
+                    height={56}
                     className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                   />
                   <div>
@@ -204,9 +207,11 @@ export default function Home() {
               {/* Testimonial 2 - Demian */}
               <div className="reveal stagger-2 glass-card p-8">
                 <div className="flex items-center gap-4 mb-4">
-                  <img
+                  <Image
                     src="/images/demian.jpg"
                     alt="Demian M."
+                    width={56}
+                    height={56}
                     className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                   />
                   <div>
@@ -238,9 +243,11 @@ export default function Home() {
               {/* Testimonial 3 - Daniel */}
               <div className="reveal stagger-3 glass-card p-8">
                 <div className="flex items-center gap-4 mb-4">
-                  <img
+                  <Image
                     src="/images/daniel.jpg"
                     alt="Daniel N."
+                    width={56}
+                    height={56}
                     className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                   />
                   <div>
@@ -377,11 +384,13 @@ export default function Home() {
               {/* Left: Image */}
               <div className="reveal-left">
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                  <img
+                  <Image
                     src="/images/vehicles-bg.png"
                     alt="Vehículos de mudanza disponibles en Chalán"
+                    width={600}
+                    height={400}
                     className="w-full h-auto"
-                    loading="lazy"
+                    priority
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/30 to-transparent" />
                 </div>

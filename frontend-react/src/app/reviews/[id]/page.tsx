@@ -1,7 +1,50 @@
 import Link from "next/link";
+import Image from "next/image";
 import { StarRating } from "@/components/StarRating";
 import { ReviewForm } from "@/components/ReviewForm";
 import { getApiBase } from "@/lib/api";
+import type { Metadata } from "next";
+
+interface Params {
+  id: string;
+}
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const company = await getCompanyReviews(params.id);
+  
+  if (!company) {
+    return {
+      title: "Empresa no encontrada - Chalán",
+      description: "La empresa transportista que buscas no existe.",
+    };
+  }
+
+  const avgRating = company.average_rating ? company.average_rating.toFixed(1) : "0";
+  const reviewCount = company.total_reviews || 0;
+  
+  return {
+    title: `${company.name} - Reviews y calificaciones (${avgRating}⭐) - Chalán`,
+    description: 
+      `Lee las ${reviewCount} reseñas de ${company.name}, empresa de mudanzas y fletes en Perú. Calificación promedio: ${avgRating}/5 estrellas.`,
+    keywords: 
+      `${company.name}, reviews ${company.name}, mudanzas lima, empresa transporte peru, calificaciones`,
+    alternates: {
+      canonical: `/reviews/${params.id}`,
+    },
+    openGraph: {
+      title: `${company.name} - Reviews (${avgRating}⭐)`,
+      description: 
+        `Lee las reseñas de ${company.name}, empresa de mudanzas en Perú. ${reviewCount} reviews - ${avgRating}/5 estrellas.`,
+      url: `https://chalan.pe/reviews/${params.id}`,
+      images: company.cover_image ? [
+        {
+          url: company.cover_image,
+          alt: `Logo de ${company.name}`,
+        },
+      ] : undefined,
+    },
+  };
+}
 
 interface Review {
   id: number;
@@ -67,8 +110,58 @@ export default async function CompanyReviewsPage({
         : 0,
   }));
 
+  // JSON-LD structured data
+  const businessJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "MovingCompany",
+    name: company.name,
+    description: company.description,
+    telephone: company.phone,
+    email: company.email,
+    image: company.cover_image,
+    aggregateRating: company.total_reviews > 0 ? {
+      "@type": "AggregateRating",
+      ratingValue: company.average_rating.toFixed(1),
+      reviewCount: company.total_reviews,
+      bestRating: "5",
+      worstRating: "1",
+    } : undefined,
+  };
+
+  const reviewsJsonLd = company.reviews.map((review) => ({
+    "@context": "https://schema.org",
+    "@type": "Review",
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: review.rating,
+      bestRating: "5",
+      worstRating: "1",
+    },
+    author: {
+      "@type": "Person", 
+      name: review.customer_name,
+    },
+    reviewBody: review.comment,
+    datePublished: review.created_date,
+    itemReviewed: {
+      "@type": "MovingCompany",
+      name: company.name,
+    },
+  }));
+
   return (
     <main className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
+      />
+      {reviewsJsonLd.map((reviewJson, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewJson) }}
+        />
+      ))}
       <div className="container mx-auto px-6 py-12">
         <Link
           href="/reviews"
@@ -81,9 +174,11 @@ export default async function CompanyReviewsPage({
         <div className="bg-white rounded-xl p-8 shadow-sm mb-8">
           <div className="flex items-start gap-6">
             {company.cover_image ? (
-              <img
+              <Image
                 src={company.cover_image}
                 alt={company.name}
+                width={80}
+                height={80}
                 className="w-20 h-20 rounded-full object-cover flex-shrink-0"
               />
             ) : (
