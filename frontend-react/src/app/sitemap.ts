@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { getAllSlugs } from '@/lib/blog';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://flask:8001';
 
@@ -95,5 +96,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...companyPages];
+  const blogSlugs = getAllSlugs();
+  const blogPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    },
+    ...blogSlugs.map((slug) => ({
+      url: `${baseUrl}/blog/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
+  ];
+
+  return [...staticPages, ...blogPages, ...companyPages];
 }

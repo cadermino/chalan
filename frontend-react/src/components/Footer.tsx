@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="bg-gray-950 text-white pt-16 pb-8" role="contentinfo">
       <div className="container mx-auto px-6">
-        <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-10 mb-12">
+        <div className="grid sm:grid-cols-2 md:grid-cols-6 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-1">
             <h3 className="text-2xl font-bold mb-4">
@@ -14,6 +14,35 @@ export function Footer() {
               En Chalán te ayudamos a encontrar el vehículo ideal para tu
               mudanza o flete en Perú.
             </p>
+          </div>
+
+          {/* Blog */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-white/40 mb-4">
+              Blog
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/blog/cuanto-cuesta-una-mudanza-en-lima" className="footer-link">
+                  Precio mudanza Lima
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog/tips-para-mudarte-sin-estres" className="footer-link">
+                  Tips para mudarte
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog/cuanto-cuesta-un-flete-en-peru" className="footer-link">
+                  Precio fletes Perú
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="footer-link">
+                  Ver todos →
+                </Link>
+              </li>
+            </ul>
           </div>
 
           {/* Links */}
