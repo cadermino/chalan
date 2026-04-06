@@ -71,7 +71,7 @@ export default async function ReviewsPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main id="main-content" className="min-h-screen bg-gray-50">
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", url: "https://chalan.pe" },

@@ -1,17 +1,35 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 
-export const metadata = {
-  title: "Aviso de privacidad - Chalán",
+export const metadata: Metadata = {
+  title: "Aviso de privacidad - Chalán | Mudanzas y fletes en Perú",
   description:
-    "Aviso de privacidad de Chalán. Conoce cómo protegemos tu información personal.",
+    "Aviso de privacidad de Chalán. Conoce cómo protegemos tu información personal al usar nuestra plataforma de mudanzas y fletes.",
+  keywords: "aviso de privacidad chalán, protección datos, privacidad mudanzas perú",
+  alternates: {
+    canonical: "/aviso-de-privacidad",
+  },
+  openGraph: {
+    title: "Aviso de privacidad - Chalán",
+    description:
+      "Conoce cómo protegemos tu información personal en Chalán.",
+    url: "https://chalan.pe/aviso-de-privacidad",
+  },
 };
 
 export default function AvisoDePrivacidad() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navbar />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", url: "https://chalan.pe" },
+          { name: "Aviso de privacidad", url: "https://chalan.pe/aviso-de-privacidad" },
+        ]}
+      />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">

@@ -1,7 +1,13 @@
 {
   "name": "Chalán - Mudanzas y fletes",
   "short_name": "Chalán",
-  "icons": [],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ],
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#1e1b4b",
