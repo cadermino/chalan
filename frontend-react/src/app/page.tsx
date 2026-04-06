@@ -434,6 +434,64 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ========== BLOG SECTION ========== */}
+      <section className="py-24 bg-slate-50">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="reveal text-center mb-14">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold tracking-wide uppercase mb-4">
+              Blog
+            </span>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
+              Guías y consejos para mudarte
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-10">
+            <Link href="/blog/cuanto-cuesta-una-mudanza-en-lima" className="group bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors">
+              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">Precios</span>
+              <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors mb-2 leading-snug">
+                ¿Cuánto cuesta una mudanza en Lima?
+              </h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Precios por tipo de vehículo, factores que afectan el costo y tips para ahorrar.
+              </p>
+            </Link>
+
+            <Link href="/blog/tips-para-mudarte-sin-estres" className="group bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors">
+              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">Consejos</span>
+              <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors mb-2 leading-snug">
+                10 tips para mudarte sin estrés
+              </h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Cómo empacar, qué hacer primero y los errores más comunes al mudarse.
+              </p>
+            </Link>
+
+            <Link href="/blog/cuanto-cuesta-un-flete-en-peru" className="group bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors">
+              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">Precios</span>
+              <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors mb-2 leading-snug">
+                ¿Cuánto cuesta un flete en Perú?
+              </h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Precios por ruta: Lima a Arequipa, Trujillo, Huancayo y más.
+              </p>
+            </Link>
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors"
+            >
+              Ver todos los artículos
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </main>
   );
