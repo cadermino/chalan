@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 
-const POSTS_DIR = path.join(process.cwd(), "..", "content", "blog");
+const POSTS_DIR = path.join(process.cwd(), "content", "blog");
 
 export interface PostMeta {
   slug: string;

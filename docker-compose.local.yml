@@ -29,6 +29,7 @@ services:
     volumes:
       - ./frontend-react/src:/app/src
       - ./frontend-react/public:/app/public
+      - ./frontend-react/content:/app/content
     ports:
       - 3000:3000
     environment:
