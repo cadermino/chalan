@@ -24,14 +24,14 @@ export default function TerminosYCondiciones() {
   return (
     <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navbar />
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Términos y condiciones", url: "https://chalan.pe/terminos-y-condiciones" },
-        ]}
-      />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Términos y condiciones", url: "https://chalan.pe/terminos-y-condiciones" },
+          ]}
+        />
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
           Términos y condiciones
         </h1>

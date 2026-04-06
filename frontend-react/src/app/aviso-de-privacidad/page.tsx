@@ -24,14 +24,14 @@ export default function AvisoDePrivacidad() {
   return (
     <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navbar />
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Aviso de privacidad", url: "https://chalan.pe/aviso-de-privacidad" },
-        ]}
-      />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Aviso de privacidad", url: "https://chalan.pe/aviso-de-privacidad" },
+          ]}
+        />
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
           Aviso de privacidad
         </h1>

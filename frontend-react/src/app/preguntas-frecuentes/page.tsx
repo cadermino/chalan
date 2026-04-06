@@ -94,15 +94,15 @@ export default function PreguntasFrecuentes() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Preguntas frecuentes", url: "https://chalan.pe/preguntas-frecuentes" },
-        ]}
-      />
       <Navbar />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Preguntas frecuentes", url: "https://chalan.pe/preguntas-frecuentes" },
+          ]}
+        />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Preguntas frecuentes
         </h1>

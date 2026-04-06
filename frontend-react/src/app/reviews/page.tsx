@@ -72,13 +72,13 @@ export default async function ReviewsPage() {
 
   return (
     <main id="main-content" className="min-h-screen bg-gray-50">
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Reseñas", url: "https://chalan.pe/reviews" },
-        ]}
-      />
       <div className="container mx-auto px-6 py-12">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Reseñas", url: "https://chalan.pe/reviews" },
+          ]}
+        />
         <h1 className="text-4xl font-bold mb-2">Reseñas de mudanceros</h1>
         <p className="text-gray-600 mb-10">
           Opiniones reales de clientes que realizaron su mudanza con Chalán

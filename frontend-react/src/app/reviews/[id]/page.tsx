@@ -148,13 +148,6 @@ export default async function CompanyReviewsPage({
 
   return (
     <main id="main-content" className="min-h-screen bg-gray-50">
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Reseñas", url: "https://chalan.pe/reviews" },
-          { name: company.name, url: `https://chalan.pe/reviews/${id}` },
-        ]}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
@@ -167,6 +160,13 @@ export default async function CompanyReviewsPage({
         />
       ))}
       <div className="container mx-auto px-6 py-12">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Reseñas", url: "https://chalan.pe/reviews" },
+            { name: company.name, url: `https://chalan.pe/reviews/${id}` },
+          ]}
+        />
         <Link
           href="/reviews"
           className="text-blue-600 hover:underline text-sm mb-6 inline-block"
