@@ -176,20 +176,9 @@ export default async function CompanyReviewsPage({
         {/* Company Header */}
         <div className="bg-white rounded-xl p-8 shadow-sm mb-8">
           <div className="flex items-start gap-6">
-            {company.cover_image ? (
-              <img
-                src={company.cover_image}
-                alt={`Logo de ${company.name}, empresa de mudanzas`}
-                width={80}
-                height={80}
-                loading="lazy"
-                className="w-20 h-20 rounded-full object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl flex-shrink-0">
-                {company.name.charAt(0)}
-              </div>
-            )}
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl flex-shrink-0">
+              {company.name.charAt(0)}
+            </div>
             <div className="flex-1">
               <h1 className="text-3xl font-bold mb-2">{company.name}</h1>
               <p className="text-gray-600 mb-4">{company.description}</p>
