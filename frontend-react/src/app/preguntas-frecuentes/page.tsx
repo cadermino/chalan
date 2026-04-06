@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes sobre mudanzas y fletes - Chalán",
@@ -171,6 +172,7 @@ export default function PreguntasFrecuentes() {
           </div>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

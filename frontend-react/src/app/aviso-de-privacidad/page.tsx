@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Footer } from "@/components/Footer";
 
 export const metadata = {
   title: "Aviso de privacidad - Chalán",
@@ -139,6 +140,7 @@ export default function AvisoDePrivacidad() {
           </p>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

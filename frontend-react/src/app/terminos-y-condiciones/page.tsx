@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Footer } from "@/components/Footer";
 
 export const metadata = {
   title: "Términos y condiciones - Chalán",
@@ -577,6 +578,7 @@ export default function TerminosYCondiciones() {
           </p>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }
