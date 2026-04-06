@@ -43,7 +43,7 @@ const aboutJsonLd = {
 
 export default function Nosotros() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}

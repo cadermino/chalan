@@ -85,7 +85,7 @@ export default async function CompanyReviewsPage({
 
   if (!company) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main id="main-content" className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Empresa no encontrada</h1>
           <Link href="/reviews" className="text-blue-600 hover:underline">
@@ -147,7 +147,7 @@ export default async function CompanyReviewsPage({
   }));
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main id="main-content" className="min-h-screen bg-gray-50">
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", url: "https://chalan.pe" },

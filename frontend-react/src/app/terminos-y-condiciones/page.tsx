@@ -1,17 +1,35 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 
-export const metadata = {
-  title: "Términos y condiciones - Chalán",
+export const metadata: Metadata = {
+  title: "Términos y condiciones - Chalán | Mudanzas y fletes en Perú",
   description:
-    "Términos y condiciones de uso del servicio de Chalán.",
+    "Términos y condiciones de uso de Chalán, la plataforma de mudanzas y fletes en Perú. Conoce tus derechos y obligaciones.",
+  keywords: "términos y condiciones chalán, condiciones uso mudanzas, legal chalán perú",
+  alternates: {
+    canonical: "/terminos-y-condiciones",
+  },
+  openGraph: {
+    title: "Términos y condiciones - Chalán",
+    description:
+      "Términos y condiciones de uso de Chalán, plataforma de mudanzas y fletes en Perú.",
+    url: "https://chalan.pe/terminos-y-condiciones",
+  },
 };
 
 export default function TerminosYCondiciones() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Navbar />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", url: "https://chalan.pe" },
+          { name: "Términos y condiciones", url: "https://chalan.pe/terminos-y-condiciones" },
+        ]}
+      />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
@@ -25,13 +43,11 @@ export default function TerminosYCondiciones() {
           <p>
             Las presentes Condiciones de uso, en lo relativo del presente
             contrato, (&ldquo;Condiciones&rdquo;) las que regularan el acceso o
-            uso que usted haga, como persona desde cualquier estado dentro de la
-            República Mexicana de aplicaciones, páginas web, contenido, productos
+            uso que usted haga, como persona desde cualquier lugar dentro de la
+            República del Perú de aplicaciones, páginas web, contenido, productos
             y servicios a quien en los sucesivo se le denominará los
-            &ldquo;Servicios&rdquo;; puestos a disposición por Chalán.mx, que es
-            una sociedad mercantil de nacionalidad mexicana, debidamente
-            constituida y en operaciones en Perú, con domicilio fiscal en Avenida
-            Rodolfo Gaona 87 304 Lomas de Sotelo, Miguel Hidalgo, CDMX, México.
+            &ldquo;Servicios&rdquo;; puestos a disposición por Chalán, con
+            operaciones en Perú.
           </p>
           <p>
             LEA ESTAS CONDICIONES DETENIDAMENTE ANTES DE ACCEDER O USAR LOS
@@ -425,7 +441,7 @@ export default function TerminosYCondiciones() {
           <p>
             En ningún caso la responsabilidad total de Chalán hacia usted en
             relación con los servicios por todos los daños, las pérdidas y los
-            juicios podrá exceder de quinientos pesos ($500).
+            juicios podrá exceder de quinientos soles (S/ 500).
           </p>
           <p>
             Usted podrá utilizar los servicios de Chalán para solicitar y
@@ -437,8 +453,7 @@ export default function TerminosYCondiciones() {
             contratación de los servicios de Chalán por su parte figura como una
             relación laboral con el Tercero Prestador de servicios, únicamente es
             limitativo al contrato de prestaciones de servicios enunciado, y que
-            no será regido bajo lo indicado por la Ley Federal del Trabajo, ni
-            otras disposiciones relativas a materia laboral.
+            no será regido bajo la legislación laboral peruana vigente.
           </p>
           <p>
             <strong>Indemnidad.</strong> Usted acuerda mantener indemnes y
@@ -473,22 +488,19 @@ export default function TerminosYCondiciones() {
           </p>
           <p>
             <strong>Mediación y Arbitraje.</strong> Salvo que aquí se especifique
-            lo contrario, las presentes Condiciones se regirán e interpretarán se
-            sujetarán a las disposiciones del derecho positivo mexicano, en
-            especial al Código de Comercio, y cualquier otra que resulte aplicable
-            al caso, vigente al momento de la celebración del presente contrato, y
-            se someten expresamente a la jurisdicción y competencia de los
-            tribunales de la Ciudad de México, renunciando a cualquier fuero que
-            por domicilio presente o futuro pudiere corresponderles, y en caso de
-            que el presente contrato se celebre con persona extranjera este acepta
-            no invocar la protección de las leyes correspondientes a su país de
-            origen. Lo anterior, en virtud de la relación exclusivamente comercial
-            que existe entre las partes. En caso de que cualquier disposición del
-            presente Contrato resultara inválida o inejecutable, la misma se
-            tendrá por no puesta, pero sin alterar la vigencia de las demás
-            disposiciones, las que se interpretarán de tal forma que se obtenga el
-            alcance más parecido a la intención original de las partes al
-            suscribirse este documento.
+            lo contrario, las presentes Condiciones se regirán e interpretarán
+            conforme a la legislación peruana vigente, en especial al Código
+            Civil, al Código de Protección y Defensa del Consumidor (Ley
+            N.° 29571) y cualquier otra norma que resulte aplicable, vigente al
+            momento de la celebración del presente contrato, y se someten
+            expresamente a la jurisdicción y competencia de los tribunales de
+            Lima, Perú, renunciando a cualquier fuero que por domicilio presente
+            o futuro pudiere corresponderles. En caso de que cualquier
+            disposición del presente Contrato resultara inválida o inejecutable,
+            la misma se tendrá por no puesta, pero sin alterar la vigencia de las
+            demás disposiciones, las que se interpretarán de tal forma que se
+            obtenga el alcance más parecido a la intención original de las partes
+            al suscribirse este documento.
           </p>
 
           <h2 className="text-lg font-bold text-gray-900 mt-8">
@@ -499,9 +511,8 @@ export default function TerminosYCondiciones() {
             una notificación general en los Servicios, mediante un correo
             electrónico enviado a su dirección electrónica en su Cuenta o por
             comunicación escrita enviada a su dirección, según lo dispuesto en su
-            Cuenta. Usted podrá notificar a Chalán por comunicación escrita, vía
-            postal a la dirección de Chalán en Avenida Rodolfo Gaona 87 304 Lomas
-            de Sotelo, Miguel Hidalgo, CDMX, México.
+            Cuenta. Usted podrá notificar a Chalán por comunicación escrita al
+            correo electrónico carlos.calderon@chalan.pe.
           </p>
           <p>
             <strong>Disposiciones generales.</strong> No podrá ceder ni transferir
@@ -534,23 +545,23 @@ export default function TerminosYCondiciones() {
           </p>
           <p>
             <strong>Protección de Datos.</strong> Para efectos de lo dispuesto en
-            la Ley Federal de Protección de Datos Personales en Posesión de los
-            Particulares (la &ldquo;LFPDP&rdquo;) y las disposiciones que de ella
-            emanen, las partes reconocen y aceptan expresamente que la forma y
-            términos en que cualesquiera información o datos que se consideren
-            datos personales que se encuentren en poder de cada una de las partes
-            en términos de la LFPDP, y que se entregue recíprocamente serán
-            protegidos y tratados de conformidad con lo que se establece y regula
-            su respectivo Aviso de Privacidad.
+            la Ley N.° 29733, Ley de Protección de Datos Personales, y su
+            reglamento aprobado mediante Decreto Supremo N.° 003-2013-JUS, las
+            partes reconocen y aceptan expresamente que la forma y términos en
+            que cualesquiera información o datos que se consideren datos
+            personales que se encuentren en poder de cada una de las partes, y
+            que se entregue recíprocamente serán protegidos y tratados de
+            conformidad con lo que se establece y regula su respectivo Aviso de
+            Privacidad.
           </p>
           <p>
-            En todo caso, los datos personales de carácter personal entregados
-            recíprocamente por ambas partes, serán los estrictamente necesarios
-            para el cumplimiento de este instrumento y de lo establecido en el
-            Aviso de Privacidad, y única y exclusivamente podrán ser aplicados o
+            En todo caso, los datos personales entregados recíprocamente por
+            ambas partes, serán los estrictamente necesarios para el
+            cumplimiento de este instrumento y de lo establecido en el Aviso de
+            Privacidad, y única y exclusivamente podrán ser aplicados o
             utilizados para el cumplimiento de los fines objeto del instrumento y
             del Aviso de Privacidad, así como de conformidad con cualquier
-            disposición de la LFPDP o de la demás legislación aplicable.
+            disposición de la legislación peruana aplicable.
           </p>
           <p>
             En términos del Aviso de Privacidad, las partes adoptarán las medidas
