@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { StarRating } from "@/components/StarRating";
-import { ReviewForm } from "@/components/ReviewForm";
 import { getApiBase } from "@/lib/api";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
@@ -231,12 +230,6 @@ export default async function CompanyReviewsPage({
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Write Review Form */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h2 className="font-semibold mb-4">Escribe una reseña</h2>
-              <ReviewForm carrierCompanyId={company.id} />
             </div>
           </div>
 

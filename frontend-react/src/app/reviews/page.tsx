@@ -98,20 +98,9 @@ export default async function ReviewsPage() {
                   className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    {company.cover_image ? (
-                      <img
-                        src={company.cover_image}
-                        alt={`Logo de ${company.name}, empresa de mudanzas`}
-                        width={56}
-                        height={56}
-                        loading="lazy"
-                        className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl flex-shrink-0">
-                        {company.name.charAt(0)}
-                      </div>
-                    )}
+                    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xl flex-shrink-0">
+                      {company.name.charAt(0)}
+                    </div>
                     <div className="min-w-0">
                       <h3 className="font-semibold text-lg truncate">
                         {company.name}
