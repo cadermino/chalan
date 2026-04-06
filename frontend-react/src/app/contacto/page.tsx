@@ -48,15 +48,15 @@ export default function Contacto() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(contactJsonLd) }}
       />
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Contacto", url: "https://chalan.pe/contacto" },
-        ]}
-      />
       <Navbar />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Contacto", url: "https://chalan.pe/contacto" },
+          ]}
+        />
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Contacto</h1>
 
         <div className="space-y-6 text-gray-700 leading-relaxed">

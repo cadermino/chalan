@@ -48,15 +48,15 @@ export default function Nosotros() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
       />
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Inicio", url: "https://chalan.pe" },
-          { name: "Nosotros", url: "https://chalan.pe/nosotros" },
-        ]}
-      />
       <Navbar />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
+        <BreadcrumbJsonLd
+          items={[
+            { name: "Inicio", url: "https://chalan.pe" },
+            { name: "Nosotros", url: "https://chalan.pe/nosotros" },
+          ]}
+        />
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Nosotros</h1>
 
         <div className="space-y-6 text-gray-700 leading-relaxed">
