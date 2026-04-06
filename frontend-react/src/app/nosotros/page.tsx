@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Nosotros - Chalán | Plataforma de mudanzas en Perú",
@@ -93,6 +94,7 @@ export default function Nosotros() {
           </ul>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

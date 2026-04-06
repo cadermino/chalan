@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Footer } from "@/components/Footer";
 
 export default function ReviewsLayout({
   children,
@@ -26,6 +27,7 @@ export default function ReviewsLayout({
         </div>
       </nav>
       {children}
+      <Footer />
     </>
   );
 }
