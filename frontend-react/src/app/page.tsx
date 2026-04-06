@@ -1,9 +1,34 @@
 import Link from "next/link";
 import { ScrollEffects } from "@/components/ScrollEffects";
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "MovingCompany",
+  name: "Chalán",
+  url: "https://chalan.pe",
+  logo: "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png",
+  description:
+    "En Chalán te ayudamos a encontrar el vehículo ideal para tu mudanza o flete. Compara precios, elige tu movilidad y múdate fácil.",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Lima",
+    addressCountry: "PE",
+  },
+  areaServed: {
+    "@type": "Country",
+    name: "Perú",
+  },
+  serviceType: ["Mudanzas", "Fletes", "Transporte de carga"],
+  priceRange: "$$",
+};
+
 export default function Home() {
   return (
     <main className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <ScrollEffects />
       {/* ========== NAVBAR ========== */}
       <nav
