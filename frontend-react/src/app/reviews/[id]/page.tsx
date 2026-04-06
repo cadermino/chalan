@@ -3,6 +3,7 @@ import { StarRating } from "@/components/StarRating";
 import { ReviewForm } from "@/components/ReviewForm";
 import { getApiBase } from "@/lib/api";
 import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 
 interface Review {
   id: number;
@@ -147,6 +148,13 @@ export default async function CompanyReviewsPage({
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", url: "https://chalan.pe" },
+          { name: "Reseñas", url: "https://chalan.pe/reviews" },
+          { name: company.name, url: `https://chalan.pe/reviews/${id}` },
+        ]}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}

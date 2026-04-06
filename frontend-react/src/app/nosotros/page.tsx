@@ -1,14 +1,57 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 
-export const metadata = {
-  title: "Nosotros - Chalán",
+export const metadata: Metadata = {
+  title: "Nosotros - Chalán | Plataforma de mudanzas en Perú",
   description:
-    "Chalán es una plataforma digital que facilita el requerimiento de movilidad para mudanzas locales y foráneas.",
+    "Conoce Chalán, la plataforma digital que facilita tus mudanzas en Lima y Perú. Comparamos precios de vehículos para que elijas la mejor opción.",
+  keywords:
+    "chalán empresa, mudanzas lima, plataforma mudanzas perú, quiénes somos chalán",
+  alternates: {
+    canonical: "/nosotros",
+  },
+  openGraph: {
+    title: "Nosotros - Chalán",
+    description:
+      "Conoce Chalán, la plataforma digital que facilita tus mudanzas en Lima y Perú.",
+    url: "https://chalan.pe/nosotros",
+  },
+};
+
+const aboutJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Chalán",
+  url: "https://chalan.pe",
+  logo: "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png",
+  description:
+    "Plataforma digital que facilita el requerimiento de movilidad para mudanzas locales y foráneas en Perú.",
+  areaServed: {
+    "@type": "Country",
+    name: "Perú",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    telephone: "+51-972-643-007",
+    contactType: "customer service",
+    availableLanguage: "Spanish",
+  },
 };
 
 export default function Nosotros() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", url: "https://chalan.pe" },
+          { name: "Nosotros", url: "https://chalan.pe/nosotros" },
+        ]}
+      />
       <nav className="bg-indigo-950 text-white">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">

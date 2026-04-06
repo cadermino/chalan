@@ -2,6 +2,7 @@ import Link from "next/link";
 import { StarRating } from "@/components/StarRating";
 import { getApiBase } from "@/lib/api";
 import type { Metadata } from "next";
+import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Reviews de empresas transportistas - Chalán",
@@ -71,6 +72,12 @@ export default async function ReviewsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", url: "https://chalan.pe" },
+          { name: "Reseñas", url: "https://chalan.pe/reviews" },
+        ]}
+      />
       <div className="container mx-auto px-6 py-12">
         <h1 className="text-4xl font-bold mb-2">Reseñas de mudanceros</h1>
         <p className="text-gray-600 mb-10">
