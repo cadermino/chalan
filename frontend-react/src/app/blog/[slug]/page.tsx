@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { getPost, getAllSlugs } from "@/lib/blog";
 import { Navbar } from "@/components/Navbar";
@@ -106,8 +107,11 @@ export default async function BlogPost({ params }: Props) {
           prose-li:text-gray-600
           prose-strong:text-gray-800
           prose-a:text-indigo-600 prose-a:no-underline hover:prose-a:underline
-          prose-blockquote:border-indigo-300 prose-blockquote:text-gray-600">
-          <MDXRemote source={post.content} />
+          prose-blockquote:border-indigo-300 prose-blockquote:text-gray-600
+          prose-table:w-full prose-table:text-sm
+          prose-thead:bg-indigo-50 prose-th:text-indigo-700 prose-th:font-semibold prose-th:px-4 prose-th:py-2
+          prose-td:px-4 prose-td:py-2 prose-tr:border-b prose-tr:border-gray-100">
+          <MDXRemote source={post.content} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
         </article>
 
         {/* CTA post-article */}
