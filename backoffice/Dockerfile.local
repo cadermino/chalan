@@ -1,0 +1,6 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY ./backoffice/package.json ./
+RUN npm install
+COPY ./backoffice .
+CMD ["npm", "run", "dev"]

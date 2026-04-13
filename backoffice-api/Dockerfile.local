@@ -1,0 +1,16 @@
+FROM python:3.11-alpine
+WORKDIR /backoffice-api
+COPY ./backoffice-api/requirements.txt .
+
+RUN pip install --upgrade pip
+RUN apk add --no-cache tzdata
+ENV TZ America/Lima
+RUN apk update && apk add python3-dev \
+                          gcc \
+                          libc-dev \
+                          libffi-dev \
+                          postgresql-dev
+
+RUN pip install -r requirements.txt
+
+CMD ["python", "run.py"]

@@ -11,6 +11,29 @@ services:
     restart: always
     links:
       - db:dbserver
+  backoffice-api:
+    build:
+      context: .
+      dockerfile: backoffice-api/Dockerfile.local
+    volumes:
+      - ./backoffice-api:/backoffice-api
+    ports:
+      - 8002:8002
+    env_file: .env.backoffice.dev
+    restart: always
+    links:
+      - db:dbserver
+  backoffice:
+    build:
+      context: .
+      dockerfile: backoffice/Dockerfile.local
+    volumes:
+      - ./backoffice/src:/app/src
+    ports:
+      - 5173:5173
+    environment:
+      - VITE_API_URL=http://localhost:8002
+    restart: always
   vuex:
     build:
       context: .

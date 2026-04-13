@@ -42,3 +42,12 @@ Content-Type: application/json
   "rating": 3,
   "comment": "El servicio fue regular, llegaron un poco tarde pero el trato fue amable."
 }
+
+###
+POST http://localhost:8002/auth/seed HTTP/1.1
+Content-Type: application/json
+
+{
+  "email": "cadermino@gmail.com",
+  "password": "1234"
+}
