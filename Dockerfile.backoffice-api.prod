@@ -1,0 +1,19 @@
+FROM python:3.11-alpine
+WORKDIR /backoffice-api
+COPY ./backoffice-api/requirements.txt .
+
+RUN pip install --upgrade pip
+RUN apk add --no-cache tzdata
+ENV TZ America/Lima
+RUN apk update && apk add python3-dev \
+                          gcc \
+                          libc-dev \
+                          libffi-dev \
+                          postgresql-dev
+
+RUN pip install -r requirements.txt
+RUN pip install gunicorn==21.2.0
+
+COPY ./backoffice-api .
+
+CMD ["gunicorn", "-b", "0.0.0.0:8002", "--workers", "2", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
