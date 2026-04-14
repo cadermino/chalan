@@ -4,7 +4,9 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
 import Login from './pages/Login'
+import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import Profile from './pages/Profile'
 import UsersList from './pages/users/List'
 import UserForm from './pages/users/Form'
 import CarrierCompaniesList from './pages/carrier-companies/List'
@@ -17,6 +19,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         <Route
           element={
@@ -26,6 +29,7 @@ export default function App() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="profile" element={<Profile />} />
 
           {/* Carrier companies */}
           <Route path="carrier-companies" element={<CarrierCompaniesList />} />

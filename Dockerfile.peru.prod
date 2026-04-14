@@ -10,6 +10,7 @@ COPY /backoffice/package.json ./
 RUN npm install
 COPY /backoffice .
 ENV VITE_API_URL=/backoffice-api
+ENV VITE_BASE_PATH=/backoffice/
 RUN npm run build
 
 FROM node:18-alpine as react-build-stage

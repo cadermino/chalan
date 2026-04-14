@@ -186,11 +186,11 @@ class Quotations(db.Model):
 class Vehicle(db.Model):
 	__tablename__ = 'vehicles'
 	id = db.Column(db.Integer, primary_key=True)
-	charge_per_kilometer = db.Column(db.Integer, nullable=False)
-	charge_per_floor = db.Column(db.Integer, nullable=False)
-	driver_fee = db.Column(db.Integer, nullable=False)
-	loader_fee = db.Column(db.Integer, nullable=False)
-	loaders_quantity = db.Column(db.Integer, nullable=False)
+	charge_per_kilometer = db.Column(db.Integer, nullable=False, server_default='0')
+	charge_per_floor = db.Column(db.Integer, nullable=False, server_default='0')
+	driver_fee = db.Column(db.Integer, nullable=False, server_default='0')
+	loader_fee = db.Column(db.Integer, nullable=False, server_default='0')
+	loaders_quantity = db.Column(db.Integer, nullable=False, server_default='0')
 	size = db.Column(db.Enum('small','medium','large', name='vehicle_size'))
 	weight = db.Column(db.String(45))
 	width = db.Column(db.String(45))
