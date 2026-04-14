@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, Link, useNavigate, useMatch } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
@@ -10,6 +10,14 @@ const navItems = [
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  // Detect if user is browsing inside a specific carrier company
+  const companyMatch = useMatch('/carrier-companies/:companyId/*')
+  const companyId = user?.role === 'carrier_company'
+    ? user.carrier_company_id
+    : companyMatch?.params?.companyId
+
+  const showVehiclesSubmenu = Boolean(companyId)
 
   const handleLogout = () => {
     logout()
@@ -35,21 +43,39 @@ export default function Sidebar() {
         {navItems
           .filter((item) => item.roles.includes(user?.role))
           .map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-teal-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
-                }`
-              }
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </NavLink>
+            <div key={item.to}>
+              <NavLink
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-teal-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800'
+                  }`
+                }
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </NavLink>
+
+              {/* Vehicles submenu under Empresas */}
+              {item.to === '/carrier-companies' && showVehiclesSubmenu && (
+                <NavLink
+                  to={`/carrier-companies/${companyId}/vehicles`}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 ml-6 pl-3 pr-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-teal-700 text-white'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    }`
+                  }
+                >
+                  <span>🚚</span>
+                  Vehículos
+                </NavLink>
+              )}
+            </div>
           ))}
       </nav>
 
@@ -57,12 +83,20 @@ export default function Sidebar() {
       <div className="px-4 py-4 border-t border-gray-700">
         <p className="text-xs text-gray-400">{roleLabel[user?.role]}</p>
         <p className="text-sm text-white truncate">{user?.email}</p>
-        <button
-          onClick={handleLogout}
-          className="mt-2 text-xs text-red-400 hover:text-red-300"
-        >
-          Cerrar sesión
-        </button>
+        <div className="flex gap-3 mt-2">
+          <Link
+            to="/profile"
+            className="text-xs text-teal-400 hover:text-teal-300"
+          >
+            Editar perfil
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="text-xs text-red-400 hover:text-red-300"
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </div>
     </aside>
   )

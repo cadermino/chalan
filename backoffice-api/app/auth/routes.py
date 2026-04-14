@@ -2,7 +2,8 @@ from flask import request, jsonify
 from sqlalchemy import exc
 
 from . import auth
-from ..models import AdminUser, ROLE_SUPERADMIN
+from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER
+from ..utils import create_blank_company_and_vehicle
 from .. import db
 
 
@@ -20,6 +21,38 @@ def login():
         'token': user.generate_auth_token(),
         'user': user.to_dict(),
     }), 200
+
+
+@auth.route('/register', methods=['POST'])
+def register():
+    """Public registration — creates a carrier_company user pending admin activation."""
+    data = request.get_json()
+    required = ('email', 'password', 'first_name', 'last_name', 'dni')
+    if not data or not all(data.get(k) for k in required):
+        return jsonify({'message': 'email, password, first_name, last_name and dni are required'}), 400
+
+    try:
+        user = AdminUser(
+            email=data['email'].strip().lower(),
+            first_name=data['first_name'].strip(),
+            last_name=data['last_name'].strip(),
+            dni=data['dni'].strip(),
+            role=ROLE_CARRIER,
+            active=0,  # pending admin approval
+        )
+        user.password = data['password']
+        db.session.add(user)
+
+        # Auto-create blank company + vehicle so the user has one to fill in
+        company = create_blank_company_and_vehicle(email=data['email'].strip().lower())
+        user.carrier_company_id = company.id
+
+        db.session.commit()
+    except exc.IntegrityError:
+        db.session.rollback()
+        return jsonify({'message': 'email already in use'}), 409
+
+    return jsonify({'message': 'registration successful, wait for admin approval'}), 201
 
 
 @auth.route('/seed', methods=['POST'])
@@ -47,15 +80,39 @@ def seed_superadmin():
     return jsonify({'message': 'superadmin created', 'user': user.to_dict()}), 201
 
 
-@auth.route('/me', methods=['GET'])
-def me():
+def _current_user():
+    """Helper: returns AdminUser from Bearer token or None."""
     auth_header = request.headers.get('Authorization', '')
     parts = auth_header.split()
     if len(parts) != 2 or parts[0].lower() != 'bearer':
-        return jsonify({'message': 'missing token'}), 401
+        return None
+    return AdminUser.verify_auth_token(parts[1])
 
-    user = AdminUser.verify_auth_token(parts[1])
+
+@auth.route('/me', methods=['GET'])
+def me():
+    user = _current_user()
     if user is None:
-        return jsonify({'message': 'invalid or expired token'}), 401
+        return jsonify({'message': 'missing or invalid token'}), 401
+    return jsonify({'user': user.to_dict()}), 200
 
+
+@auth.route('/me', methods=['PUT'])
+def update_me():
+    """Allow any authenticated user to update their own profile."""
+    user = _current_user()
+    if user is None:
+        return jsonify({'message': 'missing or invalid token'}), 401
+
+    data = request.get_json() or {}
+    if 'first_name' in data:
+        user.first_name = data['first_name'].strip()
+    if 'last_name' in data:
+        user.last_name = data['last_name'].strip()
+    if 'dni' in data:
+        user.dni = data['dni'].strip()
+    if data.get('password'):
+        user.password = data['password']
+
+    db.session.commit()
     return jsonify({'user': user.to_dict()}), 200

@@ -3,7 +3,8 @@ from sqlalchemy import exc
 
 from . import api
 from .decorators import login_required, superadmin_required
-from ..models import AdminUser, CarrierCompany, ALL_ROLES, ROLE_CARRIER
+from ..models import AdminUser, CarrierCompany, Vehicle, ALL_ROLES, ROLE_CARRIER
+from ..utils import create_blank_company_and_vehicle
 from .. import db
 
 
@@ -23,22 +24,30 @@ def create_user():
         return jsonify({'message': 'email, password and role are required'}), 400
     if data['role'] not in ALL_ROLES:
         return jsonify({'message': f'role must be one of {ALL_ROLES}'}), 400
-    if data['role'] == ROLE_CARRIER and not data.get('carrier_company_id'):
-        return jsonify({'message': 'carrier_company_id required for carrier_company role'}), 400
 
-    # Validate carrier_company_id exists
-    if data.get('carrier_company_id'):
-        if not db.session.get(CarrierCompany, data['carrier_company_id']):
+    # Validate carrier_company_id if explicitly provided
+    carrier_company_id = data.get('carrier_company_id') or None
+    if carrier_company_id:
+        if not db.session.get(CarrierCompany, carrier_company_id):
             return jsonify({'message': 'carrier company not found'}), 404
 
     try:
         user = AdminUser(
             email=data['email'].lower(),
+            first_name=data.get('first_name', '').strip() or None,
+            last_name=data.get('last_name', '').strip() or None,
+            dni=data.get('dni', '').strip() or None,
             role=data['role'],
-            carrier_company_id=data.get('carrier_company_id'),
+            carrier_company_id=carrier_company_id,
         )
         user.password = data['password']
         db.session.add(user)
+
+        # Auto-create blank company + vehicle for new carrier_company users
+        if data['role'] == ROLE_CARRIER and not carrier_company_id:
+            company = create_blank_company_and_vehicle(email=data['email'].lower())
+            user.carrier_company_id = company.id
+
         db.session.commit()
     except exc.IntegrityError:
         db.session.rollback()

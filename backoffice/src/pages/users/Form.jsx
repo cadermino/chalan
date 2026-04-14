@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
+import PasswordInput from '../../components/PasswordInput'
 import toast from 'react-hot-toast'
 
 const ROLES = ['superadmin', 'admin', 'carrier_company']
@@ -14,6 +15,9 @@ export default function UserForm() {
   const [form, setForm] = useState({
     email: '',
     password: '',
+    first_name: '',
+    last_name: '',
+    dni: '',
     role: 'admin',
     carrier_company_id: '',
     active: true,
@@ -28,6 +32,9 @@ export default function UserForm() {
         setForm({
           email: u.email,
           password: '',
+          first_name: u.first_name ?? '',
+          last_name: u.last_name ?? '',
+          dni: u.dni ?? '',
           role: u.role,
           carrier_company_id: u.carrier_company_id ?? '',
           active: u.active,
@@ -78,13 +85,36 @@ export default function UserForm() {
           />
         </Field>
 
-        <Field label={isEdit ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Nombre">
+            <input
+              value={form.first_name}
+              onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+              className="input"
+            />
+          </Field>
+          <Field label="Apellido">
+            <input
+              value={form.last_name}
+              onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+              className="input"
+            />
+          </Field>
+        </div>
+
+        <Field label="DNI">
           <input
-            type="password"
+            value={form.dni}
+            onChange={(e) => setForm({ ...form, dni: e.target.value })}
+            className="input"
+          />
+        </Field>
+
+        <Field label={isEdit ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}>
+          <PasswordInput
             required={!isEdit}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="input"
           />
         </Field>
 
@@ -101,14 +131,16 @@ export default function UserForm() {
         {form.role === 'carrier_company' && (
           <Field label="Empresa transportista">
             <select
-              required
               value={form.carrier_company_id}
               onChange={(e) => setForm({ ...form, carrier_company_id: e.target.value })}
               className="input"
             >
-              <option value="">Selecciona una empresa</option>
+              <option value="">— Crear empresa nueva automáticamente —</option>
               {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            {!form.carrier_company_id && !isEdit && (
+              <p className="text-xs text-gray-400 mt-1">Se creará una empresa y un vehículo en blanco vinculados a este usuario.</p>
+            )}
           </Field>
         )}
 

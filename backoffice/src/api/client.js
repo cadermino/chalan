@@ -16,7 +16,8 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const isAuthRoute = err.config?.url?.startsWith('/auth/')
+    if (err.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('bo_token')
       localStorage.removeItem('bo_user')
       window.location.href = '/login'

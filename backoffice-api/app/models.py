@@ -19,6 +19,9 @@ class AdminUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column('password', db.String(255), nullable=False)
+    first_name = db.Column(db.String(80), nullable=True)
+    last_name = db.Column(db.String(80), nullable=True)
+    dni = db.Column(db.String(20), nullable=True)
     role = db.Column(db.String(20), nullable=False, server_default=ROLE_ADMIN)
     carrier_company_id = db.Column(db.Integer, nullable=True)
     active = db.Column(db.Integer, server_default='1')
@@ -60,6 +63,9 @@ class AdminUser(db.Model):
         return {
             'id': self.id,
             'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'dni': self.dni,
             'role': self.role,
             'carrier_company_id': self.carrier_company_id,
             'active': bool(self.active),

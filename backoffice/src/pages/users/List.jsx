@@ -47,7 +47,9 @@ export default function UsersList() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
             <tr>
+              <th className="px-4 py-3 text-left">Nombre</th>
               <th className="px-4 py-3 text-left">Email</th>
+              <th className="px-4 py-3 text-left">DNI</th>
               <th className="px-4 py-3 text-left">Rol</th>
               <th className="px-4 py-3 text-left">Empresa</th>
               <th className="px-4 py-3 text-left">Estado</th>
@@ -57,7 +59,13 @@ export default function UsersList() {
           <tbody className="divide-y divide-gray-100">
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-900">{u.email}</td>
+                <td className="px-4 py-3 font-medium text-gray-900">
+                  {u.first_name || u.last_name
+                    ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim()
+                    : '—'}
+                </td>
+                <td className="px-4 py-3 text-gray-600">{u.email}</td>
+                <td className="px-4 py-3 text-gray-500">{u.dni || '—'}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleBadge[u.role]}`}>
                     {u.role}

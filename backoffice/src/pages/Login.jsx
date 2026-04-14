@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import PasswordInput from '../components/PasswordInput'
 import toast from 'react-hot-toast'
 
 export default function Login() {
@@ -44,8 +45,7 @@ export default function Login() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -60,6 +60,13 @@ export default function Login() {
             {loading ? 'Ingresando…' : 'Ingresar'}
           </button>
         </form>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          ¿Eres empresa transportista?{' '}
+          <Link to="/register" className="text-teal-600 hover:underline">
+            Regístrate aquí
+          </Link>
+        </p>
       </div>
     </div>
   )
