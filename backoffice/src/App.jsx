@@ -13,6 +13,7 @@ import CarrierCompaniesList from './pages/carrier-companies/List'
 import CarrierCompanyForm from './pages/carrier-companies/Form'
 import VehiclesList from './pages/vehicles/List'
 import VehicleForm from './pages/vehicles/Form'
+import VehiclesAdminList from './pages/vehicles/AdminList'
 
 export default function App() {
   return (
@@ -30,6 +31,16 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
+
+          {/* Vehicles — superadmin global view */}
+          <Route
+            path="vehicles"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <VehiclesAdminList />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Carrier companies */}
           <Route path="carrier-companies" element={<CarrierCompaniesList />} />

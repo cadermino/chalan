@@ -45,6 +45,7 @@ export default function VehiclesList() {
       </div>
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
             <tr>
@@ -87,6 +88,7 @@ export default function VehiclesList() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )
