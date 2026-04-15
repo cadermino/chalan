@@ -1,9 +1,21 @@
 from flask import request, jsonify, g
 
 from . import api
-from .decorators import login_required, admin_required
+from .decorators import login_required, admin_required, superadmin_required
 from ..models import Vehicle, CarrierCompany, ROLE_CARRIER
 from .. import db
+
+
+@api.route('/vehicles', methods=['GET'])
+@superadmin_required
+def list_all_vehicles():
+    vehicles = Vehicle.query.join(CarrierCompany, Vehicle.carrier_company_id == CarrierCompany.id).all()
+    result = []
+    for v in vehicles:
+        d = v.to_dict()
+        d['company_name'] = v.carrier_company.name if v.carrier_company else ''
+        result.append(d)
+    return jsonify({'vehicles': result}), 200
 
 
 def _can_access_company(company_id):

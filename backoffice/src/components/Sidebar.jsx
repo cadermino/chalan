@@ -7,17 +7,16 @@ const navItems = [
   { to: '/users', label: 'Usuarios', icon: '👥', roles: ['superadmin'] },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const handleClose = onClose ?? (() => {})
 
   // Detect if user is browsing inside a specific carrier company
   const companyMatch = useMatch('/carrier-companies/:companyId/*')
   const companyId = user?.role === 'carrier_company'
     ? user.carrier_company_id
     : companyMatch?.params?.companyId
-
-  const showVehiclesSubmenu = Boolean(companyId)
 
   const handleLogout = () => {
     logout()
@@ -47,6 +46,7 @@ export default function Sidebar() {
               <NavLink
                 to={item.to}
                 end={item.to === '/'}
+                onClick={handleClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
@@ -60,9 +60,14 @@ export default function Sidebar() {
               </NavLink>
 
               {/* Vehicles submenu under Empresas */}
-              {item.to === '/carrier-companies' && showVehiclesSubmenu && (
+              {item.to === '/carrier-companies' && (
                 <NavLink
-                  to={`/carrier-companies/${companyId}/vehicles`}
+                  to={
+                    user?.role === 'carrier_company'
+                      ? `/carrier-companies/${companyId}/vehicles`
+                      : '/vehicles'
+                  }
+                  onClick={handleClose}
                   className={({ isActive }) =>
                     `flex items-center gap-2 ml-6 pl-3 pr-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       isActive
@@ -86,6 +91,7 @@ export default function Sidebar() {
         <div className="flex gap-3 mt-2">
           <Link
             to="/profile"
+            onClick={handleClose}
             className="text-xs text-teal-400 hover:text-teal-300"
           >
             Editar perfil
