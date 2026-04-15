@@ -122,6 +122,8 @@ class Vehicle(db.Model):
     plates = db.Column(db.String(45))
     size = db.Column(db.String(10))       # small | medium | large
     description = db.Column(db.String(400))
+    picture = db.Column(db.String(200))
+    weight = db.Column(db.String(45))
     width = db.Column(db.String(45))
     height = db.Column(db.String(45))
     length = db.Column(db.String(45))
