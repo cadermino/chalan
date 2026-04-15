@@ -200,6 +200,10 @@ class Vehicle(db.Model):
 	model = db.Column(db.String(45))
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
 	description = db.Column(db.String(400))
+	picture = db.Column(db.String(200))
+	plates = db.Column(db.String(45))
+	base_address = db.Column(db.String(200))
+	active = db.Column(db.Integer, server_default='0')
 
 class Review(db.Model):
 	__tablename__ = 'reviews'
