@@ -14,6 +14,8 @@ import CarrierCompanyForm from './pages/carrier-companies/Form'
 import VehiclesList from './pages/vehicles/List'
 import VehicleForm from './pages/vehicles/Form'
 import VehiclesAdminList from './pages/vehicles/AdminList'
+import OrdersList from './pages/orders/List'
+import OrderDetail from './pages/orders/Detail'
 
 export default function App() {
   return (
@@ -31,6 +33,24 @@ export default function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="profile" element={<Profile />} />
+
+          {/* Orders — carrier_company and superadmin */}
+          <Route
+            path="orders"
+            element={
+              <ProtectedRoute allowedRoles={['carrier_company', 'superadmin', 'admin']}>
+                <OrdersList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders/:orderId"
+            element={
+              <ProtectedRoute allowedRoles={['carrier_company', 'superadmin', 'admin']}>
+                <OrderDetail />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Vehicles — superadmin global view */}
           <Route
