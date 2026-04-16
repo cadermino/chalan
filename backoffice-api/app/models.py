@@ -93,6 +93,7 @@ class CarrierCompany(db.Model):
     active = db.Column(db.Integer, server_default='1')
 
     vehicles = db.relationship('Vehicle', backref='carrier_company', lazy='dynamic')
+    quotations = db.relationship('Quotation', backref='carrier_company', lazy='dynamic')
 
     def to_dict(self):
         return {
@@ -156,4 +157,86 @@ class Vehicle(db.Model):
             'loader_fee': self.loader_fee,
             'loaders_quantity': self.loaders_quantity,
             'active': bool(self.active),
+        }
+
+
+class Order(db.Model):
+    __tablename__ = 'orders'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, nullable=True)
+    country_id = db.Column(db.Integer, nullable=True)
+    total_kilometers = db.Column(db.Integer, nullable=True)
+    order_status_id = db.Column(db.Integer, server_default='1', nullable=False)
+    appointment_date = db.Column(db.DateTime())
+    comments = db.Column(db.String(500))
+    total_amount = db.Column(db.Float, nullable=True)
+    approximate_budget = db.Column(db.Float, nullable=True)
+    created_date = db.Column(db.DateTime())
+    updated_date = db.Column(db.DateTime())
+
+    order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
+    quotations = db.relationship('Quotation', backref='order', lazy='dynamic')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'order_status_id': self.order_status_id,
+            'appointment_date': self.appointment_date.isoformat() if self.appointment_date else None,
+            'comments': self.comments,
+            'total_kilometers': self.total_kilometers,
+            'approximate_budget': self.approximate_budget,
+            'created_date': self.created_date.isoformat() if self.created_date else None,
+        }
+
+
+class OrderDetail(db.Model):
+    __tablename__ = 'order_details'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String(20), nullable=False)
+    floor_number = db.Column(db.Integer, nullable=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    street = db.Column(db.String(200), nullable=True)
+    interior_number = db.Column(db.String(45), nullable=True)
+    neighborhood = db.Column(db.String(45), nullable=True)
+    city = db.Column(db.String(45), nullable=True)
+    state = db.Column(db.String(45), nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'type': self.type,
+            'floor_number': self.floor_number,
+            'street': self.street,
+            'neighborhood': self.neighborhood,
+            'city': self.city,
+            'state': self.state,
+        }
+
+
+class Quotation(db.Model):
+    __tablename__ = 'quotations'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Integer, nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
+    selected = db.Column(db.SmallInteger, server_default='0')
+    quotation_status_id = db.Column(db.Integer, server_default='1', nullable=False)
+    created_date = db.Column(db.DateTime())
+    updated_date = db.Column(db.DateTime())
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'amount': self.amount,
+            'order_id': self.order_id,
+            'carrier_company_id': self.carrier_company_id,
+            'selected': bool(self.selected),
+            'quotation_status_id': self.quotation_status_id,
+            'created_date': self.created_date.isoformat() if self.created_date else None,
         }
