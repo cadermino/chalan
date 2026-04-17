@@ -31,7 +31,7 @@ export default function Sidebar({ onClose }) {
   }
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-gray-900 text-white">
+    <aside className="flex flex-col w-60 h-full min-h-screen bg-gray-900 text-white overflow-y-auto">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-700">
         <span className="text-xl font-bold text-teal-400">Chalán</span>
