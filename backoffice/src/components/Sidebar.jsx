@@ -31,7 +31,7 @@ export default function Sidebar({ onClose }) {
   }
 
   return (
-    <aside className="flex flex-col w-60 h-full min-h-screen bg-gray-900 text-white overflow-y-auto">
+    <aside className="flex flex-col w-60 h-full bg-gray-900 text-white">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-700">
         <span className="text-xl font-bold text-teal-400">Chalán</span>
@@ -39,7 +39,7 @@ export default function Sidebar({ onClose }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems
           .filter((item) => item.roles.includes(user?.role))
           .map((item) => (
@@ -86,7 +86,7 @@ export default function Sidebar({ onClose }) {
       </nav>
 
       {/* User */}
-      <div className="px-4 py-4 border-t border-gray-700">
+      <div className="shrink-0 px-4 py-4 border-t border-gray-700">
         <p className="text-xs text-gray-400">{roleLabel[user?.role]}</p>
         <p className="text-sm text-white truncate">{user?.email}</p>
         <div className="flex gap-3 mt-2">
