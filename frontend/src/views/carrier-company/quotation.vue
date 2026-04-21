@@ -95,6 +95,23 @@
                     maximumSignificantDigits: 5,
                   }) }}
               </p>
+
+              <div v-if="routeMapUrl" class="mt-5">
+                <p class="font-bold mr-1 mb-2">Ruta origen → destino:</p>
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                  <iframe
+                    :src="routeMapUrl"
+                    class="w-full h-64"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    title="Mapa de ruta de mudanza"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">
+                  Vista de referencia para ubicar mejor la ruta de la mudanza.
+                </p>
+              </div>
             </div>
           </div>
           <div
@@ -414,6 +431,7 @@ export default {
         cancelled: 3,
       },
       googleDistanceUrl: process.env.VUE_APP_GOOGLE_DISTANCE_URL,
+      googleMapsApiKey: process.env.VUE_APP_PLACES_API_KEY,
     };
   },
   mounted() {
@@ -481,10 +499,34 @@ export default {
       return this.services.filter(item => item.name === 'cargo').length === 0 ? 'No' : 'Sí';
     },
     distanceBetweenAddress() {
-      if (!this.fromAddress) {
+      if (!this.fromAddress || !this.toAddress) {
         return false;
       }
       return `${this.googleDistanceUrl}${this.fromAddress.street}/${this.toAddress.street}`;
+    },
+    routeMapUrl() {
+      if (!this.fromAddress || !this.toAddress || !this.googleMapsApiKey) {
+        return null;
+      }
+
+      const buildAddress = (address) => {
+        const parts = [
+          address.street,
+          address.neighborhood,
+          address.city,
+          address.state,
+        ].filter(Boolean);
+        return parts.join(', ');
+      };
+
+      const origin = buildAddress(this.fromAddress);
+      const destination = buildAddress(this.toAddress);
+      if (!origin || !destination) {
+        return null;
+      }
+
+      const base = 'https://www.google.com/maps/embed/v1/directions';
+      return `${base}?key=${encodeURIComponent(this.googleMapsApiKey)}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=driving&language=es&zoom=17`;
     },
     approximateBudget() {
       if (!this.orderData.approximate_budget) {
