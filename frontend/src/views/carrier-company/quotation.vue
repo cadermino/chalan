@@ -526,7 +526,7 @@ export default {
       }
 
       const base = 'https://www.google.com/maps/embed/v1/directions';
-      return `${base}?key=${encodeURIComponent(this.googleMapsApiKey)}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=driving&language=es&zoom=17`;
+      return `${base}?key=${encodeURIComponent(this.googleMapsApiKey)}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=driving&language=es`;
     },
     approximateBudget() {
       if (!this.orderData.approximate_budget) {
