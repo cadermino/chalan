@@ -63,6 +63,13 @@ export default {
   components: {
     Navbar,
   },
+  created() {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      document.cookie = `chalan_ref=${ref};path=/;max-age=${30 * 24 * 60 * 60}`;
+    }
+  },
   methods: {
     ...mapActions([
       'logout',

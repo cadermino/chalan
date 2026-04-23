@@ -12,6 +12,7 @@ export default function Register() {
     email: '',
     password: '',
     confirm_password: '',
+    role: 'carrier_company',
   })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -32,6 +33,7 @@ export default function Register() {
         dni: form.dni.trim(),
         email: form.email.trim(),
         password: form.password,
+        role: form.role,
       })
       setDone(true)
     } catch (err) {
@@ -63,10 +65,37 @@ export default function Register() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Chalán</h1>
-          <p className="text-sm text-gray-500 mt-1">Regístrate como empresa transportista</p>
+          <p className="text-sm text-gray-500 mt-1">Crea tu cuenta</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Tipo de cuenta">
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="carrier_company"
+                  checked={form.role === 'carrier_company'}
+                  onChange={set('role')}
+                  className="accent-teal-600"
+                />
+                Empresa de mudanza
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="real_estate_agent"
+                  checked={form.role === 'real_estate_agent'}
+                  onChange={set('role')}
+                  className="accent-teal-600"
+                />
+                Agente inmobiliario
+              </label>
+            </div>
+          </Field>
+
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nombre">
               <input

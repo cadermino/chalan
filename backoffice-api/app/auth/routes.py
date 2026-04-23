@@ -2,7 +2,7 @@ from flask import request, jsonify
 from sqlalchemy import exc
 
 from . import auth
-from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER
+from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
 from ..utils import create_blank_company_and_vehicle
 from .. import db
 
@@ -25,11 +25,15 @@ def login():
 
 @auth.route('/register', methods=['POST'])
 def register():
-    """Public registration — creates a carrier_company user pending admin activation."""
+    """Public registration — creates a carrier_company or real_estate_agent user pending admin activation."""
     data = request.get_json()
     required = ('email', 'password', 'first_name', 'last_name', 'dni')
     if not data or not all(data.get(k) for k in required):
         return jsonify({'message': 'email, password, first_name, last_name and dni are required'}), 400
+
+    role = data.get('role', ROLE_CARRIER)
+    if role not in (ROLE_CARRIER, ROLE_REAL_ESTATE):
+        return jsonify({'message': 'role must be carrier_company or real_estate_agent'}), 400
 
     try:
         user = AdminUser(
@@ -37,16 +41,22 @@ def register():
             first_name=data['first_name'].strip(),
             last_name=data['last_name'].strip(),
             dni=data['dni'].strip(),
-            role=ROLE_CARRIER,
+            role=role,
             active=0,  # pending admin approval
         )
         user.password = data['password']
+
+        # Auto-create blank company + vehicle for carrier_company users
+        if role == ROLE_CARRIER:
+            db.session.add(user)
+            company = create_blank_company_and_vehicle(email=data['email'].strip().lower())
+            user.carrier_company_id = company.id
+
+        # Generate unique referral code for real_estate_agent users
+        if role == ROLE_REAL_ESTATE:
+            user.referral_code = _generate_referral_code()
+
         db.session.add(user)
-
-        # Auto-create blank company + vehicle so the user has one to fill in
-        company = create_blank_company_and_vehicle(email=data['email'].strip().lower())
-        user.carrier_company_id = company.id
-
         db.session.commit()
     except exc.IntegrityError:
         db.session.rollback()

@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -16,6 +16,13 @@ import VehicleForm from './pages/vehicles/Form'
 import VehiclesAdminList from './pages/vehicles/AdminList'
 import OrdersList from './pages/orders/List'
 import OrderDetail from './pages/orders/Detail'
+import ReferredOrdersList from './pages/referred-orders/List'
+
+function HomeRedirect() {
+  const { user } = useAuth()
+  if (user?.role === 'real_estate_agent') return <Navigate to="/referred-orders" replace />
+  return <Dashboard />
+}
 
 export default function App() {
   return (
@@ -31,7 +38,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route index element={<HomeRedirect />} />
           <Route path="profile" element={<Profile />} />
 
           {/* Orders — carrier_company and superadmin */}
@@ -52,6 +59,16 @@ export default function App() {
             }
           />
 
+          {/* Referred orders — real_estate_agent and admins */}
+          <Route
+            path="referred-orders"
+            element={
+              <ProtectedRoute allowedRoles={['real_estate_agent', 'superadmin', 'admin']}>
+                <ReferredOrdersList />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Vehicles — superadmin global view */}
           <Route
             path="vehicles"
@@ -63,7 +80,14 @@ export default function App() {
           />
 
           {/* Carrier companies */}
-          <Route path="carrier-companies" element={<CarrierCompaniesList />} />
+          <Route
+            path="carrier-companies"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin', 'carrier_company']}>
+                <CarrierCompaniesList />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="carrier-companies/new"
             element={

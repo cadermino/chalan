@@ -1,8 +1,15 @@
+import secrets
+import string
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import current_app
 from sqlalchemy import func
 import jwt
+
+
+def _generate_referral_code():
+    alphabet = string.ascii_uppercase + string.digits
+    return 'AGT-' + ''.join(secrets.choice(alphabet) for _ in range(5))
 
 from . import db
 
@@ -10,7 +17,8 @@ from . import db
 ROLE_SUPERADMIN = 'superadmin'
 ROLE_ADMIN = 'admin'
 ROLE_CARRIER = 'carrier_company'
-ALL_ROLES = (ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_CARRIER)
+ROLE_REAL_ESTATE = 'real_estate_agent'
+ALL_ROLES = (ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE)
 
 
 class AdminUser(db.Model):
@@ -24,6 +32,7 @@ class AdminUser(db.Model):
     dni = db.Column(db.String(20), nullable=True)
     role = db.Column(db.String(20), nullable=False, server_default=ROLE_ADMIN)
     carrier_company_id = db.Column(db.Integer, nullable=True)
+    referral_code = db.Column(db.String(10), unique=True, nullable=True)
     active = db.Column(db.Integer, server_default='1')
     created_date = db.Column(db.DateTime(), server_default=func.now())
 
@@ -68,6 +77,7 @@ class AdminUser(db.Model):
             'dni': self.dni,
             'role': self.role,
             'carrier_company_id': self.carrier_company_id,
+            'referral_code': self.referral_code,
             'active': bool(self.active),
             'created_date': self.created_date.isoformat() if self.created_date else None,
         }
@@ -238,5 +248,25 @@ class Quotation(db.Model):
             'carrier_company_id': self.carrier_company_id,
             'selected': bool(self.selected),
             'quotation_status_id': self.quotation_status_id,
+            'created_date': self.created_date.isoformat() if self.created_date else None,
+        }
+
+
+class ReferredOrder(db.Model):
+    __tablename__ = 'referred_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+
+    admin_user = db.relationship('AdminUser', backref='referred_orders')
+    order = db.relationship('Order', backref='referred_orders')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'admin_user_id': self.admin_user_id,
+            'order_id': self.order_id,
             'created_date': self.created_date.isoformat() if self.created_date else None,
         }

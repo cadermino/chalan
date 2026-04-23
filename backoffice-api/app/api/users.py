@@ -3,7 +3,7 @@ from sqlalchemy import exc
 
 from . import api
 from .decorators import login_required, superadmin_required
-from ..models import AdminUser, CarrierCompany, Vehicle, ALL_ROLES, ROLE_CARRIER
+from ..models import AdminUser, CarrierCompany, Vehicle, ALL_ROLES, ROLE_CARRIER, ROLE_REAL_ESTATE
 from ..utils import create_blank_company_and_vehicle
 from .. import db
 
