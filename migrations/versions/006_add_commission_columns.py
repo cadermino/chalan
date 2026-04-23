@@ -16,8 +16,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('admin_users', sa.Column('commission_rate', sa.Float(), server_default='0.05', nullable=False))
-    op.add_column('referred_orders', sa.Column('commission', sa.Float(), server_default='0', nullable=False))
+    op.execute("""
+        ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS commission_rate FLOAT DEFAULT 0.05 NOT NULL
+    """)
+    op.execute("""
+        ALTER TABLE referred_orders ADD COLUMN IF NOT EXISTS commission FLOAT DEFAULT 0 NOT NULL
+    """)
 
 
 def downgrade():
