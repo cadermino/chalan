@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
 
-const STATUS_LABEL = { 1: 'Nuevo', 2: 'Enviado', 3: 'En progreso', 4: 'Finalizado' }
+const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
 
 export default function OrdersList() {
   const [orders, setOrders] = useState([])

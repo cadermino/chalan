@@ -5,8 +5,9 @@ from .quotation import Quotation as QuotationEntity
 from .order import Order as OrderEntity
 from .decorators import token_required, carrier_company_token_required
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
-from ..models import Customer
+from ..models import Customer, ReferredOrder, AdminUser
 from .email import send_email
+from .. import db
 
 @api.route('/quotations/<int:order_id>', methods=['GET'])
 @token_required
@@ -22,6 +23,18 @@ def pick_quotation(quotation_id):
     auth_headers = request.headers.get('Authorization', '').split()
     Customer.verify_auth_token(auth_headers[1])
     QuotationEntity(quotation_id).pickQuotation()
+
+    # Register agent commission when customer picks a quotation
+    from ..models import Quotations as QuotationsModel
+    quotation = db.session.get(QuotationsModel, quotation_id)
+    referred = ReferredOrder.query.filter_by(order_id=quotation.order_id).first()
+    if referred:
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        platform_fee = float(os.getenv('PLATFORM_FEE'))
+        base_amount = quotation.amount / (1 + agent.commission_rate + platform_fee)
+        referred.commission = base_amount * agent.commission_rate
+        db.session.commit()
+
     return jsonify({
         'quotation_id': quotation_id
     }), 200
@@ -34,8 +47,14 @@ def create_quotation():
     token_data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
+    base_amount = float(quotation_data['amount'])
+    agent_commission = 0
+    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
+    if referred:
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        agent_commission = base_amount * agent.commission_rate
     platform_fee = float(os.getenv('PLATFORM_FEE'))
-    amount = float(quotation_data['amount']) + (float(quotation_data['amount']) * platform_fee)
+    amount = base_amount + agent_commission + (base_amount * platform_fee)
     data = {
         'amount': amount,
         'order_id': order_id,

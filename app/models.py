@@ -235,6 +235,7 @@ class AdminUser(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	referral_code = db.Column(db.String(10), unique=True, nullable=True)
 	role = db.Column(db.String(20), nullable=False)
+	commission_rate = db.Column(db.Float, server_default='0.05', nullable=False)
 
 class ReferredOrder(db.Model):
 	__tablename__ = 'referred_orders'
@@ -243,7 +244,10 @@ class ReferredOrder(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=False)
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	commission = db.Column(db.Float, server_default='0', nullable=False)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+	admin_user = db.relationship('AdminUser', backref='referred_orders')
 
 
 class CustomerSchema(ma.SQLAlchemyAutoSchema):
