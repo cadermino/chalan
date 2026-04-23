@@ -4,7 +4,7 @@ import uuid
 import stripe
 from flask import jsonify, request, current_app
 from openai import OpenAI
-from ..models import Customer, Order, OrderImage, OrderImageSchema
+from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, ReferredOrder
 from ..models import Quotations as QuotationsModel
 from ..models import CarrierCompanySchema, QuotationsSchema
 from . import api
@@ -26,6 +26,18 @@ def create_order():
     order_data = request.json
     order = OrderEntity()
     order = order.create(request=order_data)
+
+    # Link order to referring real_estate_agent if referral_code is present
+    referral_code = order_data.get('referral_code')
+    if referral_code:
+        agent = AdminUser.query.filter_by(
+            referral_code=referral_code, role='real_estate_agent'
+        ).first()
+        if agent:
+            ref = ReferredOrder(admin_user_id=agent.id, order_id=order.id)
+            db.session.add(ref)
+            db.session.commit()
+
     return jsonify({
         'message': 'order {id} created!'.format(id=order.id),
         'order_id': order.id,

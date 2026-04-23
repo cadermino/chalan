@@ -6,7 +6,8 @@ from flask import jsonify, g, current_app
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from .. import db
 
 
 def _generate_quotation_token(carrier_company_id, order_id):
@@ -113,3 +114,69 @@ def get_order(order_id):
             'existing_quotation': existing_quotation.to_dict() if existing_quotation else None,
         }
     }), 200
+
+
+@api.route('/referred-orders', methods=['GET'])
+@login_required
+def list_referred_orders():
+    """Orders referred by the current real_estate_agent user."""
+    user = g.current_user
+    if user.role == ROLE_REAL_ESTATE:
+        refs = ReferredOrder.query.filter_by(admin_user_id=user.id)\
+            .order_by(ReferredOrder.created_date.desc()).all()
+    elif user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        refs = ReferredOrder.query.order_by(ReferredOrder.created_date.desc()).all()
+    else:
+        return jsonify({'message': 'forbidden'}), 403
+
+    result = []
+    for ref in refs:
+        order = db.session.get(Order, ref.order_id)
+        if order is None:
+            continue
+        details = list(order.order_details)
+        origin = next((d for d in details if d.type == 'carry_from'), None)
+        destination = next((d for d in details if d.type == 'deliver_to'), None)
+        result.append({
+            **order.to_dict(),
+            'referred_by': ref.admin_user_id,
+            'referred_date': ref.created_date.isoformat() if ref.created_date else None,
+            'origin': origin.to_dict() if origin else None,
+            'destination': destination.to_dict() if destination else None,
+        })
+
+    return jsonify({'orders': result}), 200
+
+
+@api.route('/referred-orders', methods=['POST'])
+@login_required
+def create_referred_order():
+    """Assign an order to a real_estate_agent."""
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'admin access required'}), 403
+
+    data = request.get_json()
+    if not data or not data.get('admin_user_id') or not data.get('order_id'):
+        return jsonify({'message': 'admin_user_id and order_id are required'}), 400
+
+    from ..models import AdminUser
+    agent = db.session.get(AdminUser, data['admin_user_id'])
+    if agent is None or agent.role != ROLE_REAL_ESTATE:
+        return jsonify({'message': 'agent not found or not a real_estate_agent'}), 404
+
+    order = db.session.get(Order, data['order_id'])
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    existing = ReferredOrder.query.filter_by(
+        admin_user_id=data['admin_user_id'], order_id=data['order_id']
+    ).first()
+    if existing:
+        return jsonify({'message': 'order already referred to this agent'}), 409
+
+    ref = ReferredOrder(admin_user_id=data['admin_user_id'], order_id=data['order_id'])
+    db.session.add(ref)
+    db.session.commit()
+
+    return jsonify({'referred_order': ref.to_dict()}), 201

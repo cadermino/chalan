@@ -502,12 +502,15 @@ export default {
           this.removeSelectedProduct();
         }
         if (!this.currentOrder.order_id) {
+          const referralCode = document.cookie.split('; ')
+            .find((c) => c.startsWith('chalan_ref='))?.split('=')[1] || null;
           const payload = {
             order: this.currentOrder,
             orderDetailsOrigin: this.orderDetailsOrigin,
             orderDetailsDestination: this.orderDetailsDestination,
             services: this.services,
             customer: this.customer,
+            referral_code: referralCode,
           };
           chalan.createOrder(payload)
             .then((response) => {

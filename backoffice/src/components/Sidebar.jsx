@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '🏠', roles: ['superadmin', 'admin', 'carrier_company'] },
   { to: '/orders', label: 'Órdenes', icon: '📦', roles: ['superadmin', 'admin', 'carrier_company'] },
+  { to: '/referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['superadmin', 'admin', 'real_estate_agent'] },
   { to: '/carrier-companies', label: 'Empresas', icon: '🏢', roles: ['superadmin', 'admin', 'carrier_company'] },
   { to: '/users', label: 'Usuarios', icon: '👥', roles: ['superadmin'] },
 ]
@@ -28,6 +29,7 @@ export default function Sidebar({ onClose }) {
     superadmin: 'Super Admin',
     admin: 'Admin',
     carrier_company: 'Empresa',
+    real_estate_agent: 'Agente inmobiliario',
   }
 
   return (

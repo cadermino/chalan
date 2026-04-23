@@ -228,6 +228,24 @@ class OrderImage(db.Model):
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
+class AdminUser(db.Model):
+	__tablename__ = 'admin_users'
+	__table_args__ = {'extend_existing': True}
+
+	id = db.Column(db.Integer, primary_key=True)
+	referral_code = db.Column(db.String(10), unique=True, nullable=True)
+	role = db.Column(db.String(20), nullable=False)
+
+class ReferredOrder(db.Model):
+	__tablename__ = 'referred_orders'
+	__table_args__ = {'extend_existing': True}
+
+	id = db.Column(db.Integer, primary_key=True)
+	admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=False)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+
 class CustomerSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Customer
