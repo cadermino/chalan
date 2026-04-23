@@ -129,7 +129,11 @@ def list_referred_orders():
     else:
         return jsonify({'message': 'forbidden'}), 403
 
+    # Status 3=completed, 4=cancelled
+    EXCLUDED_STATUSES = (3, 4)
+
     result = []
+    commission_balance = 0
     for ref in refs:
         order = db.session.get(Order, ref.order_id)
         if order is None:
@@ -141,11 +145,14 @@ def list_referred_orders():
             **order.to_dict(),
             'referred_by': ref.admin_user_id,
             'referred_date': ref.created_date.isoformat() if ref.created_date else None,
+            'commission': ref.commission,
             'origin': origin.to_dict() if origin else None,
             'destination': destination.to_dict() if destination else None,
         })
+        if order.order_status_id not in EXCLUDED_STATUSES:
+            commission_balance += ref.commission or 0
 
-    return jsonify({'orders': result}), 200
+    return jsonify({'orders': result, 'commission_balance': commission_balance}), 200
 
 
 @api.route('/referred-orders', methods=['POST'])

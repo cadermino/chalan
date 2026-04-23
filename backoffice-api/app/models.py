@@ -33,6 +33,7 @@ class AdminUser(db.Model):
     role = db.Column(db.String(20), nullable=False, server_default=ROLE_ADMIN)
     carrier_company_id = db.Column(db.Integer, nullable=True)
     referral_code = db.Column(db.String(10), unique=True, nullable=True)
+    commission_rate = db.Column(db.Float, server_default='0.05', nullable=False)
     active = db.Column(db.Integer, server_default='1')
     created_date = db.Column(db.DateTime(), server_default=func.now())
 
@@ -78,6 +79,7 @@ class AdminUser(db.Model):
             'role': self.role,
             'carrier_company_id': self.carrier_company_id,
             'referral_code': self.referral_code,
+            'commission_rate': self.commission_rate,
             'active': bool(self.active),
             'created_date': self.created_date.isoformat() if self.created_date else None,
         }
@@ -258,6 +260,7 @@ class ReferredOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    commission = db.Column(db.Float, server_default='0', nullable=False)
     created_date = db.Column(db.DateTime(), server_default=func.now())
 
     admin_user = db.relationship('AdminUser', backref='referred_orders')
@@ -268,5 +271,6 @@ class ReferredOrder(db.Model):
             'id': self.id,
             'admin_user_id': self.admin_user_id,
             'order_id': self.order_id,
+            'commission': self.commission,
             'created_date': self.created_date.isoformat() if self.created_date else None,
         }

@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 
-const STATUS_LABEL = { 1: 'Nuevo', 2: 'Enviado', 3: 'En progreso', 4: 'Finalizado' }
+const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
 const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin
 
 export default function ReferredOrdersList() {
   const { user } = useAuth()
   const [orders, setOrders] = useState([])
+  const [commissionBalance, setCommissionBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
@@ -26,6 +27,7 @@ export default function ReferredOrdersList() {
   useEffect(() => {
     client.get('/api/referred-orders').then(({ data }) => {
       setOrders(data.orders)
+      setCommissionBalance(data.commission_balance)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -55,6 +57,14 @@ export default function ReferredOrdersList() {
         </div>
       )}
 
+      <div className="bg-white rounded-xl shadow p-5 mb-6">
+        <p className="text-sm font-semibold text-gray-700 mb-1">Comisiones pendientes</p>
+        <p className="text-3xl font-bold text-teal-600">S/ {commissionBalance.toFixed(2)}</p>
+        <p className="text-xs text-gray-400 mt-1">
+          Suma de comisiones de ordenes activas (no incluye completadas ni canceladas)
+        </p>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mis ordenes referidas</h1>
       </div>
@@ -69,6 +79,7 @@ export default function ReferredOrdersList() {
                 <th className="px-4 py-3 text-left">Destino</th>
                 <th className="px-4 py-3 text-left">Fecha mudanza</th>
                 <th className="px-4 py-3 text-left">Estado</th>
+                <th className="px-4 py-3 text-left">Comision</th>
                 <th className="px-4 py-3 text-left">Fecha referido</th>
               </tr>
             </thead>
@@ -88,6 +99,9 @@ export default function ReferredOrdersList() {
                   <td className="px-4 py-3">
                     {STATUS_LABEL[o.order_status_id] || o.order_status_id}
                   </td>
+                  <td className="px-4 py-3 font-medium text-teal-600">
+                    {o.commission ? `S/ ${o.commission.toFixed(2)}` : '—'}
+                  </td>
                   <td className="px-4 py-3 text-gray-500">
                     {o.referred_date ? new Date(o.referred_date).toLocaleDateString('es-PE') : '—'}
                   </td>
@@ -95,7 +109,7 @@ export default function ReferredOrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                     No hay ordenes referidas en este momento
                   </td>
                 </tr>
