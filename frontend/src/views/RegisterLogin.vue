@@ -70,7 +70,6 @@ export default {
           orderDetailsDestination: this.orderDetailsDestination,
           services: this.services,
           customer: this.customer,
-          requestQuotationFromCarrierCompany: true,
         };
         chalan.updateOrder(payload)
           .then((response) => {
