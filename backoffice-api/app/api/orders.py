@@ -40,8 +40,8 @@ def list_pending_orders():
     else:
         return jsonify({'message': 'forbidden'}), 403
 
-    # All orders in status 2 (sent to carrier companies)
-    all_sent_orders = Order.query.filter_by(order_status_id=2).order_by(Order.created_date.desc()).all()
+    # Orders in status 1 (pending) or 2 (in_progress)
+    all_sent_orders = Order.query.filter(Order.order_status_id.in_([1, 2])).order_by(Order.created_date.desc()).all()
 
     # Quotations already submitted (per company if carrier_company, all if admin)
     if company_id is not None:
