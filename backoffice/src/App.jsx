@@ -16,6 +16,7 @@ import VehicleForm from './pages/vehicles/Form'
 import VehiclesAdminList from './pages/vehicles/AdminList'
 import OrdersList from './pages/orders/List'
 import OrderDetail from './pages/orders/Detail'
+import OrderEdit from './pages/orders/Edit'
 import ReferredOrdersList from './pages/referred-orders/List'
 
 function HomeRedirect() {
@@ -55,6 +56,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['carrier_company', 'superadmin', 'admin']}>
                 <OrderDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders/:orderId/edit"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <OrderEdit />
               </ProtectedRoute>
             }
           />

@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from flask import jsonify, g, current_app
+from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
@@ -112,6 +112,60 @@ def get_order(order_id):
             'destination': destination.to_dict() if destination else None,
             'quotation_url': quotation_url,
             'existing_quotation': existing_quotation.to_dict() if existing_quotation else None,
+        }
+    }), 200
+
+
+@api.route('/orders/<int:order_id>', methods=['PUT'])
+@login_required
+def update_order(order_id):
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = Order.query.get(order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    data = request.get_json() or {}
+
+    if 'appointment_date' in data:
+        from datetime import datetime as dt
+        try:
+            order.appointment_date = dt.fromisoformat(data['appointment_date']) if data['appointment_date'] else None
+        except ValueError:
+            return jsonify({'message': 'invalid appointment_date format'}), 400
+    if 'order_status_id' in data:
+        order.order_status_id = data['order_status_id']
+    if 'approximate_budget' in data:
+        order.approximate_budget = data['approximate_budget']
+    if 'total_kilometers' in data:
+        order.total_kilometers = data['total_kilometers']
+    if 'comments' in data:
+        order.comments = data['comments']
+
+    for addr_type, key in [('carry_from', 'origin'), ('deliver_to', 'destination')]:
+        addr_data = data.get(key)
+        if addr_data is None:
+            continue
+        detail = OrderDetail.query.filter_by(order_id=order_id, type=addr_type).first()
+        if detail is None:
+            continue
+        for field in ('street', 'neighborhood', 'city', 'state', 'floor_number'):
+            if field in addr_data:
+                setattr(detail, field, addr_data[field])
+
+    db.session.commit()
+
+    details = list(order.order_details)
+    origin = next((d for d in details if d.type == 'carry_from'), None)
+    destination = next((d for d in details if d.type == 'deliver_to'), None)
+
+    return jsonify({
+        'order': {
+            **order.to_dict(),
+            'origin': origin.to_dict() if origin else None,
+            'destination': destination.to_dict() if destination else None,
         }
     }), 200
 
