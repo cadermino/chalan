@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
+import { useAuth } from '../../contexts/AuthContext'
 
 const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
 
 export default function OrdersList() {
+  const { user } = useAuth()
+  const isSuperadmin = user?.role === 'superadmin'
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -43,10 +46,20 @@ export default function OrdersList() {
                 <tr key={o.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
                   <td className="px-4 py-3 text-gray-600">
-                    {o.origin ? `${o.origin.city || ''} ${o.origin.neighborhood || ''}`.trim() || '—' : '—'}
+                    {o.origin ? (
+                      <div>
+                        <div>{[o.origin.street, o.origin.neighborhood].filter(Boolean).join(', ') || '—'}</div>
+                        <div className="text-xs text-gray-400">{[o.origin.city, o.origin.state].filter(Boolean).join(', ')}</div>
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {o.destination ? `${o.destination.city || ''} ${o.destination.neighborhood || ''}`.trim() || '—' : '—'}
+                    {o.destination ? (
+                      <div>
+                        <div>{[o.destination.street, o.destination.neighborhood].filter(Boolean).join(', ') || '—'}</div>
+                        <div className="text-xs text-gray-400">{[o.destination.city, o.destination.state].filter(Boolean).join(', ')}</div>
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE') : '—'}
@@ -67,6 +80,14 @@ export default function OrdersList() {
                       >
                         Ver detalle
                       </Link>
+                      {isSuperadmin && (
+                        <Link
+                          to={`/orders/${o.id}/edit`}
+                          className="text-amber-600 hover:underline"
+                        >
+                          Editar
+                        </Link>
+                      )}
                     </div>
                   </td>
                 </tr>
