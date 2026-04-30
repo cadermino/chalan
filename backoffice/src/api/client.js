@@ -20,7 +20,7 @@ client.interceptors.response.use(
     if (err.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('bo_token')
       localStorage.removeItem('bo_user')
-      window.location.href = '/login'
+      window.location.href = (import.meta.env.VITE_BASE_PATH || '/') + 'login'
     }
     return Promise.reject(err)
   },

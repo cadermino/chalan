@@ -1,504 +1,399 @@
-import Link from "next/link";
-import Image from "next/image";
-import { ScrollEffects } from "@/components/ScrollEffects";
-import { Footer } from "@/components/Footer";
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google'
+import { QuoteWidget } from '@/components/QuoteWidget'
+import { LandingNav } from '@/components/LandingNav'
+import { LandingFooter } from '@/components/LandingFooter'
+import './landing.css'
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "MovingCompany",
-  name: "Chalán",
-  url: "https://chalan.pe",
-  logo: "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png",
-  description:
-    "En Chalán te ayudamos a encontrar el vehículo ideal para tu mudanza o flete. Compara precios, elige tu movilidad y múdate fácil.",
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "Lima",
-    addressCountry: "PE",
+export const metadata: Metadata = {
+  title: 'Chalán — Mudanzas y fletes en Perú | Cotiza en minutos',
+  description: 'Plataforma peruana de mudanzas y fletes. Compara precios, elige vehículo y agenda tu mudanza en minutos. Cobertura en Lima y 23 ciudades del Perú.',
+  keywords: 'mudanzas perú, fletes lima, mudanza barata, cotizar mudanza, empresa de mudanzas, chalán, fletes interprovinciales, mudanzas lima',
+  alternates: { canonical: 'https://chalan.pe' },
+  openGraph: {
+    title: 'Chalán — Mudanzas y fletes en Perú',
+    description: 'Compara precios, elige vehículo y agenda tu mudanza en minutos. Lima y 23 ciudades del Perú.',
+    url: 'https://chalan.pe',
+    siteName: 'Chalán',
+    type: 'website',
+    locale: 'es_PE',
+    images: [{ url: 'https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png', width: 1519, height: 1506, alt: 'Chalán — Mudanzas y fletes en Perú' }],
   },
-  areaServed: {
-    "@type": "Country",
-    name: "Perú",
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Chalán — Mudanzas y fletes en Perú',
+    description: 'Compara precios, elige vehículo y agenda tu mudanza en minutos.',
+    images: ['https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png'],
   },
-  serviceType: ["Mudanzas", "Fletes", "Transporte de carga"],
-  priceRange: "$$",
-};
+}
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  variable: '--font-instrument-serif',
+  display: 'swap',
+})
+const interTight = Inter_Tight({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter-tight',
+  display: 'swap',
+})
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+})
+
+const jsonLdOrg = {
+  '@context': 'https://schema.org',
+  '@type': 'MovingCompany',
+  '@id': 'https://chalan.pe/#organization',
+  name: 'Chalán',
+  url: 'https://chalan.pe',
+  logo: 'https://chalan.pe/logo_chalan.png',
+  description: 'Plataforma peruana de mudanzas y fletes. Cotiza, compara y agenda en minutos.',
+  telephone: '+51-972-643-007',
+  email: 'carlos.calderon@chalan.pe',
+  foundingDate: '2014',
+  address: { '@type': 'PostalAddress', addressLocality: 'Lima', addressRegion: 'Lima', addressCountry: 'PE' },
+  geo: { '@type': 'GeoCoordinates', latitude: -12.046374, longitude: -77.042793 },
+  areaServed: { '@type': 'Country', name: 'Perú' },
+  serviceType: ['Mudanzas', 'Fletes', 'Transporte de carga', 'Mudanzas interprovinciales'],
+  priceRange: '$$',
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '14000', bestRating: '5' },
+  sameAs: ['https://chalan.mx'],
+}
+
+const jsonLdWebSite = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://chalan.pe/#website',
+  url: 'https://chalan.pe',
+  name: 'Chalán',
+  description: 'Plataforma peruana de mudanzas y fletes.',
+  publisher: { '@id': 'https://chalan.pe/#organization' },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: 'https://chalan.pe/order/step-one?q={search_term_string}' },
+    'query-input': 'required name=search_term_string',
+  },
+}
+
+
+const VEHICLES = [
+  { id: 'moto',  name: 'Moto carga',     desc: 'para paquetes',    cap: '·  hasta 80 kg', dim: '0.4 m³', base: 28  },
+  { id: 'carry', name: 'Carry',          desc: 'compactos',         cap: '·  500 kg',      dim: '2.0 m³', base: 55  },
+  { id: 'h100',  name: 'H-100',          desc: 'depto chico',       cap: '·  1 t',         dim: '5.5 m³', base: 90  },
+  { id: 'tres',  name: 'Camión 3 t',     desc: 'depto familiar',    cap: '·  3 t',         dim: '14 m³',  base: 160 },
+  { id: 'cinco', name: 'Camión 5 t',     desc: 'casa completa',     cap: '·  5 t',         dim: '22 m³',  base: 230 },
+  { id: 'furg',  name: 'Furgón cerrado', desc: 'carga delicada',    cap: '·  7 t',         dim: '30 m³',  base: 320 },
+]
+
+const STEPS = [
+  { n: '01', title: 'Indícanos las direcciones', body: 'De punto A a punto B. Calculamos ruta y distancia automáticamente.', icon: Pin },
+  { n: '02', title: 'Fecha y hora',              body: 'Tú eliges cuándo. Disponibilidad en tiempo real, mismo día incluido.', icon: Cal },
+  { n: '03', title: 'Escoge la movilidad',       body: 'Lista comparada de vehículos según tamaño, precio y reputación del chalán.', icon: Truck },
+  { n: '04', title: 'Pagas como prefieras',      body: 'Yape, Plin, transferencia, tarjeta o efectivo al final del servicio.', icon: Card },
+]
+
+const ROUTES = [
+  ['Lima', 'Arequipa', 580], ['Lima', 'Trujillo', 420], ['Lima', 'Huancayo', 340],
+  ['Lima', 'Ica', 210], ['Lima', 'Chiclayo', 490], ['Lima', 'Piura', 680],
+  ['Arequipa', 'Cusco', 360], ['Lima', 'Cajamarca', 620],
+] as const
+
+const FAQ = [
+  { q: '¿Cómo se calcula el precio?', a: 'Tarifa base por tipo de vehículo + distancia recorrida + tiempo de servicio. No hay cargos sorpresa: el monto que ves al cotizar es el monto final.' },
+  { q: '¿Qué pasa si necesito ayuda con la carga?', a: 'Puedes agregar uno o dos estibadores al momento de cotizar. Tarifa fija por hora, transparente desde el inicio.' },
+  { q: '¿Operan fuera de Lima?', a: 'Sí. Atendemos las principales rutas interprovinciales del Perú y mudanzas dentro de Arequipa, Trujillo, Huancayo, Piura, Chiclayo, Ica y Cusco.' },
+  { q: '¿Qué pasa si algo se daña en el viaje?', a: 'Todos nuestros chalanes están verificados y cuentan con seguro de mercadería. Reportas el incidente desde la app y tomamos cargo.' },
+  { q: '¿Puedo agendar para el mismo día?', a: 'En Lima Metropolitana hay disponibilidad casi inmediata. Para servicios interprovinciales recomendamos agendar con 24 h de anticipación.' },
+]
+
+const TICKER_ITEMS = [
+  'Lima → Arequipa', 'Lima → Trujillo', 'San Isidro → Surco', 'Miraflores → La Molina',
+  'Callao → Lima', 'Lima → Huancayo', 'Barranco → Magdalena', 'Lima → Ica',
+]
+
+// ─── Icons ──────────────────────────────────────────────────────────────────
+
+function Arrow({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  )
+}
+function Star() {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  )
+}
+function Pin() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12Z" /><circle cx="12" cy="9" r="2.4" />
+    </svg>
+  )
+}
+function Cal() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="1.5" /><path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  )
+}
+function Truck() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 7h11v9H2zM13 10h5l3 3v3h-8" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" />
+    </svg>
+  )
+}
+function Card() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="6" width="20" height="13" rx="1.5" /><path d="M2 11h20M6 16h4" />
+    </svg>
+  )
+}
+
+// ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  return (
-    <main id="main-content" className="min-h-screen">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <ScrollEffects />
-      {/* ========== NAVBAR ========== */}
-      <nav
-        id="main-navbar"
-        className="navbar fixed top-0 left-0 right-0 z-50 nav-animate"
-      >
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">
-              Chal<span className="text-amber-400">á</span>n
-            </span>
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/blog"
-              className="text-white/80 hover:text-white transition-colors hidden sm:inline font-medium"
-            >
-              Blog
-            </Link>
-            <Link
-              href="/contacto"
-              className="text-white/80 hover:text-white transition-colors hidden sm:inline font-medium"
-            >
-              Contacto
-            </Link>
-            <Link
-              href="/nosotros"
-              className="text-white/80 hover:text-white transition-colors hidden sm:inline font-medium"
-            >
-              Nosotros
-            </Link>
-            <Link
-              href="/register-login"
-              className="text-white/80 hover:text-white transition-colors hidden md:inline font-medium"
-            >
-              Regístrate
-            </Link>
-            <Link
-              href="/order/step-one"
-              className="cta-button !py-2.5 !px-6 !text-sm"
-              style={{ animation: "none" }}
-            >
-              Cotizar
-            </Link>
-          </div>
-        </div>
-      </nav>
+  const fontVars = [instrumentSerif.variable, interTight.variable, jetbrainsMono.variable].join(' ')
+  const year = new Date().getFullYear()
 
-      {/* ========== HERO SECTION (PARALLAX) ========== */}
-      <section className="parallax-section" style={{ minHeight: "100vh" }}>
-        <div
-          className="parallax-bg"
-          style={{ backgroundImage: "url('/images/hero-bg.webp')" }}
-        />
-        <div className="parallax-content">
-          <div className="container mx-auto px-6 text-center pt-24">
-            <h1
-              className="hero-title text-white font-extrabold leading-tight mb-6"
-              style={{ fontSize: "clamp(2.5rem, 5vw, 4.5rem)" }}
-            >
-              En Chalán te ayudamos a<br />
-              encontrar el vehículo ideal
-              <br />
-              <span className="text-amber-400">
-                para tu mudanza o flete
+  const jsonLdFaq = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  }
+
+  return (
+    <>
+      <LandingNav />
+      <main id="main-content" className={`chalan-landing ${fontVars}`}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
+
+      {/* ── HERO ── */}
+      <section className="hero">
+        <div className="wrap">
+          <div className="eyebrow" style={{ marginBottom: 36 }}>
+            <span className="dot" />
+            Mudanzas y fletes — Perú · 2014→{year}
+          </div>
+
+          <div className="hero-grid">
+            <h1 className="h-display">
+              <span className="line">Múdate</span>
+              <span className="line indent"><em>fácil.</em></span>
+              <span className="line right" style={{ fontFamily: 'var(--sans)', fontSize: '0.32em', fontWeight: 400, letterSpacing: '-0.01em', lineHeight: 1.2, color: 'var(--ink-soft)', marginTop: 18, maxWidth: '22ch', marginLeft: 'auto' }}>
+                Una sola plataforma para encontrar el vehículo, el chofer y el precio justos —
+                en Lima y en cualquier ciudad del Perú.
               </span>
             </h1>
-            <p className="hero-subtitle text-white/85 text-xl md:text-2xl max-w-3xl mx-auto mb-10 font-light leading-relaxed">
-              Chalán te muestra una lista de vehículos según tamaño y precio.
-              <br className="hidden md:inline" /> Escoge el que más te
-              convenga.
-            </p>
-            <div className="hero-cta flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link
-                href="/order/step-one"
-                className="cta-button text-lg"
-              >
-                Ver precios
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </Link>
-              <Link
-                href="/contacto"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full border-2 border-white/30 text-white font-medium hover:bg-white/10 transition-all text-lg"
-              >
-                Contáctanos
-              </Link>
+            <div className="hero-meta">
+              <QuoteWidget />
             </div>
+          </div>
 
-            {/* Scroll indicator */}
-            <div className="scroll-indicator mt-16 flex flex-col items-center gap-2 opacity-60">
-              <span className="text-white/60 text-sm font-medium tracking-wider uppercase">
-                Descubre más
-              </span>
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
-              </svg>
+          <div className="hero-strip">
+            <div className="kpi"><div className="num">14<span className="unit">k+</span></div><div className="label">Mudanzas completadas</div></div>
+            <div className="kpi"><div className="num">4.8<span className="unit">/5</span></div><div className="label">Calificación promedio</div></div>
+            <div className="kpi"><div className="num">23<span className="unit">ciudades</span></div><div className="label">Cobertura nacional</div></div>
+            <div className="kpi"><div className="num">11<span className="unit">min</span></div><div className="label">Tiempo medio de cotización</div></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TICKER ── */}
+      <div className="ticker" aria-hidden>
+        <div className="ticker-track">
+          {[0, 1, 2].map(rep => (
+            <span key={rep}>
+              {TICKER_ITEMS.map((t, i) => (
+                <span key={i}><b>{t}</b><span className="ac">★</span></span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── HOW IT WORKS ── */}
+      <section className="block" id="como">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="num">01 / Proceso</div>
+            <h2 className="h-section">Cuatro pasos.<br />Cero llamadas, cero regateo.</h2>
+          </div>
+          <div className="steps">
+            {STEPS.map(s => (
+              <div className="step" key={s.n}>
+                <div className="step-no"><span className="acc">●</span>{s.n}</div>
+                <div className="step-icon"><s.icon /></div>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FLEET ── */}
+      <section className="block" id="flota">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="num">02 / Flota</div>
+            <h2 className="h-section">Desde una caja<br />hasta una casa entera.</h2>
+          </div>
+          <div className="fleet">
+            <div className="fleet-row head">
+              <span />
+              <span>Vehículo</span>
+              <span className="col-hide">Capacidad</span>
+              <span className="col-hide">Volumen</span>
+              <span>Desde</span>
+              <span />
+            </div>
+            {VEHICLES.map((v, i) => (
+              <div className="fleet-row" key={v.id}>
+                <span className="idx">0{i + 1}</span>
+                <span className="name">{v.name}<span className="desc">— {v.desc}</span></span>
+                <span className="figure col-hide">{v.cap}</span>
+                <span className="figure col-hide">{v.dim}</span>
+                <span className="price-from"><span className="pre">S/</span>{v.base}</span>
+                <Link href="/order/step-one" className="pick">cotizar <Arrow /></Link>
+              </div>
+            ))}
+          </div>
+          <p style={{ marginTop: 24, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--mute)', letterSpacing: '0.06em' }}>
+            * Tarifas base. Precio final depende de distancia, fecha y servicios adicionales.
+          </p>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section className="block">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="num">03 / Reseñas</div>
+            <h2 className="h-section">Verificadas,<br />no inventadas.</h2>
+          </div>
+          <div className="testimonials">
+            <div className="t-card span-5">
+              <div className="t-stars">{[0,1,2,3,4].map(i => <Star key={i} />)}</div>
+              <p className="t-quote">&ldquo;Pude elegir entre varias opciones y precios. Los chicos llegaron a la hora y el cobro fue exactamente el que cotizamos.&rdquo;</p>
+              <div className="t-meta">
+                <span className="who">Demian M.</span>
+                <span className="where">SAN BORJA → SURCO · CARRY</span>
+              </div>
+            </div>
+            <div className="t-card span-4">
+              <div className="t-stars">{[0,1,2,3,4].map(i => <Star key={i} />)}</div>
+              <p className="t-quote">&ldquo;Súper recomendable. Coticé a las 9, a las 11 ya tenía el camión en la puerta.&rdquo;</p>
+              <div className="t-meta">
+                <span className="who">Sofía P.</span>
+                <span className="where">MIRAFLORES → BARRANCO · H-100</span>
+              </div>
+            </div>
+            <div className="t-card span-3">
+              <div className="t-stars">{[0,1,2,3,4].map(i => <Star key={i} />)}</div>
+              <p className="t-quote">&ldquo;La plataforma cotiza y agenda en menos de cinco minutos.&rdquo;</p>
+              <div className="t-meta">
+                <span className="who">Daniel N.</span>
+                <span className="where">LIMA → ICA · 3 t</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ========== TESTIMONIALS (PARALLAX) ========== */}
-      <section
-        className="parallax-section"
-        style={{ minHeight: "auto", padding: "6rem 0" }}
-      >
-        <div
-          className="parallax-bg"
-          style={{
-            backgroundImage: "url('/images/testimonials-bg.webp')",
-          }}
-        />
-        <div className="parallax-content">
-          <div className="container mx-auto px-6">
-            <div className="reveal text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-amber-400/20 text-amber-300 text-sm font-semibold tracking-wide uppercase mb-4">
-                Testimonios
-              </span>
-              <h2 className="text-4xl md:text-5xl font-bold text-white">
-                Nuestros clientes nos recomiendan
+      {/* ── ROUTES ── */}
+      <section className="block" id="rutas">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="num">04 / Rutas</div>
+            <h2 className="h-section">Fletes interprovinciales<br />a precio fijo.</h2>
+          </div>
+          <div className="routes">
+            {ROUTES.map(([a, b, p], i) => (
+              <Link className="route" key={i} href="/order/step-one">
+                <div className="from-to">
+                  <span>{a}</span>
+                  <span className="dash" aria-hidden />
+                  <span>{b}</span>
+                </div>
+                <div className="r-price">
+                  desde
+                  <b>S/ {p}</b>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="block" id="faq">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="num">05 / Preguntas</div>
+            <h2 className="h-section">Lo que normalmente preguntan antes de mudarse.</h2>
+          </div>
+          <div>
+            {FAQ.map((f, i) => (
+              <details className="faq-item" key={i} open={i === 0}>
+                <summary>
+                  <h3>{f.q}</h3>
+                  <span className="plus">+</span>
+                </summary>
+                <p>{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ── */}
+      <section className="block final" id="cotizar">
+        <div className="wrap">
+          <div className="final-inner">
+            <div>
+              <div className="eyebrow" style={{ color: 'rgba(243,237,226,0.55)', marginBottom: 24 }}>
+                <span className="dot" />
+                Empieza ahora
+              </div>
+              <h2 className="h-section" style={{ maxWidth: '16ch' }}>
+                Tu próxima mudanza,<br /><em>cotizada en 2 minutos.</em>
               </h2>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {/* Testimonial 1 - Sofía */}
-              <div className="reveal stagger-1 glass-card p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <Image
-                    src="/images/sofia.webp"
-                    alt="Foto de Sofía P., clienta de Chalán"
-                    width={56}
-                    height={56}
-                    className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div>
-                    <p className="text-white font-bold">Sofía P.</p>
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="#fbbf24"
-                        >
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-quote">
-                  <p className="text-white/90 leading-relaxed text-lg">
-                    Suuuuuuper contenta con el servicio!!!! Se ajustó
-                    perfectamente a mis necesidades y a muy buen precio!! Super
-                    super recomendable!!!
-                  </p>
-                </div>
-              </div>
-
-              {/* Testimonial 2 - Demian */}
-              <div className="reveal stagger-2 glass-card p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <Image
-                    src="/images/demian.webp"
-                    alt="Foto de Demian M., cliente de Chalán"
-                    width={56}
-                    height={56}
-                    className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div>
-                    <p className="text-white font-bold">Demian M.</p>
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="#fbbf24"
-                        >
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-quote">
-                  <p className="text-white/90 leading-relaxed text-lg">
-                    Pude elegir entre varias opciones y precios. El servicio fue
-                    bueno y los chicos se esforzaron. No hubo ningún incidente
-                    y recomiendo el servicio.
-                  </p>
-                </div>
-              </div>
-
-              {/* Testimonial 3 - Daniel */}
-              <div className="reveal stagger-3 glass-card p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <Image
-                    src="/images/daniel.webp"
-                    alt="Foto de Daniel N., cliente de Chalán"
-                    width={56}
-                    height={56}
-                    className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div>
-                    <p className="text-white font-bold">Daniel N.</p>
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="#fbbf24"
-                        >
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="testimonial-quote">
-                  <p className="text-white/90 leading-relaxed text-lg">
-                    Su plataforma es muy cómoda, permite cotizar y agendar tu
-                    viaje fácilmente.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== 4 STEPS SECTION ========== */}
-      <section className="py-24 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
-        {/* Decorative elements */}
-        <div
-          className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-5"
-          style={{
-            background:
-              "radial-gradient(circle, var(--primary) 0%, transparent 70%)",
-          }}
-        />
-        <div
-          className="absolute bottom-0 left-0 w-80 h-80 rounded-full opacity-5"
-          style={{
-            background:
-              "radial-gradient(circle, var(--accent) 0%, transparent 70%)",
-          }}
-        />
-
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="reveal text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold tracking-wide uppercase mb-4">
-              Cómo funciona
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Múdate en sólo{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-amber-500">
-                4 pasos
-              </span>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Step 1 */}
-            <div className="reveal stagger-1 glass-card-light p-8 flex gap-6 items-start relative">
-              <div className="step-number">1</div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Indícanos las direcciones
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Para cotizar con mayor precisión, necesitamos saber desde
-                  donde y a qué lugar te vamos a mover.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="reveal stagger-2 glass-card-light p-8 flex gap-6 items-start relative">
-              <div className="step-number">2</div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Fecha y hora de tu mudanza
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Ingresa la fecha y hora en la que vamos por tus cosas.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="reveal stagger-3 glass-card-light p-8 flex gap-6 items-start relative">
-              <div className="step-number">3</div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Escoge la movilidad
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Enviamos los datos de tu mudanza a nuestros chalanes y una
-                  vez que tengan su cotización te mostraremos la lista de
-                  precios.
-                </p>
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="reveal stagger-4 glass-card-light p-8 flex gap-6 items-start relative">
-              <div className="step-number">4</div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  Opciones de pago
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Contamos con dos opciones de pago, en efectivo y con
-                  tarjeta.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== VEHICLES / CTA SECTION (PARALLAX) ========== */}
-      <section
-        className="parallax-section relative"
-        style={{ minHeight: "auto", padding: "0" }}
-      >
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-900"
-        />
-        <div className="parallax-content py-20">
-          <div className="container mx-auto px-6">
-            <div className="grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-              {/* Left: Image */}
-              <div className="reveal-left">
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                  <Image
-                    src="/images/vehicles-bg.webp"
-                    alt="Vehículos de mudanza disponibles en Chalán"
-                    width={600}
-                    height={400}
-                    className="w-full h-auto"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/30 to-transparent" />
-                </div>
-              </div>
-
-              {/* Right: CTA */}
-              <div className="reveal-right text-center md:text-left">
-                <span className="inline-block px-4 py-1.5 rounded-full bg-amber-400/20 text-amber-300 text-sm font-semibold tracking-wide uppercase mb-4">
-                  Nuestra flota
-                </span>
-                <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                  Elige el vehículo que más te{" "}
-                  <span className="text-amber-400">acomode</span>
-                </h2>
-                <p className="text-white/70 text-lg mb-8 leading-relaxed">
-                  Desde pequeñas mudanzas hasta fletes de gran escala,
-                  tenemos el vehículo perfecto para ti. Compara opciones y
-                  precios en un solo lugar.
-                </p>
-                <Link
-                  href="/order/step-one"
-                  className="cta-button text-lg"
-                >
-                  Cotiza ahora
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== BLOG SECTION ========== */}
-      <section className="py-24 bg-slate-50">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="reveal text-center mb-14">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold tracking-wide uppercase mb-4">
-              Blog
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
-              Guías y consejos para mudarte
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
-            <Link href="/blog/cuanto-cuesta-una-mudanza-en-lima" className="group bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors">
-              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">Precios</span>
-              <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors mb-2 leading-snug">
-                ¿Cuánto cuesta una mudanza en Lima?
-              </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Precios por tipo de vehículo, factores que afectan el costo y tips para ahorrar.
+              <p className="lede" style={{ marginTop: 24 }}>
+                Sin formularios largos, sin llamadas. Pones origen, destino y fecha — y comparas precios reales al instante.
               </p>
-            </Link>
-
-            <Link href="/blog/tips-para-mudarte-sin-estres" className="group bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors">
-              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">Consejos</span>
-              <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors mb-2 leading-snug">
-                10 tips para mudarte sin estrés
-              </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Cómo empacar, qué hacer primero y los errores más comunes al mudarse.
-              </p>
-            </Link>
-
-            <Link href="/blog/cuanto-cuesta-un-flete-en-peru" className="group bg-white rounded-2xl p-7 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors">
-              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">Precios</span>
-              <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-700 transition-colors mb-2 leading-snug">
-                ¿Cuánto cuesta un flete en Perú?
-              </h3>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                Precios por ruta: Lima a Arequipa, Trujillo, Huancayo y más.
-              </p>
-            </Link>
-          </div>
-
-          <div className="text-center">
-            <Link
-              href="/blog"
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors"
-            >
-              Ver todos los artículos
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Link href="/order/step-one" className="btn btn-primary">Ver precios <Arrow className="arrow" /></Link>
+              <Link href="/contacto" className="btn btn-ghost">Hablar con soporte</Link>
+            </div>
           </div>
         </div>
       </section>
 
-      <Footer />
+      <LandingFooter />
     </main>
-  );
+    </>
+  )
 }

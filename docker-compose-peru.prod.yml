@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.peru.prod
+      args:
+        NEXT_PUBLIC_PLACES_API_KEY: ${NEXT_PUBLIC_PLACES_API_KEY}
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot

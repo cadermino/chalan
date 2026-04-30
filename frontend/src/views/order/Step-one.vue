@@ -188,6 +188,7 @@
                   v-on:google-address="fillAddress"
                   input-id="address-from-street"
                   map-id="address-from-map"
+                  :initial-address="orderDetailsOrigin.from_street"
                 />
               </div>
             </div>
@@ -369,6 +370,7 @@
                   v-on:google-address="fillAddress"
                   input-id="address-to-street"
                   map-id="address-to-map"
+                  :initial-address="orderDetailsDestination.to_street"
                 />
               </div>
             </div>

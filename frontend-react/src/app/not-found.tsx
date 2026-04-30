@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { LandingNav } from "@/components/LandingNav";
+import { LandingFooter } from "@/components/LandingFooter";
 
 export const metadata: Metadata = {
   title: "Página no encontrada | Chalán",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function NotFound() {
   return (
     <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex flex-col">
-      <Navbar />
+      <LandingNav />
 
       <div className="flex-1 flex items-center justify-center">
         <div className="container mx-auto px-6 py-20 max-w-2xl text-center">
@@ -59,7 +59,7 @@ export default function NotFound() {
         </div>
       </div>
 
-      <Footer />
+      <LandingFooter />
     </main>
   );
 }

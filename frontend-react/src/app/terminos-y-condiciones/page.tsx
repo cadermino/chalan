@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
-import { Footer } from "@/components/Footer";
-import { Navbar } from "@/components/Navbar";
+import { LandingFooter } from "@/components/LandingFooter";
+import { LandingNav } from "@/components/LandingNav";
 
 export const metadata: Metadata = {
   title: "Términos y condiciones - Chalán | Mudanzas y fletes en Perú",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function TerminosYCondiciones() {
   return (
     <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Navbar />
+      <LandingNav />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <BreadcrumbJsonLd
@@ -576,7 +576,7 @@ export default function TerminosYCondiciones() {
           </p>
         </div>
       </div>
-      <Footer />
+      <LandingFooter />
     </main>
   );
 }
