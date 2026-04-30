@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Footer } from "@/components/Footer";
-import { Navbar } from "@/components/Navbar";
+import { LandingFooter } from "@/components/LandingFooter";
+import { LandingNav } from "@/components/LandingNav";
 
 export default function ReviewsLayout({
   children,
@@ -9,9 +9,9 @@ export default function ReviewsLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <LandingNav />
       {children}
-      <Footer />
+      <LandingFooter />
     </>
   );
 }

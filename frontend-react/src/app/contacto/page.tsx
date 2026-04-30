@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
-import { Footer } from "@/components/Footer";
-import { Navbar } from "@/components/Navbar";
+import { LandingFooter } from "@/components/LandingFooter";
+import { LandingNav } from "@/components/LandingNav";
 
 export const metadata: Metadata = {
   title: "Contacto - Chalán | Mudanzas y fletes en Perú",
@@ -48,7 +48,7 @@ export default function Contacto() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(contactJsonLd) }}
       />
-      <Navbar />
+      <LandingNav />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <BreadcrumbJsonLd
@@ -85,7 +85,7 @@ export default function Contacto() {
           </p>
         </div>
       </div>
-      <Footer />
+      <LandingFooter />
     </main>
   );
 }

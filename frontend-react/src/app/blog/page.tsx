@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getAllPosts } from "@/lib/blog";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { LandingNav } from "@/components/LandingNav";
+import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function BlogPage() {
 
   return (
     <main id="main-content" className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Navbar />
+      <LandingNav />
       <div className="container mx-auto px-6 py-16 max-w-4xl">
         <BreadcrumbJsonLd
           items={[
@@ -86,7 +86,7 @@ export default function BlogPage() {
           </div>
         )}
       </div>
-      <Footer />
+      <LandingFooter />
     </main>
   );
 }

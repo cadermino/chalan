@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
-import { Footer } from "@/components/Footer";
-import { Navbar } from "@/components/Navbar";
+import { LandingFooter } from "@/components/LandingFooter";
+import { LandingNav } from "@/components/LandingNav";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes sobre mudanzas y fletes - Chalán",
@@ -94,7 +94,7 @@ export default function PreguntasFrecuentes() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <Navbar />
+      <LandingNav />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <BreadcrumbJsonLd
@@ -159,7 +159,7 @@ export default function PreguntasFrecuentes() {
           </div>
         </div>
       </div>
-      <Footer />
+      <LandingFooter />
     </main>
   );
 }

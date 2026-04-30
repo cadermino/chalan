@@ -402,3 +402,8 @@ body {
   color: #fff;
   transform: translateY(-3px);
 }
+
+/* Google Places autocomplete dropdown */
+.pac-container {
+  z-index: 9999 !important;
+}

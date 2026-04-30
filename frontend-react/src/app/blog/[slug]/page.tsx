@@ -4,8 +4,8 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { getPost, getAllSlugs } from "@/lib/blog";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { LandingNav } from "@/components/LandingNav";
+import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 
 interface Props {
@@ -70,7 +70,7 @@ export default async function BlogPost({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      <Navbar />
+      <LandingNav />
 
       <div className="container mx-auto px-6 py-16 max-w-3xl">
         <BreadcrumbJsonLd
@@ -138,7 +138,7 @@ export default async function BlogPost({ params }: Props) {
           </Link>
         </div>
       </div>
-      <Footer />
+      <LandingFooter />
     </main>
   );
 }
