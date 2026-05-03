@@ -7,6 +7,7 @@ import { getPost, getAllSlugs } from "@/lib/blog";
 import { LandingNav } from "@/components/LandingNav";
 import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
+import { QuoteWidget } from "@/components/QuoteWidget";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -115,20 +116,11 @@ export default async function BlogPost({ params }: Props) {
         </article>
 
         {/* CTA post-article */}
-        <div className="mt-16 bg-indigo-950 text-white rounded-2xl p-8">
-          <h2 className="text-2xl font-bold mb-3">¿Listo para mudarte?</h2>
-          <p className="text-white/70 mb-6">
-            Cotiza tu mudanza o flete gratis. Compara precios y reserva en minutos.
-          </p>
-          <Link
-            href="/order/step-one"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-amber-400 text-indigo-950 font-semibold hover:bg-amber-300 transition-colors"
-          >
-            Cotizar mudanza
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
+        <div className="mt-16">
+          <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
+          <div className="chalan-landing">
+            <QuoteWidget />
+          </div>
         </div>
 
         {/* Back link */}
