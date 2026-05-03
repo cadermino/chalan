@@ -46,17 +46,17 @@ export default {
         this.initMap();
         return;
       }
-      if (!window.__gmQueue) window.__gmQueue = [];
-      window.__gmQueue.push(() => this.initMap());
+      if (!window.gmQueue) window.gmQueue = [];
+      window.gmQueue.push(() => this.initMap());
 
       if (!document.getElementById('gm-script')) {
-        window.__gmReady = () => {
-          (window.__gmQueue || []).forEach(fn => fn());
-          window.__gmQueue = [];
+        window.gmReady = () => {
+          (window.gmQueue || []).forEach(fn => fn());
+          window.gmQueue = [];
         };
         const script = document.createElement('script');
         script.id = 'gm-script';
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&libraries=places&callback=__gmReady`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&libraries=places&callback=gmReady`;
         script.async = true;
         document.head.appendChild(script);
       }
