@@ -18,6 +18,7 @@ import OrdersList from './pages/orders/List'
 import OrderDetail from './pages/orders/Detail'
 import OrderEdit from './pages/orders/Edit'
 import ReferredOrdersList from './pages/referred-orders/List'
+import CustomersList from './pages/customers/List'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -109,6 +110,16 @@ export default function App() {
           <Route path="carrier-companies/:companyId/vehicles" element={<VehiclesList />} />
           <Route path="carrier-companies/:companyId/vehicles/new" element={<VehicleForm />} />
           <Route path="carrier-companies/:companyId/vehicles/:vehicleId/edit" element={<VehicleForm />} />
+
+          {/* Customers — superadmin and admin */}
+          <Route
+            path="customers"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <CustomersList />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Users — superadmin only */}
           <Route

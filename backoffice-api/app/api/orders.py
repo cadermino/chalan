@@ -6,7 +6,7 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 
@@ -67,12 +67,18 @@ def list_pending_orders():
             token = _generate_quotation_token(company_id, order.id)
             quotation_url = f"{site_url}quotation/{token}"
 
+        customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
+        customer_name = None
+        if customer:
+            customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+
         result.append({
             **order.to_dict(),
             'has_quotation': has_quotation,
             'quotation_url': quotation_url,
             'origin': origin.to_dict() if origin else None,
             'destination': destination.to_dict() if destination else None,
+            'customer_name': customer_name,
         })
 
     return jsonify({'orders': result}), 200
@@ -195,6 +201,11 @@ def list_referred_orders():
         details = list(order.order_details)
         origin = next((d for d in details if d.type == 'carry_from'), None)
         destination = next((d for d in details if d.type == 'deliver_to'), None)
+        customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
+        customer_name = None
+        if customer:
+            customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+
         result.append({
             **order.to_dict(),
             'referred_by': ref.admin_user_id,
@@ -202,6 +213,7 @@ def list_referred_orders():
             'commission': ref.commission,
             'origin': origin.to_dict() if origin else None,
             'destination': destination.to_dict() if destination else None,
+            'customer_name': customer_name,
         })
         if order.order_status_id not in EXCLUDED_STATUSES:
             commission_balance += ref.commission or 0
