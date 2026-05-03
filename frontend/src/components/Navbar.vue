@@ -14,22 +14,61 @@
         <a href="/blog">Blog</a>
         <a href="/preguntas-frecuentes">Preguntas</a>
         <span class="sep" aria-hidden="true" />
-        <router-link v-if="!isUserLogged" :to="{ name: 'register-login' }" @click.native="isOpen = false" class="login-link">Ingresar</router-link>
+        <router-link
+          v-if="!isUserLogged"
+          :to="{ name: 'register-login' }"
+          @click.native="isOpen = false"
+          class="login-link"
+        >Ingresar</router-link>
         <AccountDropdown v-if="isUserLogged" />
-        <a href="https://wa.me/51972643007" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp" class="wa-link">WhatsApp</a>
-        <router-link :to="{ name: 'step-one' }" @click.native="isOpen = false" class="btn btn-primary">
+        <a
+          href="https://wa.me/51972643007"
+          target="_blank"
+          rel="noopener"
+          aria-label="Contáctanos por WhatsApp"
+          class="wa-link"
+        >WhatsApp</a>
+        <router-link
+          :to="{ name: 'step-one' }"
+          @click.native="isOpen = false"
+          class="btn btn-primary"
+        >
           Cotizar
-          <svg class="arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            class="arrow"
+            viewBox="0 0 24 24"
+            width="14" height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </router-link>
       </nav>
 
-      <button class="hamburger" @click="isOpen = !isOpen" :aria-expanded="String(isOpen)" aria-label="Menú">
-        <svg v-if="!isOpen" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <button
+        class="hamburger"
+        @click="isOpen = !isOpen"
+        :aria-expanded="String(isOpen)"
+        aria-label="Menú"
+      >
+        <svg
+          v-if="!isOpen"
+          viewBox="0 0 24 24" width="22" height="22"
+          fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round"
+        >
           <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-        <svg v-else viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <svg
+          v-else
+          viewBox="0 0 24 24" width="22" height="22"
+          fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round"
+        >
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
