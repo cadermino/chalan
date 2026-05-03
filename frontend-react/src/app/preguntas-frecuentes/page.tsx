@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
+import { QuoteWidget } from "@/components/QuoteWidget";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes sobre mudanzas y fletes - Chalán",
@@ -134,7 +135,14 @@ export default function PreguntasFrecuentes() {
           ))}
         </div>
 
-        <div className="mt-12 bg-indigo-50 rounded-xl p-8 text-center">
+        <div className="mt-12 mb-8">
+          <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para cotizar?</p>
+          <div className="chalan-landing">
+            <QuoteWidget />
+          </div>
+        </div>
+
+        <div className="bg-indigo-50 rounded-xl p-8 text-center">
           <h2 className="text-xl font-bold text-gray-900 mb-2">
             ¿Tienes otra pregunta?
           </h2>

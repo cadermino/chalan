@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
+import { QuoteWidget } from "@/components/QuoteWidget";
 
 export const metadata: Metadata = {
   title: "¿Cómo funciona Chalán? - Cotiza tu mudanza paso a paso",
@@ -138,23 +139,11 @@ export default function ComoFunciona() {
         </section>
 
         {/* CTA intermedio */}
-        <div className="bg-indigo-950 text-white rounded-2xl p-8 mb-12">
-          <h2 className="text-2xl font-bold mb-3">
-            ¿Listo para probar?
-          </h2>
-          <p className="text-white/70 mb-6">
-            Es gratis cotizar. Ingresa tus direcciones y compara precios en
-            segundos.
-          </p>
-          <Link
-            href="/order/step-one"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-amber-400 text-indigo-950 font-semibold hover:bg-amber-300 transition-colors"
-          >
-            Cotizar mudanza
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
+        <div className="mb-12">
+          <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para probar?</p>
+          <div className="chalan-landing">
+            <QuoteWidget />
+          </div>
         </div>
 
         {/* Beneficios */}
