@@ -87,6 +87,35 @@ class AdminUser(db.Model):
 
 # Mirror models — these tables already exist; we only read/write, never create.
 
+class Customer(db.Model):
+    __tablename__ = 'customers'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(45))
+    paternal_last_name = db.Column(db.String(45))
+    maternal_last_name = db.Column(db.String(45))
+    email = db.Column(db.String(45))
+    mobile_phone = db.Column(db.String(15))
+    phone = db.Column(db.String(15))
+    created_date = db.Column(db.DateTime())
+
+    def to_dict(self):
+        full_name = ' '.join(filter(None, [
+            self.name, self.paternal_last_name, self.maternal_last_name
+        ]))
+        return {
+            'id': self.id,
+            'full_name': full_name or None,
+            'name': self.name,
+            'paternal_last_name': self.paternal_last_name,
+            'maternal_last_name': self.maternal_last_name,
+            'email': self.email,
+            'mobile_phone': self.mobile_phone,
+            'phone': self.phone,
+            'created_date': self.created_date.isoformat() if self.created_date else None,
+        }
+
 class CarrierCompany(db.Model):
     __tablename__ = 'carrier_company'
     __table_args__ = {'extend_existing': True}

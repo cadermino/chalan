@@ -75,6 +75,7 @@ export default function ReferredOrdersList() {
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>
                 <th className="px-4 py-3 text-left"># Orden</th>
+                <th className="px-4 py-3 text-left">Cliente</th>
                 <th className="px-4 py-3 text-left">Origen</th>
                 <th className="px-4 py-3 text-left">Destino</th>
                 <th className="px-4 py-3 text-left">Fecha mudanza</th>
@@ -87,11 +88,22 @@ export default function ReferredOrdersList() {
               {orders.map((o) => (
                 <tr key={o.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
+                  <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
                   <td className="px-4 py-3 text-gray-600">
-                    {o.origin ? `${o.origin.city || ''} ${o.origin.neighborhood || ''}`.trim() || '—' : '—'}
+                    {o.origin ? (
+                      <div>
+                        <div>{[o.origin.street, o.origin.neighborhood].filter(Boolean).join(', ') || '—'}</div>
+                        <div className="text-xs text-gray-400">{[o.origin.city, o.origin.state].filter(Boolean).join(', ')}</div>
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {o.destination ? `${o.destination.city || ''} ${o.destination.neighborhood || ''}`.trim() || '—' : '—'}
+                    {o.destination ? (
+                      <div>
+                        <div>{[o.destination.street, o.destination.neighborhood].filter(Boolean).join(', ') || '—'}</div>
+                        <div className="text-xs text-gray-400">{[o.destination.city, o.destination.state].filter(Boolean).join(', ')}</div>
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE') : '—'}
@@ -109,7 +121,7 @@ export default function ReferredOrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                     No hay ordenes referidas en este momento
                   </td>
                 </tr>

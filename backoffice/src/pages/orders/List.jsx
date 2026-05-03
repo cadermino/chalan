@@ -33,6 +33,7 @@ export default function OrdersList() {
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>
                 <th className="px-4 py-3 text-left"># Orden</th>
+                <th className="px-4 py-3 text-left">Cliente</th>
                 <th className="px-4 py-3 text-left">Origen</th>
                 <th className="px-4 py-3 text-left">Destino</th>
                 <th className="px-4 py-3 text-left">Fecha mudanza</th>
@@ -45,6 +46,7 @@ export default function OrdersList() {
               {orders.map((o) => (
                 <tr key={o.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
+                  <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
                   <td className="px-4 py-3 text-gray-600">
                     {o.origin ? (
                       <div>
@@ -94,7 +96,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
                     No hay órdenes pendientes en este momento
                   </td>
                 </tr>
