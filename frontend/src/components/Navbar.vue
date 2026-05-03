@@ -81,10 +81,18 @@
       <a href="/blog" @click="isOpen = false">Blog</a>
       <a href="/preguntas-frecuentes" @click="isOpen = false">Preguntas</a>
       <div class="mobile-sep" />
-      <router-link v-if="!isUserLogged" :to="{ name: 'register-login' }" @click.native="isOpen = false">Ingresar</router-link>
+      <router-link
+        v-if="!isUserLogged"
+        :to="{ name: 'register-login' }"
+        @click.native="isOpen = false"
+      >Ingresar</router-link>
       <AccountDropdown v-if="isUserLogged" />
       <a href="https://wa.me/51972643007" target="_blank" rel="noopener">WhatsApp</a>
-      <router-link :to="{ name: 'step-one' }" @click.native="isOpen = false" class="btn btn-primary mobile-cta">Cotizar</router-link>
+      <router-link
+        :to="{ name: 'step-one' }"
+        @click.native="isOpen = false"
+        class="btn btn-primary mobile-cta"
+      >Cotizar</router-link>
     </div>
   </header>
 </template>
