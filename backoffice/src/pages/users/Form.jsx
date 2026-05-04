@@ -4,7 +4,7 @@ import client from '../../api/client'
 import PasswordInput from '../../components/PasswordInput'
 import toast from 'react-hot-toast'
 
-const ROLES = ['superadmin', 'admin', 'carrier_company']
+const ROLES = ['superadmin', 'admin', 'carrier_company', 'real_estate_agent']
 
 export default function UserForm() {
   const { id } = useParams()
@@ -20,6 +20,7 @@ export default function UserForm() {
     dni: '',
     role: 'admin',
     carrier_company_id: '',
+    commission_rate: '',
     active: true,
   })
   const [loading, setLoading] = useState(false)
@@ -37,6 +38,7 @@ export default function UserForm() {
           dni: u.dni ?? '',
           role: u.role,
           carrier_company_id: u.carrier_company_id ?? '',
+          commission_rate: u.commission_rate != null ? String(Math.round(u.commission_rate * 100)) : '',
           active: u.active,
         })
       })
@@ -50,6 +52,9 @@ export default function UserForm() {
       const payload = {
         ...form,
         carrier_company_id: form.carrier_company_id ? Number(form.carrier_company_id) : null,
+        commission_rate: form.role === 'real_estate_agent' && form.commission_rate !== ''
+          ? Number(form.commission_rate) / 100
+          : undefined,
       }
       if (isEdit) {
         await client.put(`/api/users/${id}`, payload)
@@ -141,6 +146,22 @@ export default function UserForm() {
             {!form.carrier_company_id && !isEdit && (
               <p className="text-xs text-gray-400 mt-1">Se creará una empresa y un vehículo en blanco vinculados a este usuario.</p>
             )}
+          </Field>
+        )}
+
+        {form.role === 'real_estate_agent' && isEdit && (
+          <Field label="Comisión (%)">
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={form.commission_rate}
+              onChange={(e) => setForm({ ...form, commission_rate: e.target.value })}
+              className="input"
+              placeholder="5"
+            />
+            <p className="text-xs text-gray-400 mt-1">Porcentaje que se agrega al precio de cotización y se acredita al agente.</p>
           </Field>
         )}
 

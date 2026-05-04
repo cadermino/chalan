@@ -85,6 +85,14 @@ def update_user(user_id):
         user.password = data['password']
     if 'active' in data:
         user.active = 1 if data['active'] else 0
+    if 'commission_rate' in data:
+        try:
+            rate = float(data['commission_rate'])
+            if not (0 <= rate <= 1):
+                return jsonify({'message': 'commission_rate must be between 0 and 1'}), 400
+            user.commission_rate = rate
+        except (TypeError, ValueError):
+            return jsonify({'message': 'commission_rate must be a number'}), 400
 
     db.session.commit()
     return jsonify({'user': user.to_dict()}), 200
