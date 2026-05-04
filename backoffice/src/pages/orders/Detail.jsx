@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import client from '../../api/client'
+import { useAuth } from '../../contexts/AuthContext'
 
 function Field({ label, value }) {
   return (
@@ -27,15 +28,47 @@ function AddressCard({ title, addr }) {
   )
 }
 
+function CopyButton({ url }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="text-xs px-3 py-1.5 rounded-lg border border-teal-600 text-teal-600 hover:bg-teal-50 shrink-0"
+    >
+      {copied ? 'Copiado' : 'Copiar link'}
+    </button>
+  )
+}
+
 export default function OrderDetail() {
   const { orderId } = useParams()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [companies, setCompanies] = useState([])
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
       setOrder(data.order)
     }).finally(() => setLoading(false))
+
+    if (isAdmin) {
+      client.get(`/api/orders/${orderId}/quotation-links`).then(({ data }) => {
+        setCompanies(data.companies.map((c) => ({
+          ...c,
+          quotation_url: `${window.location.origin}/quotation/${c.token}`,
+        })))
+      })
+    }
   }, [orderId])
 
   if (loading) return <p className="text-gray-500 p-8">Cargando...</p>
@@ -75,25 +108,42 @@ export default function OrderDetail() {
           </div>
         )}
 
-        {/* CTA button */}
-        <div className="bg-white rounded-xl shadow p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-700">
-              {order.existing_quotation ? 'Actualizar cotización' : 'Enviar cotización'}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Se abrirá la plataforma Chalán donde puedes ingresar el monto y ver todos los detallles de la orden.
-            </p>
+        {/* CTA button — solo para empresas transportistas */}
+        {!isAdmin && order.quotation_url && (
+          <div className="bg-white rounded-xl shadow p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-700">
+                {order.existing_quotation ? 'Actualizar cotización' : 'Enviar cotización'}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Se abrirá la plataforma Chalán donde puedes ingresar el monto y ver todos los detallles de la orden.
+              </p>
+            </div>
+            <a
+              href={order.quotation_url}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-2 rounded-lg shrink-0"
+            >
+              {order.existing_quotation ? 'Modificar cotización' : 'Cotizar ahora'}
+            </a>
           </div>
-          <a
-            href={order.quotation_url}
-            target="_blank"
-            rel="noreferrer"
-            className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-2 rounded-lg shrink-0"
-          >
-            {order.existing_quotation ? 'Modificar cotización' : 'Cotizar ahora'}
-          </a>
-        </div>
+        )}
+
+        {/* Links de cotización por empresa — solo para admins */}
+        {isAdmin && companies.length > 0 && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Links de cotización por empresa</p>
+            <div className="space-y-2">
+              {companies.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+                  <span className="text-sm text-gray-700 truncate">{c.name}</span>
+                  <CopyButton url={c.quotation_url} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

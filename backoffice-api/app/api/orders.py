@@ -6,7 +6,7 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 
@@ -174,6 +174,31 @@ def update_order(order_id):
             'destination': destination.to_dict() if destination else None,
         }
     }), 200
+
+
+@api.route('/orders/<int:order_id>/quotation-links', methods=['GET'])
+@login_required
+def get_quotation_links(order_id):
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    companies = CarrierCompany.query.filter_by(active=1).order_by(CarrierCompany.name).all()
+
+    result = []
+    for company in companies:
+        token = _generate_quotation_token(company.id, order_id)
+        result.append({
+            'id': company.id,
+            'name': company.name,
+            'token': token,
+        })
+
+    return jsonify({'companies': result}), 200
 
 
 @api.route('/referred-orders', methods=['GET'])
