@@ -50,7 +50,9 @@ The main API (`app/`) and backoffice API (`backoffice-api/`) are **independent F
 - `backoffice/src/App.jsx` — Routes with role-based `ProtectedRoute` wrappers
 - `backoffice/src/components/Sidebar.jsx` — Navigation filtered by `user.role`
 - `backoffice/src/pages/referred-orders/List.jsx` — Referred orders view for real estate agents
-- Role-based access: `real_estate_agent` only sees referred orders and profile; carrier/admin roles see orders, companies, vehicles
+- `backoffice/src/pages/customers/List.jsx` — Customer list with search (admin/superadmin only)
+- `backoffice/src/pages/orders/Edit.jsx` — Edit order fields (superadmin only)
+- Role-based access: `real_estate_agent` only sees referred orders and profile; carrier/admin roles see orders, companies, vehicles; customers page is admin/superadmin only
 
 ## Build & Run Commands
 
@@ -156,6 +158,64 @@ Real estate agents refer customers to Chalán via a referral link and earn commi
 
 ### Mirror Models
 The main API (`app/models.py`) has lightweight mirror models for `AdminUser` and `ReferredOrder` (with `extend_existing=True`) since both Flask apps share the same database.
+
+## Next.js Landing v2 (Peru)
+
+The `frontend-react/` site was redesigned with a new landing page and shared components.
+
+### New Components
+- `frontend-react/src/components/LandingNav.tsx` — new navbar (replaces `Navbar.tsx`, which was removed)
+- `frontend-react/src/components/LandingFooter.tsx` — new footer (replaces `Footer.tsx`, which was removed)
+- `frontend-react/src/components/QuoteWidget.tsx` — interactive quote estimator widget
+- `frontend-react/src/app/landing.css` — landing-specific styles (Inter Tight font, custom layout)
+
+### QuoteWidget
+Client-side widget (`'use client'`) that estimates a move price based on:
+- Move size: small (room/packages), medium (1–2 bedroom apt), large (family home)
+- Origin/destination via Google Places Autocomplete (requires `NEXT_PUBLIC_PLACES_API_KEY`)
+- Calculates estimated price range and links to the order creation flow
+
+The widget is embedded across multiple pages: homepage, `como-funciona`, `fletes-peru`, `mudanzas-lima`, `mudanzas-huancayo`, `preguntas-frecuentes`, and blog posts.
+
+### NEXT_PUBLIC_PLACES_API_KEY at Build Time
+`NEXT_PUBLIC_*` variables are inlined into the JS bundle at build time. The Dockerfile uses `ARG NEXT_PUBLIC_PLACES_API_KEY` + `ENV` to pass it in. When building locally, load the env first:
+```bash
+set -a && source .env.prod && set +a
+docker-compose -f docker-compose-peru.prod.yml up --build
+```
+
+## Customers in Backoffice
+
+Admins can view and search all registered customers.
+
+- **API**: `GET /backoffice-api/api/customers?q=<search>` — searches name, email, phone; returns up to 200 results; admin/superadmin only
+- **Frontend**: `backoffice/src/pages/customers/List.jsx` — table with search form; accessible via sidebar
+- **API file**: `backoffice-api/app/api/customers.py`
+
+## Edit Order in Backoffice
+
+Superadmins can edit order fields directly from the backoffice.
+
+- **API**: `PUT /backoffice-api/api/orders/:id` — editable fields: `appointment_date`, `order_status_id`, `approximate_budget`, `total_kilometers`, `comments`, `origin` address, `destination` address; superadmin only
+- **Frontend**: `backoffice/src/pages/orders/Edit.jsx` — form accessible from the orders list via "Editar" link (superadmin only)
+
+## Quotation Links (Admin Feature)
+
+Admins can generate quotation links per carrier company from any order detail page in the backoffice.
+
+### Flow
+1. Admin opens an order detail (`/orders/:id`) in the backoffice
+2. The page calls `GET /backoffice-api/api/orders/:id/quotation-links` (admin/superadmin only)
+3. The API returns all active carrier companies with a signed JWT token per company
+4. The frontend builds the URL as `{window.location.origin}/quotation/{token}` — domain is relative to the current environment
+5. Admin copies the link and sends it to the carrier company manually
+
+### Key Files
+- `backoffice-api/app/api/orders.py` — `get_quotation_links()` endpoint, uses `_generate_quotation_token(carrier_company_id, order_id)`
+- `backoffice/src/pages/orders/Detail.jsx` — shows the company list with copy buttons for admin roles; carrier company users still see the single "Cotizar ahora" CTA
+
+### Token Structure
+JWT signed with `SECRET_KEY`, payload: `{ carrier_company_id, order_id, exp (10 days), iat }`. Same token format used throughout the quotation flow (`frontend/src/views/carrier-company/quotation.vue` decodes it).
 
 ## Database Migrations
 
