@@ -79,6 +79,14 @@ export default function OrderDetail() {
       <div className="flex items-center gap-3 mb-6">
         <Link to="/orders" className="text-teal-600 hover:underline text-sm">← Órdenes</Link>
         <h1 className="text-2xl font-bold text-gray-900">Orden #{order.id}</h1>
+        {isAdmin && (
+          <Link
+            to={`/orders/${orderId}/quotations`}
+            className="ml-auto text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg"
+          >
+            Ver cotizaciones
+          </Link>
+        )}
       </div>
 
       <div className="space-y-4">

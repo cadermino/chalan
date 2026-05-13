@@ -8,6 +8,7 @@ const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Ca
 export default function OrdersList() {
   const { user } = useAuth()
   const isSuperadmin = user?.role === 'superadmin'
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -82,6 +83,14 @@ export default function OrdersList() {
                       >
                         Ver detalle
                       </Link>
+                      {isAdmin && (
+                        <Link
+                          to={`/orders/${o.id}/quotations`}
+                          className="text-indigo-600 hover:underline"
+                        >
+                          Cotizaciones
+                        </Link>
+                      )}
                       {isSuperadmin && (
                         <Link
                           to={`/orders/${o.id}/edit`}
