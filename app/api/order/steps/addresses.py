@@ -12,12 +12,10 @@ class Addresses:
         return [
             "from_street",
             "from_floor_number",
-            "from_zip_code",
             "from_country",
             "from_map_url",
             "to_street",
             "to_floor_number",
-            "to_zip_code",
             "to_country",
             "to_map_url",
         ]
