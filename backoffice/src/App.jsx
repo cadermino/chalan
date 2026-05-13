@@ -17,6 +17,7 @@ import VehiclesAdminList from './pages/vehicles/AdminList'
 import OrdersList from './pages/orders/List'
 import OrderDetail from './pages/orders/Detail'
 import OrderEdit from './pages/orders/Edit'
+import OrderQuotations from './pages/orders/Quotations'
 import ReferredOrdersList from './pages/referred-orders/List'
 import CustomersList from './pages/customers/List'
 
@@ -65,6 +66,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['superadmin']}>
                 <OrderEdit />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders/:orderId/quotations"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <OrderQuotations />
               </ProtectedRoute>
             }
           />

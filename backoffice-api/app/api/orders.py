@@ -201,6 +201,30 @@ def get_quotation_links(order_id):
     return jsonify({'companies': result}), 200
 
 
+@api.route('/orders/<int:order_id>/quotations', methods=['GET'])
+@login_required
+def list_order_quotations(order_id):
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    quotations = order.quotations.order_by(Quotation.created_date.asc()).all()
+
+    result = []
+    for q in quotations:
+        company = db.session.get(CarrierCompany, q.carrier_company_id) if q.carrier_company_id else None
+        result.append({
+            **q.to_dict(),
+            'carrier_company_name': company.name if company else None,
+        })
+
+    return jsonify({'quotations': result}), 200
+
+
 @api.route('/referred-orders', methods=['GET'])
 @login_required
 def list_referred_orders():
