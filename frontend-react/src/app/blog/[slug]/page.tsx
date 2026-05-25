@@ -118,9 +118,7 @@ export default async function BlogPost({ params }: Props) {
         {/* CTA post-article */}
         <div className="mt-16">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
-          <div className="chalan-landing">
-            <QuoteWidget />
-          </div>
+          <QuoteWidget theme="light" />
         </div>
 
         {/* Back link */}

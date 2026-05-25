@@ -107,7 +107,7 @@ function saveDestination(place: PlaceArg) {
 
 // ─── Widget ──────────────────────────────────────────────────────────────────
 
-export function QuoteWidget() {
+export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sizeId, setSizeId] = useState('medium')
@@ -227,6 +227,7 @@ export function QuoteWidget() {
   }, [sizeId, km])
 
   return (
+    <div className={theme === 'light' ? 'quote-widget quote-widget--light' : 'quote-widget'}>
     <div className="quote">
       <div className="quote-head">
         <span className="live">en vivo · cotización</span>
@@ -297,6 +298,7 @@ export function QuoteWidget() {
         Continuar con esta cotización
         <ArrowIcon />
       </Link>
+    </div>
     </div>
   )
 }

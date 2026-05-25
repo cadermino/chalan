@@ -84,9 +84,7 @@ export default function MudanzasHuancayo() {
         {/* CTA */}
         <div className="mb-12">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Cotiza tu mudanza en Huancayo</p>
-          <div className="chalan-landing">
-            <QuoteWidget />
-          </div>
+          <QuoteWidget theme="light" />
         </div>
 
         {/* Cómo funciona */}
