@@ -63,6 +63,24 @@ export default function Sidebar({ onClose }) {
                 {item.label}
               </NavLink>
 
+              {/* Mis órdenes submenu under Órdenes — only for carrier_company */}
+              {item.to === '/orders' && user?.role === 'carrier_company' && (
+                <NavLink
+                  to="/orders/my-orders"
+                  onClick={handleClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 ml-6 pl-3 pr-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-teal-700 text-white'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    }`
+                  }
+                >
+                  <span>✅</span>
+                  Mis órdenes
+                </NavLink>
+              )}
+
               {/* Vehicles submenu under Empresas */}
               {item.to === '/carrier-companies' && (
                 <NavLink

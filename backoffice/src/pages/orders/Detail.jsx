@@ -52,9 +52,12 @@ export default function OrderDetail() {
   const { orderId } = useParams()
   const { user } = useAuth()
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
+  const isCarrier = user?.role === 'carrier_company'
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [companies, setCompanies] = useState([])
+  const [completing, setCompleting] = useState(false)
+  const [confirmComplete, setConfirmComplete] = useState(false)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -70,6 +73,17 @@ export default function OrderDetail() {
       })
     }
   }, [orderId])
+
+  const canComplete = isCarrier
+    && order?.order_status_id === 2
+    && order?.existing_quotation?.quotation_status_id === 2
+
+  function handleComplete() {
+    setCompleting(true)
+    client.patch(`/api/orders/${orderId}/complete`)
+      .then(() => setOrder(prev => ({ ...prev, order_status_id: 3 })))
+      .finally(() => { setCompleting(false); setConfirmComplete(false) })
+  }
 
   if (loading) return <p className="text-gray-500 p-8">Cargando...</p>
   if (!order) return <p className="text-red-500 p-8">Orden no encontrada</p>
@@ -113,6 +127,49 @@ export default function OrderDetail() {
             <p className="text-xs text-gray-400 mt-1">
               Enviada el {new Date(order.existing_quotation.created_date).toLocaleDateString('es-PE')}
             </p>
+          </div>
+        )}
+
+        {/* Completar orden — solo para el carrier asignado con orden in_progress */}
+        {canComplete && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-1">¿Completaste el servicio?</p>
+            <p className="text-xs text-gray-400 mb-4">
+              Marca la orden como completada una vez que hayas finalizado la mudanza con el cliente.
+            </p>
+            {!confirmComplete ? (
+              <button
+                onClick={() => setConfirmComplete(true)}
+                className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-2 rounded-lg"
+              >
+                Marcar como completada
+              </button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-gray-600">¿Confirmas que el servicio fue completado?</p>
+                <button
+                  onClick={handleComplete}
+                  disabled={completing}
+                  className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-lg"
+                >
+                  {completing ? 'Guardando...' : 'Confirmar'}
+                </button>
+                <button
+                  onClick={() => setConfirmComplete(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Orden completada — mensaje de confirmación */}
+        {isCarrier && order.order_status_id === 3 && order.existing_quotation?.quotation_status_id === 2 && (
+          <div className="bg-teal-50 border border-teal-200 rounded-xl p-5">
+            <p className="text-sm font-semibold text-teal-700">✓ Orden completada</p>
+            <p className="text-xs text-teal-600 mt-0.5">Este servicio ha sido marcado como completado.</p>
           </div>
         )}
 
