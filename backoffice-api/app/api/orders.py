@@ -84,6 +84,48 @@ def list_pending_orders():
     return jsonify({'orders': result}), 200
 
 
+@api.route('/orders/my-orders', methods=['GET'])
+@login_required
+def list_my_orders():
+    user = g.current_user
+    if user.role != ROLE_CARRIER:
+        return jsonify({'message': 'carrier company access required'}), 403
+
+    # Orders where this carrier's quotation was selected (status 2) and order is in_progress (status 2)
+    accepted_quotations = Quotation.query.filter_by(
+        carrier_company_id=user.carrier_company_id,
+        quotation_status_id=2,
+    ).all()
+
+    order_ids = [q.order_id for q in accepted_quotations]
+    quotation_by_order = {q.order_id: q for q in accepted_quotations}
+
+    orders = Order.query.filter(
+        Order.id.in_(order_ids),
+        Order.order_status_id == 2,
+    ).order_by(Order.created_date.desc()).all()
+
+    result = []
+    for order in orders:
+        details = list(order.order_details)
+        origin = next((d for d in details if d.type == 'carry_from'), None)
+        destination = next((d for d in details if d.type == 'deliver_to'), None)
+        customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
+        customer_name = None
+        if customer:
+            customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+        quotation = quotation_by_order.get(order.id)
+        result.append({
+            **order.to_dict(),
+            'origin': origin.to_dict() if origin else None,
+            'destination': destination.to_dict() if destination else None,
+            'customer_name': customer_name,
+            'quotation_amount': quotation.amount if quotation else None,
+        })
+
+    return jsonify({'orders': result}), 200
+
+
 @api.route('/orders/<int:order_id>', methods=['GET'])
 @login_required
 def get_order(order_id):
@@ -174,6 +216,33 @@ def update_order(order_id):
             'destination': destination.to_dict() if destination else None,
         }
     }), 200
+
+
+@api.route('/orders/<int:order_id>/complete', methods=['PATCH'])
+@login_required
+def complete_order(order_id):
+    user = g.current_user
+    if user.role != ROLE_CARRIER:
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = Order.query.get(order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    if order.order_status_id != 2:
+        return jsonify({'message': 'order is not in progress'}), 409
+
+    accepted = Quotation.query.filter_by(
+        order_id=order_id,
+        carrier_company_id=user.carrier_company_id,
+        quotation_status_id=2,
+    ).first()
+    if accepted is None:
+        return jsonify({'message': 'no accepted quotation for this order'}), 403
+
+    order.order_status_id = 3
+    db.session.commit()
+
+    return jsonify({'order_id': order_id, 'order_status_id': 3}), 200
 
 
 @api.route('/orders/<int:order_id>/quotation-links', methods=['GET'])

@@ -15,6 +15,7 @@ import VehiclesList from './pages/vehicles/List'
 import VehicleForm from './pages/vehicles/Form'
 import VehiclesAdminList from './pages/vehicles/AdminList'
 import OrdersList from './pages/orders/List'
+import MyOrders from './pages/orders/MyOrders'
 import OrderDetail from './pages/orders/Detail'
 import OrderEdit from './pages/orders/Edit'
 import OrderQuotations from './pages/orders/Quotations'
@@ -50,6 +51,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['carrier_company', 'superadmin', 'admin']}>
                 <OrdersList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders/my-orders"
+            element={
+              <ProtectedRoute allowedRoles={['carrier_company']}>
+                <MyOrders />
               </ProtectedRoute>
             }
           />
