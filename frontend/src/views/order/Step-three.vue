@@ -58,7 +58,7 @@
                       </span>
                     </div>
                     <div class="text-gray-900 font-bold text-xl mb-2">
-                      {{  quotation.amount
+                      {{  quotation.total_amount
                             .toLocaleString('en-US', {
                               style: 'currency',
                               currency: countryData.currency,
@@ -193,7 +193,7 @@ export default {
       companyRatings: {},
       quotationFields: {
         quotation_id: 'id',
-        amount: 'amount',
+        amount: 'total_amount',
         vehicle_brand: 'brand',
         vehicle_model: 'model',
         vehicle_weight: 'weight',
