@@ -291,17 +291,78 @@ def list_order_quotations(order_id):
     if order is None:
         return jsonify({'message': 'order not found'}), 404
 
+    platform_fee = float(os.environ.get('PLATFORM_FEE', 0.1))
+    commission_rate = 0
+    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
+    if referred:
+        from ..models import AdminUser
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        if agent:
+            commission_rate = agent.commission_rate
+
     quotations = order.quotations.order_by(Quotation.created_date.asc()).all()
 
     result = []
     for q in quotations:
         company = db.session.get(CarrierCompany, q.carrier_company_id) if q.carrier_company_id else None
+        total_amount = round(q.amount * (1 + commission_rate + platform_fee), 2) if q.amount else None
         result.append({
             **q.to_dict(),
             'carrier_company_name': company.name if company else None,
+            'total_amount': total_amount,
         })
 
-    return jsonify({'quotations': result}), 200
+    return jsonify({
+        'quotations': result,
+        'commission_rate': commission_rate,
+        'platform_fee': platform_fee,
+        'order_status_id': order.order_status_id,
+    }), 200
+
+
+@api.route('/orders/<int:order_id>/quotations/<int:quotation_id>', methods=['PATCH'])
+@login_required
+def update_quotation_amount(order_id, quotation_id):
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    quotation = Quotation.query.filter_by(id=quotation_id, order_id=order_id).first()
+    if quotation is None:
+        return jsonify({'message': 'quotation not found'}), 404
+    if quotation.quotation_status_id == 2:
+        return jsonify({'message': 'selected quotations cannot be edited'}), 409
+    order = db.session.get(Order, order_id)
+    if order and order.order_status_id == 2:
+        return jsonify({'message': 'quotations for in-progress orders cannot be edited'}), 409
+
+    data = request.get_json() or {}
+    new_amount = data.get('amount')
+    if new_amount is None or float(new_amount) <= 0:
+        return jsonify({'message': 'invalid amount'}), 400
+
+    platform_fee = float(os.environ.get('PLATFORM_FEE', 0.1))
+    commission_rate = 0
+    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
+    if referred:
+        from ..models import AdminUser
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        if agent:
+            commission_rate = agent.commission_rate
+
+    quotation.amount = float(new_amount)
+    db.session.commit()
+
+    total_amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+    agent_commission = round(quotation.amount * commission_rate, 2)
+    chalan_fee = round(quotation.amount * platform_fee, 2)
+
+    return jsonify({
+        **quotation.to_dict(),
+        'total_amount': total_amount,
+        'agent_commission': agent_commission,
+        'chalan_fee': chalan_fee,
+    }), 200
 
 
 @api.route('/referred-orders', methods=['GET'])
@@ -347,6 +408,52 @@ def list_referred_orders():
             commission_balance += ref.commission or 0
 
     return jsonify({'orders': result, 'commission_balance': commission_balance}), 200
+
+
+@api.route('/admin/referred-orders', methods=['GET'])
+@login_required
+def admin_list_referred_orders():
+    """All referred orders with agent details — admin/superadmin only."""
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    refs = ReferredOrder.query.order_by(ReferredOrder.created_date.desc()).all()
+
+    result = []
+    total_commission = 0
+    for ref in refs:
+        order = db.session.get(Order, ref.order_id)
+        if order is None:
+            continue
+        details = list(order.order_details)
+        origin = next((d for d in details if d.type == 'carry_from'), None)
+        destination = next((d for d in details if d.type == 'deliver_to'), None)
+        customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
+        customer_name = None
+        if customer:
+            customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+
+        from ..models import AdminUser
+        agent = db.session.get(AdminUser, ref.admin_user_id)
+        agent_name = ' '.join(filter(None, [agent.first_name, agent.last_name])) if agent else None
+
+        result.append({
+            **order.to_dict(),
+            'total_amount': order.total_amount,
+            'referred_by': ref.admin_user_id,
+            'agent_name': agent_name,
+            'agent_email': agent.email if agent else None,
+            'commission_rate': agent.commission_rate if agent else None,
+            'referred_date': ref.created_date.isoformat() if ref.created_date else None,
+            'commission': ref.commission,
+            'origin': origin.to_dict() if origin else None,
+            'destination': destination.to_dict() if destination else None,
+            'customer_name': customer_name,
+        })
+        total_commission += ref.commission or 0
+
+    return jsonify({'orders': result, 'total_commission': total_commission}), 200
 
 
 @api.route('/referred-orders', methods=['POST'])

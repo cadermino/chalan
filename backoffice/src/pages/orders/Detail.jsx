@@ -19,9 +19,6 @@ function AddressCard({ title, addr }) {
       <p className="text-xs font-bold text-teal-600 uppercase tracking-wide">{title}</p>
       <Field label="Calle" value={addr.street} />
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Colonia / Barrio" value={addr.neighborhood} />
-        <Field label="Ciudad" value={addr.city} />
-        <Field label="Estado / Región" value={addr.state} />
         <Field label="Piso" value={addr.floor_number} />
       </div>
     </div>

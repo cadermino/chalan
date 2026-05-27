@@ -20,6 +20,7 @@ import OrderDetail from './pages/orders/Detail'
 import OrderEdit from './pages/orders/Edit'
 import OrderQuotations from './pages/orders/Quotations'
 import ReferredOrdersList from './pages/referred-orders/List'
+import AdminReferredOrdersList from './pages/referred-orders/AdminList'
 import CustomersList from './pages/customers/List'
 
 function HomeRedirect() {
@@ -87,12 +88,22 @@ export default function App() {
             }
           />
 
-          {/* Referred orders — real_estate_agent and admins */}
+          {/* Referred orders — real_estate_agent */}
           <Route
             path="referred-orders"
             element={
-              <ProtectedRoute allowedRoles={['real_estate_agent', 'superadmin', 'admin']}>
+              <ProtectedRoute allowedRoles={['real_estate_agent']}>
                 <ReferredOrdersList />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Referred orders admin view — superadmin and admin */}
+          <Route
+            path="admin-referred-orders"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <AdminReferredOrdersList />
               </ProtectedRoute>
             }
           />
