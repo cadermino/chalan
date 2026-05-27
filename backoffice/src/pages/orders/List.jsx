@@ -35,6 +35,7 @@ export default function OrdersList() {
               <tr>
                 <th className="px-4 py-3 text-left"># Orden</th>
                 <th className="px-4 py-3 text-left">Cliente</th>
+                {isAdmin && <th className="px-4 py-3 text-left">Teléfono</th>}
                 <th className="px-4 py-3 text-left">Origen</th>
                 <th className="px-4 py-3 text-left">Destino</th>
                 <th className="px-4 py-3 text-left">Creación</th>
@@ -49,6 +50,7 @@ export default function OrdersList() {
                 <tr key={o.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
                   <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
+                  {isAdmin && <td className="px-4 py-3 text-gray-600">{o.customer_phone || '—'}</td>}
                   <td className="px-4 py-3 text-gray-600">
                     {o.origin ? (
                       <div>
@@ -109,7 +111,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={isAdmin ? 10 : 9} className="px-4 py-8 text-center text-gray-400">
                     No hay órdenes pendientes en este momento
                   </td>
                 </tr>
