@@ -90,10 +90,8 @@ def generate_checkout_session(order_id):
     customer = Customer.verify_auth_token(auth_headers[1])
     order = customer.orders.order_by(Order.id.desc()).first()
     quotation = order.quotations.filter(QuotationsModel.selected == 1).first()
-    if quotation.amount % 1 == 0:
-        amount = int(quotation.amount)
-    else:
-        amount = quotation.amount
+    total = order.total_amount
+    amount = int(total) if total % 1 == 0 else total
 
     stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
     session = stripe.checkout.Session.create(

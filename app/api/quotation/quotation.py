@@ -55,7 +55,7 @@ class Quotation:
     def generate_quotation_url(self, order_id, carrier_company_id, site_url):
         return site_url + 'quotation/' + CarrierCompanyEntity().generate_carrier_company_token(864000, order_id, carrier_company_id)
 
-    def toJson(self):
+    def toJson(self, commission_rate=0, platform_fee=0):
         output = []
         for quotation in self.quotations:
             carrier_company = quotation.carrier_company
@@ -63,13 +63,12 @@ class Quotation:
             if not vehicles:
                 continue
             vehicle = vehicles[0]
-            if quotation.quotation_status_id == QuotationStatus.Selected():
-                selected = True
-            else:
-                selected = False
+            selected = quotation.quotation_status_id == QuotationStatus.Selected()
+            total_amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
             output.append({
                 'id': quotation.id,
                 'amount': quotation.amount,
+                'total_amount': total_amount,
                 'selected': selected,
                 'order_id': quotation.order_id,
                 'carrier_company_id': carrier_company.id,

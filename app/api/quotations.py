@@ -14,7 +14,13 @@ from .. import db
 def get_quotations(order_id):
     auth_headers = request.headers.get('Authorization', '').split()
     Customer.verify_auth_token(auth_headers[1])
-    quotations = QuotationEntity().listByOrderId(order_id).toJson()
+    platform_fee = float(os.getenv('PLATFORM_FEE'))
+    commission_rate = 0
+    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
+    if referred:
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        commission_rate = agent.commission_rate
+    quotations = QuotationEntity().listByOrderId(order_id).toJson(commission_rate, platform_fee)
     return quotations, 200
 
 @api.route('/quotation/<int:quotation_id>', methods=['PUT'])
@@ -24,16 +30,18 @@ def pick_quotation(quotation_id):
     Customer.verify_auth_token(auth_headers[1])
     QuotationEntity(quotation_id).pickQuotation()
 
-    # Register agent commission when customer picks a quotation
-    from ..models import Quotations as QuotationsModel
+    from ..models import Quotations as QuotationsModel, Order as OrderModel
     quotation = db.session.get(QuotationsModel, quotation_id)
+    order = db.session.get(OrderModel, quotation.order_id)
+    platform_fee = float(os.getenv('PLATFORM_FEE'))
+    commission_rate = 0
     referred = ReferredOrder.query.filter_by(order_id=quotation.order_id).first()
     if referred:
         agent = db.session.get(AdminUser, referred.admin_user_id)
-        platform_fee = float(os.getenv('PLATFORM_FEE'))
-        base_amount = quotation.amount / (1 + agent.commission_rate + platform_fee)
-        referred.commission = base_amount * agent.commission_rate
-        db.session.commit()
+        commission_rate = agent.commission_rate
+        referred.commission = quotation.amount * commission_rate
+    order.total_amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+    db.session.commit()
 
     return jsonify({
         'quotation_id': quotation_id
@@ -48,15 +56,8 @@ def create_quotation():
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
     base_amount = float(quotation_data['amount'])
-    agent_commission = 0
-    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
-    if referred:
-        agent = db.session.get(AdminUser, referred.admin_user_id)
-        agent_commission = base_amount * agent.commission_rate
-    platform_fee = float(os.getenv('PLATFORM_FEE'))
-    amount = base_amount + agent_commission + (base_amount * platform_fee)
     data = {
-        'amount': amount,
+        'amount': base_amount,
         'order_id': order_id,
         'carrier_company_id': carrier_company_id,
     }
