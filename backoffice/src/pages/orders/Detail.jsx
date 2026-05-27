@@ -113,6 +113,7 @@ export default function OrderDetail() {
           <Field label="Kilómetros" value={order.total_kilometers} />
           <Field label="Presupuesto aproximado" value={order.approximate_budget ? `S/ ${order.approximate_budget}` : null} />
           <Field label="Comentarios" value={order.comments} />
+          {isAdmin && <Field label="Teléfono cliente" value={order.customer_phone} />}
         </div>
 
         {/* Addresses */}

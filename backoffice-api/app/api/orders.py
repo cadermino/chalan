@@ -69,8 +69,11 @@ def list_pending_orders():
 
         customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
         customer_name = None
+        customer_phone = None
         if customer:
             customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+            if user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
+                customer_phone = customer.mobile_phone
 
         result.append({
             **order.to_dict(),
@@ -79,6 +82,7 @@ def list_pending_orders():
             'origin': origin.to_dict() if origin else None,
             'destination': destination.to_dict() if destination else None,
             'customer_name': customer_name,
+            'customer_phone': customer_phone,
         })
 
     return jsonify({'orders': result}), 200
@@ -153,6 +157,11 @@ def get_order(order_id):
         token = _generate_quotation_token(company_id, order_id)
         quotation_url = f"{site_url}quotation/{token}"
 
+    customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
+    customer_phone = None
+    if customer and user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        customer_phone = customer.mobile_phone
+
     return jsonify({
         'order': {
             **order.to_dict(),
@@ -160,6 +169,7 @@ def get_order(order_id):
             'destination': destination.to_dict() if destination else None,
             'quotation_url': quotation_url,
             'existing_quotation': existing_quotation.to_dict() if existing_quotation else None,
+            'customer_phone': customer_phone,
         }
     }), 200
 
