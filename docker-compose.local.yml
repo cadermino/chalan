@@ -55,6 +55,7 @@ services:
       - ./frontend-react/content:/app/content
     ports:
       - 3000:3000
+    env_file: .env.dev
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost
       - INTERNAL_API_URL=http://flask:8001
