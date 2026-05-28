@@ -14,6 +14,7 @@ export interface PostMeta {
   category: string;
   readingTime: number;
   image?: string;
+  waitlist?: boolean;
 }
 
 export interface Post extends PostMeta {
@@ -45,6 +46,7 @@ export function getAllPosts(): PostMeta[] {
       category: data.category ?? "Consejos",
       readingTime: calcReadingTime(content),
       image: data.image,
+      waitlist: data.waitlist ?? false,
     } as PostMeta;
   });
 
@@ -69,6 +71,7 @@ export function getPost(slug: string): Post | null {
     category: data.category ?? "Consejos",
     readingTime: calcReadingTime(content),
     image: data.image,
+    waitlist: data.waitlist ?? false,
     content,
   };
 }

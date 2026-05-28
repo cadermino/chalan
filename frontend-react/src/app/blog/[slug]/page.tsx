@@ -8,6 +8,7 @@ import { LandingNav } from "@/components/LandingNav";
 import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { WaitlistForm } from "@/components/WaitlistForm";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -114,6 +115,11 @@ export default async function BlogPost({ params }: Props) {
           prose-td:px-4 prose-td:py-2 prose-tr:border-b prose-tr:border-gray-100">
           <MDXRemote source={post.content} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
         </article>
+
+        {/* Waitlist — solo para posts con waitlist: true */}
+        {post.waitlist && (
+          <WaitlistForm source={slug} />
+        )}
 
         {/* CTA post-article */}
         <div className="mt-16">
