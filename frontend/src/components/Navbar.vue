@@ -16,7 +16,7 @@
         <span class="sep" aria-hidden="true" />
         <router-link
           v-if="!isUserLogged"
-          :to="{ name: 'register-login' }"
+          :to="{ name: 'login' }"
           @click.native="isOpen = false"
           class="login-link"
         >Ingresar</router-link>
@@ -83,7 +83,7 @@
       <div class="mobile-sep" />
       <router-link
         v-if="!isUserLogged"
-        :to="{ name: 'register-login' }"
+        :to="{ name: 'login' }"
         @click.native="isOpen = false"
       >Ingresar</router-link>
       <AccountDropdown v-if="isUserLogged" />

@@ -43,6 +43,9 @@ stripe==10.5.0
 # Facebook Auth (consider replacing with python-social-auth)
 facepy==1.0.12
 
+# Google OAuth2
+google-auth==2.29.0
+
 # Server
 gunicorn==22.0.0
 

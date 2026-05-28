@@ -63,6 +63,14 @@ export default {
     };
     return axios(options);
   },
+  loginGoogle(payload) {
+    return axios({
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      data: { credential: payload.credential },
+      url: `${process.env.VUE_APP_AUTH_API_URL}login-google`,
+    });
+  },
   register(payload) {
     const data = {
       email: payload.email,

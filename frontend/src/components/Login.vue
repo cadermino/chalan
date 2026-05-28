@@ -145,7 +145,7 @@
             </button>
           </div>
           <div class="w-full text-left mt-4">Si ya tienes una cuenta puedes <span
-            @click="switchForm('login')"
+            @click="$router.push({ name: 'login', query: $route.query })"
             class="font-bold
               cursor-pointer
               text-blue-700
@@ -153,6 +153,14 @@
               focus:border-blue-400">iniciar sesión.</span>
           </div>
         </div>
+      </div>
+      <div class="flex items-center my-4 px-3">
+        <div class="flex-1 border-t border-gray-300"></div>
+        <span class="mx-3 text-sm text-gray-400">o</span>
+        <div class="flex-1 border-t border-gray-300"></div>
+      </div>
+      <div class="px-3">
+        <div id="google-btn-register"></div>
       </div>
     </form>
     <form v-if="activeForm == 'login'"
@@ -247,7 +255,7 @@
             </button>
           </div>
           <div class="w-full text-left mt-4">Si no tienes una cuenta puedes <span
-            @click="switchForm('register')"
+            @click="$router.push({ name: 'register', query: $route.query })"
             class="font-bold
               cursor-pointer
               text-blue-700
@@ -255,6 +263,14 @@
               focus:border-blue-400">Registrate.</span>
           </div>
         </div>
+      </div>
+      <div class="flex items-center my-4 px-3">
+        <div class="flex-1 border-t border-gray-300"></div>
+        <span class="mx-3 text-sm text-gray-400">o</span>
+        <div class="flex-1 border-t border-gray-300"></div>
+      </div>
+      <div class="px-3">
+        <div id="google-btn-login"></div>
       </div>
     </form>
   </div>
@@ -268,9 +284,15 @@ import chalan from '../api/chalan';
 
 export default {
   name: 'Login',
+  props: {
+    initialForm: {
+      type: String,
+      default: 'login',
+    },
+  },
   data() {
     return {
-      activeForm: 'register',
+      activeForm: this.initialForm,
       requiredFieldsRegister: {
         email: null,
         password: null,
@@ -297,6 +319,7 @@ export default {
   },
   mounted() {
     this.setLoader(false);
+    this.loadGoogleSDK().then(() => this.initGoogle());
   },
   methods: {
     ...mapMutations([
@@ -426,6 +449,54 @@ export default {
     },
     cancel() {
       this.$router.go(-1);
+    },
+    loadGoogleSDK() {
+      return new Promise((resolve) => {
+        if (window.google?.accounts) { resolve(); return; }
+        const existing = document.getElementById('google-gsi-script');
+        if (existing) { existing.addEventListener('load', resolve); return; }
+        const script = document.createElement('script');
+        script.id = 'google-gsi-script';
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    },
+    initGoogle() {
+      const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
+      if (!clientId || !window.google?.accounts) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: this.handleGoogleResponse,
+      });
+      const btnId = this.activeForm === 'login' ? 'google-btn-login' : 'google-btn-register';
+      const el = document.getElementById(btnId);
+      if (el) {
+        window.google.accounts.id.renderButton(el, {
+          theme: 'outline',
+          size: 'large',
+          width: el.offsetWidth || 300,
+          text: this.activeForm === 'login' ? 'signin_with' : 'signup_with',
+          locale: 'es',
+        });
+      }
+    },
+    handleGoogleResponse(response) {
+      this.setLoader(true);
+      chalan.loginGoogle({ credential: response.credential })
+        .then(({ data }) => {
+          this.handleUserData(data);
+          this.emitUserLogged();
+        })
+        .catch(() => {
+          this.setLoader(false);
+          this.setViewsMessages({
+            view: 'register-login',
+            message: { text: 'No se pudo iniciar sesión con Google, intenta nuevamente', type: 'error' },
+          });
+        });
     },
   },
   computed: {

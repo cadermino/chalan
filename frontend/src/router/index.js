@@ -94,9 +94,18 @@ const routes = [
     }),
   },
   {
+    path: '/login',
+    name: 'login',
+    component: () => import(/* webpackChunkName: "login" */ '../views/auth/Login.vue'),
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import(/* webpackChunkName: "register" */ '../views/auth/Register.vue'),
+  },
+  {
     path: '/register-login',
-    name: 'register-login',
-    component: () => import(/* webpackChunkName: "register-login" */ '../views/RegisterLogin.vue'),
+    redirect: '/login',
   },
   {
     path: '/quotation/:token',
@@ -200,7 +209,7 @@ router.beforeEach(async (to, from, next) => {
       }
     } else {
       next({
-        path: '/register-login',
+        path: '/login',
         query: { redirect: to.fullPath },
       });
     }
@@ -234,7 +243,7 @@ router.beforeEach(async (to, from, next) => {
       }
     } else {
       next({
-        path: '/register-login',
+        path: '/login',
         query: { redirect: to.fullPath },
       });
     }
