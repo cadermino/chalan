@@ -13,7 +13,7 @@ from .order import Order as OrderEntity
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
 from .quotation import Quotation as QuotationEntity
-from .quotation.quotation_status import QuotationStatus
+
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
 from datetime import date
@@ -46,8 +46,18 @@ def create_order():
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json
+    address_changed = AddressesStep(order_id).has_changed(order_data)
+    belongings_changed = BelongingsAppointmentDateStep(order_id).has_changed(order_data)
+    data_changed = address_changed or belongings_changed
     order = OrderEntity(order_id)
     order = order.update(request=order_data)
+
+    if 'requestQuotationFromCarrierCompany' not in order_data and data_changed:
+        db_order = db.session.get(Order, order_id)
+        if db_order and db_order.quotation_requested:
+            db_order.quotation_requested = False
+            db.session.commit()
+
     emails_sent = send_email_to_carrier_companies(order_data)
     return jsonify({
         'message': 'order {id} updated!'.format(id=order.id),
@@ -213,12 +223,15 @@ def send_email_to_carrier_companies(order_data):
         return emails_sent
 
     order = order_data["order"]
-    address_step = AddressesStep(order['order_id'])
-    has_address_step_changed = address_step.has_changed(order_data)
-
     belongings_appointment_date_step = BelongingsAppointmentDateStep(order['order_id'])
     is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
-    has_belongings_appointment_date_step_changed = belongings_appointment_date_step.has_changed(order_data)
+
+    db_order = db.session.get(Order, order['order_id'])
+    already_requested = db_order and db_order.quotation_requested
+
+    if already_requested:
+        return emails_sent
+
     carrier_companies = get_carrier_companies(order)
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
@@ -228,9 +241,7 @@ def send_email_to_carrier_companies(order_data):
                 os.getenv('SITE_URL')
             )
             quotation = QuotationEntity().get(order['order_id'], carrier_company['id'])
-            if quotation is None or \
-                has_address_step_changed or \
-                has_belongings_appointment_date_step_changed:
+            if quotation is None:
                 subject = 'Nueva cotización Chalán'
                 if os.getenv('FLASK_ENV') != 'prod':
                     subject = '[test]Nueva cotización Chalán'
@@ -242,12 +253,9 @@ def send_email_to_carrier_companies(order_data):
                     quotation_url=quotation_url,
                 )
                 emails_sent.append(carrier_company['id'])
-            if quotation is not None and \
-                (has_address_step_changed or \
-                has_belongings_appointment_date_step_changed):
-                QuotationEntity(quotation.id).update({
-                    'quotation_status_id': QuotationStatus.Cancelled(),
-                })
+        if emails_sent and db_order:
+            db_order.quotation_requested = True
+            db.session.commit()
     return emails_sent
 
 def get_carrier_companies(order):

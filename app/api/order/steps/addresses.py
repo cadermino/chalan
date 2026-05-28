@@ -27,7 +27,6 @@ class Addresses:
             if detail.get('type') == 'carry_from':
                 from_address.update({"from_street": detail.get('street')})
                 from_address.update({"from_floor_number": detail.get('floor_number')})
-                from_address.update({'from_zip_code': detail.get('zip_code')})
                 from_address.update({'from_country': detail.get('country')})
                 from_address.update({'from_map_url': detail.get('map_url')})
         return from_address
@@ -39,7 +38,6 @@ class Addresses:
             if detail.get('type') == 'deliver_to':
                 to_address.update({'to_street': detail.get('street')})
                 to_address.update({'to_floor_number': detail.get('floor_number')})
-                to_address.update({'to_zip_code': detail.get('zip_code')})
                 to_address.update({'to_country': detail.get('country')})
                 to_address.update({'to_map_url': detail.get('map_url')})
         return to_address
