@@ -68,7 +68,12 @@ export default function OrdersList() {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.created_date ? new Date(o.created_date).toLocaleDateString('es-PE') : '—'}
+                    {o.created_date ? (
+                      <div>
+                        <div>{new Date(o.created_date).toLocaleDateString('es-PE')}</div>
+                        <div className="text-xs text-gray-400">{new Date(o.created_date).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE') : '—'}
