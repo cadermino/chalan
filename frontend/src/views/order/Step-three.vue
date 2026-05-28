@@ -209,6 +209,7 @@ export default {
     CardSkeleton,
   },
   mounted() {
+    this.triggerQuotationRequest();
     this.getQuotations();
     this.getQuotationsInLoop();
   },
@@ -227,6 +228,18 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
+    triggerQuotationRequest() {
+      if (!this.currentOrder.order_id) return;
+      const payload = {
+        order: this.currentOrder,
+        orderDetailsOrigin: this.orderDetailsOrigin,
+        orderDetailsDestination: this.orderDetailsDestination,
+        services: this.services,
+        customer: this.customer,
+        requestQuotationFromCarrierCompany: true,
+      };
+      chalan.updateOrder(payload).catch(() => {});
+    },
     getQuotationsInLoop() {
       this.intervalId = setInterval(() => this.getQuotations(),
         this.getQuotationsDelayInMilliseconds);

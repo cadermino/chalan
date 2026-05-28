@@ -112,6 +112,7 @@ class Order(db.Model):
 	approximate_budget = db.Column(db.Float, nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+	quotation_requested = db.Column(db.Boolean, default=False, nullable=True)
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
