@@ -90,6 +90,48 @@ def login_facebook():
         'mobile_phone': customer.mobile_phone
     }), 201
 
+@auth.route('/login-google', methods=['POST'])
+def login_google():
+    data = request.json or {}
+    credential = data.get('credential')
+    if not credential:
+        return jsonify({'message': 'credential required'}), 400
+
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        idinfo = google_id_token.verify_oauth2_token(
+            credential,
+            google_requests.Request(),
+            os.getenv('GOOGLE_CLIENT_ID'),
+        )
+    except ValueError:
+        return jsonify({'message': 'invalid google token'}), 403
+
+    email = idinfo.get('email', '').lower()
+    if not email:
+        return jsonify({'message': 'email not provided by Google'}), 400
+
+    name = idinfo.get('name') or idinfo.get('given_name') or email.split('@')[0]
+
+    try:
+        customer = Customer.query.filter_by(email=email).first()
+        if customer is None:
+            customer = Customer(email=email, name=name)
+            db.session.add(customer)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({'message': 'error creating user'}), 500
+
+    return jsonify({
+        'token': customer.generate_auth_token(expiration=86400),
+        'name': customer.name,
+        'email': customer.email,
+        'mobile_phone': customer.mobile_phone,
+    }), 200
+
+
 @auth.route('/generate-carrier-company-token', methods=['POST'])
 def quotation_token():
     data = request.json
