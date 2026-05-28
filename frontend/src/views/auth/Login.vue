@@ -16,7 +16,9 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapMutations, mapGetters } from 'vuex';
+import {
+  mapState, mapActions, mapMutations, mapGetters,
+} from 'vuex';
 import LoginForm from '@/components/Login.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import Tracker from '@/components/Tracker.vue';
