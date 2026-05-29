@@ -37,6 +37,9 @@ idna==3.7
 # Email
 Flask-Mail==0.10.0
 
+# WhatsApp
+twilio>=9.0.0
+
 # Payments
 stripe==10.5.0
 

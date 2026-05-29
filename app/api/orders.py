@@ -16,6 +16,7 @@ from .quotation import Quotation as QuotationEntity
 
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
+from .whatsapp import send_whatsapp
 from datetime import date
 from .errors import not_found
 from .. import db
@@ -252,6 +253,10 @@ def send_email_to_carrier_companies(order_data):
                     bcc=[],
                     quotation_url=quotation_url,
                 )
+                send_whatsapp(
+                    carrier_company.get('phone'),
+                    f'Nueva solicitud de cotización Chalán\n\nEntra para cotizar:\n{quotation_url}',
+                )
                 emails_sent.append(carrier_company['id'])
         if emails_sent and db_order:
             db_order.quotation_requested = True
@@ -264,7 +269,8 @@ def get_carrier_companies(order):
         carrier_company = CarrierCompanyEntity(carrier_company_id)
         return [{
             'id': carrier_company.get_id(),
-            'email': carrier_company.get_email()
+            'email': carrier_company.get_email(),
+            'phone': carrier_company.get_phone(),
         }]
     carrier_companies = CarrierCompanyEntity.get({
         'country_id': int(os.getenv('COUNTRY_ID')),
