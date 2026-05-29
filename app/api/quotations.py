@@ -7,6 +7,7 @@ from .decorators import token_required, carrier_company_token_required
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from ..models import Customer, ReferredOrder, AdminUser
 from .email import send_email
+from .whatsapp import send_whatsapp
 from .. import db
 
 @api.route('/quotations/<int:order_id>', methods=['GET'])
@@ -82,6 +83,10 @@ def create_quotation():
             bcc=[os.getenv('ADMIN_MAIL')],
             step_three_url=step_three_url,
             customer_name=customer.name
+        )
+        send_whatsapp(
+            customer.mobile_phone,
+            f'Hola {customer.name}, tienes una nueva cotizacion para tu mudanza Chalan.\n\nRevísala aquí:\n{step_three_url}',
         )
     else:
         message = 'quotation {id} created!'.format(id=previous_quotation.id)

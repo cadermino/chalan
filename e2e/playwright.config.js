@@ -4,7 +4,7 @@ module.exports = defineConfig({
   testDir: './tests',
   timeout: 60000,
   use: {
-    baseURL: process.env.BASE_URL || 'http://local.chalan.mx',
+    baseURL: process.env.BASE_URL || 'http://localhost',
     headless: false,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10000,
