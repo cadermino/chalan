@@ -255,7 +255,8 @@ def send_email_to_carrier_companies(order_data):
                 )
                 send_whatsapp(
                     carrier_company.get('phone'),
-                    f'Nueva solicitud de cotización Chalán\n\nEntra para cotizar:\n{quotation_url}',
+                    os.getenv('TWILIO_TEMPLATE_TRANSPORTISTA'),
+                    {'1': quotation_url},
                 )
                 emails_sent.append(carrier_company['id'])
         if emails_sent and db_order:
