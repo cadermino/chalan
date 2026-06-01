@@ -86,7 +86,8 @@ def create_quotation():
         )
         send_whatsapp(
             customer.mobile_phone,
-            f'Hola {customer.name}, tienes una nueva cotizacion para tu mudanza Chalan.\n\nRevísala aquí:\n{step_three_url}',
+            os.getenv('TWILIO_TEMPLATE_CLIENTE'),
+            {'1': customer.name, '2': step_three_url},
         )
     else:
         message = 'quotation {id} created!'.format(id=previous_quotation.id)
