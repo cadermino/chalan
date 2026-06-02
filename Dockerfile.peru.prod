@@ -1,18 +1,3 @@
-FROM node:18-alpine as vue-build-stage
-WORKDIR /chalan
-COPY /frontend .
-ENV NODE_OPTIONS=--openssl-legacy-provider
-RUN npm install && npm run build
-
-FROM node:20-alpine as backoffice-build-stage
-WORKDIR /app
-COPY /backoffice/package.json ./
-RUN npm install
-COPY /backoffice .
-ENV VITE_API_URL=/backoffice-api
-ENV VITE_BASE_PATH=/backoffice/
-RUN npm run build
-
 FROM node:18-alpine as react-build-stage
 WORKDIR /app
 COPY /frontend-react/package.json ./
@@ -26,8 +11,6 @@ RUN npm run build
 FROM python:3.11-alpine as production-stage
 WORKDIR /chalan
 COPY . .
-COPY --from=vue-build-stage /chalan/dist /chalan/frontend/dist
-COPY --from=backoffice-build-stage /app/dist /chalan/backoffice/dist
 COPY --from=react-build-stage /app/.next/standalone /chalan/frontend-react-standalone
 COPY --from=react-build-stage /app/.next/static /chalan/frontend-react-standalone/.next/static
 COPY --from=react-build-stage /app/public /chalan/frontend-react-standalone/public
@@ -41,10 +24,5 @@ RUN apk add python3-dev \
                     libffi-dev \
                     postgresql-dev \
                     nodejs
-
-RUN apk add nginx
-
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY nginx.chalan-prod-peru.conf /etc/nginx/conf.d/
 
 RUN pip install -r requirements/prod.txt

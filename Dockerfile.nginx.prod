@@ -1,0 +1,10 @@
+FROM node:18-alpine as vue-build-stage
+WORKDIR /chalan
+COPY /frontend .
+ENV NODE_OPTIONS=--openssl-legacy-provider
+RUN npm install && npm run build
+
+FROM nginx:alpine
+COPY --from=vue-build-stage /chalan/dist /chalan/frontend/dist
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.chalan-prod.conf /etc/nginx/conf.d/

@@ -1,17 +1,25 @@
 services:
-  web:
+  nginx:
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile.nginx.prod
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt
       - ./data/certbot/www:/var/www/certbot
     ports:
-      - 80:8000
+      - 80:80
       - 443:443
+    restart: always
+    depends_on:
+      - web
+    command: sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     env_file: .env.prod
     restart: always
-    command: sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;' & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
+    command: gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app
   certbot:
     image: certbot/certbot
     restart: unless-stopped
