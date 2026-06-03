@@ -8,21 +8,8 @@ ENV NEXT_PUBLIC_PLACES_API_KEY=$NEXT_PUBLIC_PLACES_API_KEY
 ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
-FROM python:3.11-alpine as production-stage
-WORKDIR /chalan
-COPY . .
-COPY --from=react-build-stage /app/.next/standalone /chalan/frontend-react-standalone
-COPY --from=react-build-stage /app/.next/static /chalan/frontend-react-standalone/.next/static
-COPY --from=react-build-stage /app/public /chalan/frontend-react-standalone/public
-
-RUN pip install --upgrade pip
-RUN apk update && apk add --no-cache tzdata
-ENV TZ America/Lima
-RUN apk add python3-dev \
-                    gcc \
-                    libc-dev \
-                    libffi-dev \
-                    postgresql-dev \
-                    nodejs
-
-RUN pip install -r requirements/prod.txt
+FROM node:18-alpine
+WORKDIR /chalan/frontend-react-standalone
+COPY --from=react-build-stage /app/.next/standalone ./
+COPY --from=react-build-stage /app/.next/static ./.next/static
+COPY --from=react-build-stage /app/public ./public
