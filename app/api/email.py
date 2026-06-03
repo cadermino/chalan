@@ -23,7 +23,11 @@ def inject_data():
 
 def send_async_email(app, msg):
     with app.app_context():
-        mail.send(msg)
+        try:
+            mail.send(msg)
+            print(f'[Email] delivered to={msg.recipients} subject="{msg.subject}"', flush=True)
+        except Exception as e:
+            print(f'[Email] SMTP error to={msg.recipients} subject="{msg.subject}": {e}', flush=True)
 
 def send_email(to, subject, template, bcc, **kwargs):
     app = current_app._get_current_object()
