@@ -189,7 +189,7 @@ def confirm_stripe_payment(order_id):
         payment = order.confirm_stripe_payment(data['session_id'])
         if payment.status == 'paid':
 
-            subject = '[Pago con tarjeta] Orden {}'.format(order_id),
+            subject = '[Pago con tarjeta] Orden {}'.format(order_id)
             bcc = [os.getenv('OPS_MAIL'), driver_email]
             if os.getenv('FLASK_ENV') != 'prod':
                 subject = '[test][Pago con tarjeta] Orden {} '.format(order_id)

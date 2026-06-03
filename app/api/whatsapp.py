@@ -40,17 +40,20 @@ def _send_async(app, to_e164, content_sid, content_variables):
 
 def send_whatsapp(phone, content_sid, content_variables):
     """Send a WhatsApp template message. Skips if phone or Twilio config is missing."""
-    if not os.getenv('TWILIO_ACCOUNT_SID'):
-        print('[WhatsApp] Skipped: TWILIO_ACCOUNT_SID no configurado', flush=True)
-        return
-    if not content_sid:
-        print('[WhatsApp] Skipped: content_sid no configurado (template pendiente de aprobación)', flush=True)
-        return
-    to_e164 = normalize_phone(phone)
-    if not to_e164:
-        print(f'[WhatsApp] Skipped: teléfono inválido ({phone})', flush=True)
-        return
-    app = current_app._get_current_object()
-    thr = Thread(target=_send_async, args=[app, to_e164, content_sid, content_variables])
-    thr.start()
-    return thr
+    try:
+        if not os.getenv('TWILIO_ACCOUNT_SID'):
+            print('[WhatsApp] Skipped: TWILIO_ACCOUNT_SID no configurado', flush=True)
+            return
+        if not content_sid:
+            print('[WhatsApp] Skipped: content_sid no configurado (template pendiente de aprobación)', flush=True)
+            return
+        to_e164 = normalize_phone(phone)
+        if not to_e164:
+            print(f'[WhatsApp] Skipped: teléfono inválido ({phone})', flush=True)
+            return
+        app = current_app._get_current_object()
+        thr = Thread(target=_send_async, args=[app, to_e164, content_sid, content_variables])
+        thr.start()
+        return thr
+    except Exception as e:
+        print(f'[WhatsApp] Error inesperado: {e}', flush=True)
