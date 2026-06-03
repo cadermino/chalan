@@ -13,6 +13,7 @@ from .order import Order as OrderEntity
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
 from .quotation import Quotation as QuotationEntity
+from .quotation.quotation_status import QuotationStatus
 
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
@@ -57,6 +58,10 @@ def update_order(order_id):
         db_order = db.session.get(Order, order_id)
         if db_order and db_order.quotation_requested:
             db_order.quotation_requested = False
+            QuotationsModel.query.filter(
+                QuotationsModel.order_id == order_id,
+                QuotationsModel.quotation_status_id != QuotationStatus.Cancelled()
+            ).update({'quotation_status_id': QuotationStatus.Cancelled()})
             db.session.commit()
 
     emails_sent = send_email_to_carrier_companies(order_data)
