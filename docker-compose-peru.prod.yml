@@ -11,18 +11,25 @@ services:
       - 443:443
     restart: always
     depends_on:
-      - web
+      - flask-api
+      - nextjs
       - backoffice-api
     command: sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
-  web:
+  flask-api:
+    build:
+      context: .
+      dockerfile: flask-api/Dockerfile.peru.prod
+    env_file: .env.prod
+    restart: always
+    command: gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app
+  nextjs:
     build:
       context: .
       dockerfile: Dockerfile.peru.prod
       args:
         NEXT_PUBLIC_PLACES_API_KEY: ${NEXT_PUBLIC_PLACES_API_KEY}
-    env_file: .env.prod
     restart: always
-    command: sh -c "cd /chalan/frontend-react-standalone && HOSTNAME=0.0.0.0 node server.js & gunicorn -b 0.0.0.0:8001 --access-logfile - --error-logfile - chalan:app"
+    command: sh -c "HOSTNAME=0.0.0.0 node server.js"
   backoffice-api:
     build:
       context: .
