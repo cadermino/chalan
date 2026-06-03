@@ -1,5 +1,36 @@
 <template>
   <div>
+    <!-- Modal: teléfono requerido post-login con Google -->
+    <div v-if="showPhoneModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
+        <p class="text-center font-bold mb-2">Un último paso</p>
+        <p class="text-sm text-gray-600 text-center mb-5">
+          Para poder contactarte durante tu mudanza necesitamos tu número de teléfono.
+        </p>
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="googlePhone">
+          Teléfono móvil <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="googlePhone"
+          v-model="googlePhone"
+          type="number"
+          :class="phoneModalError ? 'border-red-300' : ''"
+          class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:border-blue-400 mb-1"
+          placeholder="Ej. 987654321"
+        />
+        <p v-if="phoneModalError" class="text-red-500 text-xs italic mb-3">{{ phoneModalError }}</p>
+        <button
+          type="button"
+          :disabled="loading"
+          :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
+          class="w-full bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded focus:outline-none mt-3"
+          @click="saveGooglePhone">
+          Continuar
+        </button>
+      </div>
+    </div>
+
     <form v-if="activeForm == 'register'"
       class="bg-white pb-8 sm:p-0 p-5 sm:pb-8">
       <p class="text-center font-bold mb-10">
@@ -315,6 +346,10 @@ export default {
       },
       canSubmitLoginForm: false,
       canSubmitRegisterForm: false,
+      showPhoneModal: false,
+      googlePhone: null,
+      phoneModalError: null,
+      pendingGoogleData: null,
     };
   },
   mounted() {
@@ -488,7 +523,13 @@ export default {
       chalan.loginGoogle({ credential: response.credential })
         .then(({ data }) => {
           this.handleUserData(data);
-          this.emitUserLogged();
+          if (!data.mobile_phone) {
+            this.pendingGoogleData = data;
+            this.showPhoneModal = true;
+            this.setLoader(false);
+          } else {
+            this.emitUserLogged();
+          }
         })
         .catch(() => {
           this.setLoader(false);
@@ -496,6 +537,29 @@ export default {
             view: 'register-login',
             message: { text: 'No se pudo iniciar sesión con Google, intenta nuevamente', type: 'error' },
           });
+        });
+    },
+    saveGooglePhone() {
+      if (!this.googlePhone) {
+        this.phoneModalError = 'no olvides llenar este campo';
+        return;
+      }
+      this.phoneModalError = null;
+      this.setLoader(true);
+      chalan.updateCustomerProfile({
+        customerId: this.decodeToken.id,
+        mobilePhone: this.googlePhone,
+        token: this.pendingGoogleData.token,
+      })
+        .then(() => {
+          this.setCustomerData({ field: 'mobile_phone', value: this.googlePhone });
+          this.showPhoneModal = false;
+          this.pendingGoogleData = null;
+          this.emitUserLogged();
+        })
+        .catch(() => {
+          this.setLoader(false);
+          this.phoneModalError = 'Ocurrió un error, intenta nuevamente';
         });
     },
   },

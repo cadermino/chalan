@@ -31,6 +31,8 @@ def send_async_email(app, msg):
 
 def send_email(to, subject, template, bcc, **kwargs):
     app = current_app._get_current_object()
+    if os.getenv('FLASK_ENV') != 'prod' and not subject.startswith('[test]'):
+        subject = f'[test]{subject}'
     msg = Message(
         subject,
         sender=('Chalán', app.config['MAIL_SENDER']),
