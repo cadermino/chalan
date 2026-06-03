@@ -74,8 +74,6 @@ def create_quotation():
 
         step_three_url = f"{os.getenv('SITE_URL')}order/{order_id}/step-three"
         subject = 'Tienes un nueva cotización para tu mudanza Chalán'
-        if os.getenv('FLASK_ENV') != 'prod':
-            subject = '[test]Tienes un nueva cotización para tu mudanza Chalán'
         send_email(
             customer.email,
             subject,

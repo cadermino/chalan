@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, got_request_exception
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -32,5 +32,14 @@ def create_app(config_name):
 
 	from .main import main as main_blueprint
 	app.register_blueprint(main_blueprint, url_prefix='/landing')
+
+	# Flask 3.x propagates exceptions before log_exception when DEBUG=True,
+	# so got_request_exception is the only reliable hook for the SMTPHandler.
+	# Only connect in production so dev never triggers error emails.
+	if config_name == 'prod':
+		def _log_exception(sender, exception, **extra):
+			sender.logger.error('Unhandled exception', exc_info=exception)
+
+		got_request_exception.connect(_log_exception, app)
 
 	return app

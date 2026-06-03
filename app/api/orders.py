@@ -149,11 +149,7 @@ def generate_checkout_cash(order_id):
     carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
 
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
-    bcc = [os.getenv('OPS_MAIL')]
-
-    if os.getenv('FLASK_ENV') != 'prod':
-        subject = '[test][Pago en efectivo] Orden {} '.format(order_id)
-        bcc = [os.getenv('ADMIN_MAIL')]
+    bcc = [os.getenv('OPS_MAIL')] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
 
     send_email(
         carrier_company.email,
@@ -190,10 +186,7 @@ def confirm_stripe_payment(order_id):
         if payment.status == 'paid':
 
             subject = '[Pago con tarjeta] Orden {}'.format(order_id)
-            bcc = [os.getenv('OPS_MAIL'), driver_email]
-            if os.getenv('FLASK_ENV') != 'prod':
-                subject = '[test][Pago con tarjeta] Orden {} '.format(order_id)
-                bcc = [os.getenv('ADMIN_MAIL')]
+            bcc = [os.getenv('OPS_MAIL'), driver_email] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
             current_year = date.today().year
             send_email(
                 os.getenv('ADMIN_MAIL'),
@@ -253,8 +246,6 @@ def send_email_to_carrier_companies(order_data):
             print(f'[Email] carrier={carrier_company["id"]} email={carrier_company["email"]} existing_quotation={quotation is not None}', flush=True)
             if quotation is None:
                 subject = 'Nueva cotización Chalán'
-                if os.getenv('FLASK_ENV') != 'prod':
-                    subject = '[test]Nueva cotización Chalán'
                 send_email(
                     carrier_company['email'],
                     subject,
