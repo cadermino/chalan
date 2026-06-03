@@ -229,11 +229,14 @@ def send_email_to_carrier_companies(order_data):
         return emails_sent
 
     order = order_data["order"]
-    belongings_appointment_date_step = BelongingsAppointmentDateStep(order['order_id'])
+    order_id = order['order_id']
+    belongings_appointment_date_step = BelongingsAppointmentDateStep(order_id)
     is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
 
-    db_order = db.session.get(Order, order['order_id'])
+    db_order = db.session.get(Order, order_id)
     already_requested = db_order and db_order.quotation_requested
+
+    print(f'[Email] order={order_id} already_requested={already_requested} step_complete={is_belongings_appointment_date_step_complete}', flush=True)
 
     if already_requested:
         return emails_sent
@@ -242,11 +245,12 @@ def send_email_to_carrier_companies(order_data):
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
             quotation_url = QuotationEntity().generate_quotation_url(
-                order['order_id'],
+                order_id,
                 carrier_company['id'],
                 os.getenv('SITE_URL')
             )
-            quotation = QuotationEntity().get(order['order_id'], carrier_company['id'])
+            quotation = QuotationEntity().get(order_id, carrier_company['id'])
+            print(f'[Email] carrier={carrier_company["id"]} email={carrier_company["email"]} existing_quotation={quotation is not None}', flush=True)
             if quotation is None:
                 subject = 'Nueva cotización Chalán'
                 if os.getenv('FLASK_ENV') != 'prod':
@@ -258,6 +262,7 @@ def send_email_to_carrier_companies(order_data):
                     bcc=[],
                     quotation_url=quotation_url,
                 )
+                print(f'[Email] sent to carrier={carrier_company["id"]}', flush=True)
                 send_whatsapp(
                     carrier_company.get('phone'),
                     os.getenv('TWILIO_TEMPLATE_TRANSPORTISTA'),
