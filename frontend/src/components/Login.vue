@@ -16,7 +16,8 @@
           v-model="googlePhone"
           type="number"
           :class="phoneModalError ? 'border-red-300' : ''"
-          class="appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:border-blue-400 mb-1"
+          class="appearance-none border rounded w-full py-2 px-3 text-gray-700
+          leading-tight focus:outline-none focus:border-blue-400 mb-1"
           placeholder="Ej. 987654321"
         />
         <p v-if="phoneModalError" class="text-red-500 text-xs italic mb-3">{{ phoneModalError }}</p>
@@ -24,7 +25,8 @@
           type="button"
           :disabled="loading"
           :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
-          class="w-full bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded focus:outline-none mt-3"
+          class="w-full bg-green-500 hover:bg-green-700 text-white py-2 px-4
+          rounded focus:outline-none mt-3"
           @click="saveGooglePhone">
           Continuar
         </button>
