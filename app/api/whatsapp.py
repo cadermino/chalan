@@ -27,8 +27,11 @@ def _send_async(app, to_e164, content_sid, content_variables):
                 os.getenv('TWILIO_ACCOUNT_SID'),
                 os.getenv('TWILIO_AUTH_TOKEN'),
             )
+            whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
+            if not whatsapp_from.startswith('whatsapp:'):
+                whatsapp_from = 'whatsapp:' + whatsapp_from
             client.messages.create(
-                from_=os.getenv('TWILIO_WHATSAPP_FROM'),
+                from_=whatsapp_from,
                 to='whatsapp:' + to_e164,
                 content_sid=content_sid,
                 content_variables=json.dumps(content_variables),
