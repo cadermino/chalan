@@ -245,7 +245,6 @@ export default {
         this.getQuotationsDelayInMilliseconds);
     },
     goToCarrierCompanyView(quotation) {
-      this.selectQuotation({ quotation, jumpToNextStep: false });
       this.$router.push({
         name: 'carrier-company',
         params: { id: quotation.carrier_company_id },

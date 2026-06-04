@@ -241,7 +241,7 @@ def send_email_to_carrier_companies(order_data):
     if already_requested:
         return emails_sent
 
-    carrier_companies = get_carrier_companies(order)
+    carrier_companies = get_carrier_companies()
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
             quotation_url = QuotationEntity().generate_quotation_url(
@@ -274,15 +274,7 @@ def send_email_to_carrier_companies(order_data):
             db.session.commit()
     return emails_sent
 
-def get_carrier_companies(order):
-    carrier_company_id = order['carrier_company_id']
-    if carrier_company_id is not None:
-        carrier_company = CarrierCompanyEntity(carrier_company_id)
-        return [{
-            'id': carrier_company.get_id(),
-            'email': carrier_company.get_email(),
-            'phone': carrier_company.get_phone(),
-        }]
+def get_carrier_companies():
     carrier_companies = CarrierCompanyEntity.get({
         'country_id': int(os.getenv('COUNTRY_ID')),
         'active': 1
