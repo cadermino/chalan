@@ -70,7 +70,7 @@ export function LandingFooter() {
             </div>
           </div>
           <div className="legal">
-            <span>© {year} chalan.pe — Lima, Perú</span>
+            <span>© {year} Chalán Soluciones EIRL — chalan.pe — Lima, Perú</span>
           </div>
         </div>
       </footer>
