@@ -48,6 +48,7 @@ export const metadata: Metadata = {
   other: {
     "theme-color": "#1e1b4b",
     "google-site-verification": "TVw_Fd8m93dBC1mRQUrURalADcYzFOeY_L4z9bKaCrI",
+    "facebook-domain-verification": "l8bmdupxgdpy8tztk5y72hwte124mj",
   },
 };
 
