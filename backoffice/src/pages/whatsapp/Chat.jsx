@@ -2,6 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 
+const TEMPLATES = {
+  cliente: {
+    label: 'Mensaje a cliente',
+    variables: [
+      { key: '1', label: 'Nombre del cliente' },
+      { key: '2', label: 'URL de cotización' },
+    ],
+  },
+  transportista: {
+    label: 'Mensaje a transportista',
+    variables: [
+      { key: '1', label: 'URL de cotización' },
+    ],
+  },
+}
+
 const STATUS_ICONS = {
   queued: '🕐',
   sent: '✓',
@@ -24,6 +40,9 @@ export default function Chat() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [showTemplate, setShowTemplate] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState('cliente')
+  const [templateVars, setTemplateVars] = useState({})
   const bottomRef = useRef(null)
   const pollRef = useRef(null)
 
@@ -59,6 +78,26 @@ export default function Chat() {
       setBody('')
     } catch (err) {
       setError(err.response?.data?.message || 'Error al enviar')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleSendTemplate = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSending(true)
+    try {
+      const { data } = await client.post('/api/whatsapp/send-template', {
+        to: decodedPhone,
+        template: selectedTemplate,
+        variables: templateVars,
+      })
+      setMessages((prev) => [...prev, data.message])
+      setShowTemplate(false)
+      setTemplateVars({})
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al enviar plantilla')
     } finally {
       setSending(false)
     }
@@ -133,32 +172,79 @@ export default function Chat() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="mt-4 border-t border-gray-200 pt-4">
-        {error && (
-          <p className="text-xs text-red-500 mb-2">{error}</p>
-        )}
-        <div className="flex gap-2">
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) }
-            }}
-            placeholder="Escribe un mensaje..."
-            rows={2}
-            maxLength={1600}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
+      <div className="mt-4 border-t border-gray-200 pt-4 space-y-3">
+        {error && <p className="text-xs text-red-500">{error}</p>}
+
+        {/* Template panel */}
+        {showTemplate ? (
+          <form onSubmit={handleSendTemplate} className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-700">Plantilla aprobada</span>
+              <button type="button" onClick={() => { setShowTemplate(false); setTemplateVars({}) }}
+                className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <select
+              value={selectedTemplate}
+              onChange={(e) => { setSelectedTemplate(e.target.value); setTemplateVars({}) }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {Object.entries(TEMPLATES).map(([key, tpl]) => (
+                <option key={key} value={key}>{tpl.label}</option>
+              ))}
+            </select>
+            {TEMPLATES[selectedTemplate].variables.map((v) => (
+              <input
+                key={v.key}
+                type="text"
+                placeholder={v.label}
+                value={templateVars[v.key] || ''}
+                onChange={(e) => setTemplateVars((prev) => ({ ...prev, [v.key]: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            ))}
+            <button
+              type="submit"
+              disabled={sending}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              {sending ? '...' : 'Enviar plantilla'}
+            </button>
+          </form>
+        ) : (
           <button
-            type="submit"
-            disabled={sending || !body.trim()}
-            className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors self-end"
+            type="button"
+            onClick={() => setShowTemplate(true)}
+            className="text-xs text-teal-600 hover:text-teal-800 font-medium"
           >
-            {sending ? '...' : 'Enviar'}
+            + Usar plantilla aprobada
           </button>
-        </div>
-        <p className="text-xs text-gray-400 mt-1">{body.length}/1600 · Enter para enviar, Shift+Enter nueva línea</p>
-      </form>
+        )}
+
+        {/* Freeform */}
+        <form onSubmit={handleSend}>
+          <div className="flex gap-2">
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) }
+              }}
+              placeholder="Escribe un mensaje libre (solo si escribió en las últimas 24h)..."
+              rows={2}
+              maxLength={1600}
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+            <button
+              type="submit"
+              disabled={sending || !body.trim()}
+              className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors self-end"
+            >
+              {sending ? '...' : 'Enviar'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">{body.length}/1600 · Enter para enviar, Shift+Enter nueva línea</p>
+        </form>
+      </div>
     </div>
   )
 }

@@ -6,7 +6,16 @@ export default function Conversations() {
   const [conversations, setConversations] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [newPhone, setNewPhone] = useState('')
+  const [showNewChat, setShowNewChat] = useState(false)
   const navigate = useNavigate()
+
+  const handleNewChat = (e) => {
+    e.preventDefault()
+    const phone = newPhone.trim()
+    if (!phone) return
+    navigate(`/whatsapp/${encodeURIComponent(phone)}`)
+  }
 
   const load = (q = '') => {
     setLoading(true)
@@ -37,8 +46,39 @@ export default function Conversations() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">WhatsApp</h1>
-        <span className="text-sm text-gray-400">{conversations.length} conversaciones</span>
+        <button
+          onClick={() => setShowNewChat((v) => !v)}
+          className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+        >
+          + Nueva conversación
+        </button>
       </div>
+
+      {showNewChat && (
+        <form onSubmit={handleNewChat} className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={newPhone}
+            onChange={(e) => setNewPhone(e.target.value)}
+            placeholder="Número con código de país, ej: +51987654321"
+            autoFocus
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+          <button
+            type="submit"
+            className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            Ir al chat
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowNewChat(false); setNewPhone('') }}
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+          >
+            Cancelar
+          </button>
+        </form>
+      )}
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
         <input
