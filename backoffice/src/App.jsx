@@ -22,6 +22,8 @@ import OrderQuotations from './pages/orders/Quotations'
 import ReferredOrdersList from './pages/referred-orders/List'
 import AdminReferredOrdersList from './pages/referred-orders/AdminList'
 import CustomersList from './pages/customers/List'
+import WhatsappConversations from './pages/whatsapp/Conversations'
+import WhatsappChat from './pages/whatsapp/Chat'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -146,6 +148,24 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <CustomersList />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* WhatsApp — admin and superadmin */}
+          <Route
+            path="whatsapp"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <WhatsappConversations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="whatsapp/:phone"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <WhatsappChat />
               </ProtectedRoute>
             }
           />
