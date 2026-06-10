@@ -132,6 +132,80 @@ def get_conversation(phone):
     return jsonify({'messages': [m.to_dict() for m in messages]}), 200
 
 
+TEMPLATES = {
+    'cliente': {
+        'label': 'Mensaje a cliente',
+        'env': 'TWILIO_TEMPLATE_CLIENTE',
+        'variables': [
+            {'key': '1', 'label': 'Nombre del cliente'},
+            {'key': '2', 'label': 'URL de cotización'},
+        ],
+    },
+    'transportista': {
+        'label': 'Mensaje a transportista',
+        'env': 'TWILIO_TEMPLATE_TRANSPORTISTA',
+        'variables': [
+            {'key': '1', 'label': 'URL de cotización'},
+        ],
+    },
+}
+
+
+@api.route('/whatsapp/send-template', methods=['POST'])
+@admin_required
+def send_template():
+    data = request.get_json() or {}
+    to_raw = data.get('to', '').strip()
+    template_key = data.get('template', '').strip()
+    variables = data.get('variables', {})
+
+    to_e164 = _normalize_phone(to_raw)
+    if not to_e164:
+        return jsonify({'message': 'Número de teléfono inválido'}), 400
+
+    tpl = TEMPLATES.get(template_key)
+    if not tpl:
+        return jsonify({'message': 'Plantilla no válida'}), 400
+
+    content_sid = os.getenv(tpl['env'])
+    if not content_sid:
+        return jsonify({'message': f"La variable {tpl['env']} no está configurada"}), 500
+
+    from twilio.rest import Client
+    import json as _json
+    try:
+        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
+        if not whatsapp_from.startswith('whatsapp:'):
+            whatsapp_from = 'whatsapp:' + whatsapp_from
+
+        client = Client(account_sid, auth_token)
+        twilio_msg = client.messages.create(
+            from_=whatsapp_from,
+            to='whatsapp:' + to_e164,
+            content_sid=content_sid,
+            content_variables=_json.dumps(variables),
+        )
+
+        msg = WhatsappMessage(
+            message_sid=twilio_msg.sid,
+            direction='outbound',
+            from_number=whatsapp_from.replace('whatsapp:', ''),
+            to_number=to_e164,
+            body=f'[Plantilla: {tpl["label"]}]',
+            sent_by_admin_id=g.current_user.id,
+            status='queued',
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(msg)
+        db.session.commit()
+        return jsonify({'ok': True, 'message': msg.to_dict()}), 200
+    except Exception as e:
+        print(f'[WhatsApp] Error enviando template: {e}', flush=True)
+        return jsonify({'message': 'Error al enviar la plantilla'}), 500
+
+
 @api.route('/whatsapp/send', methods=['POST'])
 @admin_required
 def send_message():
