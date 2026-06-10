@@ -8,6 +8,7 @@ const navItems = [
   { to: '/admin-referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['superadmin', 'admin'] },
   { to: '/carrier-companies', label: 'Empresas', icon: '🏢', roles: ['superadmin', 'admin', 'carrier_company'] },
   { to: '/customers', label: 'Clientes', icon: '🧑‍💼', roles: ['superadmin', 'admin'] },
+  { to: '/whatsapp', label: 'WhatsApp', icon: '💬', roles: ['superadmin', 'admin'] },
   { to: '/users', label: 'Usuarios', icon: '👥', roles: ['superadmin'] },
 ]
 

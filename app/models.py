@@ -229,6 +229,24 @@ class OrderImage(db.Model):
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
+class WhatsappMessage(db.Model):
+	__tablename__ = 'whatsapp_messages'
+	id = db.Column(db.Integer, primary_key=True)
+	message_sid = db.Column(db.String(64), unique=True, index=True)
+	direction = db.Column(db.String(10), nullable=False)  # 'inbound' | 'outbound'
+	from_number = db.Column(db.String(20), nullable=False, index=True)
+	to_number = db.Column(db.String(20), nullable=False)
+	body = db.Column(db.Text)
+	media_urls = db.Column(db.Text)  # JSON array as text
+	profile_name = db.Column(db.String(120))
+	customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True, index=True)
+	admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=True, index=True)
+	sent_by_admin_id = db.Column(db.Integer, db.ForeignKey('admin_users.id'), nullable=True)
+	status = db.Column(db.String(20))
+	error_code = db.Column(db.String(20))
+	error_message = db.Column(db.String(255))
+	created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
 class AdminUser(db.Model):
 	__tablename__ = 'admin_users'
 	__table_args__ = {'extend_existing': True}
@@ -324,3 +342,12 @@ class ReviewSchema(ma.SQLAlchemyAutoSchema):
 		load_instance = True
 		fields = ('id', 'order_id', 'customer_id', 'carrier_company_id',
 				'rating', 'comment', 'created_date')
+
+class WhatsappMessageSchema(ma.SQLAlchemyAutoSchema):
+	class Meta:
+		model = WhatsappMessage
+		load_instance = True
+		fields = ('id', 'message_sid', 'direction', 'from_number', 'to_number',
+				'body', 'media_urls', 'profile_name', 'customer_id',
+				'admin_user_id', 'sent_by_admin_id', 'status', 'error_code',
+				'error_message', 'created_at')

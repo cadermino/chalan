@@ -303,3 +303,43 @@ class ReferredOrder(db.Model):
             'commission': self.commission,
             'created_date': self.created_date.isoformat() if self.created_date else None,
         }
+
+
+class WhatsappMessage(db.Model):
+    __tablename__ = 'whatsapp_messages'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    message_sid = db.Column(db.String(64), unique=True)
+    direction = db.Column(db.String(10), nullable=False)
+    from_number = db.Column(db.String(20), nullable=False)
+    to_number = db.Column(db.String(20), nullable=False)
+    body = db.Column(db.Text)
+    media_urls = db.Column(db.Text)
+    profile_name = db.Column(db.String(120))
+    customer_id = db.Column(db.Integer, nullable=True)
+    admin_user_id = db.Column(db.Integer, nullable=True)
+    sent_by_admin_id = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20))
+    error_code = db.Column(db.String(20))
+    error_message = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'message_sid': self.message_sid,
+            'direction': self.direction,
+            'from_number': self.from_number,
+            'to_number': self.to_number,
+            'body': self.body,
+            'media_urls': self.media_urls,
+            'profile_name': self.profile_name,
+            'customer_id': self.customer_id,
+            'admin_user_id': self.admin_user_id,
+            'sent_by_admin_id': self.sent_by_admin_id,
+            'status': self.status,
+            'error_code': self.error_code,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
