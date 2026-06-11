@@ -29,9 +29,12 @@ def validate_twilio_signature(req):
     from twilio.request_validator import RequestValidator
     validator = RequestValidator(auth_token)
 
-    proto = req.headers.get('X-Forwarded-Proto', req.scheme)
-    host = req.headers.get('X-Forwarded-Host', req.host)
-    url = f"{proto}://{host}{req.path}"
+    base_url = os.getenv('TWILIO_WEBHOOK_BASE_URL', '').rstrip('/')
+    if base_url:
+        url = f"{base_url}{req.path}"
+    else:
+        url = req.url
+
     signature = req.headers.get('X-Twilio-Signature', '')
     return validator.validate(url, req.form.to_dict(), signature)
 
