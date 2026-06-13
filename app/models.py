@@ -27,6 +27,8 @@ class CarrierCompany(db.Model):
 	facebook = db.Column(db.String(200))
 	youtube = db.Column(db.String(200))
 	active = db.Column(db.Integer)
+	logo_image = db.Column(db.String(200))
+	homepage_url = db.Column(db.String(200))
 
 	vehicles = db.relationship("Vehicle", backref="carrier_company")
 	country = db.relationship("LuCountry", backref="carrier_company")
