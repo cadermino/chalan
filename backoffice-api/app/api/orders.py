@@ -398,7 +398,7 @@ def list_referred_orders():
         result.append({
             **order.to_dict(),
             'referred_by': ref.admin_user_id,
-            'referred_date': ref.created_date.isoformat() if ref.created_date else None,
+            'referred_date': ref.created_date.isoformat() + '+00:00' if ref.created_date else None,
             'commission': ref.commission,
             'origin': origin.to_dict() if origin else None,
             'destination': destination.to_dict() if destination else None,
@@ -445,7 +445,7 @@ def admin_list_referred_orders():
             'agent_name': agent_name,
             'agent_email': agent.email if agent else None,
             'commission_rate': agent.commission_rate if agent else None,
-            'referred_date': ref.created_date.isoformat() if ref.created_date else None,
+            'referred_date': ref.created_date.isoformat() + '+00:00' if ref.created_date else None,
             'commission': ref.commission,
             'origin': origin.to_dict() if origin else None,
             'destination': destination.to_dict() if destination else None,
