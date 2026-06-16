@@ -11,6 +11,14 @@ def _generate_referral_code():
     alphabet = string.ascii_uppercase + string.digits
     return 'AGT-' + ''.join(secrets.choice(alphabet) for _ in range(5))
 
+
+def _iso(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.isoformat() + '+00:00'
+    return dt.isoformat()
+
 from . import db
 
 # Roles
@@ -81,7 +89,7 @@ class AdminUser(db.Model):
             'referral_code': self.referral_code,
             'commission_rate': self.commission_rate,
             'active': bool(self.active),
-            'created_date': self.created_date.isoformat() if self.created_date else None,
+            'created_date': _iso(self.created_date),
         }
 
 
@@ -113,7 +121,7 @@ class Customer(db.Model):
             'email': self.email,
             'mobile_phone': self.mobile_phone,
             'phone': self.phone,
-            'created_date': self.created_date.isoformat() if self.created_date else None,
+            'created_date': _iso(self.created_date),
         }
 
 class CarrierCompany(db.Model):
@@ -224,11 +232,11 @@ class Order(db.Model):
         return {
             'id': self.id,
             'order_status_id': self.order_status_id,
-            'appointment_date': self.appointment_date.isoformat() if self.appointment_date else None,
+            'appointment_date': _iso(self.appointment_date),
             'comments': self.comments,
             'total_kilometers': self.total_kilometers,
             'approximate_budget': self.approximate_budget,
-            'created_date': self.created_date.isoformat() if self.created_date else None,
+            'created_date': _iso(self.created_date),
         }
 
 
@@ -279,7 +287,7 @@ class Quotation(db.Model):
             'carrier_company_id': self.carrier_company_id,
             'selected': bool(self.selected),
             'quotation_status_id': self.quotation_status_id,
-            'created_date': self.created_date.isoformat() if self.created_date else None,
+            'created_date': _iso(self.created_date),
         }
 
 
@@ -301,7 +309,7 @@ class ReferredOrder(db.Model):
             'admin_user_id': self.admin_user_id,
             'order_id': self.order_id,
             'commission': self.commission,
-            'created_date': self.created_date.isoformat() if self.created_date else None,
+            'created_date': _iso(self.created_date),
         }
 
 
@@ -341,5 +349,5 @@ class WhatsappMessage(db.Model):
             'status': self.status,
             'error_code': self.error_code,
             'error_message': self.error_message,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': _iso(self.created_at),
         }
