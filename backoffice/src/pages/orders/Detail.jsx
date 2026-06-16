@@ -105,7 +105,7 @@ export default function OrderDetail() {
         <div className="bg-white rounded-xl shadow p-5 grid grid-cols-2 gap-4">
           <Field
             label="Fecha de mudanza"
-            value={order.appointment_date ? new Date(order.appointment_date).toLocaleDateString('es-PE', { dateStyle: 'long' }) : null}
+            value={order.appointment_date ? new Date(order.appointment_date).toLocaleDateString('es-PE', { dateStyle: 'long', timeZone: 'America/Lima' }) : null}
           />
           <Field label="Kilómetros" value={order.total_kilometers} />
           <Field label="Presupuesto aproximado" value={order.approximate_budget ? `S/ ${order.approximate_budget}` : null} />
@@ -123,7 +123,7 @@ export default function OrderDetail() {
             <p className="text-sm font-semibold text-gray-700 mb-2">Tu cotización enviada</p>
             <p className="text-2xl font-bold text-teal-600">S/ {order.existing_quotation.amount}</p>
             <p className="text-xs text-gray-400 mt-1">
-              Enviada el {new Date(order.existing_quotation.created_date).toLocaleDateString('es-PE')}
+              Enviada el {new Date(order.existing_quotation.created_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}
             </p>
           </div>
         )}

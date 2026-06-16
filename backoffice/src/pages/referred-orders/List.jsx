@@ -106,7 +106,7 @@ export default function ReferredOrdersList() {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE') : '—'}
+                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {STATUS_LABEL[o.order_status_id] || o.order_status_id}
@@ -115,7 +115,7 @@ export default function ReferredOrdersList() {
                     {o.commission ? `S/ ${o.commission.toFixed(2)}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.referred_date ? new Date(o.referred_date).toLocaleDateString('es-PE') : '—'}
+                    {o.referred_date ? new Date(o.referred_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                 </tr>
               ))}

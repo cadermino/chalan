@@ -59,10 +59,10 @@ export default function MyOrders() {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.created_date ? new Date(o.created_date).toLocaleDateString('es-PE') : '—'}
+                    {o.created_date ? new Date(o.created_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE') : '—'}
+                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-700 font-medium">
                     {o.quotation_amount != null
