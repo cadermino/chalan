@@ -32,14 +32,17 @@ export default function Conversations() {
     load(search)
   }
 
+  const TZ = 'America/Lima'
+
   const formatDate = (iso) => {
     if (!iso) return '—'
     const d = new Date(iso)
-    const today = new Date()
-    if (d.toDateString() === today.toDateString()) {
-      return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+    const todayStr = new Date().toLocaleDateString('es-PE', { timeZone: TZ })
+    const dStr = d.toLocaleDateString('es-PE', { timeZone: TZ })
+    if (dStr === todayStr) {
+      return d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: TZ })
     }
-    return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' })
+    return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', timeZone: TZ })
   }
 
   return (

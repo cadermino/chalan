@@ -153,7 +153,7 @@ export default function OrderQuotations() {
                     {STATUS_LABEL[q.quotation_status_id] || q.quotation_status_id}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {q.created_date ? new Date(q.created_date).toLocaleDateString('es-PE') : '—'}
+                    {q.created_date ? new Date(q.created_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                 </tr>
               ))}

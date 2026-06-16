@@ -27,9 +27,11 @@ const STATUS_ICONS = {
   received: '',
 }
 
+const TZ = 'America/Lima'
+
 function formatTime(iso) {
   if (!iso) return ''
-  return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: TZ })
 }
 
 export default function Chat() {

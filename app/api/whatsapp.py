@@ -1,7 +1,7 @@
 import os
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import Thread
 from flask import current_app, request as flask_request
 
@@ -94,7 +94,7 @@ def send_whatsapp_freeform(to_e164, body, sent_by_admin_id=None):
         body=body,
         sent_by_admin_id=sent_by_admin_id,
         status='queued',
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.session.add(msg)
     db.session.commit()
@@ -102,30 +102,62 @@ def send_whatsapp_freeform(to_e164, body, sent_by_admin_id=None):
     return msg
 
 
-def notify_inbound_email(msg):
+def notify_inbound(msg):
     from .email import send_email
+    from twilio.rest import Client
     app = current_app._get_current_object()
 
-    def _send(app, msg_id, from_number, profile_name, body, created_at):
+    def _send(app, from_number, profile_name, body, created_at):
         with app.app_context():
             try:
                 display = profile_name or from_number
-                send_email(
-                    'cadermino@gmail.com',
-                    f'[WhatsApp] Mensaje de {display}',
-                    'email/whatsapp_inbound',
-                    bcc=[],
-                    from_number=from_number,
-                    profile_name=profile_name,
-                    body=body,
-                    created_at=created_at,
-                    backoffice_url=f"{os.getenv('SITE_URL', '')}/backoffice/whatsapp/{from_number}",
-                )
+                backoffice_url = f"{os.getenv('SITE_URL', '').rstrip('/')}/backoffice/whatsapp/{from_number}"
+
+                notify_email = os.getenv('NOTIFY_EMAIL')
+                if notify_email:
+                    send_email(
+                        notify_email,
+                        f'[WhatsApp] Mensaje de {display}',
+                        'email/whatsapp_inbound',
+                        bcc=[],
+                        from_number=from_number,
+                        profile_name=profile_name,
+                        body=body,
+                        created_at=created_at,
+                        backoffice_url=backoffice_url,
+                    )
             except Exception as e:
                 print(f'[WhatsApp] Error enviando email de notificación: {e}', flush=True)
 
+            try:
+                notify_phone = normalize_phone(os.getenv('NOTIFY_WHATSAPP_PHONE'))
+                content_sid = os.getenv('TWILIO_TEMPLATE_NOTIFICACION_INBOUND')
+                if notify_phone and content_sid:
+                    whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
+                    if not whatsapp_from.startswith('whatsapp:'):
+                        whatsapp_from = 'whatsapp:' + whatsapp_from
+                    client = Client(
+                        os.getenv('TWILIO_ACCOUNT_SID'),
+                        os.getenv('TWILIO_AUTH_TOKEN'),
+                    )
+                    client.messages.create(
+                        from_=whatsapp_from,
+                        to='whatsapp:' + notify_phone,
+                        content_sid=content_sid,
+                        content_variables=json.dumps({
+                            '1': profile_name or from_number,
+                            '2': from_number,
+                            '3': created_at.strftime('%d/%m/%Y %H:%M') if created_at else '',
+                            '4': body or '(sin texto)',
+                            '5': backoffice_url,
+                        }),
+                    )
+                    print(f'[WhatsApp] Notificación inbound enviada a {notify_phone}', flush=True)
+            except Exception as e:
+                print(f'[WhatsApp] Error enviando notificación WhatsApp: {e}', flush=True)
+
     thr = Thread(target=_send, args=[
-        app, msg.id, msg.from_number, msg.profile_name, msg.body, msg.created_at
+        app, msg.from_number, msg.profile_name, msg.body, msg.created_at
     ])
     thr.start()
     return thr

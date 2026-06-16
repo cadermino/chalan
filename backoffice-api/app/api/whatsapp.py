@@ -1,7 +1,7 @@
 import os
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import jsonify, request, g
 from sqlalchemy import case, func
 
@@ -52,7 +52,7 @@ def _send_freeform(to_e164, body, sent_by_admin_id=None):
         body=body,
         sent_by_admin_id=sent_by_admin_id,
         status='queued',
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.session.add(msg)
     db.session.commit()
@@ -196,7 +196,7 @@ def send_template():
             body=f'[Plantilla: {tpl["label"]}]',
             sent_by_admin_id=g.current_user.id,
             status='queued',
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         db.session.add(msg)
         db.session.commit()

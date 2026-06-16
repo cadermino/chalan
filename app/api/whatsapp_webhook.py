@@ -4,7 +4,7 @@ from flask import request, abort, Response
 from . import api
 from .. import db
 from ..models import WhatsappMessage
-from .whatsapp import validate_twilio_signature, lookup_contact, notify_inbound_email
+from .whatsapp import validate_twilio_signature, lookup_contact, notify_inbound
 
 
 @api.route('/whatsapp/webhook', methods=['POST'])
@@ -49,7 +49,7 @@ def whatsapp_webhook():
     db.session.add(msg)
     db.session.commit()
 
-    notify_inbound_email(msg)
+    notify_inbound(msg)
 
     return Response('<Response/>', mimetype='application/xml')
 

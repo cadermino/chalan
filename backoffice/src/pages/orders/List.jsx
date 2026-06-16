@@ -70,13 +70,13 @@ export default function OrdersList() {
                   <td className="px-4 py-3 text-gray-500">
                     {o.created_date ? (
                       <div>
-                        <div>{new Date(o.created_date).toLocaleDateString('es-PE')}</div>
-                        <div className="text-xs text-gray-400">{new Date(o.created_date).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div>{new Date(o.created_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}</div>
+                        <div className="text-xs text-gray-400">{new Date(o.created_date).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' })}</div>
                       </div>
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE') : '—'}
+                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {STATUS_LABEL[o.order_status_id] || o.order_status_id}

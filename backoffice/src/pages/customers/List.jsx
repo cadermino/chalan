@@ -75,7 +75,7 @@ export default function CustomersList() {
                   <td className="px-4 py-3 text-gray-500">{c.phone || '—'}</td>
                   <td className="px-4 py-3 text-gray-400">
                     {c.created_date
-                      ? new Date(c.created_date).toLocaleDateString('es-PE')
+                      ? new Date(c.created_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' })
                       : '—'}
                   </td>
                 </tr>

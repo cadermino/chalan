@@ -90,7 +90,7 @@ export default function AdminReferredOrdersList() {
                     {o.commission != null ? fmt(o.commission) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.referred_date ? new Date(o.referred_date).toLocaleDateString('es-PE') : '—'}
+                    {o.referred_date ? new Date(o.referred_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
                 </tr>
               ))}
