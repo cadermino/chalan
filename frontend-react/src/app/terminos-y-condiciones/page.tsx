@@ -37,6 +37,10 @@ export default function TerminosYCondiciones() {
         </h1>
 
         <div className="space-y-6 text-gray-700 leading-relaxed">
+          <p className="text-sm text-gray-500">
+            Razón social: <strong>Chalán Soluciones Empresa Individual de Responsabilidad Limitada</strong> · RUC 20616033094
+          </p>
+
           <h2 className="text-lg font-bold text-gray-900">
             1. Relación contractual
           </h2>

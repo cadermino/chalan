@@ -32,7 +32,7 @@
                 class="theme-chalan"
                 :min-datetime="minDatetime"
                 :max-datetime="maxDatetime"
-                placeholder="17 de diciembre de 2024 18:00"
+                placeholder="17 de diciembre de 2026 18:00"
               >
               </Datetime>
               <p v-if="formValidationMessages['appointment_date']"
