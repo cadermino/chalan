@@ -42,12 +42,14 @@
     <!--Nav-->
     <Navbar></Navbar>
     <router-view/>
+    <ChatWidget />
   </div>
 </template>
 
 <script>
 import { mapActions, mapState } from 'vuex';
 import Navbar from '@/components/Navbar.vue';
+import ChatWidget from '@/components/ChatWidget.vue';
 
 import countryData from './countryData';
 
@@ -62,6 +64,7 @@ export default {
   },
   components: {
     Navbar,
+    ChatWidget,
   },
   created() {
     const params = new URLSearchParams(window.location.search);

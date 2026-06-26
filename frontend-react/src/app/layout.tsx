@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import Script from "next/script";
 import { Suspense } from "react";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { ChatWidget } from "@/components/ChatWidget";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -78,6 +79,7 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         {children}
+        <ChatWidget />
         <Script
           id="inspectlet"
           strategy="afterInteractive"
