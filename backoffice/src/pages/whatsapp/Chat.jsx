@@ -105,7 +105,10 @@ export default function Chat() {
     }
   }
 
-  const displayName = messages[0]?.profile_name || decodedPhone
+  const isWebChat = decodedPhone.startsWith('web:')
+  const displayName = isWebChat
+    ? (messages[0]?.profile_name || 'Chat web')
+    : (messages[0]?.profile_name || decodedPhone)
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -117,11 +120,16 @@ export default function Chat() {
         >
           ←
         </button>
-        <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold ${isWebChat ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
           {displayName[0]?.toUpperCase() || '?'}
         </div>
         <div>
-          <p className="font-medium text-gray-900 text-sm">{displayName}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-gray-900 text-sm">{displayName}</p>
+            {isWebChat && (
+              <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">Web</span>
+            )}
+          </div>
           <p className="text-xs text-gray-400">{decodedPhone}</p>
         </div>
       </div>
@@ -177,8 +185,8 @@ export default function Chat() {
       <div className="mt-4 border-t border-gray-200 pt-4 space-y-3">
         {error && <p className="text-xs text-red-500">{error}</p>}
 
-        {/* Template panel */}
-        {showTemplate ? (
+        {/* Template panel — solo para WhatsApp */}
+        {!isWebChat && (showTemplate ? (
           <form onSubmit={handleSendTemplate} className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-700">Plantilla aprobada</span>
@@ -220,7 +228,7 @@ export default function Chat() {
           >
             + Usar plantilla aprobada
           </button>
-        )}
+        ))}
 
         {/* Freeform */}
         <form onSubmit={handleSend}>
@@ -231,7 +239,7 @@ export default function Chat() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e) }
               }}
-              placeholder="Escribe un mensaje libre (solo si escribió en las últimas 24h)..."
+              placeholder={isWebChat ? 'Escribe un mensaje...' : 'Escribe un mensaje libre (solo si escribió en las últimas 24h)...'}
               rows={2}
               maxLength={1600}
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500"

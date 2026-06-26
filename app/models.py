@@ -246,6 +246,7 @@ class WhatsappMessage(db.Model):
 	error_code = db.Column(db.String(20))
 	error_message = db.Column(db.String(255))
 	created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+	channel = db.Column(db.String(10), nullable=False, default='whatsapp')  # 'whatsapp' | 'web'
 
 class AdminUser(db.Model):
 	__tablename__ = 'admin_users'
@@ -350,4 +351,4 @@ class WhatsappMessageSchema(ma.SQLAlchemyAutoSchema):
 		fields = ('id', 'message_sid', 'direction', 'from_number', 'to_number',
 				'body', 'media_urls', 'profile_name', 'customer_id',
 				'admin_user_id', 'sent_by_admin_id', 'status', 'error_code',
-				'error_message', 'created_at')
+				'error_message', 'created_at', 'channel')

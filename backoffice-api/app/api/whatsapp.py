@@ -104,6 +104,7 @@ def list_conversations():
                 customer.name if customer else None,
                 customer.paternal_last_name if customer else None,
             ])) or None,
+            'channel': msg.channel or 'whatsapp',
         })
 
     return jsonify({'conversations': result}), 200
@@ -213,11 +214,29 @@ def send_message():
     to_raw = data.get('to', '').strip()
     body = data.get('body', '').strip()
 
+    if not body:
+        return jsonify({'message': 'El mensaje no puede estar vacío'}), 400
+
+    if to_raw.startswith('web:'):
+        if len(body) > 1000:
+            return jsonify({'message': 'El mensaje excede 1000 caracteres'}), 400
+        msg = WhatsappMessage(
+            direction='outbound',
+            from_number='web',
+            to_number=to_raw,
+            body=body,
+            channel='web',
+            sent_by_admin_id=g.current_user.id,
+            status='delivered',
+            created_at=datetime.now(timezone.utc),
+        )
+        db.session.add(msg)
+        db.session.commit()
+        return jsonify({'ok': True, 'message': msg.to_dict()}), 200
+
     to_e164 = _normalize_phone(to_raw)
     if not to_e164:
         return jsonify({'message': 'Número de teléfono inválido'}), 400
-    if not body:
-        return jsonify({'message': 'El mensaje no puede estar vacío'}), 400
     if len(body) > 1600:
         return jsonify({'message': 'El mensaje excede 1600 caracteres'}), 400
 

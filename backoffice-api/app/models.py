@@ -332,6 +332,7 @@ class WhatsappMessage(db.Model):
     error_code = db.Column(db.String(20))
     error_message = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, nullable=False)
+    channel = db.Column(db.String(10), nullable=False, default='whatsapp')
 
     def to_dict(self):
         return {
@@ -350,4 +351,5 @@ class WhatsappMessage(db.Model):
             'error_code': self.error_code,
             'error_message': self.error_message,
             'created_at': _iso(self.created_at),
+            'channel': self.channel or 'whatsapp',
         }
