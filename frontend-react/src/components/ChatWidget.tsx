@@ -58,7 +58,7 @@ export function ChatWidget() {
 
   useEffect(() => {
     setSessionId(getOrCreateSession())
-    if (pathname === '/') return
+    if (pathname === '/' || window.innerWidth < 640) return
     const t = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY)
     return () => clearTimeout(t)
   }, [pathname])
