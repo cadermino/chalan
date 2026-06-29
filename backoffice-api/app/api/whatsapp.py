@@ -138,8 +138,7 @@ TEMPLATES = {
         'label': 'Mensaje a cliente',
         'env': 'TWILIO_TEMPLATE_CLIENTE',
         'variables': [
-            {'key': '1', 'label': 'Nombre del cliente'},
-            {'key': '2', 'label': 'URL de cotización'},
+            {'key': '1', 'label': 'URL de cotización'},
         ],
     },
     'transportista': {

@@ -6,8 +6,7 @@ const TEMPLATES = {
   cliente: {
     label: 'Mensaje a cliente',
     variables: [
-      { key: '1', label: 'Nombre del cliente' },
-      { key: '2', label: 'URL de cotización' },
+      { key: '1', label: 'URL de cotización' },
     ],
   },
   transportista: {
