@@ -87,18 +87,37 @@ def list_conversations():
 
     result = []
     for msg, contact_number in rows:
-        if search and search not in (contact_number or '') and search not in (msg.profile_name or ''):
+        profile_name = msg.profile_name
+        if not profile_name:
+            inbound = (
+                WhatsappMessage.query
+                .filter(
+                    db.or_(
+                        WhatsappMessage.from_number == contact_number,
+                        WhatsappMessage.to_number == contact_number,
+                    ),
+                    WhatsappMessage.direction == 'inbound',
+                    WhatsappMessage.profile_name.isnot(None),
+                )
+                .order_by(WhatsappMessage.id.desc())
+                .first()
+            )
+            profile_name = inbound.profile_name if inbound else None
+
+        if search and search not in (contact_number or '') and search not in (profile_name or ''):
             continue
+
         customer = None
         if msg.customer_id:
             customer = Customer.query.get(msg.customer_id)
 
+        last_at = msg.created_at
         result.append({
             'contact_number': contact_number,
             'last_message_body': msg.body,
-            'last_message_at': msg.created_at.isoformat() if msg.created_at else None,
+            'last_message_at': (last_at.isoformat() + '+00:00') if last_at else None,
             'direction': msg.direction,
-            'profile_name': msg.profile_name,
+            'profile_name': profile_name,
             'customer_id': msg.customer_id,
             'customer_name': ' '.join(filter(None, [
                 customer.name if customer else None,
