@@ -37,7 +37,41 @@ function CloseIcon() {
   )
 }
 
-export function LandingNav() {
+interface NavLink {
+  label: string
+  href: string
+  external?: boolean
+  muted?: boolean
+}
+
+interface NavCta {
+  label: string
+  href: string
+  external?: boolean
+  icon?: React.ReactNode
+}
+
+interface LandingNavProps {
+  links?: NavLink[]
+  cta?: NavCta
+}
+
+const DEFAULT_LINKS: NavLink[] = [
+  { label: 'Cómo funciona', href: '/como-funciona' },
+  { label: 'Flota', href: '/#flota' },
+  { label: 'Rutas', href: '/fletes-peru' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Preguntas', href: '/preguntas-frecuentes' },
+  { label: 'Ingresar', href: '/register-login', muted: true },
+  { label: 'WhatsApp', href: 'https://wa.me/51972643007', external: true },
+]
+
+const DEFAULT_CTA: NavCta = {
+  label: 'Cotizar',
+  href: '/order/step-one',
+}
+
+export function LandingNav({ links = DEFAULT_LINKS, cta = DEFAULT_CTA }: LandingNavProps) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
 
@@ -54,15 +88,26 @@ export function LandingNav() {
 
             {/* Desktop */}
             <nav className="nav nav-links" aria-label="Navegación principal">
-              <Link href="/como-funciona">Cómo funciona</Link>
-              <Link href="/#flota">Flota</Link>
-              <Link href="/fletes-peru">Rutas</Link>
-              <Link href="/blog">Blog</Link>
-              <Link href="/preguntas-frecuentes">Preguntas</Link>
+              {links.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}
+                  style={l.muted ? { opacity: 0.65 } : undefined}
+                >
+                  {l.label}
+                </Link>
+              ))}
               <span className="sep" aria-hidden />
-              <Link href="/register-login" style={{ opacity: 0.65 }}>Ingresar</Link>
-              <Link href="https://wa.me/51972643007" target="_blank" rel="noopener" aria-label="Contáctanos por WhatsApp" style={{ opacity: 0.85 }}>WhatsApp</Link>
-              <Link href="/order/step-one" className="btn btn-primary">Cotizar <Arrow className="arrow" /></Link>
+              <Link
+                href={cta.href}
+                className="btn btn-primary"
+                {...(cta.external ? { target: '_blank', rel: 'noopener' } : {})}
+              >
+                {cta.icon}
+                {cta.label}
+                <Arrow className="arrow" />
+              </Link>
             </nav>
 
             {/* Hamburger */}
@@ -80,16 +125,27 @@ export function LandingNav() {
           {open && (
             <div className="nav-mobile" role="dialog" aria-label="Menú de navegación">
               <div className="wrap">
-                <Link href="/como-funciona" onClick={close}>Cómo funciona</Link>
-                <Link href="/#flota" onClick={close}>Flota</Link>
-                <Link href="/fletes-peru" onClick={close}>Rutas</Link>
-                <Link href="/blog" onClick={close}>Blog</Link>
-                <Link href="/preguntas-frecuentes" onClick={close}>Preguntas</Link>
+                {links.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={close}
+                    {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}
+                    style={l.muted ? { opacity: 0.65 } : undefined}
+                  >
+                    {l.label}
+                  </Link>
+                ))}
                 <div className="nav-mobile-sep" />
-                <Link href="/register-login" onClick={close} style={{ opacity: 0.65 }}>Ingresar</Link>
-                <Link href="https://wa.me/51972643007" target="_blank" rel="noopener" onClick={close} style={{ opacity: 0.85 }}>WhatsApp</Link>
-                <Link href="/order/step-one" className="btn btn-primary nav-mobile-cta" onClick={close}>
-                  Cotizar <Arrow className="arrow" />
+                <Link
+                  href={cta.href}
+                  className="btn btn-primary nav-mobile-cta"
+                  onClick={close}
+                  {...(cta.external ? { target: '_blank', rel: 'noopener' } : {})}
+                >
+                  {cta.icon}
+                  {cta.label}
+                  <Arrow className="arrow" />
                 </Link>
               </div>
             </div>

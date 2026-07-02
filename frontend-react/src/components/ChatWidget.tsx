@@ -16,12 +16,19 @@ interface Message {
   created_at: string
 }
 
-const PHANTOM_MESSAGE: Message = {
-  id: '__phantom__',
-  direction: 'outbound',
-  body: '¡Hola! 👋 ¿Tienes dudas sobre tu mudanza o flete? Escríbenos y te ayudamos.',
-  status: 'received',
-  created_at: new Date().toISOString(),
+const PHANTOM_MESSAGES: Record<string, string> = {
+  '/embalaje-profesional': '¡Hola! 👋 ¿Tienes dudas sobre el servicio de embalaje? Cuéntanos qué necesitas embalar y te cotizamos.',
+}
+const DEFAULT_PHANTOM = '¡Hola! 👋 ¿Tienes dudas sobre tu mudanza o flete? Escríbenos y te ayudamos.'
+
+function getPhantomMessage(pathname: string): Message {
+  return {
+    id: '__phantom__',
+    direction: 'outbound',
+    body: PHANTOM_MESSAGES[pathname] ?? DEFAULT_PHANTOM,
+    status: 'received',
+    created_at: new Date().toISOString(),
+  }
 }
 
 function getOrCreateSession(): string {
@@ -58,7 +65,8 @@ export function ChatWidget() {
 
   useEffect(() => {
     setSessionId(getOrCreateSession())
-    if (pathname === '/' || window.innerWidth < 640) return
+    const NO_AUTOOPEN = ['/', '/embalaje-profesional']
+    if (NO_AUTOOPEN.includes(pathname) || window.innerWidth < 640) return
     const t = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY)
     return () => clearTimeout(t)
   }, [pathname])
@@ -151,7 +159,7 @@ export function ChatWidget() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-gray-50">
-            {(messages.length === 0 ? [PHANTOM_MESSAGE] : messages).map((m) => {
+            {(messages.length === 0 ? [getPhantomMessage(pathname)] : messages).map((m) => {
               const isUser = m.direction === 'inbound'
               return (
                 <div key={m.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>

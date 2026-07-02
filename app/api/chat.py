@@ -3,6 +3,7 @@ from flask import jsonify, request
 from . import api
 from ..models import WhatsappMessage
 from .. import db
+from .whatsapp import notify_inbound
 
 _WEB_TO = 'web'
 
@@ -47,6 +48,7 @@ def chat_send():
     )
     db.session.add(msg)
     db.session.commit()
+    notify_inbound(msg)
     return jsonify({'ok': True, 'message': _msg_dict(msg)}), 201
 
 
