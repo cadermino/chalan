@@ -286,6 +286,32 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── SERVICES ── */}
+      <section className="block">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="num">02b / Servicios</div>
+            <h2 className="h-section">¿Solo necesitas<br />embalar?</h2>
+          </div>
+          <div className="fleet">
+            <div className="fleet-row head">
+              <span />
+              <span>Servicio</span>
+              <span className="col-hide">Descripción</span>
+              <span />
+            </div>
+            <div className="fleet-row" style={{ gridTemplateColumns: '60px 2fr 3fr 140px' }}>
+              <span className="idx">01</span>
+              <span className="name">Embalaje profesional<span className="desc">— a domicilio en Lima</span></span>
+              <span className="figure col-hide" style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
+                Materiales incluidos. Sin mudanza obligatoria.
+              </span>
+              <Link href="/embalaje-profesional" className="pick">ver servicio <Arrow /></Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── TESTIMONIALS ── */}
       <section className="block">
         <div className="wrap">

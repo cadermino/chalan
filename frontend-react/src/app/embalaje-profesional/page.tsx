@@ -268,6 +268,7 @@ export default function EmbalajeProfesional() {
           { label: 'Planes', href: '#planes' },
           { label: 'Materiales', href: '#materiales' },
           { label: 'Preguntas', href: '#faq' },
+          { label: 'Blog', href: '/blog' },
         ]}
         cta={{
           label: 'Cotizar por WhatsApp',
