@@ -25,6 +25,7 @@ export function LandingFooter() {
                 <li><Link href="/mudanzas-lima">Mudanzas en Lima</Link></li>
                 <li><Link href="/mudanzas-huancayo">Mudanzas en Huancayo</Link></li>
                 <li><Link href="/fletes-peru">Fletes en Perú</Link></li>
+                <li><Link href="/embalaje-profesional">Embalaje profesional</Link></li>
                 <li><Link href="/order/step-one">Cotizar</Link></li>
               </ul>
             </div>
