@@ -110,6 +110,8 @@ def notify_inbound(msg):
     def _send(app, from_number, profile_name, body, created_at):
         with app.app_context():
             try:
+                is_web = from_number.startswith('web:')
+                channel_label = 'Web' if is_web else 'WhatsApp'
                 display = profile_name or from_number
                 backoffice_url = f"{os.getenv('SITE_URL', '').rstrip('/')}/backoffice/whatsapp/{from_number}"
 
@@ -117,7 +119,7 @@ def notify_inbound(msg):
                 if notify_email:
                     send_email(
                         notify_email,
-                        f'[WhatsApp] Mensaje de {display}',
+                        f'[{channel_label}] Mensaje de {display}',
                         'email/whatsapp_inbound',
                         bcc=[],
                         from_number=from_number,
@@ -125,6 +127,7 @@ def notify_inbound(msg):
                         body=body,
                         created_at=created_at,
                         backoffice_url=backoffice_url,
+                        channel_label=channel_label,
                     )
             except Exception as e:
                 print(f'[WhatsApp] Error enviando email de notificación: {e}', flush=True)
