@@ -72,7 +72,7 @@ def create_quotation():
         quotation_status_id = quotation.quotation_status_id
         status_response = 201
 
-        step_three_url = f"{os.getenv('SITE_URL')}order/{order_id}/step-three"
+        step_three_url = f"{os.getenv('SITE_URL')}order/step-three"
         subject = 'Tienes un nueva cotización para tu mudanza Chalán'
         send_email(
             customer.email,
@@ -85,7 +85,7 @@ def create_quotation():
         send_whatsapp(
             customer.mobile_phone,
             os.getenv('TWILIO_TEMPLATE_CLIENTE'),
-            {'1': customer.name, '2': step_three_url},
+            {'1': step_three_url},
         )
     else:
         message = 'quotation {id} created!'.format(id=previous_quotation.id)
