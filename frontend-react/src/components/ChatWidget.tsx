@@ -3,16 +3,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || ''
+// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { response }
+const AGENT_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message'
+const TENANT_ID = process.env.NEXT_PUBLIC_CHAT_TENANT_ID || ''
+
 const SESSION_KEY = 'chalan_chat_session'
-const POLL_INTERVAL = 5000
+const HISTORY_KEY = 'chalan_chat_history'
 const AUTO_OPEN_DELAY = 4000
 
 interface Message {
-  id: number | string
-  direction: 'inbound' | 'outbound'
+  id: string
+  role: 'user' | 'agent'
   body: string
-  status: string
   created_at: string
 }
 
@@ -24,23 +26,48 @@ const DEFAULT_PHANTOM = '¡Hola! 👋 ¿Tienes dudas sobre tu mudanza o flete? E
 function getPhantomMessage(pathname: string): Message {
   return {
     id: '__phantom__',
-    direction: 'outbound',
+    role: 'agent',
     body: PHANTOM_MESSAGES[pathname] ?? DEFAULT_PHANTOM,
-    status: 'received',
     created_at: new Date().toISOString(),
+  }
+}
+
+function newId(): string {
+  try {
+    return crypto.randomUUID()
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   }
 }
 
 function getOrCreateSession(): string {
   try {
     let id = localStorage.getItem(SESSION_KEY)
-    if (!id || !/^[a-z0-9]{12}$/.test(id)) {
-      id = Math.random().toString(36).slice(2, 14).padEnd(12, '0')
+    if (!id) {
+      id = newId()
       localStorage.setItem(SESSION_KEY, id)
     }
     return id
   } catch {
-    return Math.random().toString(36).slice(2, 14).padEnd(12, '0')
+    return newId()
+  }
+}
+
+function loadHistory(sid: string): Message[] {
+  try {
+    const raw = localStorage.getItem(`${HISTORY_KEY}:${sid}`)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveHistory(sid: string, messages: Message[]) {
+  try {
+    localStorage.setItem(`${HISTORY_KEY}:${sid}`, JSON.stringify(messages))
+  } catch {
+    /* storage full or unavailable — ignore */
   }
 }
 
@@ -58,64 +85,109 @@ export function ChatWidget() {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [seenCount, setSeenCount] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const hasUnread = !open && messages.filter((m) => m.direction === 'outbound').length > seenCount
+  const hasUnread = !open && messages.filter((m) => m.role === 'agent').length > seenCount
 
+  // Bootstrap session + restore visible history from localStorage.
   useEffect(() => {
-    setSessionId(getOrCreateSession())
+    const sid = getOrCreateSession()
+    setSessionId(sid)
+    setMessages(loadHistory(sid))
     const NO_AUTOOPEN = ['/', '/embalaje-profesional']
     if (NO_AUTOOPEN.includes(pathname) || window.innerWidth < 640) return
     const t = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY)
     return () => clearTimeout(t)
   }, [pathname])
 
-  const fetchMessages = (sid: string) => {
-    fetch(`${API_BASE}/api/v1/chat/messages/${sid}`)
-      .then((r) => r.json())
-      .then((d) => { if (Array.isArray(d.messages)) setMessages(d.messages) })
-      .catch(() => {})
-  }
+  // Persist visible history so the conversation survives reloads.
+  useEffect(() => {
+    if (sessionId) saveHistory(sessionId, messages)
+  }, [sessionId, messages])
 
   useEffect(() => {
-    if (!sessionId || !open) return
-    fetchMessages(sessionId)
-    pollRef.current = setInterval(() => fetchMessages(sessionId), POLL_INTERVAL)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [sessionId, open])
-
-  useEffect(() => {
-    if (open) setSeenCount(messages.filter((m) => m.direction === 'outbound').length)
+    if (open) setSeenCount(messages.filter((m) => m.role === 'agent').length)
   }, [open, messages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, open])
+  }, [messages, open, sending])
 
   useEffect(() => {
     if (open) setTimeout(() => textareaRef.current?.focus(), 100)
   }, [open])
 
+  const resetConversation = () => {
+    const sid = newId()
+    try {
+      localStorage.setItem(SESSION_KEY, sid)
+      localStorage.removeItem(`${HISTORY_KEY}:${sessionId}`)
+    } catch {
+      /* ignore */
+    }
+    setSessionId(sid)
+    setMessages([])
+    setError('')
+    setSeenCount(0)
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!body.trim() || !sessionId) return
+    const text = body.trim()
+    // Una sola request en vuelo por sessionId (envíos concurrentes -> 500).
+    if (!text || !sessionId || sending) return
+
     setError('')
+    setMessages((prev) => [
+      ...prev,
+      { id: newId(), role: 'user', body: text, created_at: new Date().toISOString() },
+    ])
+    setBody('')
     setSending(true)
+
     try {
-      const res = await fetch(`${API_BASE}/api/v1/chat/messages`, {
+      const res = await fetch(AGENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, body: body.trim() }),
+        body: JSON.stringify({ tenantId: TENANT_ID, sessionId, message: text }),
       })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('ChatWidget agent error:', res.status, err)
+        throw new Error(err.error || `HTTP ${res.status}`)
+      }
+
       const data = await res.json()
-      if (!res.ok) { setError(data.message || 'Error al enviar'); return }
-      setMessages((prev) => [...prev, data.message])
-      setBody('')
-    } catch {
-      setError('Error al enviar. Intenta de nuevo.')
+      // La respuesta puede traer varios mensajes separados por "\n\n" -> burbujas.
+      const bubbles = String(data.response ?? '')
+        .split('\n\n')
+        .map((s: string) => s.trim())
+        .filter(Boolean)
+
+      setMessages((prev) => [
+        ...prev,
+        ...bubbles.map((b: string) => ({
+          id: newId(),
+          role: 'agent' as const,
+          body: b,
+          created_at: new Date().toISOString(),
+        })),
+      ])
+    } catch (err) {
+      console.error(err)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: newId(),
+          role: 'agent',
+          body: 'Ups, tuvimos un problema. Inténtalo de nuevo en un momento.',
+          created_at: new Date().toISOString(),
+        },
+      ])
     } finally {
       setSending(false)
+      setTimeout(() => textareaRef.current?.focus(), 50)
     }
   }
 
@@ -137,7 +209,7 @@ export function ChatWidget() {
             <path fillRule="evenodd" d="M4.804 21.644A6.707 6.707 0 006 21.75a6.721 6.721 0 003.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.587 2.674 6.192.232.226.277.428.254.543a3.73 3.73 0 01-.814 1.686.75.75 0 00.44 1.223zM8.25 10.875a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clipRule="evenodd" />
           </svg>
         )}
-        {!open && (
+        {hasUnread && (
           <span className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold leading-none">
             1
           </span>
@@ -151,16 +223,21 @@ export function ChatWidget() {
           <div className="px-4 py-3 flex items-center gap-3" style={{ background: '#2fa55f' }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: 'rgba(255,255,255,0.2)' }}>C</div>
             <div className="flex-1">
-              <p className="text-white font-semibold text-sm">Chalán - Soporte</p>
-              <p className="text-xs" style={{ color: '#bbf7d0' }}>Te respondemos pronto</p>
+              <p className="text-white font-semibold text-sm">Chalán - Asistente</p>
+              <p className="text-xs" style={{ color: '#bbf7d0' }}>Te respondemos al instante</p>
             </div>
-            <button onClick={() => setOpen(false)} className="text-white opacity-70 hover:opacity-100 text-xl leading-none p-1">✕</button>
+            <button onClick={resetConversation} aria-label="Reiniciar conversación" title="Reiniciar conversación" className="text-white opacity-70 hover:opacity-100 p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M4.755 10.059a7.5 7.5 0 0112.548-3.364l1.903 1.903h-3.183a.75.75 0 100 1.5h4.992a.75.75 0 00.75-.75V4.356a.75.75 0 00-1.5 0v3.18l-1.9-1.9A9 9 0 003.306 9.67a.75.75 0 101.45.388zm15.408 3.352a.75.75 0 00-.919.53 7.5 7.5 0 01-12.548 3.364l-1.902-1.903h3.183a.75.75 0 000-1.5H2.984a.75.75 0 00-.75.75v4.992a.75.75 0 001.5 0v-3.18l1.9 1.9a9 9 0 0015.059-4.035.75.75 0 00-.53-.918z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button onClick={() => setOpen(false)} aria-label="Cerrar chat" className="text-white opacity-70 hover:opacity-100 text-xl leading-none p-1">✕</button>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-gray-50">
             {(messages.length === 0 ? [getPhantomMessage(pathname)] : messages).map((m) => {
-              const isUser = m.direction === 'inbound'
+              const isUser = m.role === 'user'
               return (
                 <div key={m.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${isUser ? 'text-white rounded-tr-sm' : 'bg-white border border-gray-200 text-gray-900 rounded-tl-sm shadow-sm'}`} style={isUser ? { background: '#2fa55f' } : {}}>
@@ -172,6 +249,17 @@ export function ChatWidget() {
                 </div>
               )
             })}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl rounded-tl-sm px-3 py-2 bg-white border border-gray-200 shadow-sm">
+                  <span className="flex gap-1 items-center h-4" aria-label="Escribiendo…">
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                </div>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 
@@ -188,8 +276,9 @@ export function ChatWidget() {
                 }}
                 placeholder="Escribe tu mensaje..."
                 rows={1}
-                maxLength={1000}
-                className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none"
+                maxLength={4096}
+                disabled={sending}
+                className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none disabled:bg-gray-100"
               />
               <button
                 type="submit"
