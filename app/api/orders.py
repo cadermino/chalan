@@ -18,10 +18,12 @@ from .quotation.quotation_status import QuotationStatus
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
 from .whatsapp import send_whatsapp
-from datetime import date
+from datetime import date, datetime, timedelta
 from .errors import not_found
 from .. import db
 from ..storage import get_storage
+
+CARRIER_NOTIFICATION_COOLDOWN = timedelta(minutes=15)
 
 @api.route('/order', methods=['POST'])
 def create_order():
@@ -56,7 +58,11 @@ def update_order(order_id):
 
     if 'requestQuotationFromCarrierCompany' not in order_data and data_changed:
         db_order = db.session.get(Order, order_id)
-        if db_order and db_order.quotation_requested:
+        recently_notified = (
+            db_order and db_order.carrier_notified_at and
+            datetime.utcnow() - db_order.carrier_notified_at < CARRIER_NOTIFICATION_COOLDOWN
+        )
+        if db_order and db_order.quotation_requested and not recently_notified:
             db_order.quotation_requested = False
             QuotationsModel.query.filter(
                 QuotationsModel.order_id == order_id,
@@ -245,7 +251,12 @@ def send_email_to_carrier_companies(order_data):
             quotation = QuotationEntity().get(order_id, carrier_company['id'])
             print(f'[Email] carrier={carrier_company["id"]} email={carrier_company["email"]} existing_quotation={quotation is not None}', flush=True)
             if quotation is None:
-                subject = 'Nueva cotización Chalán'
+                had_previous_quotation = QuotationsModel.query.filter_by(
+                    order_id=order_id,
+                    carrier_company_id=carrier_company['id'],
+                ).first() is not None
+
+                subject = 'La orden cambió, vuelve a cotizar Chalán' if had_previous_quotation else 'Nueva cotización Chalán'
                 send_email(
                     carrier_company['email'],
                     subject,
@@ -254,14 +265,16 @@ def send_email_to_carrier_companies(order_data):
                     quotation_url=quotation_url,
                 )
                 print(f'[Email] sent to carrier={carrier_company["id"]}', flush=True)
+                template_env_var = 'TWILIO_TEMPLATE_TRANSPORTISTA_CAMBIO' if had_previous_quotation else 'TWILIO_TEMPLATE_TRANSPORTISTA'
                 send_whatsapp(
                     carrier_company.get('phone'),
-                    os.getenv('TWILIO_TEMPLATE_TRANSPORTISTA'),
+                    os.getenv(template_env_var),
                     {'1': quotation_url},
                 )
                 emails_sent.append(carrier_company['id'])
         if emails_sent and db_order:
             db_order.quotation_requested = True
+            db_order.carrier_notified_at = datetime.utcnow()
             db.session.commit()
     return emails_sent
 
