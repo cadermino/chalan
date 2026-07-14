@@ -15,6 +15,12 @@ const TEMPLATES = {
       { key: '1', label: 'URL de cotización' },
     ],
   },
+  transportista_cambio: {
+    label: 'Orden cambió (transportista)',
+    variables: [
+      { key: '1', label: 'URL de cotización' },
+    ],
+  },
 }
 
 const STATUS_ICONS = {

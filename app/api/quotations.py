@@ -86,6 +86,8 @@ def create_quotation():
             customer.mobile_phone,
             os.getenv('TWILIO_TEMPLATE_CLIENTE'),
             {'1': step_three_url},
+            body_label='[Plantilla: Nueva cotización disponible]',
+            customer_id=customer.id,
         )
     else:
         message = 'quotation {id} created!'.format(id=previous_quotation.id)

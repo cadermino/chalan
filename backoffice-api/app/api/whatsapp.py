@@ -167,6 +167,13 @@ TEMPLATES = {
             {'key': '1', 'label': 'URL de cotización'},
         ],
     },
+    'transportista_cambio': {
+        'label': 'Orden cambió (transportista)',
+        'env': 'TWILIO_TEMPLATE_TRANSPORTISTA_CAMBIO',
+        'variables': [
+            {'key': '1', 'label': 'URL de cotización'},
+        ],
+    },
 }
 
 

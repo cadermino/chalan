@@ -266,10 +266,12 @@ def send_email_to_carrier_companies(order_data):
                 )
                 print(f'[Email] sent to carrier={carrier_company["id"]}', flush=True)
                 template_env_var = 'TWILIO_TEMPLATE_TRANSPORTISTA_CAMBIO' if had_previous_quotation else 'TWILIO_TEMPLATE_TRANSPORTISTA'
+                body_label = '[Plantilla: Orden cambió, vuelve a cotizar]' if had_previous_quotation else '[Plantilla: Nueva cotización Chalán]'
                 send_whatsapp(
                     carrier_company.get('phone'),
                     os.getenv(template_env_var),
                     {'1': quotation_url},
+                    body_label=body_label,
                 )
                 emails_sent.append(carrier_company['id'])
         if emails_sent and db_order:

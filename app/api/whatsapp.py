@@ -166,29 +166,53 @@ def notify_inbound(msg):
     return thr
 
 
-def _send_async(app, to_e164, content_sid, content_variables):
+def _send_async(app, to_e164, content_sid, content_variables, body_label, customer_id=None):
     with app.app_context():
+        from ..models import WhatsappMessage
+        from .. import db
+
+        whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
+        if not whatsapp_from.startswith('whatsapp:'):
+            whatsapp_from = 'whatsapp:' + whatsapp_from
+
+        base_url = os.getenv('TWILIO_WEBHOOK_BASE_URL', '').rstrip('/')
+        status_callback = f"{base_url}/api/v1/whatsapp/status" if base_url else None
+
         try:
             from twilio.rest import Client
             client = Client(
                 os.getenv('TWILIO_ACCOUNT_SID'),
                 os.getenv('TWILIO_AUTH_TOKEN'),
             )
-            whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
-            if not whatsapp_from.startswith('whatsapp:'):
-                whatsapp_from = 'whatsapp:' + whatsapp_from
-            client.messages.create(
+            kwargs = dict(
                 from_=whatsapp_from,
                 to='whatsapp:' + to_e164,
                 content_sid=content_sid,
                 content_variables=json.dumps(content_variables),
             )
+            if status_callback:
+                kwargs['status_callback'] = status_callback
+
+            twilio_msg = client.messages.create(**kwargs)
+
+            msg = WhatsappMessage(
+                message_sid=twilio_msg.sid,
+                direction='outbound',
+                from_number=whatsapp_from.replace('whatsapp:', ''),
+                to_number=to_e164,
+                body=body_label,
+                customer_id=customer_id,
+                status='queued',
+                created_at=datetime.now(timezone.utc),
+            )
+            db.session.add(msg)
+            db.session.commit()
             print(f'[WhatsApp] Enviado a {to_e164} template={content_sid}', flush=True)
         except Exception as e:
             print(f'[WhatsApp] Error al enviar a {to_e164}: {e}', flush=True)
 
 
-def send_whatsapp(phone, content_sid, content_variables):
+def send_whatsapp(phone, content_sid, content_variables, body_label='[Plantilla]', customer_id=None):
     try:
         if not os.getenv('TWILIO_ACCOUNT_SID'):
             print('[WhatsApp] Skipped: TWILIO_ACCOUNT_SID no configurado', flush=True)
@@ -201,7 +225,7 @@ def send_whatsapp(phone, content_sid, content_variables):
             print(f'[WhatsApp] Skipped: teléfono inválido ({phone})', flush=True)
             return
         app = current_app._get_current_object()
-        thr = Thread(target=_send_async, args=[app, to_e164, content_sid, content_variables])
+        thr = Thread(target=_send_async, args=[app, to_e164, content_sid, content_variables, body_label, customer_id])
         thr.start()
         return thr
     except Exception as e:
