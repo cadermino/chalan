@@ -57,6 +57,7 @@ interface LandingNavProps {
 }
 
 const DEFAULT_LINKS: NavLink[] = [
+  { label: 'Cotizar', href: '/cotizar-mudanza' },
   { label: 'Cómo funciona', href: '/como-funciona' },
   { label: 'Flota', href: '/#flota' },
   { label: 'Rutas', href: '/fletes-peru' },
