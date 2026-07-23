@@ -41,6 +41,23 @@ const localBusinessJsonLd = {
   priceRange: "$$",
 };
 
+const faqs = [
+  { q: "¿Cuánto cuesta una mudanza en Huancayo?", a: "Depende de la distancia y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
+  { q: "¿Hacen mudanzas de Huancayo a Lima?", a: "Sí, realizamos mudanzas de larga distancia entre Huancayo y Lima por la carretera central." },
+  { q: "¿Operan en todo el Valle del Mantaro?", a: "Sí, cubrimos Huancayo, El Tambo, Chilca, Concepción, Jauja, Chupaca y alrededores." },
+  { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: { "@type": "Answer", text: faq.a },
+  })),
+};
+
 const zones = [
   "Huancayo Centro",
   "El Tambo",
@@ -62,6 +79,10 @@ export default function MudanzasHuancayo() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <LandingNav />
 
@@ -174,12 +195,7 @@ export default function MudanzasHuancayo() {
             Preguntas frecuentes sobre mudanzas en Huancayo
           </h2>
           <div className="space-y-4">
-            {[
-              { q: "¿Cuánto cuesta una mudanza en Huancayo?", a: "Depende de la distancia y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
-              { q: "¿Hacen mudanzas de Huancayo a Lima?", a: "Sí, realizamos mudanzas de larga distancia entre Huancayo y Lima por la carretera central." },
-              { q: "¿Operan en todo el Valle del Mantaro?", a: "Sí, cubrimos Huancayo, El Tambo, Chilca, Concepción, Jauja, Chupaca y alrededores." },
-              { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
-            ].map((faq, i) => (
+            {faqs.map((faq, i) => (
               <details key={i} className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <summary className="flex items-center justify-between cursor-pointer px-6 py-5 font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
                   {faq.q}

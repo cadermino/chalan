@@ -41,6 +41,23 @@ const localBusinessJsonLd = {
   priceRange: "$$",
 };
 
+const faqs = [
+  { q: "¿Cuánto cuesta una mudanza en Lima?", a: "El precio depende de la distancia entre distritos y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
+  { q: "¿Hacen mudanzas los fines de semana?", a: "Sí, operamos los 7 días de la semana incluyendo feriados." },
+  { q: "¿Qué distritos cubren?", a: "Cubrimos todos los distritos de Lima Metropolitana, desde San Juan de Lurigancho hasta Chorrillos, Miraflores, La Molina y más." },
+  { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: { "@type": "Answer", text: faq.a },
+  })),
+};
+
 const districts = [
   "Miraflores",
   "San Isidro",
@@ -74,6 +91,10 @@ export default function MudanzasLima() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <LandingNav />
 
@@ -166,12 +187,7 @@ export default function MudanzasLima() {
             Preguntas frecuentes sobre mudanzas en Lima
           </h2>
           <div className="space-y-4">
-            {[
-              { q: "¿Cuánto cuesta una mudanza en Lima?", a: "El precio depende de la distancia entre distritos y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
-              { q: "¿Hacen mudanzas los fines de semana?", a: "Sí, operamos los 7 días de la semana incluyendo feriados." },
-              { q: "¿Qué distritos cubren?", a: "Cubrimos todos los distritos de Lima Metropolitana, desde San Juan de Lurigancho hasta Chorrillos, Miraflores, La Molina y más." },
-              { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
-            ].map((faq, i) => (
+            {faqs.map((faq, i) => (
               <details key={i} className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <summary className="flex items-center justify-between cursor-pointer px-6 py-5 font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
                   {faq.q}
