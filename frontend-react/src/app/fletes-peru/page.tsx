@@ -37,6 +37,23 @@ const localBusinessJsonLd = {
   priceRange: "$$",
 };
 
+const faqs = [
+  { q: "¿Cuánto cuesta un flete en Perú?", a: "El precio depende de la distancia, tipo de vehículo y volumen de carga. Con Chalán puedes cotizar gratis al instante." },
+  { q: "¿Qué puedo enviar por flete?", a: "Muebles, electrodomésticos, cajas, materiales de construcción, equipos y más. Solo no transportamos materiales peligrosos." },
+  { q: "¿Los fletes incluyen ayudantes?", a: "Sí, nuestros servicios incluyen ayudantes para cargar y descargar tu mercadería." },
+  { q: "¿Cuánto tarda un flete de Lima a provincia?", a: "Depende de la ciudad destino. Por ejemplo, Lima a Huancayo toma aproximadamente 7 horas, Lima a Arequipa alrededor de 15 horas." },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: { "@type": "Answer", text: faq.a },
+  })),
+};
+
 const vehicles = [
   { name: "Furgoneta", capacity: "Hasta 800 kg", ideal: "Mudanzas pequeñas, envíos de cajas y electrodomésticos." },
   { name: "Camioneta Pick-up", capacity: "Hasta 1 tonelada", ideal: "Muebles medianos, materiales de construcción." },
@@ -61,6 +78,10 @@ export default function FletesPeru() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <LandingNav />
 
@@ -169,12 +190,7 @@ export default function FletesPeru() {
             Preguntas frecuentes sobre fletes en Perú
           </h2>
           <div className="space-y-4">
-            {[
-              { q: "¿Cuánto cuesta un flete en Perú?", a: "El precio depende de la distancia, tipo de vehículo y volumen de carga. Con Chalán puedes cotizar gratis al instante." },
-              { q: "¿Qué puedo enviar por flete?", a: "Muebles, electrodomésticos, cajas, materiales de construcción, equipos y más. Solo no transportamos materiales peligrosos." },
-              { q: "¿Los fletes incluyen ayudantes?", a: "Sí, nuestros servicios incluyen ayudantes para cargar y descargar tu mercadería." },
-              { q: "¿Cuánto tarda un flete de Lima a provincia?", a: "Depende de la ciudad destino. Por ejemplo, Lima a Huancayo toma aproximadamente 7 horas, Lima a Arequipa alrededor de 15 horas." },
-            ].map((faq, i) => (
+            {faqs.map((faq, i) => (
               <details key={i} className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <summary className="flex items-center justify-between cursor-pointer px-6 py-5 font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
                   {faq.q}

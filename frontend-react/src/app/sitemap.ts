@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getAllSlugs } from '@/lib/blog';
+import { getAllPosts } from '@/lib/blog';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://flask:8001';
 
@@ -102,17 +102,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const blogSlugs = getAllSlugs();
+  const posts = getAllPosts();
   const blogPages: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/blog`,
-      lastModified: new Date(),
+      // Blog index freshness = date of the most recent post
+      lastModified: posts[0]?.date ? new Date(posts[0].date) : new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     },
-    ...blogSlugs.map((slug) => ({
-      url: `${baseUrl}/blog/${slug}`,
-      lastModified: new Date(),
+    ...posts.map((post) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: post.date ? new Date(post.date) : new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     })),

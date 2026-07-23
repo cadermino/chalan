@@ -56,6 +56,23 @@ const howToJsonLd = {
   ],
 };
 
+const faqs = [
+  { q: "¿Cotizar tiene algún costo?", a: "No, cotizar es completamente gratis y sin compromiso." },
+  { q: "¿Puedo cancelar mi reserva?", a: "Sí, puedes cancelar antes de la fecha programada sin penalidad." },
+  { q: "¿Cómo pago el servicio?", a: "Puedes pagar en efectivo directamente al transportista o con tarjeta de crédito/débito a través de la plataforma." },
+  { q: "¿Los transportistas incluyen ayudantes?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: { "@type": "Answer", text: faq.a },
+  })),
+};
+
 const steps = [
   {
     number: "1",
@@ -97,6 +114,10 @@ export default function ComoFunciona() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <LandingNav />
 
@@ -169,12 +190,7 @@ export default function ComoFunciona() {
             Preguntas frecuentes
           </h2>
           <div className="space-y-4">
-            {[
-              { q: "¿Cotizar tiene algún costo?", a: "No, cotizar es completamente gratis y sin compromiso." },
-              { q: "¿Puedo cancelar mi reserva?", a: "Sí, puedes cancelar antes de la fecha programada sin penalidad." },
-              { q: "¿Cómo pago el servicio?", a: "Puedes pagar en efectivo directamente al transportista o con tarjeta de crédito/débito a través de la plataforma." },
-              { q: "¿Los transportistas incluyen ayudantes?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
-            ].map((faq, i) => (
+            {faqs.map((faq, i) => (
               <details key={i} className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <summary className="flex items-center justify-between cursor-pointer px-6 py-5 font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
                   {faq.q}

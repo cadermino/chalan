@@ -34,6 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `https://chalan.pe/blog/${slug}`,
       type: "article",
       publishedTime: post.date,
+      ...(post.image && {
+        images: [post.image.startsWith("http") ? post.image : `https://chalan.pe${post.image}`],
+      }),
     },
   };
 }
@@ -51,17 +54,29 @@ export default async function BlogPost({ params }: Props) {
   const post = getPost(slug);
   if (!post) notFound();
 
+  const imageUrl = post.image
+    ? post.image.startsWith("http")
+      ? post.image
+      : `https://chalan.pe${post.image}`
+    : undefined;
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description: post.description,
+    ...(imageUrl && { image: imageUrl }),
     datePublished: post.date,
+    dateModified: post.date,
     author: { "@type": "Organization", name: "Chalán" },
     publisher: {
       "@type": "Organization",
       name: "Chalán",
       url: "https://chalan.pe",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://chalan.pe/logo_chalan.png",
+      },
     },
     mainEntityOfPage: { "@type": "WebPage", "@id": `https://chalan.pe/blog/${slug}` },
   };

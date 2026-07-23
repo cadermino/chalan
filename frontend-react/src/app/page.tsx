@@ -65,8 +65,6 @@ const jsonLdOrg = {
   areaServed: { '@type': 'Country', name: 'Perú' },
   serviceType: ['Mudanzas', 'Fletes', 'Transporte de carga', 'Mudanzas interprovinciales'],
   priceRange: '$$',
-  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '14000', bestRating: '5' },
-  sameAs: ['https://chalan.mx'],
 }
 
 const jsonLdWebSite = {
