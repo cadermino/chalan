@@ -14,6 +14,19 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+const SITE_URL = "https://chalan.pe";
+const DEFAULT_OG_IMAGE = "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png";
+
+function absoluteUrl(path: string): string {
+  return path.startsWith("http") ? path : `${SITE_URL}${path}`;
+}
+
+// Google requires ISO 8601 with a timezone. Frontmatter dates are date-only
+// (e.g. "2026-04-09"); anchor them to Peru time (UTC-5, no DST).
+function toIsoDate(date: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00:00-05:00` : date;
+}
+
 export async function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
 }
@@ -31,12 +44,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: post.title,
       description: post.description,
-      url: `https://chalan.pe/blog/${slug}`,
+      url: `${SITE_URL}/blog/${slug}`,
       type: "article",
-      publishedTime: post.date,
-      ...(post.image && {
-        images: [post.image.startsWith("http") ? post.image : `https://chalan.pe${post.image}`],
-      }),
+      publishedTime: toIsoDate(post.date),
+      images: [post.image ? absoluteUrl(post.image) : DEFAULT_OG_IMAGE],
     },
   };
 }
@@ -54,31 +65,28 @@ export default async function BlogPost({ params }: Props) {
   const post = getPost(slug);
   if (!post) notFound();
 
-  const imageUrl = post.image
-    ? post.image.startsWith("http")
-      ? post.image
-      : `https://chalan.pe${post.image}`
-    : undefined;
+  const imageUrl = post.image ? absoluteUrl(post.image) : DEFAULT_OG_IMAGE;
+  const publishedIso = toIsoDate(post.date);
 
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description: post.description,
-    ...(imageUrl && { image: imageUrl }),
-    datePublished: post.date,
-    dateModified: post.date,
-    author: { "@type": "Organization", name: "Chalán" },
+    image: imageUrl,
+    datePublished: publishedIso,
+    dateModified: publishedIso,
+    author: { "@type": "Organization", name: "Chalán", url: SITE_URL },
     publisher: {
       "@type": "Organization",
       name: "Chalán",
-      url: "https://chalan.pe",
+      url: SITE_URL,
       logo: {
         "@type": "ImageObject",
         url: "https://chalan.pe/logo_chalan.png",
       },
     },
-    mainEntityOfPage: { "@type": "WebPage", "@id": `https://chalan.pe/blog/${slug}` },
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/blog/${slug}` },
   };
 
   return (

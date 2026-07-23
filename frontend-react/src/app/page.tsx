@@ -56,6 +56,7 @@ const jsonLdOrg = {
   name: 'Chalán',
   url: 'https://chalan.pe',
   logo: 'https://chalan.pe/logo_chalan.png',
+  image: 'https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png',
   description: 'Plataforma peruana de mudanzas y fletes. Cotiza, compara y agenda en minutos.',
   telephone: '+51-972-643-007',
   email: 'carlos.calderon@chalan.pe',

@@ -29,6 +29,13 @@ const localBusinessJsonLd = {
   url: "https://chalan.pe/fletes-peru",
   telephone: "+51-972-643-007",
   email: "carlos.calderon@chalan.pe",
+  image: "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Lima",
+    addressRegion: "Lima",
+    addressCountry: "PE",
+  },
   areaServed: {
     "@type": "Country",
     name: "Perú",

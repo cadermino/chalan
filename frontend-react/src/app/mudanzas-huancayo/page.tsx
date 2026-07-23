@@ -29,6 +29,13 @@ const localBusinessJsonLd = {
   url: "https://chalan.pe/mudanzas-huancayo",
   telephone: "+51-972-643-007",
   email: "carlos.calderon@chalan.pe",
+  image: "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Huancayo",
+    addressRegion: "Junín",
+    addressCountry: "PE",
+  },
   areaServed: {
     "@type": "City",
     name: "Huancayo",
