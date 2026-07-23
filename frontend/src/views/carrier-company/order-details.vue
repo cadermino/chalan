@@ -431,7 +431,7 @@ export default {
       if (!this.orderData.approximate_budget) {
         return 0;
       }
-      return this.orderData.approximate_budget;
+      return Math.round(this.orderData.approximate_budget);
     },
   },
   methods: {

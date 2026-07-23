@@ -26,7 +26,7 @@
     <!--Nav-->
     <Navbar></Navbar>
     <router-view/>
-    <ChatWidget />
+    <ChatWidget v-if="$route.name !== 'quotation'" />
   </div>
 </template>
 

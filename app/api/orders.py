@@ -86,6 +86,18 @@ def order_detail():
     order_details = order.details()
     quotations = QuotationEntity().listByOrderId(data['order_id'])
     order_details['quotations'] = QuotationsSchema(many=True).dump(quotations.quotations)
+
+    if order_details.get('approximate_budget'):
+        platform_fee = float(os.getenv('PLATFORM_FEE'))
+        commission_rate = 0
+        referred = ReferredOrder.query.filter_by(order_id=data['order_id']).first()
+        if referred:
+            agent = db.session.get(AdminUser, referred.admin_user_id)
+            commission_rate = agent.commission_rate
+        order_details['approximate_budget'] = round(
+            order_details['approximate_budget'] / (1 + commission_rate + platform_fee), 2
+        )
+
     return jsonify({
         'order': order_details,
         'carrier_company_id': data['carrier_company_id'],
