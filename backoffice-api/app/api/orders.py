@@ -20,6 +20,17 @@ def _generate_quotation_token(carrier_company_id, order_id):
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
 
+def _generate_review_token(order_id, customer_id, carrier_company_id):
+    payload = {
+        'order_id': order_id,
+        'customer_id': customer_id,
+        'carrier_company_id': carrier_company_id,
+        'exp': datetime.now(timezone.utc) + timedelta(seconds=2592000),
+        'iat': datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
+
 @api.route('/orders/pending', methods=['GET'])
 @login_required
 def list_pending_orders():
@@ -278,6 +289,29 @@ def get_quotation_links(order_id):
         })
 
     return jsonify({'companies': result}), 200
+
+
+@api.route('/orders/<int:order_id>/review-link', methods=['GET'])
+@login_required
+def get_review_link(order_id):
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    if order.order_status_id != 3:
+        return jsonify({'message': 'order is not completed'}), 400
+    if not order.customer_id:
+        return jsonify({'message': 'order has no customer'}), 400
+
+    selected_quotation = Quotation.query.filter_by(order_id=order_id, quotation_status_id=2).first()
+    if selected_quotation is None:
+        return jsonify({'message': 'order has no selected quotation'}), 400
+
+    token = _generate_review_token(order_id, order.customer_id, selected_quotation.carrier_company_id)
+    return jsonify({'token': token}), 200
 
 
 @api.route('/orders/<int:order_id>/quotations', methods=['GET'])

@@ -55,6 +55,7 @@ export default function OrderDetail() {
   const [companies, setCompanies] = useState([])
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
+  const [reviewUrl, setReviewUrl] = useState(null)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -70,6 +71,14 @@ export default function OrderDetail() {
       })
     }
   }, [orderId])
+
+  useEffect(() => {
+    if (isAdmin && order?.order_status_id === 3) {
+      client.get(`/api/orders/${orderId}/review-link`).then(({ data }) => {
+        setReviewUrl(`${window.location.origin}/reviews/submit/${data.token}`)
+      }).catch(() => setReviewUrl(null))
+    }
+  }, [orderId, isAdmin, order?.order_status_id])
 
   const canComplete = isCarrier
     && order?.order_status_id === 2
@@ -190,6 +199,19 @@ export default function OrderDetail() {
             >
               {order.existing_quotation ? 'Modificar cotización' : 'Cotizar ahora'}
             </a>
+          </div>
+        )}
+
+        {/* Link de reseña — solo para admins, orden completada */}
+        {isAdmin && reviewUrl && (
+          <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-700">Link de reseña para el cliente</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Compártelo con el cliente para que califique el servicio.
+              </p>
+            </div>
+            <CopyButton url={reviewUrl} />
           </div>
         )}
 

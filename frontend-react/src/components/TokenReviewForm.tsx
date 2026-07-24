@@ -1,19 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-interface ReviewFormProps {
-  carrierCompanyId: number;
+interface TokenReviewFormProps {
+  token: string;
 }
 
-export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
+export function TokenReviewForm({ token }: TokenReviewFormProps) {
+  const [loading, setLoading] = useState(true);
+  const [verifyError, setVerifyError] = useState("");
+  const [carrierName, setCarrierName] = useState("");
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
+
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
-  const [orderId, setOrderId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/v1/reviews/verify/${token}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Link inválido o expirado");
+        setCarrierName(data.carrier_company_name);
+        setAlreadyReviewed(data.already_reviewed);
+      })
+      .catch((err) =>
+        setVerifyError(err instanceof Error ? err.message : "Link inválido o expirado")
+      )
+      .finally(() => setLoading(false));
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,22 +45,13 @@ export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
       setError("Escribe un comentario");
       return;
     }
-    if (!orderId.trim()) {
-      setError("Ingresa tu número de orden");
-      return;
-    }
 
     setSubmitting(true);
     try {
       const res = await fetch("/api/v1/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          carrier_company_id: carrierCompanyId,
-          order_id: parseInt(orderId),
-          rating,
-          comment: comment.trim(),
-        }),
+        body: JSON.stringify({ token, rating, comment: comment.trim() }),
       });
 
       if (!res.ok) {
@@ -51,9 +60,6 @@ export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
       }
 
       setSuccess(true);
-      setRating(0);
-      setComment("");
-      setOrderId("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al enviar la reseña");
     } finally {
@@ -61,43 +67,33 @@ export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
     }
   };
 
-  if (success) {
+  if (loading) {
+    return <p className="text-gray-500 text-sm">Cargando...</p>;
+  }
+
+  if (verifyError) {
+    return <p className="text-red-600 text-sm">{verifyError}</p>;
+  }
+
+  if (alreadyReviewed || success) {
     return (
       <div className="text-center py-4">
-        <p className="text-green-600 font-medium mb-2">
-          ¡Gracias por tu reseña!
+        <p className="text-green-600 font-medium">
+          {success ? "¡Gracias por tu reseña!" : "Ya publicaste una reseña para esta orden."}
         </p>
-        <button
-          onClick={() => setSuccess(false)}
-          className="text-blue-600 hover:underline text-sm"
-        >
-          Escribir otra reseña
-        </button>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Order ID */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Número de orden
-        </label>
-        <input
-          type="text"
-          value={orderId}
-          onChange={(e) => setOrderId(e.target.value)}
-          placeholder="Ej: 123"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+      <p className="text-sm text-gray-600">
+        Cuéntanos cómo fue tu experiencia con{" "}
+        <span className="font-semibold">{carrierName}</span>.
+      </p>
 
-      {/* Star selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Calificación
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Calificación</label>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
@@ -107,9 +103,7 @@ export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
               onMouseEnter={() => setHoverRating(star)}
               onMouseLeave={() => setHoverRating(0)}
               className={`text-2xl transition-colors ${
-                star <= (hoverRating || rating)
-                  ? "text-blue-500"
-                  : "text-gray-300"
+                star <= (hoverRating || rating) ? "text-blue-500" : "text-gray-300"
               }`}
             >
               ★
@@ -118,11 +112,8 @@ export function ReviewForm({ carrierCompanyId }: ReviewFormProps) {
         </div>
       </div>
 
-      {/* Comment */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Comentario
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Comentario</label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}

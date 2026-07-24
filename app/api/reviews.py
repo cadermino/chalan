@@ -1,14 +1,57 @@
 import os
-from flask import jsonify, request
+import jwt
+from flask import jsonify, request, current_app
 from . import api
 from .. import db
 from ..models import Review, ReviewSchema, Order, CarrierCompany, Customer, CarrierCompanySchema
 from sqlalchemy import func
 
 
+def _verify_review_token(token):
+    try:
+        return jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+    except jwt.InvalidTokenError:
+        return None
+
+
+@api.route('/reviews/verify/<token>', methods=['GET'])
+def verify_review_token(token):
+    token_data = _verify_review_token(token)
+    if token_data is None:
+        return jsonify({'error': 'Link inválido o expirado'}), 400
+
+    order = db.session.get(Order, token_data['order_id'])
+    carrier = db.session.get(CarrierCompany, token_data['carrier_company_id'])
+    if not order or not carrier:
+        return jsonify({'error': 'Orden no encontrada'}), 404
+
+    existing = Review.query.filter_by(
+        order_id=token_data['order_id'],
+        customer_id=token_data['customer_id']
+    ).first()
+
+    return jsonify({
+        'order_id': order.id,
+        'carrier_company_id': carrier.id,
+        'carrier_company_name': carrier.name,
+        'already_reviewed': existing is not None,
+    }), 200
+
+
 @api.route('/reviews', methods=['POST'])
 def create_review():
     data = request.get_json()
+
+    token = data.get('token')
+    if token:
+        token_data = _verify_review_token(token)
+        if token_data is None:
+            return jsonify({'error': 'Link inválido o expirado'}), 400
+        data = {
+            **data,
+            'order_id': token_data['order_id'],
+            'carrier_company_id': token_data['carrier_company_id'],
+        }
 
     # Validate required fields
     required = ['order_id', 'carrier_company_id', 'rating', 'comment']
