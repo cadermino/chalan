@@ -106,7 +106,12 @@ export default function ReferredOrdersList() {
                     ) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {o.appointment_date ? new Date(o.appointment_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
+                    {o.appointment_date ? (
+                      <div>
+                        <div>{new Date(o.appointment_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' })}</div>
+                        <div className="text-xs text-gray-400">{new Date(o.appointment_date).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' })}</div>
+                      </div>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3">
                     {STATUS_LABEL[o.order_status_id] || o.order_status_id}

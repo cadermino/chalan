@@ -114,7 +114,7 @@ export default function OrderDetail() {
         <div className="bg-white rounded-xl shadow p-5 grid grid-cols-2 gap-4">
           <Field
             label="Fecha de mudanza"
-            value={order.appointment_date ? new Date(order.appointment_date).toLocaleDateString('es-PE', { dateStyle: 'long', timeZone: 'America/Lima' }) : null}
+            value={order.appointment_date ? new Date(order.appointment_date).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Lima' }) : null}
           />
           <Field label="Kilómetros" value={order.total_kilometers} />
           <Field label="Presupuesto aproximado" value={order.approximate_budget ? `S/ ${order.approximate_budget}` : null} />
