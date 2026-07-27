@@ -19,6 +19,17 @@ def _iso(dt):
         return dt.isoformat() + '+00:00'
     return dt.isoformat()
 
+
+def _iso_local(dt):
+    # appointment_date is stored naive as the customer's local (Lima) wall-clock
+    # time, never converted to UTC — unlike created_date, which is a true UTC
+    # server timestamp. Tag it with the real Peru offset instead of assuming UTC.
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.isoformat()
+    return dt.isoformat() + '-05:00'
+
 from . import db
 
 # Roles
@@ -232,7 +243,7 @@ class Order(db.Model):
         return {
             'id': self.id,
             'order_status_id': self.order_status_id,
-            'appointment_date': _iso(self.appointment_date),
+            'appointment_date': _iso_local(self.appointment_date),
             'comments': self.comments,
             'total_kilometers': self.total_kilometers,
             'approximate_budget': self.approximate_budget,
