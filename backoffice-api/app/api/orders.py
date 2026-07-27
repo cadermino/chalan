@@ -46,13 +46,23 @@ def list_pending_orders():
 
     if user.role == ROLE_CARRIER:
         company_id = user.carrier_company_id
+        status_filter = [1, 2]
     elif user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
         company_id = None  # superadmin sees all, no company filter
+        status_param = request.args.get('status')
+        if status_param == 'all':
+            status_filter = None
+        elif status_param:
+            status_filter = [int(s) for s in status_param.split(',') if s.isdigit()]
+        else:
+            status_filter = [1, 2]
     else:
         return jsonify({'message': 'forbidden'}), 403
 
-    # Orders in status 1 (pending) or 2 (in_progress)
-    all_sent_orders = Order.query.filter(Order.order_status_id.in_([1, 2])).order_by(Order.created_date.desc()).all()
+    query = Order.query
+    if status_filter is not None:
+        query = query.filter(Order.order_status_id.in_(status_filter))
+    all_sent_orders = query.order_by(Order.created_date.desc()).all()
 
     # Quotations already submitted (per company if carrier_company, all if admin)
     if company_id is not None:

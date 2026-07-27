@@ -5,28 +5,57 @@ import { useAuth } from '../../contexts/AuthContext'
 
 const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
 
+const FILTERS = [
+  { key: 'all', label: 'Todas' },
+  { key: '1', label: 'Pendiente' },
+  { key: '2', label: 'En progreso' },
+  { key: '3', label: 'Completado' },
+  { key: '4', label: 'Cancelado' },
+]
+
 export default function OrdersList() {
   const { user } = useAuth()
   const isSuperadmin = user?.role === 'superadmin'
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('all')
 
   useEffect(() => {
-    client.get('/api/orders/pending').then(({ data }) => {
+    setLoading(true)
+    const query = isAdmin ? `?status=${statusFilter}` : ''
+    client.get(`/api/orders/pending${query}`).then(({ data }) => {
       setOrders(data.orders)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [isAdmin, statusFilter])
 
-  if (loading) {
+  if (loading && orders.length === 0) {
     return <p className="text-gray-500 p-8">Cargando...</p>
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Órdenes pendientes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Órdenes</h1>
       </div>
+
+      {isAdmin && (
+        <div className="flex gap-2 mb-4">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`text-sm px-3 py-1.5 rounded-lg border ${
+                statusFilter === f.key
+                  ? 'bg-teal-600 border-teal-600 text-white'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="overflow-x-auto">
@@ -117,7 +146,7 @@ export default function OrdersList() {
               {orders.length === 0 && (
                 <tr>
                   <td colSpan={isAdmin ? 10 : 9} className="px-4 py-8 text-center text-gray-400">
-                    No hay órdenes pendientes en este momento
+                    No hay órdenes para este filtro
                   </td>
                 </tr>
               )}
