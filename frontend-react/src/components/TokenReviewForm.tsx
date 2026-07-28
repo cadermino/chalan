@@ -6,6 +6,38 @@ interface TokenReviewFormProps {
   token: string;
 }
 
+function StarRating({
+  value,
+  onChange,
+  color,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  color: "blue" | "indigo";
+}) {
+  const [hover, setHover] = useState(0);
+  const activeClass = color === "blue" ? "text-blue-500" : "text-indigo-500";
+
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className={`text-2xl transition-colors ${
+            star <= (hover || value) ? activeClass : "text-gray-300"
+          }`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function TokenReviewForm({ token }: TokenReviewFormProps) {
   const [loading, setLoading] = useState(true);
   const [verifyError, setVerifyError] = useState("");
@@ -13,8 +45,9 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
 
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [platformRating, setPlatformRating] = useState(0);
+  const [platformComment, setPlatformComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -51,7 +84,13 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
       const res = await fetch("/api/v1/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, rating, comment: comment.trim() }),
+        body: JSON.stringify({
+          token,
+          rating,
+          comment: comment.trim(),
+          ...(platformRating > 0 && { platform_rating: platformRating }),
+          ...(platformComment.trim() && { platform_comment: platformComment.trim() }),
+        }),
       });
 
       if (!res.ok) {
@@ -94,22 +133,7 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Calificación</label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className={`text-2xl transition-colors ${
-                star <= (hoverRating || rating) ? "text-blue-500" : "text-gray-300"
-              }`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
+        <StarRating value={rating} onChange={setRating} color="blue" />
       </div>
 
       <div>
@@ -120,6 +144,31 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
           rows={3}
           placeholder="¿Cómo fue tu experiencia con la mudanza?"
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        />
+      </div>
+
+      <div className="flex items-center gap-3 py-1">
+        <div className="flex-1 h-px bg-gray-100" />
+        <span className="text-[11px] font-semibold tracking-wide text-gray-400">
+          Y TU EXPERIENCIA CON CHALÁN
+        </span>
+        <div className="flex-1 h-px bg-gray-100" />
+      </div>
+
+      <div className="bg-indigo-50 rounded-lg p-3.5">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2">
+          ¿Cómo estuvo usar la plataforma?
+          <span className="text-[10px] font-bold tracking-wide uppercase bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">
+            Nuevo
+          </span>
+        </label>
+        <StarRating value={platformRating} onChange={setPlatformRating} color="indigo" />
+        <textarea
+          value={platformComment}
+          onChange={(e) => setPlatformComment(e.target.value)}
+          rows={2}
+          placeholder="Cotizar, elegir y pagar — ¿fue fácil? (opcional)"
+          className="mt-2.5 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
         />
       </div>
 
