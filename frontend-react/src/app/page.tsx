@@ -5,6 +5,7 @@ import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google'
 import { QuoteWidget } from '@/components/QuoteWidget'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
+import { Testimonials } from '@/components/Testimonials'
 import './landing.css'
 
 export const metadata: Metadata = {
@@ -128,13 +129,6 @@ function Arrow({ className }: { className?: string }) {
     </svg>
   )
 }
-function Star() {
-  return (
-    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  )
-}
 function Pin() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
@@ -232,11 +226,13 @@ export default function Home() {
         </div>
       </div>
 
+      <Testimonials sectionNumber="01" />
+
       {/* ── HOW IT WORKS ── */}
       <section className="block" id="como">
         <div className="wrap">
           <div className="section-head">
-            <div className="num">01 / Proceso</div>
+            <div className="num">02 / Proceso</div>
             <h2 className="h-section">Cuatro pasos.<br />Cero llamadas, cero regateo.</h2>
           </div>
           <div className="steps">
@@ -256,7 +252,7 @@ export default function Home() {
       <section className="block" id="flota">
         <div className="wrap">
           <div className="section-head">
-            <div className="num">02 / Flota</div>
+            <div className="num">03 / Flota</div>
             <h2 className="h-section">Desde una caja<br />hasta una casa entera.</h2>
           </div>
           <div className="fleet">
@@ -289,7 +285,7 @@ export default function Home() {
       <section className="block">
         <div className="wrap">
           <div className="section-head">
-            <div className="num">02b / Servicios</div>
+            <div className="num">03b / Servicios</div>
             <h2 className="h-section">¿Solo necesitas<br />embalar?</h2>
           </div>
           <div className="fleet">
@@ -306,42 +302,6 @@ export default function Home() {
                 Materiales incluidos. Sin mudanza obligatoria.
               </span>
               <Link href="/embalaje-profesional" className="pick">ver servicio <Arrow /></Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section className="block">
-        <div className="wrap">
-          <div className="section-head">
-            <div className="num">03 / Reseñas</div>
-            <h2 className="h-section">Verificadas,<br />no inventadas.</h2>
-          </div>
-          <div className="testimonials">
-            <div className="t-card span-5">
-              <div className="t-stars">{[0,1,2,3,4].map(i => <Star key={i} />)}</div>
-              <p className="t-quote">&ldquo;Pude elegir entre varias opciones y precios. Los chicos llegaron a la hora y el cobro fue exactamente el que cotizamos.&rdquo;</p>
-              <div className="t-meta">
-                <span className="who">Demian M.</span>
-                <span className="where">SAN BORJA → SURCO · CARRY</span>
-              </div>
-            </div>
-            <div className="t-card span-4">
-              <div className="t-stars">{[0,1,2,3,4].map(i => <Star key={i} />)}</div>
-              <p className="t-quote">&ldquo;Súper recomendable. Coticé a las 9, a las 11 ya tenía el camión en la puerta.&rdquo;</p>
-              <div className="t-meta">
-                <span className="who">Sofía P.</span>
-                <span className="where">MIRAFLORES → BARRANCO · H-100</span>
-              </div>
-            </div>
-            <div className="t-card span-3">
-              <div className="t-stars">{[0,1,2,3,4].map(i => <Star key={i} />)}</div>
-              <p className="t-quote">&ldquo;La plataforma cotiza y agenda en menos de cinco minutos.&rdquo;</p>
-              <div className="t-meta">
-                <span className="who">Daniel N.</span>
-                <span className="where">LIMA → ICA · 3 t</span>
-              </div>
             </div>
           </div>
         </div>

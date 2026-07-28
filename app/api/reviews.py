@@ -63,6 +63,12 @@ def create_review():
     if not isinstance(rating, int) or rating < 1 or rating > 5:
         return jsonify({'error': 'La calificación debe ser entre 1 y 5'}), 400
 
+    platform_rating = data.get('platform_rating')
+    if platform_rating is not None and (not isinstance(platform_rating, int) or platform_rating < 1 or platform_rating > 5):
+        return jsonify({'error': 'La calificación de la plataforma debe ser entre 1 y 5'}), 400
+
+    platform_comment = data.get('platform_comment')
+
     # Verify the order exists
     order = db.session.get(Order, data['order_id'])
     if not order:
@@ -90,7 +96,9 @@ def create_review():
         customer_id=order.customer_id,
         carrier_company_id=data['carrier_company_id'],
         rating=rating,
-        comment=data['comment'][:1000]
+        comment=data['comment'][:1000],
+        platform_rating=platform_rating,
+        platform_comment=platform_comment[:1000] if platform_comment else None,
     )
     db.session.add(review)
     db.session.commit()
@@ -175,7 +183,8 @@ def get_all_companies_with_ratings():
         CarrierCompany.description,
         CarrierCompany.cover_image,
         func.coalesce(func.avg(Review.rating), 0).label('average_rating'),
-        func.count(Review.id).label('total_reviews')
+        func.count(Review.id).label('total_reviews'),
+        func.max(Review.created_date).label('last_review_date')
     ).outerjoin(Review, Review.carrier_company_id == CarrierCompany.id)\
      .filter(CarrierCompany.country_id == int(country_id))\
      .filter(CarrierCompany.active == 1)\
@@ -193,6 +202,7 @@ def get_all_companies_with_ratings():
             'cover_image': r.cover_image,
             'average_rating': round(float(r.average_rating), 1),
             'total_reviews': r.total_reviews,
+            'last_review_date': r.last_review_date.isoformat() if r.last_review_date else None,
         })
 
     return jsonify(companies)

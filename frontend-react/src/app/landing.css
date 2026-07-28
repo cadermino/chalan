@@ -597,15 +597,20 @@
   transition: border-color 0.18s;
 }
 .chalan-landing .t-card:hover { border-color: var(--ink); }
+.chalan-landing .t-card.span-6 { grid-column: span 6; }
 .chalan-landing .t-card.span-5 { grid-column: span 5; }
 .chalan-landing .t-card.span-4 { grid-column: span 4; }
 .chalan-landing .t-card.span-3 { grid-column: span 3; }
+.chalan-landing .t-card.span-12 { grid-column: span 12; }
 @media (max-width: 900px) {
+  .chalan-landing .t-card.span-6,
   .chalan-landing .t-card.span-5,
   .chalan-landing .t-card.span-4,
-  .chalan-landing .t-card.span-3 { grid-column: 1 / -1; }
+  .chalan-landing .t-card.span-3,
+  .chalan-landing .t-card.span-12 { grid-column: 1 / -1; }
 }
 .chalan-landing .t-quote {
+  flex: 1;
   font-family: var(--serif);
   font-size: 22px;
   line-height: 1.25;

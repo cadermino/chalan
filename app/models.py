@@ -215,6 +215,8 @@ class Review(db.Model):
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
 	rating = db.Column(db.Integer, nullable=False)
 	comment = db.Column(db.String(1000))
+	platform_rating = db.Column(db.Integer, nullable=True)
+	platform_comment = db.Column(db.String(1000), nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 	order = db.relationship("Order", backref="reviews")

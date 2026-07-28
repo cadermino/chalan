@@ -4,6 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { Testimonials } from "@/components/Testimonials";
 
 export const metadata: Metadata = {
   title: "Mudanzas en Lima - Precios y servicio confiable | Chalán",
@@ -187,6 +188,8 @@ export default function MudanzasLima() {
             ))}
           </div>
         </section>
+
+        <Testimonials variant="light" />
 
         {/* FAQ local */}
         <section className="mb-12">

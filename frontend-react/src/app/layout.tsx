@@ -60,14 +60,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={outfit.variable}>
-      <head>
-        <link
-          rel="preload"
-          href="/images/hero-bg.webp"
-          as="image"
-          type="image/webp"
-        />
-      </head>
       <body>
         <Suspense fallback={null}>
           <ReferralCapture />
