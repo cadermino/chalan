@@ -176,7 +176,7 @@
 
 /* ====== HERO ====== */
 .chalan-landing .hero {
-  padding: 56px 0 0;
+  padding: 56px 0;
   border-bottom: 1px solid var(--line);
 }
 .chalan-landing .hero-grid {

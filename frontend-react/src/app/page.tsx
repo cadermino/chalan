@@ -203,13 +203,6 @@ export default function Home() {
               <QuoteWidget />
             </div>
           </div>
-
-          <div className="hero-strip">
-            <div className="kpi"><div className="num">14<span className="unit">k+</span></div><div className="label">Mudanzas completadas</div></div>
-            <div className="kpi"><div className="num">4.8<span className="unit">/5</span></div><div className="label">Calificación promedio</div></div>
-            <div className="kpi"><div className="num">23<span className="unit">ciudades</span></div><div className="label">Cobertura nacional</div></div>
-            <div className="kpi"><div className="num">11<span className="unit">min</span></div><div className="label">Tiempo medio de cotización</div></div>
-          </div>
         </div>
       </section>
 
