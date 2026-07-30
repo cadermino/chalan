@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://flask:8001';
+import { getApiBase } from '@/lib/api';
 
 // Last real content change per static page (update when a page's copy changes).
 const LAST_MODIFIED: Record<string, string> = {
@@ -22,8 +21,8 @@ const LAST_MODIFIED: Record<string, string> = {
 
 async function getCompanies(): Promise<{ id: number; last_review_date: string | null }[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/reviews/companies`, {
-      next: { revalidate: 3600 },
+    const res = await fetch(`${getApiBase()}/api/v1/reviews/companies`, {
+      next: { revalidate: 60 },
     });
     if (!res.ok) return [];
     return await res.json();

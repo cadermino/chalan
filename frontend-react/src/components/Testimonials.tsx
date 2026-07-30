@@ -13,7 +13,7 @@ interface RecentReview {
 async function getRecentReviews(limit: number): Promise<RecentReview[]> {
   try {
     const res = await fetch(`${getApiBase()}/api/v1/reviews/recent`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 60 },
     })
     if (!res.ok) return []
     const reviews: RecentReview[] = await res.json()
