@@ -147,6 +147,94 @@ function getOrderIdFromStore(page) {
   return page.evaluate(() => document.querySelector('#app').__vue__.$store.state.currentOrder.order_id);
 }
 
+/**
+ * Replaces window.google.maps with a fake implementation before any page
+ * script runs, so SearchBoxPlacesApiGoogle.vue's real code path (loadGoogle
+ * -> initMap -> new google.maps.places.SearchBox(input)) runs unmodified,
+ * but never touches Google's real network/API. Google's Maps JS SDK doesn't
+ * expose its autocomplete traffic as plain interceptable HTTP calls, so
+ * stubbing the SDK surface is the reliable way to drive this without a
+ * real API key or live network dependency.
+ */
+async function mockGooglePlaces(page) {
+  await page.addInitScript(() => {
+    class FakeSearchBox {
+      constructor(input) {
+        this._listeners = {};
+        window.__searchBoxes = window.__searchBoxes || {};
+        window.__searchBoxes[input.id] = this;
+      }
+
+      setBounds() {}
+
+      addListener(event, cb) {
+        this._listeners[event] = cb;
+      }
+
+      getPlaces() {
+        return this._places || [];
+      }
+
+      __select(place) {
+        this._places = [place];
+        if (this._listeners.places_changed) this._listeners.places_changed();
+      }
+    }
+
+    window.google = {
+      maps: {
+        Map: class { addListener() {} getBounds() { return null; } fitBounds() {} },
+        Marker: class { setMap() {} },
+        Size: class {},
+        Point: class {},
+        LatLngBounds: class { union() {} extend() {} },
+        places: {
+          SearchBox: FakeSearchBox,
+          PlacesServiceStatus: { OK: 'OK' },
+          PlacesService: class {
+            findPlaceFromQuery(_opts, cb) { cb([], 'ZERO_RESULTS'); }
+          },
+        },
+      },
+    };
+  });
+}
+
+/**
+ * Builds a Google Places "place" object shaped like a real Places API
+ * response, then simulates the user picking it from the autocomplete
+ * dropdown for the given input (must call mockGooglePlaces(page) first).
+ */
+async function selectMockAddress(page, inputId, { formattedAddress, zipCode, country, mapUrl }) {
+  const place = {
+    formatted_address: formattedAddress,
+    url: mapUrl,
+    name: formattedAddress,
+    geometry: { location: {} },
+    address_components: [
+      { long_name: zipCode, short_name: zipCode, types: ['postal_code'] },
+      { long_name: country, short_name: country, types: ['country'] },
+    ],
+  };
+
+  await page.waitForFunction(
+    (id) => window.__searchBoxes && window.__searchBoxes[id],
+    inputId,
+    { timeout: 15000 },
+  );
+  await page.evaluate(({ id, p }) => {
+    // Google's real widget also writes the picked description into the
+    // input (dispatching a native 'input' event, which is what v-model
+    // listens for) before firing places_changed. Mirror that here.
+    const input = document.getElementById(id);
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(input, p.formatted_address);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+
+    window.__searchBoxes[id].__select(p);
+  }, { id: inputId, p: place });
+}
+
 module.exports = {
   TEST_DATA,
   injectAddressToStore,
@@ -155,4 +243,6 @@ module.exports = {
   registerAndReturn,
   seedQuotation,
   getOrderIdFromStore,
+  mockGooglePlaces,
+  selectMockAddress,
 };
