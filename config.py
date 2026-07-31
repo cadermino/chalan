@@ -45,6 +45,12 @@ class DevelopmentConfig(Config):
         file_handler.setLevel(logging.INFO)
         app.logger.addHandler(file_handler)
 
+class TestingConfig(Config):
+    TESTING = True
+    SECRET_KEY = 'test-secret-key-at-least-32-bytes-long'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+
+
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 
@@ -73,6 +79,7 @@ class ProductionConfig(Config):
 
 config = {
     'development': DevelopmentConfig,
+    'testing': TestingConfig,
     'prod': ProductionConfig,
     'default': DevelopmentConfig
 }

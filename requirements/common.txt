@@ -1,38 +1,38 @@
 # Core Flask Framework
-Flask==3.0.3
-Werkzeug==3.0.3
-Jinja2==3.1.4
+Flask==3.1.3
+Werkzeug==3.1.6
+Jinja2==3.1.6
 MarkupSafe==2.1.5
 Click==8.1.7
 itsdangerous==2.2.0
-blinker==1.8.2
+blinker==1.9.0
 
 # Database
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.31
 Flask-Migrate==4.0.7
 alembic==1.13.2
-Mako==1.3.5
+Mako==1.3.12
 psycopg2-binary==2.9.9
 
 # Serialization & Validation
 flask-marshmallow==1.2.1
-marshmallow==3.21.3
+marshmallow==3.26.2
 marshmallow-sqlalchemy==1.0.0
 
 # Security & Auth
-cryptography==42.0.8
-cffi==1.16.0
+cryptography==48.0.1
+cffi==2.1.0
 pycparser==2.22
-PyJWT==2.8.0
+PyJWT==2.13.0
 
 # CORS & HTTP
-Flask-Cors==4.0.1
-requests==2.32.3
-urllib3==2.2.2
+Flask-Cors==6.0.0
+requests==2.33.0
+urllib3==2.7.0
 certifi==2024.7.4
 charset-normalizer==3.3.2
-idna==3.7
+idna==3.15
 
 # Email
 Flask-Mail==0.10.0
@@ -53,7 +53,7 @@ google-auth==2.29.0
 gunicorn==22.0.0
 
 # Environment
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 
 # AI
 openai>=1.50.0

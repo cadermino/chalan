@@ -1,1 +1,3 @@
 -r common.txt
+
+pytest==9.1.1

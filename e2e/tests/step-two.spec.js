@@ -100,8 +100,5 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     await page.click('button:has-text("Siguiente")');
 
     await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
-
-    // Keep browser open for manual inspection
-    await page.pause();
   });
 });

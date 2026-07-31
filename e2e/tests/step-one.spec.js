@@ -74,8 +74,5 @@ test.describe('Order Step One - Addresses', () => {
 
     // Verify navigation to step-two
     await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
-
-    // Keep browser open for manual inspection
-    await page.pause();
   });
 });

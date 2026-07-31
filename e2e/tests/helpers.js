@@ -1,0 +1,158 @@
+const { execSync } = require('child_process');
+const { expect } = require('@playwright/test');
+
+const TEST_DATA = {
+  from: {
+    street: 'Av. Javier Prado Este 4600, Santiago de Surco, Lima, Perú',
+    interiorNumber: '301',
+    floor: 3,
+    parkingDistance: 5,
+    hasElevator: '1',
+    zipCode: '15023',
+    country: 'Perú',
+    mapUrl: 'https://maps.google.com/?q=Av.+Javier+Prado+Este+4600',
+  },
+  to: {
+    street: 'Av. Arequipa 2450, Lince, Lima, Perú',
+    interiorNumber: '102',
+    floor: 2,
+    parkingDistance: 10,
+    hasElevator: '0',
+    zipCode: '15046',
+    country: 'Perú',
+    mapUrl: 'https://maps.google.com/?q=Av.+Arequipa+2450',
+  },
+  stepTwo: {
+    appointmentDate: (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      return d.toISOString().slice(0, 10) + ' 10:00:00';
+    })(),
+    items: ['1 cama matrimonial', '1 sofá 3 cuerpos', '2 sillas de comedor'],
+    cargo: '1',
+    packaging: '0',
+    approximateBudget: 500,
+  },
+};
+
+/**
+ * Injects address data into the Vuex store, bypassing Google Places API.
+ * Vue 2 exposes the instance on the DOM element as __vue__.
+ */
+async function injectAddressToStore(page, direction, data) {
+  const section = direction === 'from' ? 'orderDetailsOrigin' : 'orderDetailsDestination';
+  const prefix = direction;
+
+  await page.evaluate(({ section: s, prefix: p, addr }) => {
+    const store = document.querySelector('#app').__vue__.$store;
+    store.commit('setOrder', { section: s, field: `${p}_street`, value: addr.street });
+    store.commit('setOrder', { section: s, field: `${p}_zip_code`, value: addr.zipCode });
+    store.commit('setOrder', { section: s, field: `${p}_country`, value: addr.country });
+    store.commit('setOrder', { section: s, field: `${p}_map_url`, value: addr.mapUrl });
+  }, { section, prefix, addr: data });
+}
+
+async function fillStepOne(page) {
+  await page.goto('/order/step-one', { waitUntil: 'networkidle' });
+  await page.waitForSelector('#address-from-street', { timeout: 30000 });
+
+  await page.fill('#address-from-street', TEST_DATA.from.street);
+  await injectAddressToStore(page, 'from', TEST_DATA.from);
+  await page.fill('#address-from-interior', TEST_DATA.from.interiorNumber);
+  await page.selectOption('#address-from-floor', { index: TEST_DATA.from.floor });
+  await page.fill('#from-parking-distance', String(TEST_DATA.from.parkingDistance));
+  await page.click(`#from-has-elevator-${TEST_DATA.from.hasElevator}`);
+
+  await page.fill('#address-to-street', TEST_DATA.to.street);
+  await injectAddressToStore(page, 'to', TEST_DATA.to);
+  await page.fill('#address-to-interior', TEST_DATA.to.interiorNumber);
+  await page.selectOption('#address-to-floor', { index: TEST_DATA.to.floor });
+  await page.fill('#to-parking-distance', String(TEST_DATA.to.parkingDistance));
+  await page.click(`#to-has-elevator-${TEST_DATA.to.hasElevator}`);
+
+  await page.click('button:has-text("Guardar y continuar")');
+  await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
+}
+
+async function fillStepTwo(page) {
+  await page.evaluate((date) => {
+    const store = document.querySelector('#app').__vue__.$store;
+    store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: date });
+  }, TEST_DATA.stepTwo.appointmentDate);
+
+  for (const item of TEST_DATA.stepTwo.items) {
+    await page.fill('input[placeholder="Ej: 1 cama matrimonial"]', item);
+    await page.click('button:has-text("+ Agregar")');
+  }
+
+  await page.click(`#cargo-service-${TEST_DATA.stepTwo.cargo}`);
+  await page.click(`#packaging-service-${TEST_DATA.stepTwo.packaging}`);
+  await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));
+
+  await page.click('button:has-text("Siguiente")');
+  await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
+}
+
+/**
+ * Step-three/step-four require an authenticated customer. Registers a brand
+ * new account from wherever the auth redirect landed (?redirect=... is
+ * preserved), which lands back on the originating step on success.
+ */
+async function registerAndReturn(page) {
+  await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+  await page.click('text=Registrate.');
+  await expect(page).toHaveURL(/\/register/, { timeout: 15000 });
+
+  const unique = Date.now();
+  await page.fill('#email', `e2e-${unique}@example.com`);
+  await page.fill('#mobilePhone', '987654321');
+  await page.fill('#name', 'Cliente E2E');
+  await page.fill('#password', 'Test-password-1');
+  await page.click('button:has-text("Registrame")');
+
+  await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
+}
+
+/**
+ * Seeds a carrier company + vehicle + quotation directly in Postgres so
+ * step-three has a real quote to select, without going through the real
+ * create_quotation endpoint (which sends live email/WhatsApp notifications).
+ */
+function seedQuotation(orderId) {
+  const sql = `
+    INSERT INTO carrier_company (name, email, active, country_id)
+    VALUES ('E2E Test Carrier', 'carlos.calderon@chalan.pe', 1, 1)
+    RETURNING id;
+  `;
+  const carrierId = execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "${sql.replace(/\n/g, ' ')}"`,
+  ).toString().trim().split('\n')[0];
+
+  execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -c "` +
+    `INSERT INTO vehicles (carrier_company_id, size, weight, brand, model, active) ` +
+    `VALUES (${carrierId}, 'medium', '1000', 'Hyundai', 'H100', 1);"`,
+  );
+
+  execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -c "` +
+    `INSERT INTO quotations (amount, order_id, carrier_company_id) ` +
+    `VALUES (450, ${orderId}, ${carrierId});"`,
+  );
+
+  return carrierId;
+}
+
+function getOrderIdFromStore(page) {
+  return page.evaluate(() => document.querySelector('#app').__vue__.$store.state.currentOrder.order_id);
+}
+
+module.exports = {
+  TEST_DATA,
+  injectAddressToStore,
+  fillStepOne,
+  fillStepTwo,
+  registerAndReturn,
+  seedQuotation,
+  getOrderIdFromStore,
+};

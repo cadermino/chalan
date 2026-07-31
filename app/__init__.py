@@ -5,12 +5,24 @@ from flask_migrate import Migrate
 from config import config
 from flask_cors import CORS
 from flask_mail import Mail
+import ast
 import os
+
+
+def _parse_cors_origins():
+    raw = os.environ.get('CORS')
+    if not raw:
+        return None
+    try:
+        return ast.literal_eval(raw)
+    except (ValueError, SyntaxError):
+        return raw
+
 
 db = SQLAlchemy()
 ma = Marshmallow()
 migrate = Migrate()
-cors = CORS(origins=os.environ.get('CORS'), allow_headers=['Content-Type', 'Authorization'])
+cors = CORS(origins=_parse_cors_origins(), allow_headers=['Content-Type', 'Authorization'])
 mail = Mail()
 
 def create_app(config_name):
