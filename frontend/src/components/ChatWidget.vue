@@ -272,7 +272,9 @@ export default {
       if (!text || !this.sessionId || this.sending) return;
 
       this.error = '';
-      this.messages.push({ id: newId(), role: 'user', body: text, created_at: new Date().toISOString() });
+      this.messages.push({
+        id: newId(), role: 'user', body: text, created_at: new Date().toISOString(),
+      });
       this.body = '';
       this.sending = true;
 
@@ -292,11 +294,13 @@ export default {
         // La respuesta puede traer varios mensajes separados por "\n\n" -> burbujas.
         const bubbles = String(data.response || '')
           .split('\n\n')
-          .map((s) => s.trim())
+          .map(s => s.trim())
           .filter(Boolean);
 
         bubbles.forEach((b) => {
-          this.messages.push({ id: newId(), role: 'agent', body: b, created_at: new Date().toISOString() });
+          this.messages.push({
+            id: newId(), role: 'agent', body: b, created_at: new Date().toISOString(),
+          });
         });
       } catch (e) {
         this.messages.push({
