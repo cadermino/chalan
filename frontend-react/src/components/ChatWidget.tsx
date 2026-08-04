@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { response }
+// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type: "text", text }, ...] }
 const AGENT_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message'
 const TENANT_ID = process.env.NEXT_PUBLIC_CHAT_TENANT_ID || ''
 
@@ -159,11 +159,15 @@ export function ChatWidget() {
       }
 
       const data = await res.json()
-      // La respuesta puede traer varios mensajes separados por "\n\n" -> burbujas.
-      const bubbles = String(data.response ?? '')
-        .split('\n\n')
-        .map((s: string) => s.trim())
-        .filter(Boolean)
+      // El contrato manda un array de mensajes (texto o imagen); acá solo usamos
+      // texto (mudanzas no manda fotos). Cada elemento puede traer varios párrafos
+      // separados por "\n\n" -> burbujas.
+      const apiMessages = (data.messages ?? []) as Array<{ type: string; text?: string }>
+      const bubbles = apiMessages.flatMap((m) =>
+        m.type === 'text' && m.text
+          ? m.text.split('\n\n').map((s) => s.trim()).filter(Boolean)
+          : []
+      )
 
       setMessages((prev) => [
         ...prev,

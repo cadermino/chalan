@@ -170,7 +170,7 @@
 </template>
 
 <script>
-// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { response }
+// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type: "text", text }, ...] }
 const AGENT_URL = process.env.VUE_APP_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message';
 const TENANT_ID = process.env.VUE_APP_CHAT_TENANT_ID || '';
 
@@ -291,11 +291,15 @@ export default {
         }
 
         const data = await res.json();
-        // La respuesta puede traer varios mensajes separados por "\n\n" -> burbujas.
-        const bubbles = String(data.response || '')
-          .split('\n\n')
-          .map(s => s.trim())
-          .filter(Boolean);
+        // El contrato manda un array de mensajes (texto o imagen); acá solo usamos
+        // texto (mudanzas no manda fotos). Cada elemento puede traer varios párrafos
+        // separados por "\n\n" -> burbujas.
+        const apiMessages = data.messages || [];
+        const bubbles = apiMessages.flatMap(m => (
+          m.type === 'text' && m.text
+            ? m.text.split('\n\n').map(s => s.trim()).filter(Boolean)
+            : []
+        ));
 
         bubbles.forEach((b) => {
           this.messages.push({
