@@ -80,10 +80,10 @@
         </div>
         <div style="flex:1;">
           <p style="color:#fff;font-weight:600;font-size:14px;margin:0;">
-            Chalán - Soporte
+            Chalán - Asistente
           </p>
           <p style="color:#99f6e4;font-size:12px;margin:0;">
-            Te respondemos pronto
+            Te respondemos al instante
           </p>
         </div>
         <button
@@ -104,7 +104,7 @@
           :key="m.id"
           :style="{
             display: 'flex',
-            justifyContent: m.direction === 'inbound' ? 'flex-end' : 'flex-start',
+            justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
           }"
         >
           <div
@@ -113,12 +113,12 @@
               borderRadius: '16px',
               padding: '8px 12px',
               fontSize: '14px',
-              background: m.direction === 'inbound' ? '#14b8a6' : '#fff',
-              color: m.direction === 'inbound' ? '#fff' : '#111827',
-              border: m.direction === 'inbound' ? 'none' : '1px solid #e5e7eb',
-              boxShadow: m.direction === 'outbound' ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
-              borderTopRightRadius: m.direction === 'inbound' ? '4px' : '16px',
-              borderTopLeftRadius: m.direction === 'outbound' ? '4px' : '16px',
+              background: m.role === 'user' ? '#2fa55f' : '#fff',
+              color: m.role === 'user' ? '#fff' : '#111827',
+              border: m.role === 'user' ? 'none' : '1px solid #e5e7eb',
+              boxShadow: m.role === 'agent' ? '0 1px 3px rgba(0,0,0,.08)' : 'none',
+              borderTopRightRadius: m.role === 'user' ? '4px' : '16px',
+              borderTopLeftRadius: m.role === 'agent' ? '4px' : '16px',
             }"
           >
             <p style="margin:0;white-space:pre-wrap;">{{ m.body }}</p>
@@ -127,7 +127,7 @@
                 margin: '4px 0 0',
                 fontSize: '11px',
                 textAlign: 'right',
-                color: m.direction === 'inbound' ? 'rgba(255,255,255,.7)' : '#9ca3af',
+                color: m.role === 'user' ? 'rgba(255,255,255,.7)' : '#9ca3af',
               }"
             >
               {{ formatTime(m.created_at) }}
@@ -148,7 +148,7 @@
             @keydown.enter.exact.prevent="sendMessage"
             placeholder="Escribe tu mensaje..."
             rows="1"
-            maxlength="1000"
+            maxlength="4096"
             style="flex:1;border:1px solid #d1d5db;border-radius:12px;
                    padding:8px 12px;font-size:14px;resize:none;
                    font-family:inherit;outline:none;"
@@ -170,26 +170,56 @@
 </template>
 
 <script>
+// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { response }
+const AGENT_URL = process.env.VUE_APP_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message';
+const TENANT_ID = process.env.VUE_APP_CHAT_TENANT_ID || '';
+
 const SESSION_KEY = 'chalan_chat_session';
-const POLL_INTERVAL = 5000;
+const HISTORY_KEY = 'chalan_chat_history';
 
 const PHANTOM_MESSAGE = {
   id: '__phantom__',
-  direction: 'outbound',
+  role: 'agent',
   body: '¡Hola! 👋 ¿Tienes dudas sobre tu mudanza o flete? Escríbenos y te ayudamos.',
   created_at: new Date().toISOString(),
 };
 
+function newId() {
+  try {
+    return crypto.randomUUID();
+  } catch (e) {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+}
+
 function getOrCreateSession() {
   try {
     let id = localStorage.getItem(SESSION_KEY);
-    if (!id || !/^[a-z0-9]{12}$/.test(id)) {
-      id = Math.random().toString(36).slice(2, 14).padEnd(12, '0');
+    if (!id) {
+      id = newId();
       localStorage.setItem(SESSION_KEY, id);
     }
     return id;
   } catch (e) {
-    return Math.random().toString(36).slice(2, 14).padEnd(12, '0');
+    return newId();
+  }
+}
+
+function loadHistory(sid) {
+  try {
+    const raw = localStorage.getItem(`${HISTORY_KEY}:${sid}`);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory(sid, messages) {
+  try {
+    localStorage.setItem(`${HISTORY_KEY}:${sid}`, JSON.stringify(messages));
+  } catch (e) {
+    // storage full or unavailable — ignore
   }
 }
 
@@ -203,32 +233,30 @@ export default {
       sending: false,
       error: '',
       sessionId: null,
-      pollTimer: null,
     };
   },
   mounted() {
-    this.sessionId = getOrCreateSession();
-  },
-  beforeDestroy() {
-    this.stopPolling();
+    const sid = getOrCreateSession();
+    this.sessionId = sid;
+    this.messages = loadHistory(sid);
   },
   watch: {
     open(val) {
       if (val) {
-        this.fetchMessages();
-        this.pollTimer = setInterval(this.fetchMessages, POLL_INTERVAL);
         this.$nextTick(() => {
           if (this.$refs.textarea) this.$refs.textarea.focus();
         });
-      } else {
-        this.stopPolling();
       }
     },
-    messages() {
-      this.$nextTick(() => {
-        const el = this.$refs.messageList;
-        if (el) el.scrollTop = el.scrollHeight;
-      });
+    messages: {
+      deep: true,
+      handler() {
+        if (this.sessionId) saveHistory(this.sessionId, this.messages);
+        this.$nextTick(() => {
+          const el = this.$refs.messageList;
+          if (el) el.scrollTop = el.scrollHeight;
+        });
+      },
     },
   },
   computed: {
@@ -238,46 +266,50 @@ export default {
     },
   },
   methods: {
-    stopPolling() {
-      if (this.pollTimer) {
-        clearInterval(this.pollTimer);
-        this.pollTimer = null;
-      }
-    },
-    async fetchMessages() {
-      if (!this.sessionId) return;
-      try {
-        const res = await fetch(`/api/v1/chat/messages/${this.sessionId}`);
-        const data = await res.json();
-        if (Array.isArray(data.messages)) this.messages = data.messages;
-      } catch (e) {
-        // error de red, ignorar
-      }
-    },
     async sendMessage() {
-      if (!this.body.trim() || !this.sessionId) return;
+      const text = this.body.trim();
+      // Una sola request en vuelo por sessionId (envíos concurrentes -> 500).
+      if (!text || !this.sessionId || this.sending) return;
+
       this.error = '';
+      this.messages.push({ id: newId(), role: 'user', body: text, created_at: new Date().toISOString() });
+      this.body = '';
       this.sending = true;
+
       try {
-        const res = await fetch('/api/v1/chat/messages', {
+        const res = await fetch(AGENT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            session_id: this.sessionId,
-            body: this.body.trim(),
-          }),
+          body: JSON.stringify({ tenantId: TENANT_ID, sessionId: this.sessionId, message: text }),
         });
-        const data = await res.json();
+
         if (!res.ok) {
-          this.error = data.message || 'Error al enviar';
-          return;
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
         }
-        this.messages.push(data.message);
-        this.body = '';
+
+        const data = await res.json();
+        // La respuesta puede traer varios mensajes separados por "\n\n" -> burbujas.
+        const bubbles = String(data.response || '')
+          .split('\n\n')
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        bubbles.forEach((b) => {
+          this.messages.push({ id: newId(), role: 'agent', body: b, created_at: new Date().toISOString() });
+        });
       } catch (e) {
-        this.error = 'Error al enviar. Intenta de nuevo.';
+        this.messages.push({
+          id: newId(),
+          role: 'agent',
+          body: 'Ups, tuvimos un problema. Inténtalo de nuevo en un momento.',
+          created_at: new Date().toISOString(),
+        });
       } finally {
         this.sending = false;
+        this.$nextTick(() => {
+          if (this.$refs.textarea) this.$refs.textarea.focus();
+        });
       }
     },
     formatTime(iso) {
