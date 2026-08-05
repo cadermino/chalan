@@ -170,7 +170,8 @@
 </template>
 
 <script>
-// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type: "text", text }, ...] }
+// Agente de cotización (LLM).
+// Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type, text }] }
 const AGENT_URL = process.env.VUE_APP_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message';
 const TENANT_ID = process.env.VUE_APP_CHAT_TENANT_ID || '';
 

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-// Agente de cotización (LLM). Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type: "text", text }, ...] }
+// Agente de cotización (LLM).
+// Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type, text }] }
 const AGENT_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message'
 const TENANT_ID = process.env.NEXT_PUBLIC_CHAT_TENANT_ID || ''
 
