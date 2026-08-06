@@ -9,6 +9,7 @@ import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { QuoteWidget } from "@/components/QuoteWidget";
 import { WaitlistForm } from "@/components/WaitlistForm";
+import { CarrierSignupForm } from "@/components/CarrierSignupForm";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -144,11 +145,20 @@ export default async function BlogPost({ params }: Props) {
           <WaitlistForm source={slug} />
         )}
 
-        {/* CTA post-article */}
-        <div className="mt-16">
-          <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
-          <QuoteWidget theme="light" />
-        </div>
+        {/* CTA post-article — registro para posts de transportistas, cotizador para el resto */}
+        {post.category === "Transportistas" ? (
+          <div className="mt-16">
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para recibir pedidos?</p>
+            <div className="chalan-landing">
+              <CarrierSignupForm />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-16">
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
+            <QuoteWidget theme="light" />
+          </div>
+        )}
 
         {/* Back link */}
         <div className="mt-8">
