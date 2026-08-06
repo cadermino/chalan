@@ -63,6 +63,7 @@ const DEFAULT_LINKS: NavLink[] = [
   { label: 'Rutas', href: '/fletes-peru' },
   { label: 'Blog', href: '/blog' },
   { label: 'Preguntas', href: '/preguntas-frecuentes' },
+  { label: 'Transportistas', href: '/transportistas' },
   { label: 'Ingresar', href: '/register-login', muted: true },
   { label: 'WhatsApp', href: 'https://wa.me/51972643007', external: true },
 ]

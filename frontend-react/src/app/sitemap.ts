@@ -17,6 +17,7 @@ const LAST_MODIFIED: Record<string, string> = {
   '/fletes-peru': '2026-07-22',
   '/como-funciona': '2026-07-22',
   '/embalaje-profesional': '2026-07-02',
+  '/transportistas': '2026-08-06',
 };
 
 async function getCompanies(): Promise<{ id: number; last_review_date: string | null }[]> {
@@ -111,6 +112,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/embalaje-profesional`,
       lastModified: LAST_MODIFIED['/embalaje-profesional'],
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/transportistas`,
+      lastModified: LAST_MODIFIED['/transportistas'],
       changeFrequency: 'monthly',
       priority: 0.8,
     },
