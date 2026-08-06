@@ -228,6 +228,12 @@ export default function Transportistas() {
                 </details>
               ))}
             </div>
+            <p style={{ marginTop: 24, fontSize: 14, color: 'var(--ink-soft)' }}>
+              ¿Quieres más detalle? Lee la{' '}
+              <Link href="/blog/como-ser-transportista-chalan-peru" style={{ color: 'var(--ch-accent)' }}>
+                guía completa para transportistas
+              </Link>.
+            </p>
           </div>
         </section>
 
