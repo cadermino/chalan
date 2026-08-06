@@ -149,9 +149,7 @@ export default async function BlogPost({ params }: Props) {
         {post.category === "Transportistas" ? (
           <div className="mt-16">
             <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para recibir pedidos?</p>
-            <div className="chalan-landing">
-              <CarrierSignupForm />
-            </div>
+            <CarrierSignupForm theme="light" />
           </div>
         ) : (
           <div className="mt-16">

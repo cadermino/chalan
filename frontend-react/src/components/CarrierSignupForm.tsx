@@ -26,19 +26,52 @@ const EMPTY_FORM: FormState = {
   confirm_password: '',
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--paper)',
-  border: '1px solid var(--line)',
-  borderRadius: 8,
-  padding: '10px 12px',
-  fontFamily: 'var(--sans)',
-  fontSize: 14,
-  color: 'var(--ink-strong)',
-  outline: 'none',
-}
+type Theme = 'dark' | 'light'
 
-export function CarrierSignupForm() {
+const THEME = {
+  dark: {
+    container: { background: 'var(--paper-2)', border: '1px solid var(--line)' },
+    input: {
+      background: 'var(--paper)',
+      border: '1px solid var(--line)',
+      color: 'var(--ink-strong)',
+      fontFamily: 'var(--sans)',
+    } as React.CSSProperties,
+    label: { fontFamily: 'var(--mono)', color: 'var(--mute)' } as React.CSSProperties,
+    heading: { fontFamily: 'var(--serif)', color: 'var(--ink-strong)' } as React.CSSProperties,
+    body: { color: 'var(--ink-soft)' } as React.CSSProperties,
+    footnote: { fontFamily: 'var(--mono)', color: 'var(--mute)' } as React.CSSProperties,
+    buttonClassName: 'btn btn-primary',
+    buttonStyle: {} as React.CSSProperties,
+  },
+  light: {
+    container: { background: '#ffffff', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' },
+    input: {
+      background: '#ffffff',
+      border: '1px solid #d1d5db',
+      color: '#111827',
+      fontFamily: 'inherit',
+    } as React.CSSProperties,
+    label: { fontFamily: 'inherit', color: '#6b7280', textTransform: 'none', letterSpacing: 'normal', fontSize: 12 } as React.CSSProperties,
+    heading: { fontFamily: 'inherit', color: '#111827' } as React.CSSProperties,
+    body: { color: '#4b5563' } as React.CSSProperties,
+    footnote: { fontFamily: 'inherit', color: '#9ca3af' } as React.CSSProperties,
+    buttonClassName: '',
+    buttonStyle: { background: '#1e1b4b' } as React.CSSProperties,
+  },
+} satisfies Record<Theme, {
+  container: React.CSSProperties
+  input: React.CSSProperties
+  label: React.CSSProperties
+  heading: React.CSSProperties
+  body: React.CSSProperties
+  footnote: React.CSSProperties
+  buttonClassName: string
+  buttonStyle: React.CSSProperties
+}>
+
+export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
+  const t = THEME[theme]
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -90,14 +123,23 @@ export function CarrierSignupForm() {
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    borderRadius: 8,
+    padding: '10px 12px',
+    fontSize: 14,
+    outline: 'none',
+    ...t.input,
+  }
+
   if (done) {
     return (
-      <div style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 14, padding: 32, textAlign: 'center' }}>
+      <div style={{ ...t.container, borderRadius: 14, padding: 32, textAlign: 'center' }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
-        <h3 style={{ fontFamily: 'var(--serif)', fontSize: 24, color: 'var(--ink-strong)', marginBottom: 8 }}>
+        <h3 style={{ ...t.heading, fontSize: 24, marginBottom: 8 }}>
           ¡Registro exitoso!
         </h3>
-        <p style={{ color: 'var(--ink-soft)', fontSize: 14, lineHeight: 1.5 }}>
+        <p style={{ ...t.body, fontSize: 14, lineHeight: 1.5 }}>
           Tu cuenta fue creada. Un administrador la activará pronto y te avisaremos
           para que completes el perfil de tu empresa y empieces a cotizar pedidos.
         </p>
@@ -108,55 +150,69 @@ export function CarrierSignupForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 14, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}
+      style={{ ...t.container, borderRadius: 14, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <Field label="Nombre">
+        <Field label="Nombre" labelStyle={t.label}>
           <input required value={form.first_name} onChange={set('first_name')} placeholder="Juan" style={inputStyle} />
         </Field>
-        <Field label="Apellido">
+        <Field label="Apellido" labelStyle={t.label}>
           <input required value={form.last_name} onChange={set('last_name')} placeholder="Pérez" style={inputStyle} />
         </Field>
       </div>
 
-      <Field label="DNI">
+      <Field label="DNI" labelStyle={t.label}>
         <input required value={form.dni} onChange={set('dni')} placeholder="12345678" maxLength={15} style={inputStyle} />
       </Field>
 
-      <Field label="Correo electrónico">
+      <Field label="Correo electrónico" labelStyle={t.label}>
         <input type="email" required value={form.email} onChange={set('email')} placeholder="juan@miempresa.pe" style={inputStyle} />
       </Field>
 
-      <Field label="Teléfono / WhatsApp">
+      <Field label="Teléfono / WhatsApp" labelStyle={t.label}>
         <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="987654321" style={inputStyle} />
       </Field>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <Field label="Contraseña">
+        <Field label="Contraseña" labelStyle={t.label}>
           <input type="password" required minLength={8} value={form.password} onChange={set('password')} style={inputStyle} />
         </Field>
-        <Field label="Confirmar contraseña">
+        <Field label="Confirmar contraseña" labelStyle={t.label}>
           <input type="password" required minLength={8} value={form.confirm_password} onChange={set('confirm_password')} style={inputStyle} />
         </Field>
       </div>
 
-      {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
+      {error && <p style={{ fontSize: 13, color: '#ef4444' }}>{error}</p>}
 
-      <button type="submit" disabled={loading} className="btn btn-primary" style={{ justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
+      <button
+        type="submit"
+        disabled={loading}
+        className={t.buttonClassName || undefined}
+        style={{
+          justifyContent: 'center',
+          textAlign: 'center',
+          opacity: loading ? 0.6 : 1,
+          ...(t.buttonClassName ? {} : {
+            width: '100%', color: '#fff', border: 'none', borderRadius: 999,
+            padding: '12px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          }),
+          ...t.buttonStyle,
+        }}
+      >
         {loading ? 'Registrando…' : 'Registrar mi empresa'}
       </button>
 
-      <p style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--mute)', letterSpacing: '0.04em', textAlign: 'center' }}>
+      <p style={{ ...t.footnote, fontSize: 11, letterSpacing: '0.04em', textAlign: 'center' }}>
         Al registrarte aceptas que un administrador revise y active tu cuenta antes de que puedas cotizar.
       </p>
     </form>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, labelStyle, children }: { label: string; labelStyle: React.CSSProperties; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--mute)' }}>
+      <label style={{ fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', ...labelStyle }}>
         {label}
       </label>
       {children}
