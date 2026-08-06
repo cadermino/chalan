@@ -10,6 +10,7 @@ interface FormState {
   last_name: string
   dni: string
   email: string
+  phone: string
   password: string
   confirm_password: string
 }
@@ -19,6 +20,7 @@ const EMPTY_FORM: FormState = {
   last_name: '',
   dni: '',
   email: '',
+  phone: '',
   password: '',
   confirm_password: '',
 }
@@ -67,6 +69,7 @@ export function CarrierSignupForm() {
           last_name: form.last_name.trim(),
           dni: form.dni.trim(),
           email: form.email.trim(),
+          phone: form.phone.trim(),
           password: form.password,
           role: 'carrier_company',
         }),
@@ -121,6 +124,10 @@ export function CarrierSignupForm() {
 
       <Field label="Correo electrónico">
         <input type="email" required value={form.email} onChange={set('email')} placeholder="juan@miempresa.pe" style={inputStyle} />
+      </Field>
+
+      <Field label="Teléfono / WhatsApp">
+        <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="987654321" style={inputStyle} />
       </Field>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

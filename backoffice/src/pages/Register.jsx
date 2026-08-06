@@ -10,6 +10,7 @@ export default function Register() {
     last_name: '',
     dni: '',
     email: '',
+    phone: '',
     password: '',
     confirm_password: '',
     role: 'carrier_company',
@@ -32,6 +33,7 @@ export default function Register() {
         last_name: form.last_name.trim(),
         dni: form.dni.trim(),
         email: form.email.trim(),
+        phone: form.phone.trim(),
         password: form.password,
         role: form.role,
       })
@@ -138,6 +140,19 @@ export default function Register() {
               className="input"
             />
           </Field>
+
+          {form.role === 'carrier_company' && (
+            <Field label="Teléfono / WhatsApp">
+              <input
+                type="tel"
+                required
+                value={form.phone}
+                onChange={set('phone')}
+                placeholder="987654321"
+                className="input"
+              />
+            </Field>
+          )}
 
           <Field label="Contraseña">
             <PasswordInput

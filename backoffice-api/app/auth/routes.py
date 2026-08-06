@@ -35,6 +35,9 @@ def register():
     if role not in (ROLE_CARRIER, ROLE_REAL_ESTATE):
         return jsonify({'message': 'role must be carrier_company or real_estate_agent'}), 400
 
+    if role == ROLE_CARRIER and not data.get('phone'):
+        return jsonify({'message': 'phone is required for carrier_company registration'}), 400
+
     try:
         user = AdminUser(
             email=data['email'].strip().lower(),
@@ -49,7 +52,10 @@ def register():
         # Auto-create blank company + vehicle for carrier_company users
         if role == ROLE_CARRIER:
             db.session.add(user)
-            company = create_blank_company_and_vehicle(email=data['email'].strip().lower())
+            company = create_blank_company_and_vehicle(
+                email=data['email'].strip().lower(),
+                phone=data['phone'].strip(),
+            )
             user.carrier_company_id = company.id
 
         # Generate unique referral code for real_estate_agent users
