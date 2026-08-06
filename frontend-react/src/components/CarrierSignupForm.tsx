@@ -23,6 +23,18 @@ const EMPTY_FORM: FormState = {
   confirm_password: '',
 }
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: 'var(--paper)',
+  border: '1px solid var(--line)',
+  borderRadius: 8,
+  padding: '10px 12px',
+  fontFamily: 'var(--sans)',
+  fontSize: 14,
+  color: 'var(--ink-strong)',
+  outline: 'none',
+}
+
 export function CarrierSignupForm() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
@@ -76,10 +88,12 @@ export function CarrierSignupForm() {
 
   if (done) {
     return (
-      <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
-        <div className="text-4xl mb-4">✅</div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">¡Registro exitoso!</h3>
-        <p className="text-gray-600">
+      <div style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 14, padding: 32, textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>✅</div>
+        <h3 style={{ fontFamily: 'var(--serif)', fontSize: 24, color: 'var(--ink-strong)', marginBottom: 8 }}>
+          ¡Registro exitoso!
+        </h3>
+        <p style={{ color: 'var(--ink-soft)', fontSize: 14, lineHeight: 1.5 }}>
           Tu cuenta fue creada. Un administrador la activará pronto y te avisaremos
           para que completes el perfil de tu empresa y empieces a cotizar pedidos.
         </p>
@@ -88,84 +102,43 @@ export function CarrierSignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
-      <div className="grid sm:grid-cols-2 gap-4">
+    <form
+      onSubmit={handleSubmit}
+      style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 14, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <Field label="Nombre">
-          <input
-            required
-            value={form.first_name}
-            onChange={set('first_name')}
-            placeholder="Juan"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
+          <input required value={form.first_name} onChange={set('first_name')} placeholder="Juan" style={inputStyle} />
         </Field>
         <Field label="Apellido">
-          <input
-            required
-            value={form.last_name}
-            onChange={set('last_name')}
-            placeholder="Pérez"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
+          <input required value={form.last_name} onChange={set('last_name')} placeholder="Pérez" style={inputStyle} />
         </Field>
       </div>
 
       <Field label="DNI">
-        <input
-          required
-          value={form.dni}
-          onChange={set('dni')}
-          placeholder="12345678"
-          maxLength={15}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-        />
+        <input required value={form.dni} onChange={set('dni')} placeholder="12345678" maxLength={15} style={inputStyle} />
       </Field>
 
       <Field label="Correo electrónico">
-        <input
-          type="email"
-          required
-          value={form.email}
-          onChange={set('email')}
-          placeholder="juan@miempresa.pe"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-        />
+        <input type="email" required value={form.email} onChange={set('email')} placeholder="juan@miempresa.pe" style={inputStyle} />
       </Field>
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <Field label="Contraseña">
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={form.password}
-            onChange={set('password')}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
+          <input type="password" required minLength={8} value={form.password} onChange={set('password')} style={inputStyle} />
         </Field>
         <Field label="Confirmar contraseña">
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={form.confirm_password}
-            onChange={set('confirm_password')}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
+          <input type="password" required minLength={8} value={form.confirm_password} onChange={set('confirm_password')} style={inputStyle} />
         </Field>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p style={{ fontSize: 13, color: '#f87171' }}>{error}</p>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-indigo-950 hover:bg-indigo-900 text-white font-semibold py-3 rounded-full text-sm transition-colors disabled:opacity-60"
-      >
+      <button type="submit" disabled={loading} className="btn btn-primary" style={{ justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
         {loading ? 'Registrando…' : 'Registrar mi empresa'}
       </button>
 
-      <p className="text-xs text-gray-400 text-center">
+      <p style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--mute)', letterSpacing: '0.04em', textAlign: 'center' }}>
         Al registrarte aceptas que un administrador revise y active tu cuenta antes de que puedas cotizar.
       </p>
     </form>
@@ -174,8 +147,10 @@ export function CarrierSignupForm() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--mute)' }}>
+        {label}
+      </label>
       {children}
     </div>
   )
