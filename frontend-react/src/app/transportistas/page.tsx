@@ -149,16 +149,8 @@ export default function Transportistas() {
                   buscando en Chalán — tú eliges cuáles cotizar.
                 </span>
               </h1>
-              <div className="hero-meta">
-                <div style={{ background: 'var(--paper-2)', border: '1px solid var(--line)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div className="eyebrow"><span className="dot" />Regístrate gratis</div>
-                  <ul style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14, color: 'var(--ink)', paddingLeft: 0, listStyle: 'none' }}>
-                    <li>Sin costo de entrada</li>
-                    <li>Tú eliges qué mudanzas tomar</li>
-                    <li>Panel propio para gestionar todo</li>
-                  </ul>
-                  <Link href="#registro" className="btn btn-primary">Registrar mi empresa <Arrow className="arrow" /></Link>
-                </div>
+              <div className="hero-meta" id="registro">
+                <CarrierSignupForm />
               </div>
             </div>
           </div>
@@ -207,24 +199,11 @@ export default function Transportistas() {
           </div>
         </section>
 
-        {/* ── REGISTRO ── */}
-        <section className="block" id="registro">
-          <div className="wrap">
-            <div className="section-head">
-              <div className="num">03 / Registro</div>
-              <h2 className="h-section">Registra<br />tu empresa.</h2>
-            </div>
-            <div style={{ maxWidth: 480 }}>
-              <CarrierSignupForm />
-            </div>
-          </div>
-        </section>
-
         {/* ── FAQ ── */}
         <section className="block" id="faq">
           <div className="wrap">
             <div className="section-head">
-              <div className="num">04 / Preguntas</div>
+              <div className="num">03 / Preguntas</div>
               <h2 className="h-section">Lo que normalmente preguntan los transportistas.</h2>
             </div>
             <div>

@@ -196,6 +196,9 @@ export function ChatWidget() {
     }
   }
 
+  // La landing de transportistas ya tiene su propio CTA de registro; el widget de cotización no aplica ahí.
+  if (pathname === '/transportistas') return null
+
   return (
     <>
       {/* Floating button */}
