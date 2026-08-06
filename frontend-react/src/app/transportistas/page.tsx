@@ -43,10 +43,20 @@ const jetbrainsMono = JetBrains_Mono({
 const jsonLdOrg = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': 'https://chalan.pe/#organization',
   name: 'Chalán',
   url: 'https://chalan.pe',
   logo: 'https://chalan.pe/logo_chalan.png',
   sameAs: ['https://wa.me/51972643007'],
+}
+
+const jsonLdBreadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://chalan.pe' },
+    { '@type': 'ListItem', position: 2, name: 'Transportistas', item: 'https://chalan.pe/transportistas' },
+  ],
 }
 
 const BENEFITS = [
@@ -130,6 +140,7 @@ export default function Transportistas() {
       <LandingNav />
       <main id="main-content" className={`chalan-landing ${fontVars}`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
 
         {/* ── HERO ── */}

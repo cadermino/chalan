@@ -45,6 +45,7 @@ export function LandingFooter() {
                 <li><Link href="/contacto">Contacto</Link></li>
                 <li><Link href="/preguntas-frecuentes">Preguntas frecuentes</Link></li>
                 <li><Link href="/reviews">Reseñas</Link></li>
+                <li><Link href="/transportistas">Trabaja con nosotros</Link></li>
               </ul>
             </div>
             <div>
