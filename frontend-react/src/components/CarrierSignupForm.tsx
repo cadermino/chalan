@@ -3,7 +3,8 @@
 import { useState } from 'react'
 
 // Mismo endpoint que backoffice/src/pages/Register.jsx, same-origin vía nginx (/backoffice-api/).
-const REGISTER_URL = '/backoffice-api/api/auth/register'
+// El blueprint de auth está montado en /auth (no /api/auth) — ver backoffice-api/app/__init__.py.
+const REGISTER_URL = '/backoffice-api/auth/register'
 
 interface FormState {
   first_name: string
