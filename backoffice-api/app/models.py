@@ -111,10 +111,10 @@ class Customer(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(45))
+    name = db.Column(db.String(255))
     paternal_last_name = db.Column(db.String(45))
     maternal_last_name = db.Column(db.String(45))
-    email = db.Column(db.String(45))
+    email = db.Column(db.String(255))
     mobile_phone = db.Column(db.String(15))
     phone = db.Column(db.String(15))
     created_date = db.Column(db.DateTime())

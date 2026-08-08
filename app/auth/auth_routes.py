@@ -34,6 +34,9 @@ def register():
     except exc.IntegrityError:
         db.session.rollback()
         return jsonify({'message' : 'duplicated email'}), 400
+    except exc.DataError:
+        db.session.rollback()
+        return jsonify({'message' : 'one or more fields exceed the maximum allowed length'}), 400
 
     return jsonify({
         'message' : 'usuario registrado',

@@ -34,10 +34,10 @@ class CarrierCompany(db.Model):
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(45))
+	name = db.Column(db.String(255))
 	paternal_last_name = db.Column(db.String(45))
 	maternal_last_name = db.Column(db.String(45))
-	email = db.Column(db.String(45), unique=True)
+	email = db.Column(db.String(255), unique=True)
 	password_hash = db.Column('password', db.String(255))
 	mobile_phone = db.Column(db.String(15))
 	phone = db.Column(db.String(15))
