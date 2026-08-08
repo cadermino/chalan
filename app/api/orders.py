@@ -27,7 +27,18 @@ CARRIER_NOTIFICATION_COOLDOWN = timedelta(minutes=15)
 
 @api.route('/order', methods=['POST'])
 def create_order():
-    order_data = request.json
+    order_data = request.json or {}
+    customer = order_data.get('customer') or {}
+    missing = []
+    if not customer.get('customer_id'):
+        missing.append('customer.customer_id')
+    if not order_data.get('orderDetailsOrigin'):
+        missing.append('orderDetailsOrigin')
+    if not order_data.get('orderDetailsDestination'):
+        missing.append('orderDetailsDestination')
+    if missing:
+        return jsonify({'message': 'missing required fields: ' + ', '.join(missing)}), 400
+
     order = OrderEntity()
     order = order.create(request=order_data)
 
