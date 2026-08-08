@@ -60,7 +60,26 @@ def create_order():
 
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
-    order_data = request.json
+    order_data = request.json or {}
+    customer = order_data.get('customer')
+    order_fields = order_data.get('order')
+    missing = []
+    if not isinstance(customer, dict) or 'customer_id' not in customer:
+        missing.append('customer.customer_id')
+    if not isinstance(order_fields, dict):
+        missing.append('order')
+    else:
+        missing.extend(
+            f'order.{field}' for field in ('appointment_date', 'comments', 'approximate_budget')
+            if field not in order_fields
+        )
+    missing.extend(
+        key for key in ('orderDetailsOrigin', 'orderDetailsDestination', 'services')
+        if key not in order_data
+    )
+    if missing:
+        return jsonify({'message': 'missing required fields: ' + ', '.join(missing)}), 400
+
     address_changed = AddressesStep(order_id).has_changed(order_data)
     belongings_changed = BelongingsAppointmentDateStep(order_id).has_changed(order_data)
     data_changed = address_changed or belongings_changed
