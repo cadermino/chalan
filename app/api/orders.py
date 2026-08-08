@@ -73,10 +73,32 @@ def update_order(order_id):
             f'order.{field}' for field in ('appointment_date', 'comments', 'approximate_budget')
             if field not in order_fields
         )
-    missing.extend(
-        key for key in ('orderDetailsOrigin', 'orderDetailsDestination', 'services')
-        if key not in order_data
-    )
+    origin = order_data.get('orderDetailsOrigin')
+    if not isinstance(origin, dict):
+        missing.append('orderDetailsOrigin')
+    else:
+        missing.extend(
+            f'orderDetailsOrigin.{field}' for field in
+            ('from_street', 'from_floor_number', 'from_country', 'from_map_url')
+            if field not in origin
+        )
+    destination = order_data.get('orderDetailsDestination')
+    if not isinstance(destination, dict):
+        missing.append('orderDetailsDestination')
+    else:
+        missing.extend(
+            f'orderDetailsDestination.{field}' for field in
+            ('to_street', 'to_floor_number', 'to_country', 'to_map_url')
+            if field not in destination
+        )
+    services = order_data.get('services')
+    if not isinstance(services, dict):
+        missing.append('services')
+    else:
+        missing.extend(
+            f'services.{field}' for field in ('cargo', 'packaging')
+            if field not in services
+        )
     if missing:
         return jsonify({'message': 'missing required fields: ' + ', '.join(missing)}), 400
 
