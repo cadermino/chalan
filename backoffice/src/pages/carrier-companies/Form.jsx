@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 
 const EMPTY = {
   name: '', description: '', rfc: '', email: '', phone: '',
-  address: '', cover_image: '', facebook: '', youtube: '', active: true,
+  address: '', cover_image: '', facebook: '', youtube: '', active: true, country_id: '',
 }
 
 export default function CarrierCompanyForm() {
@@ -19,7 +19,7 @@ export default function CarrierCompanyForm() {
     if (isEdit) {
       client.get(`/api/carrier-companies/${id}`).then(({ data }) => {
         const c = data.carrier_company
-        setForm({ ...c, active: Boolean(c.active) })
+        setForm({ ...c, active: Boolean(c.active), country_id: c.country_id ?? '' })
       })
     }
   }, [id])
@@ -33,11 +33,12 @@ export default function CarrierCompanyForm() {
     e.preventDefault()
     setLoading(true)
     try {
+      const payload = { ...form, country_id: form.country_id === '' ? null : Number(form.country_id) }
       if (isEdit) {
-        await client.put(`/api/carrier-companies/${id}`, form)
+        await client.put(`/api/carrier-companies/${id}`, payload)
         toast.success('Empresa actualizada')
       } else {
-        await client.post('/api/carrier-companies', form)
+        await client.post('/api/carrier-companies', payload)
         toast.success('Empresa creada')
       }
       navigate('/carrier-companies')
@@ -68,6 +69,15 @@ export default function CarrierCompanyForm() {
           </Field>
           <Field label="RUC / RFC">
             <input value={form.rfc} onChange={set('rfc')} className="input" />
+          </Field>
+          <Field label="País (country_id)">
+            <input
+              type="number"
+              value={form.country_id}
+              onChange={set('country_id')}
+              className="input"
+              placeholder="2 = Perú"
+            />
           </Field>
           <Field label="Dirección" span={2}>
             <input value={form.address} onChange={set('address')} className="input" />

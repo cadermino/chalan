@@ -60,6 +60,11 @@ export default function CarrierCompaniesList() {
                   {c.active
                     ? <span className="text-green-600 font-medium">Activa</span>
                     : <span className="text-gray-400">Inactiva</span>}
+                  {!c.country_id && (
+                    <div className="text-xs text-red-500 mt-0.5" title="Sin país asignado: no recibe notificaciones de pedidos">
+                      ⚠ Sin país — no recibe pedidos
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-3">
