@@ -122,7 +122,7 @@ def update_order(order_id):
             ).update({'quotation_status_id': QuotationStatus.Cancelled()})
             db.session.commit()
 
-    emails_sent = send_email_to_carrier_companies(order_data)
+    emails_sent = send_email_to_carrier_companies(order_id, order_data)
     return jsonify({
         'message': 'order {id} updated!'.format(id=order.id),
         'order_id': order.id,
@@ -284,15 +284,11 @@ def confirm_stripe_payment(order_id):
         }), 400
 
 
-def send_email_to_carrier_companies(order_data):
+def send_email_to_carrier_companies(order_id, order_data):
     emails_sent = []
-    try:
-        order_data['requestQuotationFromCarrierCompany']
-    except KeyError:
+    if not order_data.get('requestQuotationFromCarrierCompany'):
         return emails_sent
 
-    order = order_data["order"]
-    order_id = order['order_id']
     belongings_appointment_date_step = BelongingsAppointmentDateStep(order_id)
     is_belongings_appointment_date_step_complete = belongings_appointment_date_step.is_complete()
 
