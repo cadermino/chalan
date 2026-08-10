@@ -11,8 +11,8 @@ from ..api.carrier_company import CarrierCompany as CarrierCompanyEntity
 
 @auth.route('/register', methods=['POST'])
 def register():
-    data = request.json
-    if not data['name'] or not data['mobile_phone'] or not data['email'] or not data['password']:
+    data = request.json or {}
+    if not data.get('name') or not data.get('mobile_phone') or not data.get('email') or not data.get('password'):
         return jsonify({'message' : 'provide required data'}), 400
     try:
         customer = Customer(email=data['email'].lower(),
