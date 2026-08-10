@@ -43,9 +43,9 @@ def customer_last_pending_order(customer_id):
 def customer_orders(customer_id):
     order = Order.query.\
         filter_by(customer_id = customer_id).order_by(Order.id.desc()).first()
-    quotation = order.quotations.filter(Quotations.quotation_status_id == QuotationStatus.Selected()).first()
     if order is None:
         return jsonify([]), 200
+    quotation = order.quotations.filter(Quotations.quotation_status_id == QuotationStatus.Selected()).first()
     try:
         amount = quotation.amount
     except:
@@ -60,10 +60,9 @@ def customer_orders(customer_id):
         appointment_date = '-'
     orders_datils = {
         'appointment_date': appointment_date,
-        'carrier_company_name': quotation.carrier_company.name,
+        'carrier_company_name': quotation.carrier_company.name if quotation else '-',
         'amount': amount,
         'payment_status': payment_status
     }
-    order
 
     return jsonify([orders_datils]), 200
