@@ -169,15 +169,18 @@ async function getOrderFromDataBase(to, next) {
           path: '/register-login',
           query: { redirect: to.fullPath },
         });
+        return true; // already navigated — caller must not call next() again
       }
     }
   }
+  return false;
 }
 
 router.beforeEach(async (to, from, next) => {
   getDataFromLocalStorage();
   store.commit('setNowDate');
-  getOrderFromDataBase(to, next);
+  const alreadyNavigated = await getOrderFromDataBase(to, next);
+  if (alreadyNavigated) return;
 
   let queryParams;
   if (!hasQueryParams(to) && hasQueryParams(from)) {
