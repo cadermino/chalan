@@ -28,9 +28,9 @@ CARRIER_NOTIFICATION_COOLDOWN = timedelta(minutes=15)
 @api.route('/order', methods=['POST'])
 def create_order():
     order_data = request.json or {}
-    customer = order_data.get('customer') or {}
+    customer = order_data.get('customer')
     missing = []
-    if not customer.get('customer_id'):
+    if not isinstance(customer, dict) or 'customer_id' not in customer:
         missing.append('customer.customer_id')
     if not order_data.get('orderDetailsOrigin'):
         missing.append('orderDetailsOrigin')
