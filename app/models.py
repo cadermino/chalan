@@ -114,6 +114,7 @@ class Order(db.Model):
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 	quotation_requested = db.Column(db.Boolean, default=False, nullable=True)
 	carrier_notified_at = db.Column(db.DateTime(), nullable=True)
+	loaders_quantity = db.Column(db.Integer, nullable=True)
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')

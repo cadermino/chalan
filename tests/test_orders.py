@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 
 from app import db
+from app.api.order import Order as OrderEntity
 from app.api.orders import send_email_to_carrier_companies
 from app.models import LuServices, Order, OrdersServices
 
@@ -146,3 +147,38 @@ def test_no_trigger_flag_notifies_nobody(client, customer, carrier_company, monk
     emails_sent = send_email_to_carrier_companies(order_id, {})
 
     assert emails_sent == []
+
+
+def _update_payload(loaders_quantity=None):
+    return {
+        'customer': {'customer_id': None},
+        'order': {
+            'appointment_date': datetime(2026, 8, 20, 14, 0),
+            'comments': '1 sofa, 3 cajas',
+            'approximate_budget': 500,
+            'loaders_quantity': loaders_quantity,
+        },
+        'orderDetailsOrigin': ORIGIN,
+        'orderDetailsDestination': DESTINATION,
+        'services': {'cargo': '1', 'packaging': '0'},
+    }
+
+
+def test_update_order_sets_loaders_quantity(client, customer):
+    order_id = _create_order(client, customer)
+
+    OrderEntity(order_id).update(_update_payload(loaders_quantity=3))
+
+    order = db.session.get(Order, order_id)
+    assert order.loaders_quantity == 3
+
+
+def test_update_order_without_loaders_quantity_stays_none(client, customer):
+    # loaders_quantity is optional — the "no extra loaders" case must not crash
+    # or silently coerce to 0 (customer.get() returns None when absent).
+    order_id = _create_order(client, customer)
+
+    OrderEntity(order_id).update(_update_payload())
+
+    order = db.session.get(Order, order_id)
+    assert order.loaders_quantity is None

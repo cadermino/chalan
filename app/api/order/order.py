@@ -86,6 +86,7 @@ class Order:
             order.order_status_id = request['order']['order_status_id']
         approximate_budget = request['order']['approximate_budget']
         order.approximate_budget = approximate_budget if approximate_budget is not None else 0
+        order.loaders_quantity = request['order'].get('loaders_quantity')
         db.session.add(order)
         db.session.commit()
 

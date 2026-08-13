@@ -87,11 +87,14 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
       await page.click('button:has-text("+ Agregar")');
     }
 
-    // Cargo service
-    await page.click(`#cargo-service-${TEST_DATA.stepTwo.cargo}`);
-
-    // Packaging service
-    await page.click(`#packaging-service-${TEST_DATA.stepTwo.packaging}`);
+    // Cargo/packaging are checkboxes now; unchecked is already a valid "No",
+    // so only click to opt in.
+    if (TEST_DATA.stepTwo.cargo === '1') {
+      await page.click('#cargo-service');
+    }
+    if (TEST_DATA.stepTwo.packaging === '1') {
+      await page.click('#packaging-service');
+    }
 
     // Approximate budget (optional)
     await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));

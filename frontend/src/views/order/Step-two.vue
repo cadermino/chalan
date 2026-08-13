@@ -185,57 +185,55 @@
             <div class="w-full px-3 mb-4"
               :class="formValidationMessages['cargo']
                     ?'border-red-300':''">
-              <label class="text-gray-700
-                text-sm
-                font-bold">
-                    Requiere cargadores? <span class="text-red-500">*</span>
-              </label>
               <span v-if="formValidationMessages['cargo']"
                       class="text-red-500
                       text-xs
-                      italic"> {{ formValidationMessages['cargo'] }}.</span>
-              <div class="mt-2">
-                <input type="radio"
-                  id="cargo-service-1"
-                  name="cargo-service-1"
-                  v-model="cargoService"
-                  :value="'1'" />
-                <label class="ml-2" for="cargo-service-1">Sí</label>
-              </div>
+                      italic block mb-1"> {{ formValidationMessages['cargo'] }}.</span>
               <div>
-                <input type="radio"
-                  id="cargo-service-0"
-                  name="cargo-service-0"
-                  v-model="cargoService"
-                  :value="'0'" />
-                <label class="ml-2" for="cargo-service-0">No</label>
+                <input type="checkbox"
+                  id="cargo-service"
+                  v-model="cargoServiceChecked" />
+                <label class="ml-2 text-gray-700 text-sm font-bold" for="cargo-service">
+                  ¿Necesitas cargadores?
+                </label>
+              </div>
+              <div v-if="cargoServiceChecked" class="mt-2 pl-6">
+                <label class="block
+                  text-gray-700
+                  text-sm
+                  font-bold mb-1" for="loaders-quantity">
+                    Número de cargadores
+                </label>
+                <input class="appearance-none
+                    border rounded
+                    py-2
+                    px-3
+                    text-gray-700
+                    leading-tight
+                    focus:outline-none
+                    focus:border-blue-400"
+                    id="loaders-quantity"
+                    @wheel="$event.target.blur()"
+                    min="1"
+                    v-model="loadersQuantity"
+                    type="number">
+                <p class="text-xs text-gray-500 mt-1">
+                  El servicio ya incluye un cargador. Indícanos si necesitas más.
+                </p>
               </div>
             </div>
             <div class="w-full px-3 mb-4">
-              <label class="text-gray-700
-                text-sm
-                font-bold">
-                    Requiere servicio de embalaje? <span class="text-red-500">*</span>
-              </label>
               <span v-if="formValidationMessages['packaging']"
                       class="text-red-500
                       text-xs
-                      italic"> {{ formValidationMessages['packaging'] }}.</span>
-              <div class="mt-2">
-                <input type="radio"
-                  id="packaging-service-1"
-                  name="packaging-service-1"
-                  v-model="packagingService"
-                  :value="'1'" />
-                <label class="ml-2" for="packaging-service-1">Sí</label>
-              </div>
+                      italic block mb-1"> {{ formValidationMessages['packaging'] }}.</span>
               <div>
-                <input type="radio"
-                  id="packaging-service-0"
-                  name="packaging-service-0"
-                  v-model="packagingService"
-                  :value="'0'" />
-                <label class="ml-2" for="packaging-service-0">No</label>
+                <input type="checkbox"
+                  id="packaging-service"
+                  v-model="packagingServiceChecked" />
+                <label class="ml-2 text-gray-700 text-sm font-bold" for="packaging-service">
+                  ¿Requiere servicio de embalaje?
+                </label>
               </div>
             </div>
             <div class="w-full px-3 mb-4">
@@ -327,6 +325,16 @@ export default {
     this.setLoader(false);
     if (this.currentOrder.comments) {
       this.recognizedItems = this.currentOrder.comments.split('\n').filter(item => item.trim());
+    }
+    // Radios required an explicit click before either value was set. Checkboxes
+    // need "unchecked" to already be a complete, valid "No" answer, so default
+    // to it here rather than in the global Vuex state (which stays null for
+    // orders that never reach step-two).
+    if (this.services.cargo === null) {
+      this.setOrder({ section: 'services', field: 'cargo', value: '0' });
+    }
+    if (this.services.packaging === null) {
+      this.setOrder({ section: 'services', field: 'packaging', value: '0' });
     }
   },
   props: [
@@ -507,20 +515,35 @@ export default {
       }
       return classes;
     },
-    packagingService: {
+    packagingServiceChecked: {
       get() {
-        return this.services.packaging;
+        return this.services.packaging === '1';
       },
       set(value) {
-        this.setOrder({ section: 'services', field: 'packaging', value });
+        this.setOrder({ section: 'services', field: 'packaging', value: value ? '1' : '0' });
       },
     },
-    cargoService: {
+    cargoServiceChecked: {
       get() {
-        return this.services.cargo;
+        return this.services.cargo === '1';
       },
       set(value) {
-        this.setOrder({ section: 'services', field: 'cargo', value });
+        this.setOrder({ section: 'services', field: 'cargo', value: value ? '1' : '0' });
+        if (value) {
+          if (!this.currentOrder.loaders_quantity) {
+            this.setOrder({ section: 'currentOrder', field: 'loaders_quantity', value: 1 });
+          }
+        } else {
+          this.setOrder({ section: 'currentOrder', field: 'loaders_quantity', value: null });
+        }
+      },
+    },
+    loadersQuantity: {
+      get() {
+        return this.currentOrder.loaders_quantity;
+      },
+      set(value) {
+        this.setOrder({ section: 'currentOrder', field: 'loaders_quantity', value });
       },
     },
     approximateBudget: {

@@ -46,6 +46,7 @@ export default new Vuex.Store({
       appointment_date: null,
       comments: null,
       approximate_budget: null,
+      loaders_quantity: null,
       quotation_id: null,
       amount: null,
       carrier_company_id: null,

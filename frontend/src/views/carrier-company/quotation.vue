@@ -84,6 +84,7 @@
                 <span class="font-bold
                   mr-1">Requiere cargadores: </span>
                 {{ cargoService }}
+                <span v-if="loadersQuantity">({{ loadersQuantity }})</span>
               </p>
               <p>
                 <span class="font-bold
@@ -533,6 +534,9 @@ export default {
         return 0;
       }
       return Math.round(this.orderData.approximate_budget);
+    },
+    loadersQuantity() {
+      return this.orderData?.loaders_quantity;
     },
   },
   methods: {
