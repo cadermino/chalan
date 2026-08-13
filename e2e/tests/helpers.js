@@ -85,8 +85,13 @@ async function fillStepTwo(page) {
     await page.click('button:has-text("+ Agregar")');
   }
 
-  await page.click(`#cargo-service-${TEST_DATA.stepTwo.cargo}`);
-  await page.click(`#packaging-service-${TEST_DATA.stepTwo.packaging}`);
+  // Unchecked is a valid "No" by default, so only click to opt in.
+  if (TEST_DATA.stepTwo.cargo === '1') {
+    await page.click('#cargo-service');
+  }
+  if (TEST_DATA.stepTwo.packaging === '1') {
+    await page.click('#packaging-service');
+  }
   await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));
 
   await page.click('button:has-text("Siguiente")');
