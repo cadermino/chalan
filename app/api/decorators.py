@@ -9,7 +9,7 @@ def token_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         auth_headers = request.headers.get('Authorization', '').split()
-        if not auth_headers:
+        if len(auth_headers) < 2:
             return unauthorized('Missing token')
         customer = Customer.verify_auth_token(auth_headers[1])
         if customer is not None:
@@ -21,7 +21,7 @@ def carrier_company_token_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         auth_headers = request.headers.get('Authorization', '').split()
-        if not auth_headers:
+        if len(auth_headers) < 2:
             return unauthorized('Missing token')
         data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
         if data is not None:
