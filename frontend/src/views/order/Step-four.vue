@@ -99,7 +99,23 @@
                         <pre>{{ itemsToMoveList }}</pre>
                       </dd>
                     </div>
+                    <div class="bg-white px-4 py-2">
+                      <dt class="text-sm leading-5 font-medium text-gray-500">
+                        Cargadores
+                      </dt>
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ cargoServiceLabel }}
+                      </dd>
+                    </div>
                     <div class="bg-gray-50 px-4 py-2">
+                      <dt class="text-sm leading-5 font-medium text-gray-500">
+                        Embalaje
+                      </dt>
+                      <dd class="mt-1 text-base leading-5 text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ packagingServiceLabel }}
+                      </dd>
+                    </div>
+                    <div class="bg-white px-4 py-2">
                       <dt class="text-sm leading-5 font-medium text-gray-500">
                         Teléfono de contacto <span class="text-red-500">*</span>
                         <span v-if="!phoneNumber"
@@ -496,6 +512,17 @@ export default {
     ]),
     itemsToMoveList() {
       return this.currentOrder.comments;
+    },
+    cargoServiceLabel() {
+      if (this.services.cargo !== '1') {
+        return 'No';
+      }
+      return this.currentOrder.loaders_quantity
+        ? `Sí (${this.currentOrder.loaders_quantity})`
+        : 'Sí';
+    },
+    packagingServiceLabel() {
+      return this.services.packaging === '1' ? 'Sí' : 'No';
     },
     completeFromAddress() {
       const fromInteriorNumber = this.orderDetailsOrigin.from_interior_number
