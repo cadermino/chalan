@@ -7,6 +7,8 @@ from flask_cors import CORS
 from flask_mail import Mail
 import ast
 import os
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
 
 
 def _parse_cors_origins():
@@ -26,6 +28,15 @@ cors = CORS(origins=_parse_cors_origins(), allow_headers=['Content-Type', 'Autho
 mail = Mail()
 
 def create_app(config_name):
+	sentry_dsn = os.environ.get('SENTRY_DSN')
+	if sentry_dsn:
+		sentry_sdk.init(
+			dsn=sentry_dsn,
+			integrations=[FlaskIntegration()],
+			environment='production',
+			traces_sample_rate=0,
+		)
+
 	app = Flask(__name__)
 	app.config.from_object(config[config_name])
 	config[config_name].init_app(app)
