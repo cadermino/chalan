@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -6,8 +7,31 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, OrderImage, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
+
+QUOTATION_STATUS_SELECTED = 2
+
+
+def _street_without_number(street):
+    """Strips the house/building number so a carrier can't go straight to the
+    customer's door before winning the job through the platform. Cuts at the
+    first digit run (e.g. "Av. Larco 1301" -> "Av. Larco"); street names that
+    themselves start with a number (rare) will be over-trimmed."""
+    if not street:
+        return street
+    return re.split(r'\s*\d', street, maxsplit=1)[0].strip(' ,') or street
+
+
+def _address_payload(addr, is_admin, reveal_full):
+    if addr is None:
+        return None
+    if is_admin:
+        return addr.to_dict_full()
+    data = addr.to_dict()
+    if not reveal_full:
+        data['street'] = _street_without_number(data['street'])
+    return data
 
 
 def _generate_quotation_token(carrier_company_id, order_id):
@@ -66,18 +90,21 @@ def list_pending_orders():
 
     # Quotations already submitted (per company if carrier_company, all if admin)
     if company_id is not None:
-        submitted_order_ids = {
-            q.order_id
+        own_quotation_by_order = {
+            q.order_id: q
             for q in Quotation.query.filter_by(carrier_company_id=company_id).all()
         }
     else:
-        submitted_order_ids = set()  # superadmin: show all regardless
+        own_quotation_by_order = {}  # superadmin: show all regardless
 
+    is_admin = user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)
     site_url = os.environ.get('SITE_URL', 'https://chalan.pe/')
 
     result = []
     for order in all_sent_orders:
-        has_quotation = order.id in submitted_order_ids
+        has_quotation = order.id in own_quotation_by_order
+        own_quotation = own_quotation_by_order.get(order.id)
+        reveal_full_address = own_quotation is not None and own_quotation.quotation_status_id == QUOTATION_STATUS_SELECTED
         details = list(order.order_details)
         origin = next((d for d in details if d.type == 'carry_from'), None)
         destination = next((d for d in details if d.type == 'deliver_to'), None)
@@ -100,8 +127,8 @@ def list_pending_orders():
             **order.to_dict(),
             'has_quotation': has_quotation,
             'quotation_url': quotation_url,
-            'origin': origin.to_dict() if origin else None,
-            'destination': destination.to_dict() if destination else None,
+            'origin': _address_payload(origin, is_admin, reveal_full_address),
+            'destination': _address_payload(destination, is_admin, reveal_full_address),
             'customer_name': customer_name,
             'customer_phone': customer_phone,
         })
@@ -160,6 +187,7 @@ def get_order(order_id):
         return jsonify({'message': 'forbidden'}), 403
 
     company_id = user.carrier_company_id if user.role == ROLE_CARRIER else None
+    is_admin = user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)
     order = Order.query.get(order_id)
     if order is None:
         return jsonify({'message': 'order not found'}), 404
@@ -171,6 +199,7 @@ def get_order(order_id):
     existing_quotation = Quotation.query.filter_by(
         order_id=order_id, carrier_company_id=company_id
     ).first() if company_id is not None else None
+    reveal_full_address = existing_quotation is not None and existing_quotation.quotation_status_id == QUOTATION_STATUS_SELECTED
 
     quotation_url = None
     if company_id is not None:
@@ -179,18 +208,28 @@ def get_order(order_id):
         quotation_url = f"{site_url}quotation/{token}"
 
     customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
+    customer_name = None
     customer_phone = None
-    if customer and user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
-        customer_phone = customer.mobile_phone
+    images = None
+    if is_admin:
+        if customer:
+            customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+            customer_phone = customer.mobile_phone
+        images = [i.to_dict() for i in OrderImage.query.filter_by(order_id=order_id).all()]
+
+    services = [s.to_dict() for s in OrdersService.query.filter_by(order_id=order_id).all()]
 
     return jsonify({
         'order': {
-            **order.to_dict(),
-            'origin': origin.to_dict() if origin else None,
-            'destination': destination.to_dict() if destination else None,
+            **(order.to_dict_full() if is_admin else order.to_dict()),
+            'origin': _address_payload(origin, is_admin, reveal_full_address),
+            'destination': _address_payload(destination, is_admin, reveal_full_address),
             'quotation_url': quotation_url,
             'existing_quotation': existing_quotation.to_dict() if existing_quotation else None,
+            'customer_name': customer_name,
             'customer_phone': customer_phone,
+            'services': services,
+            'images': images,
         }
     }), 200
 
