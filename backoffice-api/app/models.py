@@ -235,6 +235,7 @@ class Order(db.Model):
     approximate_budget = db.Column(db.Float, nullable=True)
     created_date = db.Column(db.DateTime())
     updated_date = db.Column(db.DateTime())
+    loaders_quantity = db.Column(db.Integer, nullable=True)
 
     order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='order', lazy='dynamic')
@@ -248,6 +249,13 @@ class Order(db.Model):
             'total_kilometers': self.total_kilometers,
             'approximate_budget': self.approximate_budget,
             'created_date': _iso(self.created_date),
+            'loaders_quantity': self.loaders_quantity,
+        }
+
+    def to_dict_full(self):
+        return {
+            **self.to_dict(),
+            'total_amount': self.total_amount,
         }
 
 
@@ -261,9 +269,14 @@ class OrderDetail(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     street = db.Column(db.String(200), nullable=True)
     interior_number = db.Column(db.String(45), nullable=True)
+    country = db.Column(db.String(20), nullable=True)
+    map_url = db.Column(db.String(400), nullable=True)
     neighborhood = db.Column(db.String(45), nullable=True)
     city = db.Column(db.String(45), nullable=True)
     state = db.Column(db.String(45), nullable=True)
+    zip_code = db.Column(db.String(45), nullable=True)
+    has_elevator = db.Column(db.Integer, nullable=True)
+    approximate_distance_from_parking = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
@@ -274,6 +287,62 @@ class OrderDetail(db.Model):
             'neighborhood': self.neighborhood,
             'city': self.city,
             'state': self.state,
+            'has_elevator': bool(self.has_elevator),
+            'approximate_distance_from_parking': self.approximate_distance_from_parking,
+        }
+
+    def to_dict_full(self):
+        return {
+            **self.to_dict(),
+            'interior_number': self.interior_number,
+            'country': self.country,
+            'map_url': self.map_url,
+            'zip_code': self.zip_code,
+        }
+
+
+class LuService(db.Model):
+    __tablename__ = 'lu_services'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    service = db.Column(db.String(50))
+    description = db.Column(db.String(200))
+
+
+class OrdersService(db.Model):
+    __tablename__ = 'orders_services'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('lu_services.id'), nullable=False)
+
+    service = db.relationship('LuService')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.service.service if self.service else None,
+            'description': self.service.description if self.service else None,
+        }
+
+
+class OrderImage(db.Model):
+    __tablename__ = 'order_images'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    storage_key = db.Column(db.String(300), nullable=False)
+    created_date = db.Column(db.DateTime())
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'created_date': _iso(self.created_date),
         }
 
 

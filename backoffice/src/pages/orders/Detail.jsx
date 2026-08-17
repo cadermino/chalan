@@ -14,13 +14,29 @@ function Field({ label, value }) {
 
 function AddressCard({ title, addr }) {
   if (!addr) return null
+  const hasFullDetails = 'country' in addr
   return (
     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
       <p className="text-xs font-bold text-teal-600 uppercase tracking-wide">{title}</p>
       <Field label="Calle" value={addr.street} />
       <div className="grid grid-cols-2 gap-3">
         <Field label="Piso" value={addr.floor_number} />
+        {hasFullDetails && <Field label="Interior / Dpto." value={addr.interior_number} />}
+        {hasFullDetails && <Field label="Código postal" value={addr.zip_code} />}
+        {hasFullDetails && <Field label="País" value={addr.country} />}
+        <Field label="Distancia desde parqueo" value={addr.approximate_distance_from_parking ? `${addr.approximate_distance_from_parking} m` : null} />
+        <Field label="Tiene ascensor" value={addr.has_elevator ? 'Sí' : 'No'} />
       </div>
+      {hasFullDetails && addr.map_url && (
+        <a
+          href={addr.map_url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-teal-600 hover:underline inline-block"
+        >
+          Ver en el mapa
+        </a>
+      )}
     </div>
   )
 }
@@ -112,19 +128,70 @@ export default function OrderDetail() {
       <div className="space-y-4">
         {/* Summary */}
         <div className="bg-white rounded-xl shadow p-5 grid grid-cols-2 gap-4">
+          {isAdmin && <Field label="Cliente" value={order.customer_name} />}
           <Field
             label="Fecha de mudanza"
             value={order.appointment_date ? new Date(order.appointment_date).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Lima' }) : null}
           />
-          <Field label="Kilómetros" value={order.total_kilometers} />
           <Field label="Presupuesto aproximado" value={order.approximate_budget ? `S/ ${order.approximate_budget}` : null} />
-          <Field label="Comentarios" value={order.comments} />
+          <Field label="Pertenencias" value={order.comments} />
           {isAdmin && <Field label="Teléfono cliente" value={order.customer_phone} />}
+          {isAdmin && <Field label="Monto total" value={order.total_amount ? `S/ ${order.total_amount}` : null} />}
         </div>
 
         {/* Addresses */}
         <AddressCard title="Origen" addr={order.origin} />
         <AddressCard title="Destino" addr={order.destination} />
+
+        {/* Servicios contratados (cargadores, embalaje, etc.) */}
+        {order.services && (() => {
+          const hasCargo = order.services.some((s) => s.name === 'cargo')
+          const hasPackaging = order.services.some((s) => s.name === 'packaging')
+          const otherServices = order.services.filter((s) => s.name !== 'cargo' && s.name !== 'packaging')
+          return (
+            <div className="bg-white rounded-xl shadow p-5">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Servicios</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Servicio de embalaje" value={hasPackaging ? 'Sí' : 'No'} />
+                <Field
+                  label="Cargadores"
+                  value={hasCargo ? `Sí${order.loaders_quantity ? ` (${order.loaders_quantity})` : ''}` : 'No'}
+                />
+              </div>
+              {otherServices.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {otherServices.map((s) => (
+                    <span
+                      key={s.id}
+                      className="text-xs bg-teal-50 text-teal-700 px-3 py-1 rounded-full"
+                      title={s.description || ''}
+                    >
+                      {s.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* Fotos de la mudanza — solo admin */}
+        {isAdmin && order.images && order.images.length > 0 && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Fotos</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {order.images.map((img) => (
+                <a key={img.id} href={img.url} target="_blank" rel="noreferrer">
+                  <img
+                    src={img.url}
+                    alt="Foto de la mudanza"
+                    className="w-full aspect-square object-cover rounded-lg border border-gray-200"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Existing quotation */}
         {order.existing_quotation && (
