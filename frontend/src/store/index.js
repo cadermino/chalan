@@ -6,6 +6,27 @@ import chalan from '../api/chalan';
 
 const isEmpty = arr => !arr.length;
 
+export const fieldLabels = {
+  from_street: 'Calle y número (recojo)',
+  from_floor_number: 'Piso de la vivienda (recojo)',
+  from_country: 'Dirección de recojo (selecciona una sugerencia del buscador)',
+  from_map_url: 'Dirección de recojo (selecciona una sugerencia del buscador)',
+  from_approximate_distance_from_parking: 'Distancia al estacionamiento (recojo)',
+  from_has_elevator: '¿El edificio cuenta con elevador? (recojo)',
+  to_street: 'Calle y número (destino)',
+  to_floor_number: 'Piso de la vivienda (destino)',
+  to_country: 'Dirección de destino (selecciona una sugerencia del buscador)',
+  to_map_url: 'Dirección de destino (selecciona una sugerencia del buscador)',
+  to_approximate_distance_from_parking: 'Distancia al estacionamiento (destino)',
+  to_has_elevator: '¿El edificio cuenta con elevador? (destino)',
+  appointment_date: 'Fecha y hora de la mudanza',
+  comments: 'Lista de cosas a mover',
+  packaging: 'Servicio de embalaje',
+  cargo: 'Servicio de cargadores',
+  quotation_id: 'Cotización seleccionada',
+  payment_method: 'Método de pago',
+};
+
 function checkCompleteStep(state) {
   const allStepsData = {
     ...state.currentOrder,
@@ -14,13 +35,15 @@ function checkCompleteStep(state) {
     ...state.services,
   };
   Object.keys(state.steps).forEach((key) => {
-    state.viewsMessages[key] = null;
     const requisitesValues = [];
     state.steps[key].requisites.forEach((requisite) => {
       requisitesValues.push(allStepsData[requisite]);
     });
     state.steps[key].isComplete = requisitesValues
       .reduce((prev, curr) => prev && Boolean(curr), true);
+    if (state.steps[key].isComplete) {
+      state.viewsMessages[key] = null;
+    }
   });
 }
 Vue.use(Vuex);
@@ -92,22 +115,23 @@ export default new Vuex.Store({
       quotation: null,
     },
     formValidationMessages: {
-      from_floor_number: null,
       from_street: null,
-      from_neighborhood: null,
-      from_zip_code: null,
-      from_parking_distance: null,
+      from_floor_number: null,
+      from_country: null,
+      from_map_url: null,
+      from_approximate_distance_from_parking: null,
       from_has_elevator: null,
-      to_floor_number: null,
       to_street: null,
-      to_neighborhood: null,
-      to_zip_code: null,
-      to_parking_distance: null,
+      to_floor_number: null,
+      to_country: null,
+      to_map_url: null,
+      to_approximate_distance_from_parking: null,
       to_has_elevator: null,
       appointment_date: null,
       comments: null,
       packaging: null,
       cargo: null,
+      quotation_id: null,
       quotation_amount: null,
       payment_method: null,
     },
@@ -315,7 +339,8 @@ export default new Vuex.Store({
       } else if (emptyFields.length > 0) {
         message = {
           type: 'error',
-          text: 'Revisa que los campos requeridos * esten llenos.',
+          text: 'Revisa que los siguientes campos requeridos esten llenos:',
+          items: emptyFields,
         };
       } else {
         message = null;
