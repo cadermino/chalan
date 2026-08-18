@@ -151,7 +151,7 @@
                       {{ formValidationMessages['from_approximate_distance_from_parking'] }}.
                     </p>
                 </div>
-                <div class="w-full md:w-1/2 px-3 mb-4">
+                <div id="from-has-elevator" class="w-full md:w-1/2 px-3 mb-4">
                   <label class="block
                     text-gray-700
                     text-sm
@@ -333,7 +333,7 @@
                       {{ formValidationMessages['to_approximate_distance_from_parking'] }}.
                     </p>
                 </div>
-                <div class="w-full md:w-1/2 px-3 mb-4">
+                <div id="to-has-elevator" class="w-full md:w-1/2 px-3 mb-4">
                   <label class="block
                     text-gray-700
                     text-sm
@@ -408,14 +408,27 @@ import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue'
 import chalan from '../../api/chalan';
 import steps from '../../store/steps';
 
+const fieldElementIds = {
+  from_street: 'address-from-street',
+  from_floor_number: 'address-from-floor',
+  from_country: 'address-from-street',
+  from_map_url: 'address-from-street',
+  from_approximate_distance_from_parking: 'from-parking-distance',
+  from_has_elevator: 'from-has-elevator',
+  to_street: 'address-to-street',
+  to_floor_number: 'address-to-floor',
+  to_country: 'address-to-street',
+  to_map_url: 'address-to-street',
+  to_approximate_distance_from_parking: 'to-parking-distance',
+  to_has_elevator: 'to-has-elevator',
+};
+
 export default {
   name: 'step-one',
   data() {
     return {
       viewName: 'step-one',
       stepRequisites: {},
-      selectedFromStreet: '',
-      selectedToStreet: '',
       placesApiKey: process.env.VUE_APP_PLACES_API_KEY,
       orderStatusId: {
         pending: 1,
@@ -429,8 +442,6 @@ export default {
     SearchBoxPlacesApiGoogle,
   },
   mounted() {
-    this.selectedFromStreet = this.orderDetailsOrigin.from_street;
-    this.selectedToStreet = this.orderDetailsDestination.to_street;
     this.buildRequisites();
   },
   props: {
@@ -494,6 +505,18 @@ export default {
       Object.keys(productFields).forEach((field) => {
         this.setOrder({ section: 'currentOrder', field, value: '' });
       });
+    },
+    scrollToFirstMissingField() {
+      const firstMissingField = this.steps[this.viewName].requisites
+        .find(field => this.formValidationMessages[field]);
+      const elementId = fieldElementIds[firstMissingField];
+      const element = elementId && document.getElementById(elementId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (typeof element.focus === 'function') {
+          element.focus({ preventScroll: true });
+        }
+      }
     },
     nextStep() {
       this.validateRequiredFields(this.viewName);
@@ -561,6 +584,8 @@ export default {
               this.setLoader(false);
             });
         }
+      } else {
+        this.scrollToFirstMissingField();
       }
     },
   },
@@ -581,6 +606,22 @@ export default {
       return Object.keys(this.stepRequisites)
         .reduce((prev, curr) => prev
           && (stepOneRequisites[curr] === this.stepRequisites[curr]), true);
+    },
+    selectedFromStreet: {
+      get() {
+        return this.orderDetailsOrigin.from_street;
+      },
+      set(value) {
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_street', value });
+      },
+    },
+    selectedToStreet: {
+      get() {
+        return this.orderDetailsDestination.to_street;
+      },
+      set(value) {
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_street', value });
+      },
     },
     selectedFromInteriorNumber: {
       get() {
