@@ -12,7 +12,7 @@ from ..api.carrier_company import CarrierCompany as CarrierCompanyEntity
 @auth.route('/register', methods=['POST'])
 def register():
     data = request.json or {}
-    if not data.get('name') or not data.get('mobile_phone') or not data.get('email') or not data.get('password'):
+    if not isinstance(data, dict) or not data.get('name') or not data.get('mobile_phone') or not data.get('email') or not data.get('password'):
         return jsonify({'message' : 'provide required data'}), 400
     try:
         customer = Customer(email=data['email'].lower(),
@@ -49,9 +49,15 @@ def register():
 
 @auth.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    customer = Customer.query.filter_by(email=data['email'].lower()).first()
-    if customer is not None and customer.verify_password(data['password']):
+    data = request.json or {}
+    if not isinstance(data, dict):
+        return jsonify({'message': 'provide required data'}), 400
+    email = data.get('email')
+    password = data.get('password')
+    if not email or not password:
+        return jsonify({'message': 'provide required data'}), 400
+    customer = Customer.query.filter_by(email=email.lower()).first()
+    if customer is not None and customer.verify_password(password):
         return jsonify({
             'token': customer.generate_auth_token(expiration=86400),
             'expiration': 86400,
