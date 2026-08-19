@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { dismissLeadPhoneModalIfPresent } = require('./helpers');
 
 const TEST_DATA = {
   from: {
@@ -68,6 +69,7 @@ async function fillStepOne(page) {
   await page.click(`#to-has-elevator-${TEST_DATA.to.hasElevator}`);
 
   await page.click('button:has-text("Guardar y continuar")');
+  await dismissLeadPhoneModalIfPresent(page);
   await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
 }
 

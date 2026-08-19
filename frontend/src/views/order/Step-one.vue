@@ -394,6 +394,35 @@
               </button>
             </div>
           </form>
+          <Modal :visible="showLeadPhoneModal"
+            title="¿Te ayudamos por WhatsApp?"
+            @close="skipLeadPhone">
+            <p class="text-sm text-gray-600 text-center mb-5">
+              Déjanos tu número y te contactamos si necesitas ayuda para terminar tu cotización.
+            </p>
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="lead-phone">
+              Teléfono
+            </label>
+            <input id="lead-phone"
+              v-model="leadPhone"
+              type="number"
+              class="appearance-none border rounded w-full py-2 px-3 text-gray-700
+              leading-tight focus:outline-none focus:border-blue-400 mb-4"
+              placeholder="Ej. 987654321" />
+            <button type="button"
+              :disabled="loading"
+              :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
+              class="w-full bg-green-500 hover:bg-green-700 text-white py-2 px-4
+              rounded focus:outline-none mb-2"
+              @click="submitLeadPhone">
+              Continuar
+            </button>
+            <button type="button"
+              class="w-full text-gray-500 text-sm py-1"
+              @click="skipLeadPhone">
+              Omitir por ahora
+            </button>
+          </Modal>
         </div>
       </div>
     </div>
@@ -405,6 +434,7 @@ import { mapState, mapActions, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue';
+import Modal from '@/components/Modal.vue';
 import chalan from '../../api/chalan';
 import steps from '../../store/steps';
 
@@ -434,12 +464,15 @@ export default {
         pending: 1,
         'in progress': 2,
       },
+      showLeadPhoneModal: false,
+      leadPhone: null,
     };
   },
   components: {
     Tracker,
     ViewsMessages,
     SearchBoxPlacesApiGoogle,
+    Modal,
   },
   mounted() {
     this.buildRequisites();
@@ -456,6 +489,7 @@ export default {
       'setFormValidationMessages',
       'setViewsMessages',
       'setLoader',
+      'setCustomerData',
     ]),
     buildRequisites() {
       const {
@@ -542,9 +576,7 @@ export default {
               if (response.status === 201) {
                 this.setOrder({ section: 'currentOrder', field: 'order_id', value: response.data.order_id });
                 this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId.pending });
-                this.$router.push({
-                  name: this.steps[this.viewName].next,
-                });
+                this.proceedToStepTwo();
               }
             })
             .catch(() => {
@@ -568,9 +600,7 @@ export default {
           chalan.updateOrder(payload)
             .then((response) => {
               if (response.status === 200) {
-                this.$router.push({
-                  name: 'step-two',
-                });
+                this.proceedToStepTwo();
               }
             })
             .catch(() => {
@@ -587,6 +617,29 @@ export default {
       } else {
         this.scrollToFirstMissingField();
       }
+    },
+    proceedToStepTwo() {
+      if (this.shouldPromptForLeadPhone) {
+        this.setLoader(false);
+        this.showLeadPhoneModal = true;
+        return;
+      }
+      this.$router.push({ name: 'step-two' });
+    },
+    skipLeadPhone() {
+      this.setOrder({ section: 'currentOrder', field: 'lead_phone_prompted', value: true });
+      this.showLeadPhoneModal = false;
+      this.$router.push({ name: 'step-two' });
+    },
+    submitLeadPhone() {
+      if (this.leadPhone) {
+        this.setCustomerData({ field: 'mobile_phone', value: this.leadPhone });
+        chalan.saveLeadPhone({
+          orderId: this.currentOrder.order_id,
+          leadPhone: this.leadPhone,
+        }).catch(() => {});
+      }
+      this.skipLeadPhone();
     },
   },
   computed: {
@@ -606,6 +659,11 @@ export default {
       return Object.keys(this.stepRequisites)
         .reduce((prev, curr) => prev
           && (stepOneRequisites[curr] === this.stepRequisites[curr]), true);
+    },
+    shouldPromptForLeadPhone() {
+      return !this.customer.customer_id
+        && !this.customer.mobile_phone
+        && !this.currentOrder.lead_phone_prompted;
     },
     selectedFromStreet: {
       get() {

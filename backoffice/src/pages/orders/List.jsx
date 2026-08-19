@@ -79,7 +79,7 @@ export default function OrdersList() {
                 <tr key={o.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
                   <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
-                  {isAdmin && <td className="px-4 py-3 text-gray-600">{o.customer_phone || '—'}</td>}
+                  {isAdmin && <td className="px-4 py-3 text-gray-600">{o.customer_phone || o.lead_phone || '—'}</td>}
                   <td className="px-4 py-3 text-gray-600">
                     {o.origin ? (
                       <div>

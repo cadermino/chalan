@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { mockGooglePlaces, selectMockAddress } = require('./helpers');
+const { mockGooglePlaces, selectMockAddress, dismissLeadPhoneModalIfPresent } = require('./helpers');
 
 const FROM_ADDRESS = {
   formattedAddress: 'Av. Javier Prado Este 4600, Santiago de Surco, Lima, Perú',
@@ -67,6 +67,7 @@ test.describe('Google Places autocomplete', () => {
     await page.click('#to-has-elevator-0');
 
     await page.click('button:has-text("Guardar y continuar")');
+    await dismissLeadPhoneModalIfPresent(page);
     await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
   });
 });

@@ -115,6 +115,7 @@ class Order(db.Model):
 	quotation_requested = db.Column(db.Boolean, default=False, nullable=True)
 	carrier_notified_at = db.Column(db.DateTime(), nullable=True)
 	loaders_quantity = db.Column(db.Integer, nullable=True)
+	lead_phone = db.Column(db.String(15), nullable=True)
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
