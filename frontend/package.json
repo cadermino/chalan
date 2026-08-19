@@ -9,6 +9,7 @@
     "build-dev": "vue-cli-service build --mode development"
   },
   "dependencies": {
+    "@sentry/vue": "7.120.4",
     "axios": "1.19.0",
     "core-js": "3.4.4",
     "luxon": "1.28.1",
