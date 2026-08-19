@@ -50,7 +50,8 @@
                           ></path>
                         </svg>
                         <a
-                          :href="`/reviews/${quotation.carrier_company_id}`"
+                          href="#"
+                          @click.prevent="goToCarrierCompanyView(quotation)"
                           class="text-blue-600 ml-3 hover:underline"
                         >
                           {{ getCompanyReviewCount(quotation.carrier_company_id) }} Evaluaciones
@@ -84,10 +85,10 @@
                   </div>
                   <div class="flex items-center">
                     <button @click="(selectedQuotation.id == quotation.id) ?
-                        '' : selectQuotation({quotation})"
+                        openPaymentModal() : selectQuotation({quotation})"
                       type="button"
                       :class="(selectedQuotation.id == quotation.id) ?
-                        'opacity-50 cursor-not-allowed bg-gray-600 hover:bg-gray-700' :
+                        'bg-gray-600 hover:bg-gray-700' :
                         'bg-green-500 hover:bg-green-700'"
                       class="w-full
                       bg-green-500
@@ -164,10 +165,15 @@
               rounded
               focus:outline-none
               focus:border-blue-400"
-              @click="nextStep">
+              @click="openPaymentModal">
               Siguiente
               </button>
           </div>
+          <PaymentConfirmationModal
+            :visible="showPaymentModal"
+            :quotation="selectedQuotation"
+            :currency="countryData.currency"
+            @close="closePaymentModal" />
         </div>
       </div>
     </div>
@@ -175,10 +181,11 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapMutations } from 'vuex';
+import { mapState, mapMutations } from 'vuex';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import CardSkeleton from '@/components/CardSkeleton.vue';
+import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
 import axios from 'axios';
 import chalan from '../../api/chalan';
 
@@ -201,12 +208,15 @@ export default {
         vehicle_picture: 'picture',
       },
       selectedQuotation: {},
+      quotationSelectionPending: false,
+      showPaymentModal: false,
     };
   },
   components: {
     Tracker,
     ViewsMessages,
     CardSkeleton,
+    PaymentConfirmationModal,
   },
   mounted() {
     this.triggerQuotationRequest();
@@ -220,9 +230,6 @@ export default {
     countryData: Object,
   },
   methods: {
-    ...mapActions([
-      'validateRequiredFields',
-    ]),
     ...mapMutations([
       'setOrder',
       'setViewsMessages',
@@ -248,6 +255,7 @@ export default {
       this.$router.push({
         name: 'carrier-company',
         params: { id: quotation.carrier_company_id },
+        query: { quotation_id: quotation.id },
       });
     },
     getCompanyRating(carrierCompanyId) {
@@ -283,73 +291,35 @@ export default {
         }));
       await Promise.all(requests);
     },
-    nextStep() {
-      this.validateRequiredFields(this.viewName);
-      if (this.isStepComplete) {
-        this.pickQuotation();
-        this.updateOrder();
-      }
+    openPaymentModal() {
+      this.showPaymentModal = true;
     },
-    async pickQuotation() {
-      this.setLoader(true);
-      const quotationPayload = {
-        quotationId: this.selectedQuotation.id,
-        selected: true,
-        token: this.customer.token,
-      };
-      try {
-        await chalan.updateQuotation(quotationPayload);
-      } catch (error) {
-        this.setLoader(false);
-        this.setViewsMessages({
-          view: this.viewName,
-          message: {
-            text: 'Hubo un error, intenta después de recargar la página',
-            type: 'error',
-          },
-        });
-      }
-    },
-    updateOrder() {
-      const payload = {
-        order: this.currentOrder,
-        customer: this.customer,
-        orderDetailsOrigin: this.orderDetailsOrigin,
-        orderDetailsDestination: this.orderDetailsDestination,
-        services: this.services,
-      };
-      chalan.updateOrder(payload)
-        .then((response) => {
-          if (response.status === 200) {
-            this.$router.push({ name: this.steps[this.viewName].next });
-          }
-        })
-        .catch(() => {
-          this.setLoader(false);
-          this.setViewsMessages({
-            view: this.viewName,
-            message: {
-              text: 'Hubo un error, intenta después de recargar la página',
-              type: 'error',
-            },
-          });
-        });
+    closePaymentModal() {
+      this.showPaymentModal = false;
     },
     getQuotations() {
-      this.selectedQuotation.id = this.currentOrder.quotation_id || null;
+      if (!this.quotationSelectionPending) {
+        this.selectedQuotation.id = this.currentOrder.quotation_id || null;
+      }
       const payload = {
         orderId: this.currentOrder.order_id,
         token: this.customer.token,
       };
       chalan.getQuotations(payload)
         .then((response) => {
-          this.unSelectQuotation();
           this.quotationsList = response.data;
-          this.quotationsList.forEach((quotation) => {
-            if (quotation.selected) {
-              this.selectQuotation({ quotation, jumpToNextStep: false });
-            }
-          });
+          // Skip reconciling "which quotation is selected" while a pick is
+          // unconfirmed server-side, so a poll tick doesn't wipe it out from
+          // under the modal. The list itself still refreshes either way, so
+          // quotations from other carriers keep showing up.
+          if (!this.quotationSelectionPending) {
+            this.unSelectQuotation();
+            this.quotationsList.forEach((quotation) => {
+              if (quotation.selected) {
+                this.selectQuotation({ quotation, jumpToNextStep: false });
+              }
+            });
+          }
           const companyIds = this.quotationsList.map(q => q.carrier_company_id);
           if (companyIds.length > 0) {
             this.fetchCompanyRatings(companyIds);
@@ -374,7 +344,8 @@ export default {
         this.setOrder({ section: 'currentOrder', field, value: this.selectedQuotation[this.quotationFields[field]] });
       });
       if (jumpToNextStep) {
-        this.nextStep();
+        this.quotationSelectionPending = true;
+        this.openPaymentModal();
       }
     },
     unSelectQuotation() {
