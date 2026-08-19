@@ -131,6 +131,7 @@ def list_pending_orders():
             'destination': _address_payload(destination, is_admin, reveal_full_address),
             'customer_name': customer_name,
             'customer_phone': customer_phone,
+            'lead_phone': order.lead_phone if is_admin else None,
         })
 
     return jsonify({'orders': result}), 200
@@ -228,6 +229,7 @@ def get_order(order_id):
             'existing_quotation': existing_quotation.to_dict() if existing_quotation else None,
             'customer_name': customer_name,
             'customer_phone': customer_phone,
+            'lead_phone': order.lead_phone if is_admin else None,
             'services': services,
             'images': images,
         }

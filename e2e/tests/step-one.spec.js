@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { dismissLeadPhoneModalIfPresent } = require('./helpers');
 
 const TEST_DATA = {
   from: {
@@ -71,6 +72,7 @@ test.describe('Order Step One - Addresses', () => {
 
     // Submit
     await page.click('button:has-text("Guardar y continuar")');
+    await dismissLeadPhoneModalIfPresent(page);
 
     // Verify navigation to step-two
     await expect(page).toHaveURL(/step-two/, { timeout: 15000 });

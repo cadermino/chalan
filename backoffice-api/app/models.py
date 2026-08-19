@@ -236,6 +236,7 @@ class Order(db.Model):
     created_date = db.Column(db.DateTime())
     updated_date = db.Column(db.DateTime())
     loaders_quantity = db.Column(db.Integer, nullable=True)
+    lead_phone = db.Column(db.String(15), nullable=True)
 
     order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='order', lazy='dynamic')

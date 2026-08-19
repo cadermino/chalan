@@ -52,6 +52,21 @@ async function injectAddressToStore(page, direction, data) {
   }, { section, prefix, addr: data });
 }
 
+/**
+ * An anonymous, first-time step-one submission shows the optional
+ * lead-phone modal (frontend/src/views/order/Step-one.vue) before
+ * navigating to step-two. Dismiss it so flows that don't care about lead
+ * capture behave like before it existed.
+ */
+async function dismissLeadPhoneModalIfPresent(page) {
+  try {
+    await page.waitForSelector('button:has-text("Omitir por ahora")', { state: 'visible', timeout: 8000 });
+    await page.click('button:has-text("Omitir por ahora")');
+  } catch {
+    // Modal never appeared (e.g. already prompted this session) — nothing to dismiss.
+  }
+}
+
 async function fillStepOne(page) {
   await page.goto('/order/step-one', { waitUntil: 'networkidle' });
   await page.waitForSelector('#address-from-street', { timeout: 30000 });
@@ -71,6 +86,7 @@ async function fillStepOne(page) {
   await page.click(`#to-has-elevator-${TEST_DATA.to.hasElevator}`);
 
   await page.click('button:has-text("Guardar y continuar")');
+  await dismissLeadPhoneModalIfPresent(page);
   await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
 }
 
@@ -243,6 +259,7 @@ async function selectMockAddress(page, inputId, { formattedAddress, zipCode, cou
 module.exports = {
   TEST_DATA,
   injectAddressToStore,
+  dismissLeadPhoneModalIfPresent,
   fillStepOne,
   fillStepTwo,
   registerAndReturn,

@@ -58,6 +58,16 @@ def create_order():
         'order_id': order.id,
     }), 201
 
+@api.route('/order/<int:order_id>/lead-phone', methods=['PUT'])
+def save_lead_phone(order_id):
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return not_found('order not found')
+    data = request.json or {}
+    order.lead_phone = data.get('lead_phone')
+    db.session.commit()
+    return jsonify({'order_id': order.id}), 200
+
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json or {}

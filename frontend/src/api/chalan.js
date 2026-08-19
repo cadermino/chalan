@@ -15,6 +15,15 @@ export default {
       },
     });
   },
+  saveLeadPhone(payload) {
+    return axios.put(`${process.env.VUE_APP_API_URL}order/${payload.orderId}/lead-phone`,
+      { lead_phone: payload.leadPhone },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  },
   getAddress(zipcode) {
     return axios.get(`${process.env.VUE_APP_API_URL}address/zipcode/${zipcode}`, {
       headers: {

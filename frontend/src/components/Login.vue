@@ -357,6 +357,9 @@ export default {
   mounted() {
     this.setLoader(false);
     this.loadGoogleSDK().then(() => this.initGoogle());
+    if (this.customer.mobile_phone) {
+      this.requiredFieldsRegister.mobilePhone = this.customer.mobile_phone;
+    }
   },
   methods: {
     ...mapMutations([
@@ -522,16 +525,36 @@ export default {
     },
     handleGoogleResponse(response) {
       this.setLoader(true);
+      const existingLeadPhone = this.customer.mobile_phone;
       chalan.loginGoogle({ credential: response.credential })
         .then(({ data }) => {
           this.handleUserData(data);
-          if (!data.mobile_phone) {
+          if (data.mobile_phone) {
+            this.emitUserLogged();
+            return;
+          }
+          if (!existingLeadPhone) {
             this.pendingGoogleData = data;
             this.showPhoneModal = true;
             this.setLoader(false);
-          } else {
-            this.emitUserLogged();
+            return;
           }
+          chalan.updateCustomerProfile({
+            customerId: this.decodeToken.id,
+            mobilePhone: existingLeadPhone,
+            token: data.token,
+          })
+            .then(() => {
+              this.setCustomerData({ field: 'mobile_phone', value: existingLeadPhone });
+              this.setLoader(false);
+              this.emitUserLogged();
+            })
+            .catch(() => {
+              this.pendingGoogleData = data;
+              this.googlePhone = existingLeadPhone;
+              this.showPhoneModal = true;
+              this.setLoader(false);
+            });
         })
         .catch(() => {
           this.setLoader(false);
@@ -568,6 +591,7 @@ export default {
   computed: {
     ...mapState([
       'loading',
+      'customer',
     ]),
     ...mapGetters([
       'decodeToken',

@@ -135,7 +135,7 @@ export default function OrderDetail() {
           />
           <Field label="Presupuesto aproximado" value={order.approximate_budget ? `S/ ${order.approximate_budget}` : null} />
           <Field label="Pertenencias" value={order.comments} />
-          {isAdmin && <Field label="Teléfono cliente" value={order.customer_phone} />}
+          {isAdmin && <Field label="Teléfono cliente" value={order.customer_phone || order.lead_phone} />}
           {isAdmin && <Field label="Monto total" value={order.total_amount ? `S/ ${order.total_amount}` : null} />}
         </div>
 
