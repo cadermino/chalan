@@ -32,7 +32,7 @@ export default {
   components: { Tracker, LoginForm, ViewsMessages },
   mounted() {
     if (this.isUserLogged) {
-      this.$router.push(this.redirect);
+      this.$router.push(this.redirect).catch(() => {});
     }
     if (this.redirect !== '/') {
       this.setViewsMessages({
@@ -64,7 +64,7 @@ export default {
                 'currentOrder', 'orderDetailsOrigin',
                 'orderDetailsDestination', 'services', 'customer',
               ]);
-              this.$router.push(this.redirect);
+              this.$router.push(this.redirect).catch(() => {});
             }
           })
           .catch(() => {
@@ -82,7 +82,7 @@ export default {
               'orderDetailsDestination', 'services', 'customer',
             ]);
             this.setLoader(false);
-            this.$router.push(this.redirect);
+            this.$router.push(this.redirect).catch(() => {});
           })
           .catch(() => {
             this.addDataToLocalStorage([
@@ -90,7 +90,7 @@ export default {
               'orderDetailsDestination', 'services', 'customer',
             ]);
             this.setLoader(false);
-            this.$router.push(this.redirect);
+            this.$router.push(this.redirect).catch(() => {});
           });
       }
     },

@@ -222,9 +222,11 @@ export default {
     this.triggerQuotationRequest();
     this.getQuotations();
     this.getQuotationsInLoop();
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   },
   beforeDestroy() {
     clearInterval(this.intervalId);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   },
   props: {
     countryData: Object,
@@ -250,6 +252,17 @@ export default {
     getQuotationsInLoop() {
       this.intervalId = setInterval(() => this.getQuotations(),
         this.getQuotationsDelayInMilliseconds);
+    },
+    handleVisibilityChange() {
+      // Tab hidden (or device asleep) lets ticks pile up; a stale interval
+      // then fires several requests at once on resume, each timing out.
+      // Stop while hidden and do a single fresh fetch on return instead.
+      if (document.hidden) {
+        clearInterval(this.intervalId);
+      } else {
+        this.getQuotations();
+        this.getQuotationsInLoop();
+      }
     },
     goToCarrierCompanyView(quotation) {
       this.$router.push({
@@ -326,7 +339,10 @@ export default {
           }
           this.setLoader(false);
         })
-        .catch((e) => {
+        .catch(() => {
+          // Don't rethrow here: this runs on an unawaited setInterval tick,
+          // so a throw becomes an unhandled promise rejection on every
+          // transient network hiccup instead of just showing the message below.
           this.setViewsMessages({
             view: this.viewName,
             message: {
@@ -335,7 +351,6 @@ export default {
             },
           });
           this.setLoader(false);
-          throw new Error(e);
         });
     },
     selectQuotation({ quotation, jumpToNextStep = true }) {
