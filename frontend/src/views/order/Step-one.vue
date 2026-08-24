@@ -624,12 +624,12 @@ export default {
         this.showLeadPhoneModal = true;
         return;
       }
-      this.$router.push({ name: 'step-two' });
+      this.$router.push({ name: 'step-two' }).catch(() => {});
     },
     skipLeadPhone() {
       this.setOrder({ section: 'currentOrder', field: 'lead_phone_prompted', value: true });
       this.showLeadPhoneModal = false;
-      this.$router.push({ name: 'step-two' });
+      this.$router.push({ name: 'step-two' }).catch(() => {});
     },
     submitLeadPhone() {
       if (this.leadPhone) {

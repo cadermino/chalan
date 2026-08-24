@@ -239,7 +239,7 @@ export default {
       if (this.currentOrder.quotation_id) {
         this.pickQuotation();
       }
-      this.$router.push({ name: this.firstIncompleteStepName, query: { 'carrier-id': this.carrierId } });
+      this.$router.push({ name: this.firstIncompleteStepName, query: { 'carrier-id': this.carrierId } }).catch(() => {});
     },
     async fetchOrderQuotation() {
       if (!this.quotationIdFromQuery || !this.currentOrder.order_id) return;
@@ -264,7 +264,7 @@ export default {
     },
     handleRegresar() {
       if (this.quotationIdFromQuery) {
-        this.$router.push({ name: 'step-three' });
+        this.$router.push({ name: 'step-three' }).catch(() => {});
         return;
       }
       this.$router.go(-1);

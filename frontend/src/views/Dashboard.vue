@@ -116,7 +116,7 @@ export default {
               this.setOrder({ field, value: null });
             });
             this.addDataToLocalStorage(['currentOrder']);
-            this.$router.push(this.$route.path);
+            this.$router.push(this.$route.path).catch(() => {});
           }
         })
         .catch(() => {
@@ -165,7 +165,7 @@ export default {
       if (window.history.length > 1) {
         this.$router.go(-1);
       } else {
-        this.$router.push('/');
+        this.$router.push('/').catch(() => {});
       }
     },
   },

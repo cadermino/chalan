@@ -456,7 +456,7 @@ export default {
                             type: 'success',
                           },
                         });
-                        this.$router.push({ name: 'dashboard' });
+                        this.$router.push({ name: 'dashboard' }).catch(() => {});
                       }
                     })
                     .catch(() => {

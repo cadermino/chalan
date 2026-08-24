@@ -178,7 +178,7 @@
             </button>
           </div>
           <div class="w-full text-left mt-4">Si ya tienes una cuenta puedes <span
-            @click="$router.push({ name: 'login', query: $route.query })"
+            @click="$router.push({ name: 'login', query: $route.query }).catch(() => {})"
             class="font-bold
               cursor-pointer
               text-blue-700
@@ -288,7 +288,7 @@
             </button>
           </div>
           <div class="w-full text-left mt-4">Si no tienes una cuenta puedes <span
-            @click="$router.push({ name: 'register', query: $route.query })"
+            @click="$router.push({ name: 'register', query: $route.query }).catch(() => {})"
             class="font-bold
               cursor-pointer
               text-blue-700

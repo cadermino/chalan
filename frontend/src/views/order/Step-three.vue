@@ -269,7 +269,7 @@ export default {
         name: 'carrier-company',
         params: { id: quotation.carrier_company_id },
         query: { quotation_id: quotation.id },
-      });
+      }).catch(() => {});
     },
     getCompanyRating(carrierCompanyId) {
       const data = this.companyRatings[carrierCompanyId];

@@ -162,7 +162,7 @@ export default {
             type: 'success',
           },
         });
-        this.$router.push({ name: 'dashboard' });
+        this.$router.push({ name: 'dashboard' }).catch(() => {});
       } catch (error) {
         this.setLoader(false);
         this.error = 'Hubo un error, intenta nuevamente';
