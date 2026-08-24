@@ -89,7 +89,16 @@
 
               <div v-if="photoThumbnails.length" class="flex flex-wrap gap-2 mb-3">
                 <div v-for="(thumb, index) in photoThumbnails" :key="index" class="relative">
-                  <img :src="thumb.url" class="w-16 h-16 object-cover rounded border" />
+                  <img v-if="!thumb.loadError"
+                    :src="thumb.url"
+                    @error="handleThumbnailError(index)"
+                    class="w-16 h-16 object-cover rounded border" />
+                  <div v-else
+                    class="w-16 h-16 rounded border bg-gray-100
+                      flex items-center justify-center text-xs text-gray-400
+                      text-center px-1">
+                    Vista previa no disponible
+                  </div>
                   <button type="button"
                     @click="removePhoto(index)"
                     class="absolute -top-2 -right-2 bg-red-500
@@ -410,6 +419,13 @@ export default {
           this.recognizedItems.push(newItem);
         }
       });
+    },
+    handleThumbnailError(index) {
+      // The browser reads the file behind the blob: URL lazily, off the
+      // main thread, so a flaky local/network drive can fail here well
+      // after createObjectURL succeeded (NotReadableError). Recognition
+      // already ran on the original File, so just hide the broken preview.
+      this.$set(this.photoThumbnails[index], 'loadError', true);
     },
     removePhoto(index) {
       URL.revokeObjectURL(this.photoThumbnails[index].url);
