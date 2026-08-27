@@ -126,35 +126,49 @@
               <div class="mb-3 border rounded p-3"
                 :class="recognizedItems.length
                   ? 'bg-gray-50' : ''">
-                <div v-if="recognizedItems.length">
-                  <p class="text-sm font-bold text-gray-700 mb-2">
+                <!--
+                  Fixed height (not max-height) covering both the empty
+                  and filled states, so this box is the same size whether
+                  it holds the placeholder text, 1 item, or many (scrolling
+                  internally past that). Growing this box would push
+                  "Siguiente" down the page, and since an item can get
+                  added right as the customer clicks that button (via
+                  @blur below), a shifting layout means the click can miss
+                  the button entirely - fixing the height keeps everything
+                  below it stationary regardless of item count.
+                -->
+                <div class="h-32 overflow-y-auto pr-1 flex flex-col">
+                  <p v-if="recognizedItems.length" class="text-sm font-bold text-gray-700 mb-2">
                     Cosas a mover (edita o elimina):
                   </p>
-                  <div v-for="(item, index) in recognizedItems"
-                    :key="'item-'+index"
-                    class="flex items-center mb-1">
-                    <input type="text"
-                      v-model="recognizedItems[index]"
-                      class="flex-1 appearance-none border
-                        rounded py-1 px-2 text-sm text-gray-700
-                        focus:outline-none
-                        focus:border-blue-400" />
-                    <button type="button"
-                      @click="removeRecognizedItem(index)"
-                      class="ml-2 text-red-500
-                        hover:text-red-700 text-sm font-bold">
-                      ✕
-                    </button>
+                  <div v-if="recognizedItems.length">
+                    <div v-for="(item, index) in recognizedItems"
+                      :key="'item-'+index"
+                      class="flex items-center mb-1">
+                      <input type="text"
+                        v-model="recognizedItems[index]"
+                        class="flex-1 appearance-none border
+                          rounded py-1 px-2 text-sm text-gray-700
+                          focus:outline-none
+                          focus:border-blue-400" />
+                      <button type="button"
+                        @click="removeRecognizedItem(index)"
+                        class="ml-2 text-red-500
+                          hover:text-red-700 text-sm font-bold">
+                        ✕
+                      </button>
+                    </div>
                   </div>
+                  <p v-else class="text-sm text-gray-400
+                    text-center m-auto">
+                    Sube una foto o agrega items manualmente
+                  </p>
                 </div>
-                <p v-else class="text-sm text-gray-400
-                  text-center py-2">
-                  Sube una foto o agrega items manualmente
-                </p>
                 <div class="flex mt-2">
                   <input type="text"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
+                    @blur="addManualItem"
                     placeholder="Ej: 1 cama matrimonial"
                     class="flex-1 appearance-none border
                       rounded py-1 px-2 text-sm text-gray-700
