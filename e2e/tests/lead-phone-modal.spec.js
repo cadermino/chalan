@@ -13,14 +13,12 @@ async function submitStepOneAnonymously(page) {
 
   await page.fill('#address-from-street', TEST_DATA.from.street);
   await injectAddressToStore(page, 'from', TEST_DATA.from);
-  await page.fill('#address-from-interior', TEST_DATA.from.interiorNumber);
   await page.selectOption('#address-from-floor', { index: TEST_DATA.from.floor });
   await page.fill('#from-parking-distance', String(TEST_DATA.from.parkingDistance));
   await page.click(`#from-has-elevator-${TEST_DATA.from.hasElevator}`);
 
   await page.fill('#address-to-street', TEST_DATA.to.street);
   await injectAddressToStore(page, 'to', TEST_DATA.to);
-  await page.fill('#address-to-interior', TEST_DATA.to.interiorNumber);
   await page.selectOption('#address-to-floor', { index: TEST_DATA.to.floor });
   await page.fill('#to-parking-distance', String(TEST_DATA.to.parkingDistance));
   await page.click(`#to-has-elevator-${TEST_DATA.to.hasElevator}`);

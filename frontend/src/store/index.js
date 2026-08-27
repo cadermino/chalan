@@ -82,7 +82,6 @@ export default new Vuex.Store({
     },
     orderDetailsOrigin: {
       from_street: null,
-      from_interior_number: null,
       from_floor_number: null,
       from_zip_code: null,
       from_country: null,
@@ -92,7 +91,6 @@ export default new Vuex.Store({
     },
     orderDetailsDestination: {
       to_street: null,
-      to_interior_number: null,
       to_floor_number: null,
       to_zip_code: null,
       to_country: null,
@@ -241,7 +239,6 @@ export default new Vuex.Store({
       const from = {};
       ({
         street: from.from_street,
-        interior_number: from.from_interior_number,
         floor_number: from.from_floor_number,
         zip_code: from.from_zip_code,
         country: from.from_country,
@@ -257,7 +254,6 @@ export default new Vuex.Store({
       const to = {};
       ({
         street: to.to_street,
-        interior_number: to.to_interior_number,
         floor_number: to.to_floor_number,
         zip_code: to.to_zip_code,
         country: to.to_country,

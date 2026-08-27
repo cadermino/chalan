@@ -53,27 +53,6 @@
                   <label class="block
                   text-gray-700
                   text-sm
-                  font-bold mb-2" for="address-from-interior">
-                      Número interior
-                  </label>
-                  <input class="appearance-none
-                  border rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  v-model="selectedFromInteriorNumber"
-                  id="address-from-interior"
-                  placeholder="Ejem: 204"
-                  type="text">
-                </div>
-                <div class="w-full md:w-1/2 px-3 mb-4">
-                  <label class="block
-                  text-gray-700
-                  text-sm
                   font-bold mb-2" for="address-from-floor">
                       Piso de la vivienda <span class="text-red-500">*</span>
                   </label>
@@ -230,27 +209,6 @@
                       class="text-red-500
                       text-xs
                       italic">{{ formValidationMessages['to_street'] }}.</p>
-                </div>
-                <div class="w-full md:w-1/2 px-3 mb-4">
-                  <label class="block
-                  text-gray-700
-                  text-sm
-                  font-bold mb-2" for="address-to-interior">
-                      Número interior
-                  </label>
-                  <input class="appearance-none
-                  border rounded
-                  w-full
-                  py-2
-                  px-3
-                  text-gray-700
-                  leading-tight
-                  focus:outline-none
-                  focus:border-blue-400"
-                  v-model="selectedToInteriorNumber"
-                  id="address-to-interior"
-                  placeholder="Ejem: 204"
-                  type="text">
                 </div>
                 <div class="w-full md:w-1/2 px-3 mb-4">
                   <label class="block
@@ -681,28 +639,12 @@ export default {
         this.setOrder({ section: 'orderDetailsDestination', field: 'to_street', value });
       },
     },
-    selectedFromInteriorNumber: {
-      get() {
-        return this.orderDetailsOrigin.from_interior_number;
-      },
-      set(value) {
-        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_interior_number', value });
-      },
-    },
     selectedFromFloor: {
       get() {
         return this.orderDetailsOrigin.from_floor_number;
       },
       set(value) {
         this.setOrder({ section: 'orderDetailsOrigin', field: 'from_floor_number', value: Number(value) });
-      },
-    },
-    selectedToInteriorNumber: {
-      get() {
-        return this.orderDetailsDestination.to_interior_number;
-      },
-      set(value) {
-        this.setOrder({ section: 'orderDetailsDestination', field: 'to_interior_number', value });
       },
     },
     selectedToFloor: {

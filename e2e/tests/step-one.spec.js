@@ -4,7 +4,6 @@ const { dismissLeadPhoneModalIfPresent } = require('./helpers');
 const TEST_DATA = {
   from: {
     street: 'Av. Javier Prado Este 4600, Santiago de Surco, Lima, Perú',
-    interiorNumber: '301',
     floor: 3,
     parkingDistance: 5,
     hasElevator: '1',
@@ -14,7 +13,6 @@ const TEST_DATA = {
   },
   to: {
     street: 'Av. Arequipa 2450, Lince, Lima, Perú',
-    interiorNumber: '102',
     floor: 2,
     parkingDistance: 10,
     hasElevator: '0',
@@ -52,7 +50,6 @@ test.describe('Order Step One - Addresses', () => {
     await page.fill('#address-from-street', TEST_DATA.from.street);
     await injectAddressToStore(page, 'from', TEST_DATA.from);
 
-    await page.fill('#address-from-interior', TEST_DATA.from.interiorNumber);
     await page.selectOption('#address-from-floor', {
       index: TEST_DATA.from.floor,
     });
@@ -63,7 +60,6 @@ test.describe('Order Step One - Addresses', () => {
     await page.fill('#address-to-street', TEST_DATA.to.street);
     await injectAddressToStore(page, 'to', TEST_DATA.to);
 
-    await page.fill('#address-to-interior', TEST_DATA.to.interiorNumber);
     await page.selectOption('#address-to-floor', {
       index: TEST_DATA.to.floor,
     });

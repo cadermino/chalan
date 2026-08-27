@@ -55,13 +55,11 @@ test.describe('Google Places autocomplete', () => {
     await page.waitForSelector('#address-from-street', { timeout: 30000 });
 
     await selectMockAddress(page, 'address-from-street', FROM_ADDRESS);
-    await page.fill('#address-from-interior', '301');
     await page.selectOption('#address-from-floor', { index: 3 });
     await page.fill('#from-parking-distance', '5');
     await page.click('#from-has-elevator-1');
 
     await selectMockAddress(page, 'address-to-street', TO_ADDRESS);
-    await page.fill('#address-to-interior', '102');
     await page.selectOption('#address-to-floor', { index: 2 });
     await page.fill('#to-parking-distance', '10');
     await page.click('#to-has-elevator-0');

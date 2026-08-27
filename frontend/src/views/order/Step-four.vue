@@ -525,21 +525,15 @@ export default {
       return this.services.packaging === '1' ? 'Sí' : 'No';
     },
     completeFromAddress() {
-      const fromInteriorNumber = this.orderDetailsOrigin.from_interior_number
-        ? `interior ${this.orderDetailsOrigin.from_interior_number},` : '';
       const fromFloor = this.orderDetailsOrigin.from_floor_number === '0'
         ? '- Planta baja' : `- Piso ${this.orderDetailsOrigin.from_floor_number}`;
       return `${this.orderDetailsOrigin.from_street},
-        ${fromInteriorNumber}
         ${fromFloor}`;
     },
     completeToAddress() {
-      const toInteriorNumber = this.orderDetailsDestination.to_interior_number
-        ? `interior ${this.orderDetailsDestination.to_interior_number},` : '';
       const toFloor = this.orderDetailsDestination.to_floor_number === 0
         ? '- Planta baja' : `- Piso ${this.orderDetailsDestination.to_floor_number}`;
       return `${this.orderDetailsDestination.to_street},
-        ${toInteriorNumber}
         ${toFloor}`;
     },
     phoneNumber: {
