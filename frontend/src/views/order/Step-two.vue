@@ -155,6 +155,7 @@
                   <input type="text"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
+                    @blur="addManualItem"
                     placeholder="Ej: 1 cama matrimonial"
                     class="flex-1 appearance-none border
                       rounded py-1 px-2 text-sm text-gray-700
@@ -447,6 +448,7 @@ export default {
       this.setOrder({ section: 'currentOrder', field: 'comments', value: comments || null });
     },
     nextStep() {
+      this.addManualItem();
       this.syncComments();
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
