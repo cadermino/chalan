@@ -155,7 +155,6 @@
                   <input type="text"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
-                    @blur="addManualItem"
                     placeholder="Ej: 1 cama matrimonial"
                     class="flex-1 appearance-none border
                       rounded py-1 px-2 text-sm text-gray-700
