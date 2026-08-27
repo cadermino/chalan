@@ -102,7 +102,7 @@
                     text-gray-700
                     text-sm
                     font-bold mb-2" for="from-parking-distance">
-                      Distancia aproximanada al estacionamiento<span class="text-red-500">*</span>
+                      Distancia al estacionamiento<span class="text-red-500">*</span>
                       <span class="font-normal text-xs"> (mts.)</span>
                   </label>
                   <input :class="formValidationMessages['from_approximate_distance_from_parking']
@@ -259,7 +259,7 @@
                     text-gray-700
                     text-sm
                     font-bold mb-2" for="to-parking-distance">
-                      Distancia aproximanada al estacionamiento<span class="text-red-500">*</span>
+                      Distancia al estacionamiento<span class="text-red-500">*</span>
                       <span class="font-normal text-xs"> (mts.)</span>
                   </label>
                   <input :class="formValidationMessages['to_approximate_distance_from_parking']
