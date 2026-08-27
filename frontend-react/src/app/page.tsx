@@ -9,8 +9,8 @@ import { Testimonials } from '@/components/Testimonials'
 import './landing.css'
 
 export const metadata: Metadata = {
-  title: 'Chalán — Mudanzas y fletes en Perú | Cotiza en minutos',
-  description: 'Plataforma peruana de mudanzas y fletes. Compara precios, elige vehículo y agenda tu mudanza en minutos. Cobertura en Lima y 23 ciudades del Perú.',
+  title: 'Mudanzas y Fletes en Perú | Cotiza en Minutos - Chalán',
+  description: 'Cotiza tu mudanza en minutos. Compara precios y vehículos de transportistas verificados. Cobertura en Lima y 23 ciudades del Perú.',
   keywords: 'mudanzas perú, fletes lima, mudanza barata, cotizar mudanza, empresa de mudanzas, chalán, fletes interprovinciales, mudanzas lima',
   alternates: { canonical: 'https://chalan.pe' },
   openGraph: {

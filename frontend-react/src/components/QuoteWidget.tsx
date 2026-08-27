@@ -89,6 +89,37 @@ function saveOrigin(place: PlaceArg) {
   }))
 }
 
+// Carga el script de Google Places una sola vez aunque haya varias instancias
+// de QuoteWidget montadas en la misma página, encolando el init de cada una.
+function loadGooglePlaces(apiKey: string, onReady: () => void) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any
+
+  if (w.google?.maps?.places) {
+    onReady()
+    return
+  }
+
+  if (!w.__chalanPlacesCallbacks) w.__chalanPlacesCallbacks = []
+  w.__chalanPlacesCallbacks.push(onReady)
+
+  if (w.__chalanPlacesLoading) return
+  w.__chalanPlacesLoading = true
+
+  w.__chalanPlacesReady = () => {
+    w.__chalanPlacesCallbacks.forEach((cb: () => void) => cb())
+    w.__chalanPlacesCallbacks = []
+  }
+
+  if (!document.getElementById('gm-places-script')) {
+    const script = document.createElement('script')
+    script.id = 'gm-places-script'
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=__chalanPlacesReady`
+    script.async = true
+    document.head.appendChild(script)
+  }
+}
+
 function saveDestination(place: PlaceArg) {
   const c = extractComponents(place.address_components || [])
   localStorage.setItem('orderDetailsDestination', JSON.stringify({
@@ -202,22 +233,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
       }
     }
 
-    // Si Google ya está disponible, inicializar directamente
-    if ((window as any).google?.maps?.places) {
-      init()
-      return
-    }
-
-    // Registrar callback antes de inyectar el script
-    ;(window as any).__chalanPlacesReady = init
-
-    if (!document.getElementById('gm-places-script')) {
-      const script = document.createElement('script')
-      script.id = 'gm-places-script'
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=__chalanPlacesReady`
-      script.async = true
-      document.head.appendChild(script)
-    }
+    loadGooglePlaces(apiKey, init)
   }, [])
 
   const price = useMemo(() => {

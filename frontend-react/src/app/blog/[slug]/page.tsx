@@ -137,7 +137,11 @@ export default async function BlogPost({ params }: Props) {
           prose-table:w-full prose-table:text-sm
           prose-thead:bg-indigo-50 prose-th:text-indigo-700 prose-th:font-semibold prose-th:px-4 prose-th:py-2
           prose-td:px-4 prose-td:py-2 prose-tr:border-b prose-tr:border-gray-100">
-          <MDXRemote source={post.content} options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }} />
+          <MDXRemote
+            source={post.content}
+            options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+            components={{ QuoteWidget }}
+          />
         </article>
 
         {/* Waitlist — solo para posts con waitlist: true */}
