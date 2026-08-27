@@ -15,13 +15,13 @@ async function submitStepOneAnonymously(page) {
   await injectAddressToStore(page, 'from', TEST_DATA.from);
   await page.selectOption('#address-from-floor', { index: TEST_DATA.from.floor });
   await page.fill('#from-parking-distance', String(TEST_DATA.from.parkingDistance));
-  await page.click(`#from-has-elevator-${TEST_DATA.from.hasElevator}`);
+  await page.setChecked('#from-has-elevator-checkbox', TEST_DATA.from.hasElevator === '1');
 
   await page.fill('#address-to-street', TEST_DATA.to.street);
   await injectAddressToStore(page, 'to', TEST_DATA.to);
   await page.selectOption('#address-to-floor', { index: TEST_DATA.to.floor });
   await page.fill('#to-parking-distance', String(TEST_DATA.to.parkingDistance));
-  await page.click(`#to-has-elevator-${TEST_DATA.to.hasElevator}`);
+  await page.setChecked('#to-has-elevator-checkbox', TEST_DATA.to.hasElevator === '1');
 
   await page.click('button:has-text("Guardar y continuar")');
 }

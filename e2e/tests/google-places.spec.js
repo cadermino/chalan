@@ -57,12 +57,12 @@ test.describe('Google Places autocomplete', () => {
     await selectMockAddress(page, 'address-from-street', FROM_ADDRESS);
     await page.selectOption('#address-from-floor', { index: 3 });
     await page.fill('#from-parking-distance', '5');
-    await page.click('#from-has-elevator-1');
+    await page.setChecked('#from-has-elevator-checkbox', true);
 
     await selectMockAddress(page, 'address-to-street', TO_ADDRESS);
     await page.selectOption('#address-to-floor', { index: 2 });
     await page.fill('#to-parking-distance', '10');
-    await page.click('#to-has-elevator-0');
+    await page.setChecked('#to-has-elevator-checkbox', false);
 
     await page.click('button:has-text("Guardar y continuar")');
     await dismissLeadPhoneModalIfPresent(page);

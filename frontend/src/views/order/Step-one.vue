@@ -130,28 +130,24 @@
                       {{ formValidationMessages['from_approximate_distance_from_parking'] }}.
                     </p>
                 </div>
-                <div id="from-has-elevator" class="w-full md:w-1/2 px-3 mb-4">
+                <div id="from-has-elevator" class="w-full px-3 mb-4">
                   <label class="block
                     text-gray-700
                     text-sm
-                    font-bold mb-6">
-                      El edificio cuenta con elevador? <span class="text-red-500">*</span>
+                    font-bold mb-2">
+                      El edificio cuenta con elevador?
                   </label>
                   <div>
-                    <input type="radio"
-                      id="from-has-elevator-1"
-                      name="from-has-elevator-1"
+                    <input type="checkbox"
+                      class="w-4 h-4 rounded border-gray-300"
+                      style="accent-color: #63b3ed"
+                      id="from-has-elevator-checkbox"
                       v-model="fromHasElevator"
-                      :value="'1'" />
-                    <label class="ml-2" for="from-has-elevator-1">Sí</label>
-                  </div>
-                  <div>
-                    <input type="radio"
-                      id="from-has-elevator-0"
-                      name="from-has-elevator-0"
-                      v-model="fromHasElevator"
-                      :value="'0'" />
-                    <label class="ml-2" for="from-has-elevator-0">No</label>
+                      true-value="1"
+                      false-value="0" />
+                    <label class="ml-2" for="from-has-elevator-checkbox">
+                      Sí, cuenta con elevador
+                    </label>
                   </div>
                   <p v-if="formValidationMessages['from_has_elevator']"
                     class="text-red-500
@@ -291,28 +287,24 @@
                       {{ formValidationMessages['to_approximate_distance_from_parking'] }}.
                     </p>
                 </div>
-                <div id="to-has-elevator" class="w-full md:w-1/2 px-3 mb-4">
+                <div id="to-has-elevator" class="w-full px-3 mb-4">
                   <label class="block
                     text-gray-700
                     text-sm
-                    font-bold mb-6">
-                      El edificio cuenta con elevador? <span class="text-red-500">*</span>
+                    font-bold mb-2">
+                      El edificio cuenta con elevador?
                   </label>
                   <div>
-                    <input type="radio"
-                      id="to-has-elevator-1"
-                      name="to-has-elevator-1"
+                    <input type="checkbox"
+                      class="w-4 h-4 rounded border-gray-300"
+                      style="accent-color: #63b3ed"
+                      id="to-has-elevator-checkbox"
                       v-model="toHasElevator"
-                      :value="'1'" />
-                    <label class="ml-2" for="to-has-elevator-1">Sí</label>
-                  </div>
-                  <div>
-                    <input type="radio"
-                      id="to-has-elevator-0"
-                      name="to-has-elevator-0"
-                      v-model="toHasElevator"
-                      :value="'0'" />
-                    <label class="ml-2" for="to-has-elevator-0">No</label>
+                      true-value="1"
+                      false-value="0" />
+                    <label class="ml-2" for="to-has-elevator-checkbox">
+                      Sí, cuenta con elevador
+                    </label>
                   </div>
                   <p v-if="formValidationMessages['to_has_elevator']"
                     class="text-red-500

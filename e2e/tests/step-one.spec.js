@@ -54,7 +54,7 @@ test.describe('Order Step One - Addresses', () => {
       index: TEST_DATA.from.floor,
     });
     await page.fill('#from-parking-distance', String(TEST_DATA.from.parkingDistance));
-    await page.click(`#from-has-elevator-${TEST_DATA.from.hasElevator}`);
+    await page.setChecked('#from-has-elevator-checkbox', TEST_DATA.from.hasElevator === '1');
 
     // --- Destination address ---
     await page.fill('#address-to-street', TEST_DATA.to.street);
@@ -64,7 +64,7 @@ test.describe('Order Step One - Addresses', () => {
       index: TEST_DATA.to.floor,
     });
     await page.fill('#to-parking-distance', String(TEST_DATA.to.parkingDistance));
-    await page.click(`#to-has-elevator-${TEST_DATA.to.hasElevator}`);
+    await page.setChecked('#to-has-elevator-checkbox', TEST_DATA.to.hasElevator === '1');
 
     // Submit
     await page.click('button:has-text("Guardar y continuar")');

@@ -87,7 +87,7 @@ export default new Vuex.Store({
       from_country: null,
       from_map_url: null,
       from_approximate_distance_from_parking: null,
-      from_has_elevator: null,
+      from_has_elevator: '0',
     },
     orderDetailsDestination: {
       to_street: null,
@@ -96,7 +96,7 @@ export default new Vuex.Store({
       to_country: null,
       to_map_url: null,
       to_approximate_distance_from_parking: null,
-      to_has_elevator: null,
+      to_has_elevator: '0',
     },
     services: {
       packaging: null,
