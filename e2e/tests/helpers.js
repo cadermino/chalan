@@ -172,6 +172,12 @@ function getOrderIdFromStore(page) {
  * expose its autocomplete traffic as plain interceptable HTTP calls, so
  * stubbing the SDK surface is the reliable way to drive this without a
  * real API key or live network dependency.
+ *
+ * Also fakes google.maps.places.Autocomplete, which is what the Next.js
+ * QuoteWidget (frontend-react/src/components/QuoteWidget.tsx) uses instead
+ * of SearchBox. Instances are tracked in window.__autocompleteInstances
+ * (an array, not keyed by id) since QuoteWidget's inputs don't have ids and
+ * a single page can render more than one widget instance.
  */
 async function mockGooglePlaces(page) {
   await page.addInitScript(() => {
@@ -198,6 +204,27 @@ async function mockGooglePlaces(page) {
       }
     }
 
+    class FakeAutocomplete {
+      constructor(input) {
+        this._listeners = {};
+        window.__autocompleteInstances = window.__autocompleteInstances || [];
+        window.__autocompleteInstances.push({ input, instance: this });
+      }
+
+      addListener(event, cb) {
+        this._listeners[event] = cb;
+      }
+
+      getPlace() {
+        return this._place || {};
+      }
+
+      __select(place) {
+        this._place = place;
+        if (this._listeners.place_changed) this._listeners.place_changed();
+      }
+    }
+
     window.google = {
       maps: {
         Map: class { addListener() {} getBounds() { return null; } fitBounds() {} },
@@ -205,8 +232,12 @@ async function mockGooglePlaces(page) {
         Size: class {},
         Point: class {},
         LatLngBounds: class { union() {} extend() {} },
+        Geocoder: class {
+          geocode(_opts, cb) { cb([], 'ZERO_RESULTS'); }
+        },
         places: {
           SearchBox: FakeSearchBox,
+          Autocomplete: FakeAutocomplete,
           PlacesServiceStatus: { OK: 'OK' },
           PlacesService: class {
             findPlaceFromQuery(_opts, cb) { cb([], 'ZERO_RESULTS'); }
@@ -252,6 +283,50 @@ async function selectMockAddress(page, inputId, { formattedAddress, zipCode, cou
   }, { id: inputId, p: place });
 }
 
+/**
+ * Same idea as selectMockAddress, but for google.maps.places.Autocomplete
+ * (the Next.js QuoteWidget's autocomplete input), whose inputs are located
+ * by placeholder text since they don't have ids. lat/lng are passed
+ * separately because functions can't cross the page.evaluate boundary, so
+ * geometry.location.lat()/lng() are built inside the browser context.
+ */
+async function selectMockAutocompleteAddress(page, placeholder, {
+  formattedAddress, zipCode, country, mapUrl, lat, lng,
+}) {
+  await page.waitForFunction(
+    (ph) => window.__autocompleteInstances
+      && window.__autocompleteInstances.some((entry) => entry.input.placeholder === ph),
+    placeholder,
+    { timeout: 15000 },
+  );
+
+  await page.evaluate(({ ph, formattedAddressArg, zipCodeArg, countryArg, mapUrlArg, latArg, lngArg }) => {
+    const entry = window.__autocompleteInstances.find((e) => e.input.placeholder === ph);
+    const { input } = entry;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(input, formattedAddressArg);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+
+    entry.instance.__select({
+      formatted_address: formattedAddressArg,
+      url: mapUrlArg,
+      address_components: [
+        { long_name: zipCodeArg, short_name: zipCodeArg, types: ['postal_code'] },
+        { long_name: countryArg, short_name: countryArg, types: ['country'] },
+      ],
+      geometry: { location: { lat: () => latArg, lng: () => lngArg } },
+    });
+  }, {
+    ph: placeholder,
+    formattedAddressArg: formattedAddress,
+    zipCodeArg: zipCode,
+    countryArg: country,
+    mapUrlArg: mapUrl,
+    latArg: lat,
+    lngArg: lng,
+  });
+}
+
 module.exports = {
   TEST_DATA,
   injectAddressToStore,
@@ -263,4 +338,5 @@ module.exports = {
   getOrderIdFromStore,
   mockGooglePlaces,
   selectMockAddress,
+  selectMockAutocompleteAddress,
 };

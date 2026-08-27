@@ -77,7 +77,6 @@ function saveOrigin(place: PlaceArg) {
   const c = extractComponents(place.address_components || [])
   localStorage.setItem('orderDetailsOrigin', JSON.stringify({
     from_street: place.formatted_address || null,
-    from_interior_number: null,
     from_floor_number: null,
     from_zip_code: c.postal_code || null,
     from_country: c.country || null,
@@ -124,7 +123,6 @@ function saveDestination(place: PlaceArg) {
   const c = extractComponents(place.address_components || [])
   localStorage.setItem('orderDetailsDestination', JSON.stringify({
     to_street: place.formatted_address || null,
-    to_interior_number: null,
     to_floor_number: null,
     to_zip_code: c.postal_code || null,
     to_country: c.country || null,
