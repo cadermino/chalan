@@ -126,49 +126,36 @@
               <div class="mb-3 border rounded p-3"
                 :class="recognizedItems.length
                   ? 'bg-gray-50' : ''">
-                <!--
-                  Fixed height (not max-height) covering both the empty
-                  and filled states, so this box is the same size whether
-                  it holds the placeholder text, 1 item, or many (scrolling
-                  internally past that). Growing this box would push
-                  "Siguiente" down the page, and since an item can get
-                  added right as the customer clicks that button (via
-                  @blur below), a shifting layout means the click can miss
-                  the button entirely - fixing the height keeps everything
-                  below it stationary regardless of item count.
-                -->
-                <div class="h-32 overflow-y-auto pr-1 flex flex-col">
-                  <p v-if="recognizedItems.length" class="text-sm font-bold text-gray-700 mb-2">
+                <div v-if="recognizedItems.length">
+                  <p class="text-sm font-bold text-gray-700 mb-2">
                     Cosas a mover (edita o elimina):
                   </p>
-                  <div v-if="recognizedItems.length">
-                    <div v-for="(item, index) in recognizedItems"
-                      :key="'item-'+index"
-                      class="flex items-center mb-1">
-                      <input type="text"
-                        v-model="recognizedItems[index]"
-                        class="flex-1 appearance-none border
-                          rounded py-1 px-2 text-sm text-gray-700
-                          focus:outline-none
-                          focus:border-blue-400" />
-                      <button type="button"
-                        @click="removeRecognizedItem(index)"
-                        class="ml-2 text-red-500
-                          hover:text-red-700 text-sm font-bold">
-                        ✕
-                      </button>
-                    </div>
+                  <div v-for="(item, index) in recognizedItems"
+                    :key="'item-'+index"
+                    class="flex items-center mb-1">
+                    <input type="text"
+                      v-model="recognizedItems[index]"
+                      class="flex-1 appearance-none border
+                        rounded py-1 px-2 text-sm text-gray-700
+                        focus:outline-none
+                        focus:border-blue-400" />
+                    <button type="button"
+                      @click="removeRecognizedItem(index)"
+                      class="ml-2 text-red-500
+                        hover:text-red-700 text-sm font-bold">
+                      ✕
+                    </button>
                   </div>
-                  <p v-else class="text-sm text-gray-400
-                    text-center m-auto">
-                    Sube una foto o agrega items manualmente
-                  </p>
                 </div>
+                <p v-else class="text-sm text-gray-400
+                  text-center py-2">
+                  Sube una foto o agrega items manualmente
+                </p>
                 <div class="flex mt-2">
                   <input type="text"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
-                    @blur="addManualItem"
+                    @blur="handleManualItemBlur"
                     placeholder="Ej: 1 cama matrimonial"
                     class="flex-1 appearance-none border
                       rounded py-1 px-2 text-sm text-gray-700
@@ -285,7 +272,10 @@
             </div>
           </div>
           <div class="flex items-center justify-between">
-            <router-link :to="{ name: steps[viewName].previous }" class="bg-green-500
+            <router-link
+              ref="previousStepLink"
+              :to="{ name: steps[viewName].previous }"
+              class="bg-green-500
               hover:bg-green-700
               text-white
               py-2
@@ -296,6 +286,7 @@
               Atras
             </router-link>
             <button
+              ref="nextStepButton"
               :disabled="loading"
               :class="loading?'opacity-50 cursor-not-allowed':''"
               type="button"
@@ -455,6 +446,28 @@ export default {
         this.manualItem = '';
         this.syncComments();
       }
+    },
+    // Used on @blur instead of calling addManualItem() directly.
+    // event.relatedTarget is the element about to receive focus. If
+    // that's "Siguiente" (or "Atras"), skip committing here and leave
+    // it to nextStep()'s own addManualItem() call: committing on blur
+    // would grow the items list right as that click is landing, which
+    // can shift the button out from under the cursor between mousedown
+    // and mouseup and make the click miss it entirely - a real risk
+    // since real clicks (not just automated ones) leave enough time
+    // between press and release for that shift to happen. Blurring
+    // toward anything else (a checkbox, another field, empty space)
+    // still commits immediately, same as before.
+    handleManualItemBlur(event) {
+      const nextFocused = event.relatedTarget;
+      const criticalTargets = [
+        this.$refs.nextStepButton,
+        this.$refs.previousStepLink && this.$refs.previousStepLink.$el,
+      ];
+      if (nextFocused && criticalTargets.includes(nextFocused)) {
+        return;
+      }
+      this.addManualItem();
     },
     syncComments() {
       const comments = this.recognizedItems.join('\n');
