@@ -137,7 +137,7 @@
                     font-bold mb-2">
                       El edificio cuenta con elevador?
                   </label>
-                  <div>
+                  <div class="flex items-center">
                     <input type="checkbox"
                       class="w-4 h-4 rounded border-gray-300"
                       style="accent-color: #63b3ed"
@@ -294,7 +294,7 @@
                     font-bold mb-2">
                       El edificio cuenta con elevador?
                   </label>
-                  <div>
+                  <div class="flex items-center">
                     <input type="checkbox"
                       class="w-4 h-4 rounded border-gray-300"
                       style="accent-color: #63b3ed"
