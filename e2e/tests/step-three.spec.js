@@ -1,17 +1,18 @@
 const { test, expect } = require('@playwright/test');
 const {
-  fillStepOne, fillStepTwo, registerAndReturn, seedQuotation, getOrderIdFromStore,
+  createOrderViaApi, registerAndReturn, seedQuotation,
 } = require('./helpers');
 
 test.describe('Order Step Three - Quotations', () => {
   test('should require login, then list a quotation and open the payment modal', async ({ page }) => {
-    await fillStepOne(page);
-    await fillStepTwo(page);
+    // Step-three doesn't test step-one/step-two's own UI behavior (that's
+    // covered by their own specs), so create the order directly via API
+    // instead of driving those forms just to get here.
+    const orderId = await createOrderViaApi(page);
 
     // step-three requires auth -> router redirects to /login?redirect=...
     await registerAndReturn(page);
 
-    const orderId = await getOrderIdFromStore(page);
     seedQuotation(orderId);
 
     // Reload so the quotationsList fetch picks up the just-seeded quote.

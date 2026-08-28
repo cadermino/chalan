@@ -3,9 +3,9 @@ const { test, expect } = require('@playwright/test');
 const { TEST_DATA, injectAddressToStore, getOrderIdFromStore } = require('./helpers');
 
 /**
- * Fills and submits step-one WITHOUT dismissing the lead-phone modal
- * (unlike helpers.fillStepOne), so these tests can interact with it
- * directly.
+ * Fills and submits step-one WITHOUT dismissing the lead-phone modal,
+ * so these tests can interact with it directly. This is the one flow that
+ * must drive the step-one form for real: the modal fires on its submit.
  */
 async function submitStepOneAnonymously(page) {
   await page.goto('/order/step-one', { waitUntil: 'networkidle' });

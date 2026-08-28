@@ -65,49 +65,96 @@ async function dismissLeadPhoneModalIfPresent(page) {
   }
 }
 
-async function fillStepOne(page) {
+/**
+ * Creates a real backend order via the same two API calls Step-one.vue and
+ * Step-two.vue make (POST /order then PUT /order/<id>), then injects the
+ * resulting state straight into the live Vuex store and navigates through
+ * the SPA's own router - skipping the address/belongings forms entirely for
+ * tests that only care about what happens afterward.
+ *
+ * upTo controls how far the order is pre-filled: 'step-two' (default)
+ * includes appointment/items/services and lands on step-three; 'step-one'
+ * stops at the address data (no PUT) and lands on step-two, for tests that
+ * exercise step-two's own UI.
+ *
+ * Must commit into the store (not localStorage) and navigate via the app's
+ * own $router, not page.goto(): a goto() would hard-reload and wipe the
+ * in-memory state we just injected, since none of it went through
+ * localStorage the way real form input does.
+ */
+async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
+  const orderDetailsOrigin = {
+    from_street: TEST_DATA.from.street,
+    from_zip_code: TEST_DATA.from.zipCode,
+    from_country: TEST_DATA.from.country,
+    from_map_url: TEST_DATA.from.mapUrl,
+    from_floor_number: TEST_DATA.from.floor,
+    from_approximate_distance_from_parking: TEST_DATA.from.parkingDistance,
+    from_has_elevator: TEST_DATA.from.hasElevator,
+  };
+  const orderDetailsDestination = {
+    to_street: TEST_DATA.to.street,
+    to_zip_code: TEST_DATA.to.zipCode,
+    to_country: TEST_DATA.to.country,
+    to_map_url: TEST_DATA.to.mapUrl,
+    to_floor_number: TEST_DATA.to.floor,
+    to_approximate_distance_from_parking: TEST_DATA.to.parkingDistance,
+    to_has_elevator: TEST_DATA.to.hasElevator,
+  };
+
+  const createRes = await page.request.post('/api/v1/order', {
+    data: { orderDetailsOrigin, orderDetailsDestination, customer: { customer_id: null }, referral_code: null },
+  });
+  const { order_id: orderId } = await createRes.json();
+
+  const includeStepTwo = upTo === 'step-two';
+  if (includeStepTwo) {
+    await page.request.put(`/api/v1/order/${orderId}`, {
+      data: {
+        order: {
+          order_id: orderId,
+          appointment_date: TEST_DATA.stepTwo.appointmentDate,
+          comments: TEST_DATA.stepTwo.items.join('\n'),
+          approximate_budget: TEST_DATA.stepTwo.approximateBudget,
+        },
+        orderDetailsOrigin,
+        orderDetailsDestination,
+        services: { packaging: TEST_DATA.stepTwo.packaging, cargo: TEST_DATA.stepTwo.cargo },
+        customer: { customer_id: null },
+      },
+    });
+  }
+
   await page.goto('/order/step-one', { waitUntil: 'networkidle' });
   await page.waitForSelector('#address-from-street', { timeout: 30000 });
 
-  await page.fill('#address-from-street', TEST_DATA.from.street);
-  await injectAddressToStore(page, 'from', TEST_DATA.from);
-  await page.selectOption('#address-from-floor', { index: TEST_DATA.from.floor });
-  await page.fill('#from-parking-distance', String(TEST_DATA.from.parkingDistance));
-  await page.setChecked('#from-has-elevator-checkbox', TEST_DATA.from.hasElevator === '1');
+  await page.evaluate(({
+    id, from, to, stepTwoData,
+  }) => {
+    const { $store: store, $router: router } = document.querySelector('#app').__vue__;
+    store.commit('setOrder', { section: 'currentOrder', field: 'order_id', value: id });
+    Object.entries(from).forEach(([field, value]) => {
+      store.commit('setOrder', { section: 'orderDetailsOrigin', field, value });
+    });
+    Object.entries(to).forEach(([field, value]) => {
+      store.commit('setOrder', { section: 'orderDetailsDestination', field, value });
+    });
+    if (stepTwoData) {
+      store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: stepTwoData.appointmentDate });
+      store.commit('setOrder', { section: 'currentOrder', field: 'comments', value: stepTwoData.items.join('\n') });
+      store.commit('setOrder', { section: 'currentOrder', field: 'approximate_budget', value: stepTwoData.approximateBudget });
+      store.commit('setOrder', { section: 'services', field: 'packaging', value: stepTwoData.packaging });
+      store.commit('setOrder', { section: 'services', field: 'cargo', value: stepTwoData.cargo });
+    }
+    router.push({ name: stepTwoData ? 'step-three' : 'step-two' });
+  }, {
+    id: orderId,
+    from: orderDetailsOrigin,
+    to: orderDetailsDestination,
+    stepTwoData: includeStepTwo ? TEST_DATA.stepTwo : null,
+  });
 
-  await page.fill('#address-to-street', TEST_DATA.to.street);
-  await injectAddressToStore(page, 'to', TEST_DATA.to);
-  await page.selectOption('#address-to-floor', { index: TEST_DATA.to.floor });
-  await page.fill('#to-parking-distance', String(TEST_DATA.to.parkingDistance));
-  await page.setChecked('#to-has-elevator-checkbox', TEST_DATA.to.hasElevator === '1');
-
-  await page.click('button:has-text("Guardar y continuar")');
-  await dismissLeadPhoneModalIfPresent(page);
-  await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
-}
-
-async function fillStepTwo(page) {
-  await page.evaluate((date) => {
-    const store = document.querySelector('#app').__vue__.$store;
-    store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: date });
-  }, TEST_DATA.stepTwo.appointmentDate);
-
-  for (const item of TEST_DATA.stepTwo.items) {
-    await page.fill('input[placeholder="Ej: 1 cama matrimonial"]', item);
-    await page.click('button:has-text("+ Agregar")');
-  }
-
-  // Unchecked is a valid "No" by default, so only click to opt in.
-  if (TEST_DATA.stepTwo.cargo === '1') {
-    await page.click('#cargo-service');
-  }
-  if (TEST_DATA.stepTwo.packaging === '1') {
-    await page.click('#packaging-service');
-  }
-  await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));
-
-  await page.click('button:has-text("Siguiente")');
-  await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
+  return orderId;
 }
 
 /**
@@ -331,8 +378,7 @@ module.exports = {
   TEST_DATA,
   injectAddressToStore,
   dismissLeadPhoneModalIfPresent,
-  fillStepOne,
-  fillStepTwo,
+  createOrderViaApi,
   registerAndReturn,
   seedQuotation,
   getOrderIdFromStore,
