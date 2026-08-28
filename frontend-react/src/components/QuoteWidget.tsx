@@ -147,6 +147,8 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   const fromLatLng = useRef<{ lat: number; lng: number } | null>(null)
   const toLatLng   = useRef<{ lat: number; lng: number } | null>(null)
 
+  const placesLoadedRef = useRef(false)
+
   // Restaurar estado desde localStorage al volver a la landing
   useEffect(() => {
     try {
@@ -161,10 +163,25 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
       }
       const savedSize = localStorage.getItem('quoteSize')
       if (savedSize && SIZES.find(s => s.id === savedSize)) setSizeId(savedSize)
+
+      // Direcciones guardadas de antes de que se guardara lat/lng: necesitan
+      // el script de Google (geocoder) para calcular el km, así que en ese
+      // caso puntual no podemos diferir la carga hasta el foco del input.
+      const legacyOrigin = origin?.from_street && !(origin?.from_lat && origin?.from_lng)
+      const legacyDest   = dest?.to_street && !(dest?.to_lat && dest?.to_lng)
+      if (legacyOrigin || legacyDest) ensurePlacesLoaded()
     } catch { /* localStorage no disponible */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
+  // Carga el script de Google Places bajo demanda: recién cuando el usuario
+  // toca un campo de dirección, no en cada carga de la landing. Es el mayor
+  // contribuyente al Time to Interactive en mobile (~209 KB sin usar hasta
+  // que el usuario interactúa) si se carga siempre al montar.
+  function ensurePlacesLoaded() {
+    if (placesLoadedRef.current) return
+    placesLoadedRef.current = true
+
     const apiKey = process.env.NEXT_PUBLIC_PLACES_API_KEY
     if (!apiKey || typeof window === 'undefined') return
 
@@ -232,7 +249,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
     }
 
     loadGooglePlaces(apiKey, init)
-  }, [])
+  }
 
   const price = useMemo(() => {
     const s = SIZES.find(s => s.id === sizeId)
@@ -259,6 +276,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
           className="quote-input"
           value={from}
           onChange={e => setFrom(e.target.value)}
+          onFocus={ensurePlacesLoaded}
           placeholder="¿Desde dónde?"
           autoComplete="off"
         />
@@ -274,6 +292,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
           className="quote-input"
           value={to}
           onChange={e => setTo(e.target.value)}
+          onFocus={ensurePlacesLoaded}
           placeholder="¿Hasta dónde?"
           autoComplete="off"
         />

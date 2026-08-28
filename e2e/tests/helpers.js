@@ -340,6 +340,11 @@ async function selectMockAddress(page, inputId, { formattedAddress, zipCode, cou
 async function selectMockAutocompleteAddress(page, placeholder, {
   formattedAddress, zipCode, country, mapUrl, lat, lng,
 }) {
+  // QuoteWidget defers loading the Google Places script (and constructing
+  // Autocomplete) until the input is focused, so __autocompleteInstances
+  // won't exist until we interact with the field first - same as a real user.
+  await page.getByPlaceholder(placeholder).click();
+
   await page.waitForFunction(
     (ph) => window.__autocompleteInstances
       && window.__autocompleteInstances.some((entry) => entry.input.placeholder === ph),
