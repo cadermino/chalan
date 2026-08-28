@@ -6,14 +6,14 @@ import { LandingFooter } from '@/components/LandingFooter'
 import '../landing.css'
 
 export const metadata: Metadata = {
-  title: 'Servicio de embalaje profesional en Lima | Chalán',
+  title: 'Contrata embalaje a domicilio en Lima | Chalán',
   description:
     'Embalamos tus muebles, electrodomésticos y objetos frágiles con materiales profesionales. Servicio de embalaje a domicilio en Lima. Cotiza por WhatsApp.',
   keywords:
-    'servicio de embalaje lima, embalaje de muebles, empacar muebles mudanza, embalaje profesional lima, embalaje a domicilio lima, empacar objetos frágiles',
+    'embalaje a domicilio lima, contratar embalaje mudanza, embalaje de muebles, embalaje profesional lima, empacar objetos frágiles',
   alternates: { canonical: '/embalaje-profesional' },
   openGraph: {
-    title: 'Servicio de embalaje profesional en Lima | Chalán',
+    title: 'Contrata embalaje a domicilio en Lima | Chalán',
     description:
       'Embalamos tus muebles y objetos frágiles con materiales profesionales. Cotiza por WhatsApp.',
     url: 'https://chalan.pe/embalaje-profesional',
@@ -191,7 +191,13 @@ const FAQ = [
   },
   {
     q: '¿Cuánto cuesta el embalaje de un departamento?',
-    a: 'El precio depende del tamaño y la cantidad de objetos frágiles. Escríbenos por WhatsApp y te cotizamos en minutos.',
+    a: (
+      <>
+        El precio depende del tamaño y la cantidad de objetos frágiles. Escríbenos por WhatsApp
+        y te cotizamos en minutos, o revisa nuestra{' '}
+        <Link href="/blog/servicio-embalaje-profesional-lima">guía de precios y proceso</Link>.
+      </>
+    ),
   },
   {
     q: '¿Con cuánta anticipación debo agendar?',

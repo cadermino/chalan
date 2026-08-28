@@ -7,7 +7,7 @@ import { QuoteWidget } from "@/components/QuoteWidget";
 import { Testimonials } from "@/components/Testimonials";
 
 export const metadata: Metadata = {
-  title: "Mudanzas en Lima - Precios y servicio confiable | Chalán",
+  title: "Mudanzas en Lima - Cotiza y compara vehículos | Chalán",
   description:
     "Servicio de mudanzas en Lima al mejor precio. Compara vehículos, elige fecha y múdate fácil. Cobertura en todos los distritos de Lima Metropolitana.",
   keywords:
@@ -50,7 +50,20 @@ const localBusinessJsonLd = {
 };
 
 const faqs = [
-  { q: "¿Cuánto cuesta una mudanza en Lima?", a: "El precio depende de la distancia entre distritos y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
+  {
+    q: "¿Cuánto cuesta una mudanza en Lima?",
+    a: "El precio depende de la distancia entre distritos y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante, o revisar precios reales por tamaño de vehículo en nuestra guía de precios.",
+    render: (
+      <>
+        El precio depende de la distancia entre distritos y el tamaño del vehículo. Con Chalán
+        puedes cotizar gratis y comparar precios al instante, o revisar precios reales por
+        tamaño de vehículo en nuestra{" "}
+        <Link href="/blog/cuanto-cuesta-una-mudanza-en-lima" className="text-indigo-700 underline">
+          guía de precios
+        </Link>.
+      </>
+    ),
+  },
   { q: "¿Hacen mudanzas los fines de semana?", a: "Sí, operamos los 7 días de la semana incluyendo feriados." },
   { q: "¿Qué distritos cubren?", a: "Cubrimos todos los distritos de Lima Metropolitana, desde San Juan de Lurigancho hasta Chorrillos, Miraflores, La Molina y más." },
   { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
@@ -205,7 +218,7 @@ export default function MudanzasLima() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </summary>
-                <div className="px-6 pb-5 text-gray-600 leading-relaxed">{faq.a}</div>
+                <div className="px-6 pb-5 text-gray-600 leading-relaxed">{faq.render ?? faq.a}</div>
               </details>
             ))}
           </div>

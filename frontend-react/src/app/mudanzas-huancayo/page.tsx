@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
@@ -217,19 +216,14 @@ export default function MudanzasHuancayo() {
         </section>
 
         {/* Bottom CTA */}
-        <div className="bg-amber-50 rounded-2xl p-8 text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+        <div className="bg-amber-50 rounded-2xl p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
             ¿Listo para tu mudanza en Huancayo?
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 mb-6 text-center">
             Cotiza gratis y compara precios en segundos.
           </p>
-          <Link
-            href="/order/step-one"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-indigo-950 text-white font-semibold hover:bg-indigo-900 transition-colors"
-          >
-            Cotizar ahora
-          </Link>
+          <QuoteWidget theme="light" />
         </div>
       </div>
       <LandingFooter />

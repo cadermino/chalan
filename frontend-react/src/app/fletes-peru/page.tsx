@@ -45,7 +45,19 @@ const localBusinessJsonLd = {
 };
 
 const faqs = [
-  { q: "¿Cuánto cuesta un flete en Perú?", a: "El precio depende de la distancia, tipo de vehículo y volumen de carga. Con Chalán puedes cotizar gratis al instante." },
+  {
+    q: "¿Cuánto cuesta un flete en Perú?",
+    a: "El precio depende de la distancia, tipo de vehículo y volumen de carga. Con Chalán puedes cotizar gratis al instante, o revisar precios reales por ruta en nuestra guía de precios.",
+    render: (
+      <>
+        El precio depende de la distancia, tipo de vehículo y volumen de carga. Con Chalán puedes
+        cotizar gratis al instante, o revisar precios reales por ruta en nuestra{" "}
+        <Link href="/blog/cuanto-cuesta-un-flete-en-peru" className="text-indigo-700 underline">
+          guía de precios
+        </Link>.
+      </>
+    ),
+  },
   { q: "¿Qué puedo enviar por flete?", a: "Muebles, electrodomésticos, cajas, materiales de construcción, equipos y más. Solo no transportamos materiales peligrosos." },
   { q: "¿Los fletes incluyen ayudantes?", a: "Sí, nuestros servicios incluyen ayudantes para cargar y descargar tu mercadería." },
   { q: "¿Cuánto tarda un flete de Lima a provincia?", a: "Depende de la ciudad destino. Por ejemplo, Lima a Huancayo toma aproximadamente 7 horas, Lima a Arequipa alrededor de 15 horas." },
@@ -205,7 +217,7 @@ export default function FletesPeru() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </summary>
-                <div className="px-6 pb-5 text-gray-600 leading-relaxed">{faq.a}</div>
+                <div className="px-6 pb-5 text-gray-600 leading-relaxed">{faq.render ?? faq.a}</div>
               </details>
             ))}
           </div>
