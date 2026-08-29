@@ -6,9 +6,9 @@ import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
 
 export const metadata: Metadata = {
-  title: "Preguntas frecuentes sobre mudanzas y fletes - Chalán",
+  title: "Preguntas Frecuentes sobre Mudanzas y Fletes - Chalán",
   description:
-    "Resolvemos tus dudas sobre mudanzas en Lima y Perú: precios, formas de pago, cobertura, seguro de carga y cómo funciona Chalán.",
+    "¿Cuánto cuesta, cómo se paga, hay seguro? Resolvemos las dudas más comunes sobre mudanzas y fletes con transportistas verificados en Lima y Perú.",
   keywords:
     "preguntas frecuentes mudanzas, cuánto cuesta mudanza lima, flete seguro perú, mudanza barata",
   alternates: {

@@ -6,9 +6,9 @@ import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
 
 export const metadata: Metadata = {
-  title: "¿Cómo funciona Chalán? - Cotiza tu mudanza paso a paso",
+  title: "Cómo Funciona Chalán: Cotiza tu Mudanza en 4 Pasos",
   description:
-    "Conoce cómo funciona Chalán paso a paso: ingresa tus direcciones, compara vehículos, elige el mejor precio y programa tu mudanza o flete en minutos.",
+    "Ingresa tus direcciones, compara precios de transportistas verificados y reserva en minutos. Sin costo por cotizar. Así de fácil es mudarte con Chalán.",
   keywords:
     "como funciona chalan, cotizar mudanza online, pasos mudanza, reservar flete peru, mudanza facil",
   alternates: {
