@@ -158,8 +158,8 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
 }
 
 /**
- * Step-three/step-four require an authenticated customer. Registers a brand
- * new account from wherever the auth redirect landed (?redirect=... is
+ * Step-three requires an authenticated customer. Registers a brand new
+ * account from wherever the auth redirect landed (?redirect=... is
  * preserved), which lands back on the originating step on success.
  */
 async function registerAndReturn(page) {

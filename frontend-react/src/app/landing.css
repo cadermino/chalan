@@ -462,10 +462,10 @@
 }
 .chalan-landing .section-head h2 { max-width: 18ch; }
 
-/* ====== HOW (4 STEPS) ====== */
+/* ====== HOW (3 STEPS) ====== */
 .chalan-landing .steps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0;
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);

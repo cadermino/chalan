@@ -45,7 +45,7 @@ export default function NotFound() {
           <div className="mt-16 grid sm:grid-cols-3 gap-4 text-left">
             <Link href="/como-funciona" className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors group">
               <h2 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">¿Cómo funciona?</h2>
-              <p className="text-gray-500 text-sm mt-1">Cotiza en 4 simples pasos</p>
+              <p className="text-gray-500 text-sm mt-1">Cotiza en 3 simples pasos</p>
             </Link>
             <Link href="/mudanzas-lima" className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:border-indigo-200 transition-colors group">
               <h2 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">Mudanzas en Lima</h2>

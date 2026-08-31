@@ -19,9 +19,10 @@ test.describe('Order Step Three - Quotations', () => {
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
 
-    // Clicking "Elegir" opens the cash-checkout modal in place, no navigation
-    // (Step-three.vue's selectQuotation() opens the modal instead of routing
-    // to step-four).
+    // Clicking "Elegir" opens the cash-checkout modal in place, no
+    // navigation - Step-three.vue's selectQuotation() opens the modal and
+    // handles checkout itself (step-four was removed as dead code once this
+    // modal took over its job).
     await page.getByRole('button', { name: 'Elegir', exact: true }).click();
     await expect(page).toHaveURL(/step-three/, { timeout: 5000 });
     await expect(page.locator('text=Confirma tu pedido')).toBeVisible({ timeout: 15000 });

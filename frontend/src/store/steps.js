@@ -19,9 +19,6 @@ const stepTwo = [
 const stepThree = [
   'quotation_id',
 ];
-const stepFour = [
-  'payment_method',
-];
 export default {
   'step-one': {
     name: 'Dirección recojo/entrega',
@@ -40,15 +37,8 @@ export default {
   'step-three': {
     name: 'Cotizaciones',
     previous: 'step-two',
-    next: 'step-four',
-    isComplete: false,
-    requisites: [...stepOne, ...stepTwo, ...stepThree],
-  },
-  'step-four': {
-    name: 'Pago',
-    previous: 'step-three',
     next: null,
     isComplete: false,
-    requisites: [...stepOne, ...stepTwo, ...stepThree, ...stepFour],
+    requisites: [...stepOne, ...stepTwo, ...stepThree],
   },
 };

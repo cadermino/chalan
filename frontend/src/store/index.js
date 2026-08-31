@@ -24,7 +24,6 @@ export const fieldLabels = {
   packaging: 'Servicio de embalaje',
   cargo: 'Servicio de cargadores',
   quotation_id: 'Cotización seleccionada',
-  payment_method: 'Método de pago',
 };
 
 function checkCompleteStep(state) {
@@ -106,7 +105,6 @@ export default new Vuex.Store({
       'step-one': null,
       'step-two': null,
       'step-three': null,
-      'step-four': null,
       'register-login': null,
       'carrier-company': null,
       dashboard: null,
@@ -131,7 +129,6 @@ export default new Vuex.Store({
       cargo: null,
       quotation_id: null,
       quotation_amount: null,
-      payment_method: null,
     },
     loading: false,
   },

@@ -75,15 +75,6 @@ const routes = [
     },
   },
   {
-    path: '/order/:order_id?/step-four',
-    name: 'step-four',
-    component: () => import(/* webpackChunkName: "step-four" */ '../views/order/Step-four.vue'),
-    meta: { requiresPreviousComplete: true, requiresAuth: true },
-    props: {
-      countryData: countryData[country]['step-four'],
-    },
-  },
-  {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),

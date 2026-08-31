@@ -97,8 +97,7 @@ const VEHICLES = [
 const STEPS = [
   { n: '01', title: 'Indícanos las direcciones', body: 'De punto A a punto B. Calculamos ruta y distancia automáticamente.', icon: Pin },
   { n: '02', title: 'Fecha y hora',              body: 'Tú eliges cuándo. Disponibilidad en tiempo real, mismo día incluido.', icon: Cal },
-  { n: '03', title: 'Escoge la movilidad',       body: 'Lista comparada de vehículos según tamaño, precio y reputación del chalán.', icon: Truck },
-  { n: '04', title: 'Pagas como prefieras',      body: 'Yape, Plin, transferencia, tarjeta o efectivo al final del servicio.', icon: Card },
+  { n: '03', title: 'Escoge y confirma',         body: 'Compara vehículos por tamaño, precio y reputación del chalán. Eliges, confirmas y pagas en efectivo al finalizar.', icon: Truck },
 ]
 
 const ROUTES = [
@@ -147,13 +146,6 @@ function Truck() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 7h11v9H2zM13 10h5l3 3v3h-8" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" />
-    </svg>
-  )
-}
-function Card() {
-  return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="6" width="20" height="13" rx="1.5" /><path d="M2 11h20M6 16h4" />
     </svg>
   )
 }
@@ -226,7 +218,7 @@ export default function Home() {
         <div className="wrap">
           <div className="section-head">
             <div className="num">02 / Proceso</div>
-            <h2 className="h-section">Cuatro pasos.<br />Cero llamadas, cero regateo.</h2>
+            <h2 className="h-section">Tres pasos.<br />Cero llamadas, cero regateo.</h2>
           </div>
           <div className="steps">
             {STEPS.map(s => (

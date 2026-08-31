@@ -6,7 +6,7 @@ import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
 
 export const metadata: Metadata = {
-  title: "Cómo Funciona Chalán: Cotiza tu Mudanza en 4 Pasos",
+  title: "Cómo Funciona Chalán: Cotiza tu Mudanza en 3 Pasos",
   description:
     "Ingresa tus direcciones, compara precios de transportistas verificados y reserva en minutos. Sin costo por cotizar. Así de fácil es mudarte con Chalán.",
   keywords:
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "¿Cómo funciona Chalán?",
     description:
-      "Cotiza tu mudanza o flete en 4 simples pasos. Compara precios y reserva fácil.",
+      "Cotiza tu mudanza o flete en 3 simples pasos. Compara precios y reserva fácil.",
     url: "https://chalan.pe/como-funciona",
   },
 };
@@ -44,14 +44,8 @@ const howToJsonLd = {
     {
       "@type": "HowToStep",
       position: 3,
-      name: "Compara vehículos y precios",
-      text: "Te mostramos los vehículos disponibles con sus precios según la ruta y el tamaño del vehículo. Elige el que más te convenga.",
-    },
-    {
-      "@type": "HowToStep",
-      position: 4,
-      name: "Confirma tu reserva",
-      text: "Confirma tu reserva y elige cómo pagar: en efectivo al transportista o con tarjeta. Tu chalán llegará puntual.",
+      name: "Elige tu vehículo y confirma",
+      text: "Compara los vehículos disponibles según ruta y tamaño, elige el que más te convenga y confirma tu reserva. Pagas en efectivo al chalán al finalizar el servicio.",
     },
   ],
 };
@@ -59,7 +53,7 @@ const howToJsonLd = {
 const faqs = [
   { q: "¿Cotizar tiene algún costo?", a: "No, cotizar es completamente gratis y sin compromiso." },
   { q: "¿Puedo cancelar mi reserva?", a: "Sí, puedes cancelar antes de la fecha programada sin penalidad." },
-  { q: "¿Cómo pago el servicio?", a: "Puedes pagar en efectivo directamente al transportista o con tarjeta de crédito/débito a través de la plataforma." },
+  { q: "¿Cómo pago el servicio?", a: "Por el momento el pago es en efectivo directamente al transportista. Pago con tarjeta próximamente." },
   { q: "¿Los transportistas incluyen ayudantes?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
 ];
 
@@ -92,19 +86,11 @@ const steps = [
   },
   {
     number: "3",
-    title: "Compara vehículos y precios",
+    title: "Elige tu vehículo y confirma",
     description:
-      "Te mostramos los vehículos disponibles con precios calculados según tu ruta. Desde furgonetas hasta camiones grandes.",
+      "Te mostramos los vehículos disponibles con precios calculados según tu ruta. Desde furgonetas hasta camiones grandes. Elige el que mejor se adapte a tus necesidades y confirma tu reserva.",
     detail:
-      "Cada vehículo muestra su capacidad de carga, precio y tiempo estimado de llegada. Elige el que mejor se adapte a tus necesidades.",
-  },
-  {
-    number: "4",
-    title: "Confirma tu reserva",
-    description:
-      "Elige método de pago (efectivo o tarjeta) y confirma. Tu chalán se pondrá en contacto contigo y llegará puntual.",
-    detail:
-      "Recibirás un correo de confirmación con los datos del servicio. Puedes contactar directamente al transportista si necesitas coordinar detalles.",
+      "Pagas en efectivo al chalán al finalizar el servicio (pago con tarjeta próximamente). Recibirás una confirmación y tu chalán se pondrá en contacto contigo.",
   },
 ];
 
@@ -133,7 +119,7 @@ export default function ComoFunciona() {
           ¿Cómo funciona Chalán?
         </h1>
         <p className="text-lg text-gray-600 mb-10">
-          Cotiza tu mudanza o flete en 4 simples pasos. Sin compromisos, sin
+          Cotiza tu mudanza o flete en 3 simples pasos. Sin compromisos, sin
           cobros ocultos y en minutos.
         </p>
 

@@ -27,7 +27,7 @@
     <!-- Features -->
     <section class="container mx-auto px-6 p-10">
       <h2 class="text-4xl font-bold text-center text-gray-800 mb-8">
-        Múdate en solo 4 pasos
+        Múdate en solo 3 pasos
       </h2>
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
@@ -61,29 +61,16 @@
       <div class="flex items-center flex-wrap mb-20">
         <div class="w-full md:w-1/2">
           <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Escoge la movilidad
+            Escoge la movilidad y confirma
           </h4>
           <p class="text-gray-600 mb-8 text-lg">
             Tenemos vehículos de todos los tamaños clasificados
-            en tres categorías, pequeño, mediano y grande
+            en tres categorías, pequeño, mediano y grande.
+            Eliges, confirmas y pagas en efectivo al finalizar.
           </p>
         </div>
         <div class="w-full md:w-1/2">
           <img src="../assets/truck-list.png" alt="Syncing" />
-        </div>
-      </div>
-      <div class="flex items-center flex-wrap mb-20">
-        <div class="w-full md:w-1/2">
-          <!-- <img src="../assets/roadmap.svg" alt="Reporting" /> -->
-          <img src="../assets/payment.png" alt="Fecha y hora" />
-        </div>
-        <div class="w-full md:w-1/2 pl-10">
-          <h4 class="text-3xl text-gray-800 font-bold mb-3">
-            Opciones de pago
-          </h4>
-          <p class="text-gray-600 mb-8 text-lg">
-            Contamos con dos opciones de pago, en efectivo y con tarjeta.
-          </p>
         </div>
       </div>
     </section>

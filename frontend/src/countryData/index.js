@@ -17,9 +17,6 @@ export default {
     'step-three': {
       currency: 'PEN',
     },
-    'step-four': {
-      currency: 'PEN',
-    },
     dashboard: {
       currency: 'PEN',
     },
@@ -39,9 +36,6 @@ export default {
       floor: { ...arrayFromCeroToNineteen, 0: 'Planta baja' },
     },
     'step-three': {
-      currency: 'MXN',
-    },
-    'step-four': {
       currency: 'MXN',
     },
     dashboard: {
