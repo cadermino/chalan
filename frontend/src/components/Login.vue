@@ -14,7 +14,7 @@
         <input
           id="googlePhone"
           v-model="googlePhone"
-          type="number"
+          type="tel"
           :class="phoneModalError ? 'border-red-300' : ''"
           class="appearance-none border rounded w-full py-2 px-3 text-gray-700
           leading-tight focus:outline-none focus:border-blue-400 mb-1"
@@ -86,7 +86,7 @@
             focus:border-blue-400"
             v-model="requiredFieldsRegister.mobilePhone"
             id="mobilePhone"
-            type="number">
+            type="tel">
           <p v-if="registerFormValidationMessages['mobilePhone']"
             class="text-red-500
             text-xs

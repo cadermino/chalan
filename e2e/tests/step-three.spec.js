@@ -38,4 +38,33 @@ test.describe('Order Step Three - Quotations', () => {
     await expect(page.locator('text=Confirma tu pedido')).toBeVisible();
     await expect(page.locator('#modal-phone')).toHaveValue('987654321');
   });
+
+  test('should show a +country-code phone in the modal instead of blanking it', async ({ page }) => {
+    // Regression test: customers whose phone was saved in E.164 format
+    // (e.g. by the webchat AI agent, which normalizes to "+51...") used to
+    // see an empty phone field here. #modal-phone was type="number", and
+    // HTML number inputs silently discard any value containing "+" - Vue's
+    // v-model still held the real string, but the DOM showed blank. Fixed
+    // by switching to type="tel" (see PaymentConfirmationModal.vue).
+    const orderId = await createOrderViaApi(page);
+    await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
+    await page.click('text=Registrate.');
+    await expect(page).toHaveURL(/\/register/, { timeout: 15000 });
+
+    const unique = Date.now();
+    await page.fill('#email', `e2e-${unique}@example.com`);
+    await page.fill('#mobilePhone', '+51987654321');
+    await page.fill('#name', 'Cliente E2E');
+    await page.fill('#password', 'Test-password-1');
+    await page.click('button:has-text("Registrame")');
+    await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
+
+    seedQuotation(orderId);
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Elegir', exact: true }).click();
+    await expect(page.locator('text=Confirma tu pedido')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#modal-phone')).toHaveValue('+51987654321');
+  });
 });

@@ -19,7 +19,7 @@
         focus:outline-none
         focus:border-blue-400"
         v-model="mobilePhone"
-        type="number">
+        type="tel">
       <p v-if="registerFormValidationMessages['mobilePhone']"
         class="text-red-500
         text-xs

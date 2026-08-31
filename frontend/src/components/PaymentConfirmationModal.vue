@@ -19,7 +19,7 @@
     </label>
     <input id="modal-phone"
       v-model="phone"
-      type="number"
+      type="tel"
       :class="error ? 'border-red-300' : ''"
       class="appearance-none border rounded w-full py-2 px-3 text-gray-700
       leading-tight focus:outline-none focus:border-blue-400 mb-1"

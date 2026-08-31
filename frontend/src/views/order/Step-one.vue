@@ -355,7 +355,7 @@
             </label>
             <input id="lead-phone"
               v-model="leadPhone"
-              type="number"
+              type="tel"
               class="appearance-none border rounded w-full py-2 px-3 text-gray-700
               leading-tight focus:outline-none focus:border-blue-400 mb-4"
               placeholder="Ej. 987654321" />
