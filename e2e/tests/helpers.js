@@ -158,13 +158,13 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
 }
 
 /**
- * Step-three requires an authenticated customer. Registers a brand new
- * account from wherever the auth redirect landed (?redirect=... is
- * preserved), which lands back on the originating step on success.
+ * Step-three requires an authenticated customer. The step-two -> step-three
+ * gate redirects straight to /register (most visitors reaching it are
+ * first-timers - a returning customer stays logged in via localStorage and
+ * never hits this gate), preserving ?redirect=... to land back on the
+ * originating step on success.
  */
 async function registerAndReturn(page) {
-  await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
-  await page.click('text=Registrate.');
   await expect(page).toHaveURL(/\/register/, { timeout: 15000 });
 
   const unique = Date.now();

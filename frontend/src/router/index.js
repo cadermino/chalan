@@ -202,8 +202,13 @@ router.beforeEach(async (to, from, next) => {
         }
       }
     } else {
+      // Anyone hitting this gate (step-two -> step-three) is almost always
+      // a first-time visitor: a returning customer stays logged in via
+      // localStorage and never reaches it. Default to registration instead
+      // of login to cut friction for the common case - login is still one
+      // tab away in the same component.
       next({
-        path: '/login',
+        path: '/register',
         query: { redirect: to.fullPath },
       });
     }

@@ -4,13 +4,13 @@ const {
 } = require('./helpers');
 
 test.describe('Order Step Three - Quotations', () => {
-  test('should require login, then list a quotation and open the payment modal', async ({ page }) => {
+  test('should require registration, then list a quotation and open the payment modal', async ({ page }) => {
     // Step-three doesn't test step-one/step-two's own UI behavior (that's
     // covered by their own specs), so create the order directly via API
     // instead of driving those forms just to get here.
     const orderId = await createOrderViaApi(page);
 
-    // step-three requires auth -> router redirects to /login?redirect=...
+    // step-three requires auth -> router redirects to /register?redirect=...
     await registerAndReturn(page);
 
     seedQuotation(orderId);
@@ -47,8 +47,6 @@ test.describe('Order Step Three - Quotations', () => {
     // v-model still held the real string, but the DOM showed blank. Fixed
     // by switching to type="tel" (see PaymentConfirmationModal.vue).
     const orderId = await createOrderViaApi(page);
-    await expect(page).toHaveURL(/\/login/, { timeout: 15000 });
-    await page.click('text=Registrate.');
     await expect(page).toHaveURL(/\/register/, { timeout: 15000 });
 
     const unique = Date.now();
