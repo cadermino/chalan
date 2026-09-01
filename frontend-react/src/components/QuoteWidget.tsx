@@ -314,18 +314,14 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
         ))}
       </div>
 
-      {price !== null ? (
-        <div className="quote-result">
-          <span className="label">Total estimado</span>
-          <span className="price">
-            <span className="currency">S/</span>{price}
-          </span>
-        </div>
-      ) : (
-        <div className="quote-result quote-result--empty">
-          <span className="label">Ingresa las direcciones para ver el precio</span>
-        </div>
-      )}
+      <div className={price !== null ? 'quote-result' : 'quote-result quote-result--empty'}>
+        <span className="label">
+          {price !== null ? 'Total estimado' : 'Ingresa las direcciones para ver el precio'}
+        </span>
+        <span className="price">
+          <span className="currency">S/</span>{price !== null ? price : 0}
+        </span>
+      </div>
 
       <Link href="/order/step-one" className="quote-cta">
         Continuar con esta cotización

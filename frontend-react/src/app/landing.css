@@ -392,11 +392,10 @@
   padding-top: 14px;
 }
 .quote-widget .quote-result--empty {
-  justify-content: center;
+  align-items: flex-start;
 }
-.quote-widget .quote-result--empty .label {
-  text-align: center;
-  opacity: 0.6;
+.quote-widget .quote-result--empty .price {
+  opacity: 0.55;
 }
 .quote-widget .quote-result .label {
   font-family: var(--mono);
