@@ -257,6 +257,7 @@ class Order(db.Model):
         return {
             **self.to_dict(),
             'total_amount': self.total_amount,
+            'lead_phone': self.lead_phone,
         }
 
 

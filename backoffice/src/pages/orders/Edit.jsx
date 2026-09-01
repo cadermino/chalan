@@ -9,13 +9,20 @@ const STATUS_OPTIONS = [
   { value: 4, label: 'Cancelado' },
 ]
 
+const NUMBER_FIELDS = new Set(['floor_number', 'approximate_distance_from_parking'])
+
 function AddressFields({ title, values, onChange }) {
   const fields = [
     { key: 'street', label: 'Calle' },
+    { key: 'interior_number', label: 'Interior / Dpto.' },
     { key: 'neighborhood', label: 'Colonia / Barrio' },
     { key: 'city', label: 'Ciudad' },
     { key: 'state', label: 'Estado / Región' },
+    { key: 'zip_code', label: 'Código postal' },
+    { key: 'country', label: 'País' },
     { key: 'floor_number', label: 'Piso' },
+    { key: 'approximate_distance_from_parking', label: 'Distancia desde parqueo (m)' },
+    { key: 'map_url', label: 'URL del mapa' },
   ]
   return (
     <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -25,13 +32,22 @@ function AddressFields({ title, values, onChange }) {
           <div key={key}>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">{label}</label>
             <input
-              type={key === 'floor_number' ? 'number' : 'text'}
+              type={NUMBER_FIELDS.has(key) ? 'number' : 'text'}
               value={values[key] ?? ''}
-              onChange={e => onChange(key, key === 'floor_number' ? (e.target.value === '' ? null : Number(e.target.value)) : e.target.value)}
+              onChange={e => onChange(key, NUMBER_FIELDS.has(key) ? (e.target.value === '' ? null : Number(e.target.value)) : e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
         ))}
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            checked={!!values.has_elevator}
+            onChange={e => onChange('has_elevator', e.target.checked)}
+            className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+          />
+          Tiene ascensor
+        </label>
       </div>
     </div>
   )
@@ -48,14 +64,21 @@ export default function OrderEdit() {
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
       const o = data.order
+      const addressDefaults = {
+        street: '', interior_number: '', neighborhood: '', city: '', state: '',
+        zip_code: '', country: '', floor_number: '', approximate_distance_from_parking: '',
+        map_url: '', has_elevator: false,
+      }
       setForm({
         appointment_date: o.appointment_date ? o.appointment_date.slice(0, 16) : '',
         order_status_id: o.order_status_id,
         approximate_budget: o.approximate_budget ?? '',
         total_kilometers: o.total_kilometers ?? '',
         comments: o.comments ?? '',
-        origin: { street: '', neighborhood: '', city: '', state: '', floor_number: '', ...o.origin },
-        destination: { street: '', neighborhood: '', city: '', state: '', floor_number: '', ...o.destination },
+        lead_phone: o.lead_phone ?? '',
+        loaders_quantity: o.loaders_quantity ?? '',
+        origin: { ...addressDefaults, ...o.origin },
+        destination: { ...addressDefaults, ...o.destination },
       })
     }).finally(() => setLoading(false))
   }, [orderId])
@@ -70,6 +93,8 @@ export default function OrderEdit() {
         appointment_date: form.appointment_date || null,
         approximate_budget: form.approximate_budget === '' ? null : Number(form.approximate_budget),
         total_kilometers: form.total_kilometers === '' ? null : Number(form.total_kilometers),
+        lead_phone: form.lead_phone === '' ? null : form.lead_phone,
+        loaders_quantity: form.loaders_quantity === '' ? null : Number(form.loaders_quantity),
       })
       navigate(`/orders/${orderId}`)
     } catch (err) {
@@ -130,6 +155,26 @@ export default function OrderEdit() {
               type="number"
               value={form.total_kilometers}
               onChange={e => setForm(f => ({ ...f, total_kilometers: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Teléfono de contacto</label>
+            <input
+              type="tel"
+              value={form.lead_phone}
+              onChange={e => setForm(f => ({ ...f, lead_phone: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Cantidad de cargadores</label>
+            <input
+              type="number"
+              value={form.loaders_quantity}
+              onChange={e => setForm(f => ({ ...f, loaders_quantity: e.target.value }))}
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>

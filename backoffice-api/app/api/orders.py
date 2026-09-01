@@ -263,6 +263,10 @@ def update_order(order_id):
         order.total_kilometers = data['total_kilometers']
     if 'comments' in data:
         order.comments = data['comments']
+    if 'lead_phone' in data:
+        order.lead_phone = data['lead_phone']
+    if 'loaders_quantity' in data:
+        order.loaders_quantity = data['loaders_quantity']
 
     for addr_type, key in [('carry_from', 'origin'), ('deliver_to', 'destination')]:
         addr_data = data.get(key)
@@ -271,9 +275,13 @@ def update_order(order_id):
         detail = OrderDetail.query.filter_by(order_id=order_id, type=addr_type).first()
         if detail is None:
             continue
-        for field in ('street', 'neighborhood', 'city', 'state', 'floor_number'):
+        for field in ('street', 'neighborhood', 'city', 'state', 'floor_number',
+                      'interior_number', 'country', 'map_url', 'zip_code',
+                      'approximate_distance_from_parking'):
             if field in addr_data:
                 setattr(detail, field, addr_data[field])
+        if 'has_elevator' in addr_data:
+            detail.has_elevator = int(bool(addr_data['has_elevator']))
 
     db.session.commit()
 
@@ -283,9 +291,9 @@ def update_order(order_id):
 
     return jsonify({
         'order': {
-            **order.to_dict(),
-            'origin': origin.to_dict() if origin else None,
-            'destination': destination.to_dict() if destination else None,
+            **order.to_dict_full(),
+            'origin': origin.to_dict_full() if origin else None,
+            'destination': destination.to_dict_full() if destination else None,
         }
     }), 200
 
