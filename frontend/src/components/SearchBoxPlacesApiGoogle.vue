@@ -22,13 +22,6 @@ export default {
   mounted() {
     this.loadGoogle();
   },
-  watch: {
-    initialAddress(newVal) {
-      if (newVal && this.map) {
-        this.geocodeAddress(newVal);
-      }
-    },
-  },
   methods: {
     geocodeAddress(address) {
       const service = new window.google.maps.places.PlacesService(this.map);
