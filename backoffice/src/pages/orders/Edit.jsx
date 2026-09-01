@@ -14,11 +14,6 @@ const NUMBER_FIELDS = new Set(['floor_number', 'approximate_distance_from_parkin
 function AddressFields({ title, values, onChange }) {
   const fields = [
     { key: 'street', label: 'Calle' },
-    { key: 'interior_number', label: 'Interior / Dpto.' },
-    { key: 'neighborhood', label: 'Colonia / Barrio' },
-    { key: 'city', label: 'Ciudad' },
-    { key: 'state', label: 'Estado / Región' },
-    { key: 'zip_code', label: 'Código postal' },
     { key: 'country', label: 'País' },
     { key: 'floor_number', label: 'Piso' },
     { key: 'approximate_distance_from_parking', label: 'Distancia desde parqueo (m)' },
@@ -65,9 +60,8 @@ export default function OrderEdit() {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
       const o = data.order
       const addressDefaults = {
-        street: '', interior_number: '', neighborhood: '', city: '', state: '',
-        zip_code: '', country: '', floor_number: '', approximate_distance_from_parking: '',
-        map_url: '', has_elevator: false,
+        street: '', country: '', floor_number: '',
+        approximate_distance_from_parking: '', map_url: '', has_elevator: false,
       }
       setForm({
         appointment_date: o.appointment_date ? o.appointment_date.slice(0, 16) : '',

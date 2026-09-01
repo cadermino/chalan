@@ -275,8 +275,7 @@ def update_order(order_id):
         detail = OrderDetail.query.filter_by(order_id=order_id, type=addr_type).first()
         if detail is None:
             continue
-        for field in ('street', 'neighborhood', 'city', 'state', 'floor_number',
-                      'interior_number', 'country', 'map_url', 'zip_code',
+        for field in ('street', 'country', 'floor_number', 'map_url',
                       'approximate_distance_from_parking'):
             if field in addr_data:
                 setattr(detail, field, addr_data[field])
