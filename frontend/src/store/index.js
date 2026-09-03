@@ -3,6 +3,7 @@ import Vuex from 'vuex';
 import VueJwtDecode from 'vue-jwt-decode';
 import steps from './steps';
 import chalan from '../api/chalan';
+import storage from '../utils/safeStorage';
 
 const isEmpty = arr => !arr.length;
 
@@ -170,13 +171,13 @@ export default new Vuex.Store({
     },
     setOrder(state, payload) {
       state[payload.section][payload.field] = payload.value;
-      localStorage.setItem(payload.section, JSON.stringify(state[payload.section]));
+      storage.setItem(payload.section, JSON.stringify(state[payload.section]));
       state.formValidationMessages[payload.field] = null;
       checkCompleteStep(state);
     },
     setCustomerData(state, payload) {
       state.customer[payload.field] = payload.value;
-      localStorage.setItem('customer', JSON.stringify(state.customer));
+      storage.setItem('customer', JSON.stringify(state.customer));
     },
     setViewsMessages(state, payload) {
       state.viewsMessages[payload.view] = payload.message;
@@ -283,7 +284,7 @@ export default new Vuex.Store({
     },
     addDataToLocalStorage({ state }, location) {
       location.forEach((item) => {
-        localStorage.setItem(item, JSON.stringify(state[item]));
+        storage.setItem(item, JSON.stringify(state[item]));
       });
     },
     getDataFromLocalStorage({ commit }, location) {
@@ -295,9 +296,9 @@ export default new Vuex.Store({
         customer: 'setCustomerData',
         viewsMessages: 'setViewsMessages',
       };
-      if (localStorage.getItem(location)) {
+      if (storage.getItem(location)) {
         try {
-          const data = JSON.parse(localStorage.getItem(location));
+          const data = JSON.parse(storage.getItem(location));
           Object.keys(data).forEach((key) => {
             commit(mutations[location], { section: location, field: key, value: data[key] });
             if (location === 'viewsMessages') {
@@ -305,7 +306,7 @@ export default new Vuex.Store({
             }
           });
         } catch (e) {
-          localStorage.removeItem(location);
+          storage.removeItem(location);
           throw new Error(e);
         }
       }

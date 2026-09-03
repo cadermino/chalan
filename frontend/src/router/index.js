@@ -3,6 +3,7 @@ import VueRouter from 'vue-router';
 import steps from '../store/steps';
 import store from '../store/index';
 import countryData from '../countryData';
+import storage from '../utils/safeStorage';
 
 const country = process.env.VUE_APP_COUNTRY;
 const HTTP_RESPONSE = {
@@ -137,7 +138,7 @@ function getDataFromLocalStorage() {
 }
 
 async function getOrderFromDataBase(to, next) {
-  localStorage.removeItem('viewsMessages');
+  storage.removeItem('viewsMessages');
   if (to.params.order_id) {
     const { order_id: orderId } = to.params;
     try {
