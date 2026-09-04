@@ -11,6 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: postgres:17-alpine
+    services:
+      # Scratch database used only to prove the backup actually restores -
+      # never touched by anything else, thrown away when the job ends.
+      restore-check:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: restore_check
     steps:
       - uses: actions/checkout@v4
 
@@ -25,3 +33,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
         run: sh backup-db.sh
+
+      - name: Verify the backup actually restores
+        env:
+          BACKUP_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_VERIFY_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_VERIFY_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+          RESTORE_DATABASE_URL: postgresql://postgres:postgres@restore-check:5432/restore_check
+        run: sh verify-backup.sh
