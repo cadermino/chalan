@@ -1,0 +1,27 @@
+name: Database backup
+
+on:
+  schedule:
+    # 09:00 UTC = 04:00 America/Lima, daily
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    container:
+      image: postgres:17-alpine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install AWS CLI
+        run: apk add --no-cache aws-cli
+
+      - name: Dump database and upload to S3
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          BACKUP_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+        run: sh backup-db.sh
