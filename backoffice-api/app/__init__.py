@@ -3,11 +3,13 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_mail import Mail
 from config import config
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 db = SQLAlchemy()
+mail = Mail()
 
 
 def _parse_cors_origins():
@@ -34,6 +36,7 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
 
     db.init_app(app)
+    mail.init_app(app)
     CORS(app, origins=_parse_cors_origins(), supports_credentials=True)
 
     from .auth import auth as auth_blueprint

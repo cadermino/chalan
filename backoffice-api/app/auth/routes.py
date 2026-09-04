@@ -1,9 +1,12 @@
+import os
+
 from flask import request, jsonify
 from sqlalchemy import exc
 
 from . import auth
 from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
 from ..utils import create_blank_company_and_vehicle
+from ..email import send_email
 from .. import db
 
 
@@ -67,6 +70,15 @@ def register():
     except exc.IntegrityError:
         db.session.rollback()
         return jsonify({'message': 'email already in use'}), 409
+
+    if role == ROLE_CARRIER:
+        send_email(
+            os.getenv('ADMIN_MAIL'),
+            'Nuevo transportista registrado',
+            'email/carrier_registered',
+            user=user,
+            phone=data['phone'].strip(),
+        )
 
     return jsonify({'message': 'registration successful, wait for admin approval'}), 201
 
