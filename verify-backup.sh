@@ -23,7 +23,12 @@ aws s3 cp "s3://${BACKUP_BUCKET}/${latest}" "$tmpfile"
 # restore - catches truncation/corruption fast, without needing a database.
 pg_restore --list "$tmpfile" > /dev/null
 
-pg_restore --no-owner --no-privileges --dbname "$RESTORE_DATABASE_URL" "$tmpfile"
+# --clean --if-exists: a freshly created database already has a default,
+# empty "public" schema, which collides with the dump's own CREATE SCHEMA -
+# drop-then-recreate makes this idempotent, same as a real disaster-recovery
+# restore into a fresh database would need anyway.
+pg_restore --clean --if-exists --no-owner --no-privileges \
+  --dbname "$RESTORE_DATABASE_URL" "$tmpfile"
 
 row_count=$(psql "$RESTORE_DATABASE_URL" -tAc "SELECT count(*) FROM orders;")
 echo "Restored 'orders' table row count: ${row_count}"
