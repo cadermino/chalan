@@ -87,6 +87,24 @@ export default function RootLayout({
             }}
           />
         )}
+        {process.env.NODE_ENV === "production" && (
+          <>
+            <Script
+              src="https://www.googletagmanager.com/gtag/js?id=G-72KVLDWMQD"
+              strategy="afterInteractive"
+            />
+            <Script
+              id="ga4"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-72KVLDWMQD');`,
+              }}
+            />
+          </>
+        )}
       </body>
     </html>
   );

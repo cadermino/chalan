@@ -13,6 +13,18 @@
       })();
     </script>
     <!-- End Inspectlet Asynchronous Code -->
+
+    <!-- Google tag (gtag.js). send_page_view is off here because this is an
+         SPA - router/index.js's afterEach hook sends page_view on every
+         route change instead, including the first one, so nothing is
+         double-counted or missed on client-side navigation. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-72KVLDWMQD"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-72KVLDWMQD', { send_page_view: false });
+    </script>
     <% } %>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">

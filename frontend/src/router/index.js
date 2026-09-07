@@ -251,4 +251,21 @@ router.beforeEach(async (to, from, next) => {
     next();
   }
 });
+
+// GA4's gtag.js only auto-sends a page_view on initial script load (see
+// public/index.html, which disables that with send_page_view: false) - an
+// SPA's later client-side navigations need a manual event per route change,
+// or everything past the first page a visitor lands on goes untracked.
+// window.gtag only exists in production (see index.html), so this is a
+// no-op in local dev.
+router.afterEach((to) => {
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'page_view', {
+      page_path: to.fullPath,
+      page_location: window.location.href,
+      page_title: document.title,
+    });
+  }
+});
+
 export default router;
