@@ -37,6 +37,14 @@ export default function OrdersList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Órdenes</h1>
+        {isSuperadmin && (
+          <Link
+            to="/orders/create"
+            className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium"
+          >
+            + Crear orden
+          </Link>
+        )}
       </div>
 
       {isAdmin && (

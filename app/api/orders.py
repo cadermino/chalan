@@ -442,3 +442,20 @@ def recognize_items():
             'image': OrderImageSchema().dump(order_image),
             'message': 'Image saved but could not identify items',
         }), 200
+
+
+@api.route('/order/<int:order_id>/image/<int:image_id>', methods=['DELETE'])
+def delete_order_image(order_id, image_id):
+    order_image = OrderImage.query.filter_by(id=image_id, order_id=order_id).first()
+    if not order_image:
+        return jsonify({'message': 'Image not found'}), 404
+
+    try:
+        get_storage().delete(order_image.storage_key)
+    except Exception as e:
+        current_app.logger.error(f'Image delete error: {str(e)}')
+        return jsonify({'message': 'Error deleting image'}), 500
+
+    db.session.delete(order_image)
+    db.session.commit()
+    return jsonify({'message': 'deleted'}), 200

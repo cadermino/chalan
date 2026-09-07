@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import client from '../../api/client'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function CustomersList() {
+  const { user } = useAuth()
+  const location = useLocation()
   const [customers, setCustomers] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [banner, setBanner] = useState(location.state?.message || null)
 
   const load = (q = '') => {
     setLoading(true)
@@ -24,8 +29,25 @@ export default function CustomersList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-        <span className="text-sm text-gray-400">{customers.length} resultados</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-400">{customers.length} resultados</span>
+          {user?.role === 'superadmin' && (
+            <Link
+              to="/customers/create"
+              className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium"
+            >
+              + Crear cliente
+            </Link>
+          )}
+        </div>
       </div>
+
+      {banner && (
+        <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 mb-4 text-sm text-teal-800 flex justify-between items-start gap-4">
+          <span>{banner}</span>
+          <button onClick={() => setBanner(null)} className="text-teal-600 hover:text-teal-800 text-xs shrink-0">Cerrar</button>
+        </div>
+      )}
 
       <form onSubmit={handleSearch} className="flex gap-2 mb-6">
         <input

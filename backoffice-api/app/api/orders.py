@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import requests
 from flask import jsonify, g, current_app, request
 
 from . import api
@@ -177,6 +178,180 @@ def list_my_orders():
         })
 
     return jsonify({'orders': result}), 200
+
+
+@api.route('/orders', methods=['POST'])
+@login_required
+def create_order():
+    """Creates an order on behalf of an existing customer - for support cases
+    where an admin needs to place an order the customer described over a
+    call/WhatsApp instead of them using the site themselves.
+
+    Proxies to the main API's own /api/v1/order (create) and
+    /api/v1/order/<id> (fill in details) endpoints server-to-server, rather
+    than writing rows directly via this app's models: OrderDetail.type is a
+    native Postgres enum (order_detail_type), but backoffice-api's mirror
+    model declares it as a plain String - fine for reading/updating existing
+    rows, but INSERTs fail with a DatatypeMismatch since SQLAlchemy emits an
+    explicit ::VARCHAR cast Postgres won't implicitly coerce into the enum
+    column. The main API's model has the real enum type, so its endpoints
+    don't hit this. Deliberately doesn't trigger carrier notifications
+    (omits requestQuotationFromCarrierCompany); that's a separate, later
+    step, same as it is for customer-created orders.
+    """
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    data = request.get_json() or {}
+
+    customer_id = data.get('customer_id')
+    if not customer_id:
+        return jsonify({'message': 'customer_id is required'}), 400
+    customer = Customer.query.get(customer_id)
+    if customer is None:
+        return jsonify({'message': 'customer not found'}), 404
+
+    origin = data.get('origin') or {}
+    destination = data.get('destination') or {}
+    if not origin.get('street'):
+        return jsonify({'message': 'origin.street is required'}), 400
+    if not destination.get('street'):
+        return jsonify({'message': 'destination.street is required'}), 400
+
+    appointment_date_str = None
+    if data.get('appointment_date'):
+        try:
+            appointment_date_str = datetime.fromisoformat(data['appointment_date']).strftime('%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return jsonify({'message': 'invalid appointment_date format'}), 400
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+
+    try:
+        create_res = requests.post(
+            f'{internal_api}/api/v1/order',
+            json={
+                'customer': {'customer_id': customer_id},
+                'orderDetailsOrigin': {
+                    'from_street': origin.get('street'),
+                    'from_floor_number': origin.get('floor_number'),
+                    'from_country': origin.get('country'),
+                },
+                'orderDetailsDestination': {
+                    'to_street': destination.get('street'),
+                    'to_floor_number': destination.get('floor_number'),
+                    'to_country': destination.get('country'),
+                },
+            },
+            timeout=10,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the order service'}), 502
+    if create_res.status_code != 201:
+        return jsonify({'message': 'failed to create order'}), 502
+    order_id = create_res.json().get('order_id')
+
+    try:
+        update_res = requests.put(
+            f'{internal_api}/api/v1/order/{order_id}',
+            json={
+                'customer': {'customer_id': customer_id},
+                'order': {
+                    'appointment_date': appointment_date_str,
+                    'comments': data.get('comments'),
+                    'approximate_budget': data.get('approximate_budget'),
+                    'loaders_quantity': data.get('loaders_quantity'),
+                },
+                'orderDetailsOrigin': {
+                    'from_street': origin.get('street'),
+                    'from_floor_number': origin.get('floor_number'),
+                    'from_country': origin.get('country'),
+                    'from_map_url': origin.get('map_url'),
+                },
+                'orderDetailsDestination': {
+                    'to_street': destination.get('street'),
+                    'to_floor_number': destination.get('floor_number'),
+                    'to_country': destination.get('country'),
+                    'to_map_url': destination.get('map_url'),
+                },
+                'services': {
+                    'cargo': '1' if data.get('cargo') else '0',
+                    'packaging': '1' if data.get('packaging') else '0',
+                },
+            },
+            timeout=10,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'order created but failed to fill in details', 'order_id': order_id}), 502
+    if update_res.status_code != 200:
+        return jsonify({'message': 'order created but failed to fill in details', 'order_id': order_id}), 502
+
+    return jsonify({'order_id': order_id}), 201
+
+
+@api.route('/orders/<int:order_id>/images', methods=['POST'])
+@login_required
+def upload_order_image(order_id):
+    """Attaches a reference photo to an order created from the backoffice
+    (e.g. something the customer sent over WhatsApp). Proxies the multipart
+    upload to the main API's /order/recognize-items, which is what actually
+    stores it in S3 and creates the OrderImage row - that endpoint also
+    runs AI item recognition on it, which we ignore here since an admin
+    already typed the item list by hand."""
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    if 'image' not in request.files:
+        return jsonify({'message': 'image is required'}), 400
+    image_file = request.files['image']
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/order/recognize-items',
+            files={'image': (image_file.filename, image_file.stream, image_file.content_type)},
+            data={'order_id': order_id},
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the upload service'}), 502
+    if res.status_code != 200:
+        try:
+            message = res.json().get('message', 'failed to upload image')
+        except ValueError:
+            message = 'failed to upload image'
+        return jsonify({'message': message}), 502
+
+    return jsonify({'image': res.json().get('image')}), 201
+
+
+@api.route('/orders/<int:order_id>/images/<int:image_id>', methods=['DELETE'])
+@login_required
+def delete_order_image(order_id, image_id):
+    """Removes a reference photo from an order, proxying to the main API's
+    delete route which handles both the S3 object and the OrderImage row."""
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.delete(
+            f'{internal_api}/api/v1/order/{order_id}/image/{image_id}',
+            timeout=10,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the upload service'}), 502
+    if res.status_code != 200:
+        try:
+            message = res.json().get('message', 'failed to delete image')
+        except ValueError:
+            message = 'failed to delete image'
+        return jsonify({'message': message}), 502
+
+    return jsonify({'message': 'deleted'}), 200
 
 
 @api.route('/orders/<int:order_id>', methods=['GET'])
