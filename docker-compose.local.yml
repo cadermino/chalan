@@ -19,6 +19,8 @@ services:
       - ./backoffice-api:/backoffice-api
     ports:
       - 8002:8002
+    environment:
+      - INTERNAL_API_URL=http://flask:8001
     env_file: .env.backoffice.dev
     restart: always
     links:

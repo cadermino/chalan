@@ -16,12 +16,14 @@ import VehicleForm from './pages/vehicles/Form'
 import VehiclesAdminList from './pages/vehicles/AdminList'
 import OrdersList from './pages/orders/List'
 import MyOrders from './pages/orders/MyOrders'
+import OrderCreate from './pages/orders/Create'
 import OrderDetail from './pages/orders/Detail'
 import OrderEdit from './pages/orders/Edit'
 import OrderQuotations from './pages/orders/Quotations'
 import ReferredOrdersList from './pages/referred-orders/List'
 import AdminReferredOrdersList from './pages/referred-orders/AdminList'
 import CustomersList from './pages/customers/List'
+import CustomerCreate from './pages/customers/Create'
 import WhatsappConversations from './pages/whatsapp/Conversations'
 import WhatsappChat from './pages/whatsapp/Chat'
 
@@ -62,6 +64,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['carrier_company']}>
                 <MyOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="orders/create"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <OrderCreate />
               </ProtectedRoute>
             }
           />
@@ -148,6 +158,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <CustomersList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customers/create"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <CustomerCreate />
               </ProtectedRoute>
             }
           />
