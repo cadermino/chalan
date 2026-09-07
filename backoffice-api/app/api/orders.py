@@ -632,6 +632,56 @@ def update_quotation_amount(order_id, quotation_id):
     }), 200
 
 
+@api.route('/orders/<int:order_id>/quotations/<int:quotation_id>/accept', methods=['PATCH'])
+@login_required
+def accept_quotation(order_id, quotation_id):
+    """Accepts a quotation on behalf of the customer - for cases where the
+    customer arranged it directly with the carrier (phone/WhatsApp) instead
+    of picking it themselves in the site, since there's no customer
+    impersonation. Mirrors app/api/quotation/quotation.py's pickQuotation()
+    and the total_amount/commission calculation in app/api/quotations.py's
+    pick_quotation route exactly, just triggered by an admin instead of the
+    customer's own JWT."""
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    quotation = Quotation.query.filter_by(id=quotation_id, order_id=order_id).first()
+    if quotation is None:
+        return jsonify({'message': 'quotation not found'}), 404
+    if quotation.quotation_status_id == 3:
+        return jsonify({'message': 'cancelled quotations cannot be accepted'}), 409
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    if order.order_status_id != 1:
+        return jsonify({'message': 'order is not awaiting a quotation'}), 409
+
+    other_quotations = Quotation.query.filter_by(order_id=order_id, quotation_status_id=2).all()
+    for other in other_quotations:
+        other.quotation_status_id = 1
+
+    quotation.quotation_status_id = 2
+
+    platform_fee = float(os.environ.get('PLATFORM_FEE', 0.1))
+    commission_rate = 0
+    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
+    if referred:
+        from ..models import AdminUser
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        if agent:
+            commission_rate = agent.commission_rate
+            referred.commission = quotation.amount * commission_rate
+
+    order.total_amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+    db.session.commit()
+
+    return jsonify({
+        **quotation.to_dict(),
+        'total_amount': order.total_amount,
+    }), 200
+
+
 @api.route('/referred-orders', methods=['GET'])
 @login_required
 def list_referred_orders():
