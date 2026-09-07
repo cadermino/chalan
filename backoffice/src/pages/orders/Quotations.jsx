@@ -26,6 +26,7 @@ export default function OrderQuotations() {
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [acceptingId, setAcceptingId] = useState(null)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}/quotations`)
@@ -64,6 +65,18 @@ export default function OrderQuotations() {
       .finally(() => setSaving(false))
   }
 
+  function acceptQuotation(quotationId) {
+    setAcceptingId(quotationId)
+    client.patch(`/api/orders/${orderId}/quotations/${quotationId}/accept`)
+      .then(() => {
+        setQuotations(prev => prev.map(q => ({
+          ...q,
+          quotation_status_id: q.id === quotationId ? 2 : (q.quotation_status_id === 2 ? 1 : q.quotation_status_id),
+        })))
+      })
+      .finally(() => setAcceptingId(null))
+  }
+
   if (loading) return <p className="text-gray-500 p-8">Cargando...</p>
 
   return (
@@ -87,6 +100,7 @@ export default function OrderQuotations() {
                 <th className="px-4 py-3 text-left">Seleccionada</th>
                 <th className="px-4 py-3 text-left">Estado</th>
                 <th className="px-4 py-3 text-left">Fecha</th>
+                {isAdmin && <th className="px-4 py-3 text-left"></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -155,11 +169,24 @@ export default function OrderQuotations() {
                   <td className="px-4 py-3 text-gray-500">
                     {q.created_date ? new Date(q.created_date).toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) : '—'}
                   </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      {orderStatusId === 1 && q.quotation_status_id === 1 && (
+                        <button
+                          onClick={() => acceptQuotation(q.id)}
+                          disabled={acceptingId === q.id}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-teal-600 text-teal-600 hover:bg-teal-50 disabled:opacity-50"
+                        >
+                          {acceptingId === q.id ? 'Aceptando...' : 'Aceptar'}
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
               {quotations.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 6} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={isAdmin ? 8 : 5} className="px-4 py-8 text-center text-gray-400">
                     Esta orden aún no tiene cotizaciones
                   </td>
                 </tr>
