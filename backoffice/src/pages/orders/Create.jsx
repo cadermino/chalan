@@ -14,9 +14,13 @@ export default function OrderCreate() {
     originStreet: '',
     originFloor: '',
     originCountry: 'Perú',
+    originDistanceFromParking: '',
+    originHasElevator: false,
     destinationStreet: '',
     destinationFloor: '',
     destinationCountry: 'Perú',
+    destinationDistanceFromParking: '',
+    destinationHasElevator: false,
     appointmentDate: '',
     comments: '',
     approximateBudget: '',
@@ -88,11 +92,15 @@ export default function OrderCreate() {
           street: form.originStreet,
           floor_number: form.originFloor === '' ? null : Number(form.originFloor),
           country: form.originCountry,
+          approximate_distance_from_parking: form.originDistanceFromParking === '' ? null : Number(form.originDistanceFromParking),
+          has_elevator: form.originHasElevator,
         },
         destination: {
           street: form.destinationStreet,
           floor_number: form.destinationFloor === '' ? null : Number(form.destinationFloor),
           country: form.destinationCountry,
+          approximate_distance_from_parking: form.destinationDistanceFromParking === '' ? null : Number(form.destinationDistanceFromParking),
+          has_elevator: form.destinationHasElevator,
         },
         appointment_date: form.appointmentDate || null,
         comments: form.comments || null,
@@ -323,6 +331,24 @@ export default function OrderCreate() {
                 className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Distancia al estacionamiento (m)</label>
+              <input
+                type="number"
+                value={form.originDistanceFromParking}
+                onChange={e => setForm(f => ({ ...f, originDistanceFromParking: e.target.value }))}
+                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.originHasElevator}
+                onChange={e => setForm(f => ({ ...f, originHasElevator: e.target.checked }))}
+                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              />
+              Tiene ascensor
+            </label>
           </div>
         </div>
 
@@ -356,6 +382,24 @@ export default function OrderCreate() {
                 className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Distancia al estacionamiento (m)</label>
+              <input
+                type="number"
+                value={form.destinationDistanceFromParking}
+                onChange={e => setForm(f => ({ ...f, destinationDistanceFromParking: e.target.value }))}
+                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.destinationHasElevator}
+                onChange={e => setForm(f => ({ ...f, destinationHasElevator: e.target.checked }))}
+                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              />
+              Tiene ascensor
+            </label>
           </div>
         </div>
 
