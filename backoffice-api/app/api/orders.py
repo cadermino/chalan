@@ -272,12 +272,16 @@ def create_order():
                     'from_floor_number': origin.get('floor_number'),
                     'from_country': origin.get('country'),
                     'from_map_url': origin.get('map_url'),
+                    'from_approximate_distance_from_parking': origin.get('approximate_distance_from_parking'),
+                    'from_has_elevator': 1 if origin.get('has_elevator') else 0,
                 },
                 'orderDetailsDestination': {
                     'to_street': destination.get('street'),
                     'to_floor_number': destination.get('floor_number'),
                     'to_country': destination.get('country'),
                     'to_map_url': destination.get('map_url'),
+                    'to_approximate_distance_from_parking': destination.get('approximate_distance_from_parking'),
+                    'to_has_elevator': 1 if destination.get('has_elevator') else 0,
                 },
                 'services': {
                     'cargo': '1' if data.get('cargo') else '0',
