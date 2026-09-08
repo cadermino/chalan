@@ -26,7 +26,6 @@ export default function OrderCreate() {
     appointmentDate: '',
     comments: '',
     approximateBudget: '',
-    leadPhone: '',
     loadersQuantity: '',
     cargo: false,
     packaging: false,
@@ -110,7 +109,6 @@ export default function OrderCreate() {
         appointment_date: form.appointmentDate || null,
         comments: form.comments || null,
         approximate_budget: form.approximateBudget === '' ? null : Number(form.approximateBudget),
-        lead_phone: form.leadPhone || null,
         loaders_quantity: form.loadersQuantity === '' ? null : Number(form.loadersQuantity),
         cargo: form.cargo,
         packaging: form.packaging,
@@ -221,16 +219,6 @@ export default function OrderCreate() {
               type="number"
               value={form.approximateBudget}
               onChange={e => setForm(f => ({ ...f, approximateBudget: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Teléfono de contacto</label>
-            <input
-              type="tel"
-              value={form.leadPhone}
-              onChange={e => setForm(f => ({ ...f, leadPhone: e.target.value }))}
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
