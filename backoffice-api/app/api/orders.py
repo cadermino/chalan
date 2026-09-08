@@ -195,9 +195,13 @@ def create_order():
     rows, but INSERTs fail with a DatatypeMismatch since SQLAlchemy emits an
     explicit ::VARCHAR cast Postgres won't implicitly coerce into the enum
     column. The main API's model has the real enum type, so its endpoints
-    don't hit this. Deliberately doesn't trigger carrier notifications
-    (omits requestQuotationFromCarrierCompany); that's a separate, later
-    step, same as it is for customer-created orders.
+    don't hit this.
+
+    Sends requestQuotationFromCarrierCompany just like Step-three.vue does
+    for customer-created orders, so carriers get the same emails/WhatsApp
+    once the order actually has an appointment_date and comments - if either
+    is still missing, the main API's own completeness check keeps it from
+    sending anything, same as it would for a customer mid-flow.
     """
     user = g.current_user
     if user.role != ROLE_SUPERADMIN:
@@ -279,6 +283,7 @@ def create_order():
                     'cargo': '1' if data.get('cargo') else '0',
                     'packaging': '1' if data.get('packaging') else '0',
                 },
+                'requestQuotationFromCarrierCompany': True,
             },
             timeout=10,
         )
@@ -287,7 +292,8 @@ def create_order():
     if update_res.status_code != 200:
         return jsonify({'message': 'order created but failed to fill in details', 'order_id': order_id}), 502
 
-    return jsonify({'order_id': order_id}), 201
+    emails_sent = update_res.json().get('emails_sent_by_company_id', [])
+    return jsonify({'order_id': order_id, 'emails_sent_by_company_id': emails_sent}), 201
 
 
 @api.route('/orders/<int:order_id>/images', methods=['POST'])
