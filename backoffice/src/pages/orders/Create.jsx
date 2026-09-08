@@ -16,14 +16,17 @@ export default function OrderCreate() {
     originCountry: 'Perú',
     originDistanceFromParking: '',
     originHasElevator: false,
+    originMapUrl: '',
     destinationStreet: '',
     destinationFloor: '',
     destinationCountry: 'Perú',
     destinationDistanceFromParking: '',
     destinationHasElevator: false,
+    destinationMapUrl: '',
     appointmentDate: '',
     comments: '',
     approximateBudget: '',
+    leadPhone: '',
     loadersQuantity: '',
     cargo: false,
     packaging: false,
@@ -94,6 +97,7 @@ export default function OrderCreate() {
           country: form.originCountry,
           approximate_distance_from_parking: form.originDistanceFromParking === '' ? null : Number(form.originDistanceFromParking),
           has_elevator: form.originHasElevator,
+          map_url: form.originMapUrl || null,
         },
         destination: {
           street: form.destinationStreet,
@@ -101,10 +105,12 @@ export default function OrderCreate() {
           country: form.destinationCountry,
           approximate_distance_from_parking: form.destinationDistanceFromParking === '' ? null : Number(form.destinationDistanceFromParking),
           has_elevator: form.destinationHasElevator,
+          map_url: form.destinationMapUrl || null,
         },
         appointment_date: form.appointmentDate || null,
         comments: form.comments || null,
         approximate_budget: form.approximateBudget === '' ? null : Number(form.approximateBudget),
+        lead_phone: form.leadPhone || null,
         loaders_quantity: form.loadersQuantity === '' ? null : Number(form.loadersQuantity),
         cargo: form.cargo,
         packaging: form.packaging,
@@ -215,6 +221,16 @@ export default function OrderCreate() {
               type="number"
               value={form.approximateBudget}
               onChange={e => setForm(f => ({ ...f, approximateBudget: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Teléfono de contacto</label>
+            <input
+              type="tel"
+              value={form.leadPhone}
+              onChange={e => setForm(f => ({ ...f, leadPhone: e.target.value }))}
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
@@ -349,6 +365,16 @@ export default function OrderCreate() {
               />
               Tiene ascensor
             </label>
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">URL del mapa</label>
+              <input
+                type="text"
+                value={form.originMapUrl}
+                onChange={e => setForm(f => ({ ...f, originMapUrl: e.target.value }))}
+                placeholder="Pega el link de Google Maps de esta dirección"
+                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
           </div>
         </div>
 
@@ -400,6 +426,16 @@ export default function OrderCreate() {
               />
               Tiene ascensor
             </label>
+            <div className="col-span-2">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">URL del mapa</label>
+              <input
+                type="text"
+                value={form.destinationMapUrl}
+                onChange={e => setForm(f => ({ ...f, destinationMapUrl: e.target.value }))}
+                placeholder="Pega el link de Google Maps de esta dirección"
+                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
           </div>
         </div>
 
