@@ -198,10 +198,11 @@ def create_order():
     don't hit this.
 
     Sends requestQuotationFromCarrierCompany just like Step-three.vue does
-    for customer-created orders, so carriers get the same emails/WhatsApp
-    once the order actually has an appointment_date and comments - if either
-    is still missing, the main API's own completeness check keeps it from
-    sending anything, same as it would for a customer mid-flow.
+    for customer-created orders (unless the admin unchecks "notify carriers"
+    in the form), so carriers get the same emails/WhatsApp once the order
+    actually has an appointment_date and comments - if either is still
+    missing, the main API's own completeness check keeps it from sending
+    anything, same as it would for a customer mid-flow.
     """
     user = g.current_user
     if user.role != ROLE_SUPERADMIN:
@@ -287,7 +288,7 @@ def create_order():
                     'cargo': '1' if data.get('cargo') else '0',
                     'packaging': '1' if data.get('packaging') else '0',
                 },
-                'requestQuotationFromCarrierCompany': True,
+                'requestQuotationFromCarrierCompany': bool(data.get('notify_carriers', True)),
             },
             timeout=10,
         )
