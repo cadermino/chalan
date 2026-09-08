@@ -296,6 +296,16 @@ def create_order():
     if update_res.status_code != 200:
         return jsonify({'message': 'order created but failed to fill in details', 'order_id': order_id}), 502
 
+    if data.get('lead_phone'):
+        try:
+            requests.put(
+                f'{internal_api}/api/v1/order/{order_id}/lead-phone',
+                json={'lead_phone': data.get('lead_phone')},
+                timeout=10,
+            )
+        except requests.RequestException:
+            pass
+
     emails_sent = update_res.json().get('emails_sent_by_company_id', [])
     return jsonify({'order_id': order_id, 'emails_sent_by_company_id': emails_sent}), 201
 
