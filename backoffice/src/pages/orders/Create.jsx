@@ -29,6 +29,7 @@ export default function OrderCreate() {
     loadersQuantity: '',
     cargo: false,
     packaging: false,
+    notifyCarriers: true,
   })
   const [images, setImages] = useState([])
   const [saving, setSaving] = useState(false)
@@ -112,6 +113,7 @@ export default function OrderCreate() {
         loaders_quantity: form.loadersQuantity === '' ? null : Number(form.loadersQuantity),
         cargo: form.cargo,
         packaging: form.packaging,
+        notify_carriers: form.notifyCarriers,
       })
       orderId = data.order_id
     } catch (err) {
@@ -265,6 +267,21 @@ export default function OrderCreate() {
               />
               Necesita embalaje
             </label>
+          </div>
+
+          <div className="col-span-2 border-t border-gray-100 pt-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.notifyCarriers}
+                onChange={e => setForm(f => ({ ...f, notifyCarriers: e.target.checked }))}
+                className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              />
+              Notificar a las empresas transportistas al crear la orden
+            </label>
+            <p className="text-xs text-gray-400 mt-1 ml-6">
+              Les manda correo y WhatsApp pidiendo cotización, igual que cuando un cliente completa el pedido en el sitio.
+            </p>
           </div>
         </div>
 
