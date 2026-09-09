@@ -1,14 +1,20 @@
 FROM python:3.11-alpine
 WORKDIR /chalan
-COPY . .
 
 RUN pip install --upgrade pip
 RUN apk update && apk add --no-cache tzdata
-ENV TZ America/Lima
+ENV TZ=America/Lima
 RUN apk add python3-dev \
                     gcc \
                     libc-dev \
                     libffi-dev \
                     postgresql-dev
 
+# Las dependencias van antes del código: así pip solo vuelve a correr cuando
+# cambia un requirement, no en cada deploy. Con COPY . . arriba, cualquier
+# cambio de código invalidaba esta capa y reinstalaba los 76 paquetes desde
+# cero — varios minutos, y a merced de lo que PyPI hubiera publicado ese día.
+COPY requirements/ requirements/
 RUN pip install -r requirements/prod.txt
+
+COPY . .
