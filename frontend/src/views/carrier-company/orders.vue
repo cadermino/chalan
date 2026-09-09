@@ -16,8 +16,6 @@
                 <tr>
                   <th class="px-4 py-2">Orden</th>
                   <th class="px-4 py-2">Fecha agendada</th>
-                  <th class="px-4 py-2">Cliente</th>
-                  <th class="px-4 py-2">Teléfono cliente</th>
                   <th class="px-4 py-2">Monto</th>
                   <th class="px-4 py-2">Estado del pago</th>
                   <th class="px-4 py-2">Acciones</th>
@@ -29,8 +27,6 @@
                   <td class="border px-4 py-2">{{ order.id }}</td>
                   <td class="border px-4 py-2">{{ order.appointment_date |
                     moment("dddd D MMMM - h:mm A") }}</td>
-                  <td class="border px-4 py-2">{{ order.customers.name }}</td>
-                  <td class="border px-4 py-2">{{ order.customers.mobile_phone }}</td>
                   <td class="border px-4 py-2">{{
                     lastPayment(order.payments).amount.toLocaleString('en-US', {
                       style: 'currency',
