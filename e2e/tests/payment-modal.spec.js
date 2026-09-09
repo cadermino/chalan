@@ -1,3 +1,4 @@
+const { execSync } = require('child_process');
 const { test, expect } = require('@playwright/test');
 const {
   createOrderViaApi, registerAndReturn, seedQuotation,
@@ -11,6 +12,12 @@ const PLATFORM_FEE = 0.1;
 // Redondeado igual que el backend, que hace round(..., 2): sin eso
 // 450 * 1.1 da 495.00000000000006 en coma flotante.
 const EXPECTED_TOTAL = Math.round(RAW_QUOTATION * (1 + PLATFORM_FEE) * 100) / 100;
+
+function getPaymentAmount(orderId) {
+  return execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT amount FROM payments WHERE order_id=${orderId} ORDER BY id DESC LIMIT 1;"`,
+  ).toString().trim();
+}
 
 test.describe('Cash checkout via the Step-three payment modal', () => {
   test('should pay with cash and schedule the vehicle', async ({ page }) => {
@@ -47,6 +54,10 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
     const dashboardAmount = page.locator(`td:has-text("${acceptedAmount}")`);
     await expect(dashboardAmount).toBeVisible({ timeout: 15000 });
     await expect(page.locator(`td:text-is("${RAW_QUOTATION}")`)).toHaveCount(0);
+
+    // La fila de pago también guardaba el monto crudo, sin el fee: la plata
+    // que quedaba registrada era menor que la que el cliente entrega en mano.
+    expect(Number(getPaymentAmount(orderId))).toBe(EXPECTED_TOTAL);
   });
 
   test('should require a phone number before confirming', async ({ page }) => {

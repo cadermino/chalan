@@ -7,6 +7,7 @@ from ...models import Order as OrderModel
 from ...models import OrdersServices as OrdersServicesModel
 from ...models import Payment as PaymentModel
 from ...models import Quotations as QuotationsModel
+from ...models import AdminUser, ReferredOrder
 from ...models import OrderSchema, \
     OrderDetailsSchema,\
     QuotationsSchema,\
@@ -132,9 +133,27 @@ class Order:
         order = db.session.get(OrderModel, self.order_id)
         quotation = order.quotations.filter(QuotationsModel.quotation_status_id\
                                             == QuotationStatus.Selected()).first()
+        # quotation.amount es lo que cobra el transportista. El cliente paga eso
+        # más el fee de plataforma y, si la orden viene referida, la comisión
+        # del agente — es el número que ve en el paso tres y en el modal, y el
+        # que entrega en efectivo. Guardar el crudo dejaba la fila de pago por
+        # debajo de lo realmente cobrado.
+        #
+        # OJO: las filas anteriores al 2026-09-09 tienen el monto crudo. No se
+        # migraron a propósito: el PLATFORM_FEE y las comisiones por agente
+        # cambian con el tiempo, así que recalcular el histórico con los valores
+        # de hoy inventaría cifras en vez de corregirlas. Para separar unas de
+        # otras, usar created_date.
+        platform_fee = float(os.getenv('PLATFORM_FEE'))
+        commission_rate = 0
+        referred = ReferredOrder.query.filter_by(order_id=self.order_id).first()
+        if referred:
+            agent = db.session.get(AdminUser, referred.admin_user_id)
+            commission_rate = agent.commission_rate
+
         payment = PaymentModel(
             order_id = self.order_id,
-            amount = quotation.amount,
+            amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2),
             lu_payment_type_id = 2,
             status = 'pending',
             active = 1
