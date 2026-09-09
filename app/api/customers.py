@@ -1,10 +1,11 @@
+import os
 from flask import jsonify, request
 from . import api
 from .quotation.quotation_status import QuotationStatus
 from .order.order_status import OrderStatus
 from .order import Order as OrderEntity
 from .decorators import token_required
-from ..models import Customer, Order, Payment, Quotations
+from ..models import AdminUser, Customer, Order, Payment, Quotations, ReferredOrder
 from .. import db
 
 @api.route('/customer/<int:customer_id>', methods=['PATCH'])
@@ -47,7 +48,18 @@ def customer_orders(customer_id):
         return jsonify([]), 200
     quotation = order.quotations.filter(Quotations.quotation_status_id == QuotationStatus.Selected()).first()
     try:
-        amount = quotation.amount
+        # El cliente ve el monto con fee de plataforma (y comisión del agente,
+        # si la orden viene referida) en el paso tres y en el modal de
+        # confirmación, porque Quotation.toJson lo suma ahí. Devolver
+        # quotation.amount en crudo hacía que el dashboard mostrara menos de
+        # lo que la persona acababa de aceptar.
+        platform_fee = float(os.getenv('PLATFORM_FEE'))
+        commission_rate = 0
+        referred = ReferredOrder.query.filter_by(order_id=order.id).first()
+        if referred:
+            agent = db.session.get(AdminUser, referred.admin_user_id)
+            commission_rate = agent.commission_rate
+        amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
     except:
         amount = '-'
     try:
