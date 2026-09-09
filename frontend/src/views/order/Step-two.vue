@@ -518,6 +518,17 @@ export default {
               },
             });
           });
+      } else {
+        // Mismo punto ciego que en step-one: el clic en "siguiente" no hace
+        // nada visible más allá de los mensajes inline. Solo el primer campo
+        // que bloquea, que los parámetros de GA4 se cortan a 100 caracteres.
+        // Nombres de campo, nunca sus valores.
+        const missing = this.steps[this.viewName].requisites
+          .filter(field => this.formValidationMessages[field]);
+        track('step_two_blocked', {
+          missing_field: missing[0],
+          missing_count: missing.length,
+        });
       }
     },
   },
