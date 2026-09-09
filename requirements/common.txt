@@ -41,7 +41,6 @@ Flask-Mail==0.10.0
 twilio>=9.0.0
 
 # Payments
-stripe==10.5.0
 
 # Facebook Auth (consider replacing with python-social-auth)
 facepy==1.0.12

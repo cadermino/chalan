@@ -1,7 +1,6 @@
 import os
 import base64
 import uuid
-import stripe
 from flask import jsonify, request, current_app
 from openai import OpenAI
 from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, ReferredOrder
@@ -179,42 +178,6 @@ def get_order(order_id):
         'order': order_detail,
     }), 200
 
-@api.route('/order/checkout/<int:order_id>', methods=['PUT'])
-@token_required
-def generate_checkout_session(order_id):
-    auth_headers = request.headers.get('Authorization', '').split()
-    customer = Customer.verify_auth_token(auth_headers[1])
-    order = customer.orders.order_by(Order.id.desc()).first()
-    quotation = order.quotations.filter(QuotationsModel.selected == 1).first()
-    total = order.total_amount
-    amount = int(total) if total % 1 == 0 else total
-
-    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-    session = stripe.checkout.Session.create(
-        customer_email = customer.email,
-        client_reference_id = order_id,
-        locale = 'es',
-        success_url = current_app.config['STRIPE_SUCCESS'],
-        cancel_url = current_app.config['STRIPE_CANCEL'],
-        payment_method_types = ["card"],
-        line_items = [
-            {
-                'name': '{} {} {}kg.'.format(quotation.vehicle.brand, quotation.vehicle.model, quotation.vehicle.weight),
-                'description': quotation.vehicle.description,
-                'amount': amount,
-                'currency': 'mxn',
-                'quantity': 1,
-            }
-        ],
-    )
-    order = OrderEntity(order.id)
-    payment = order.create_stripe_payment(session.id)
-
-    return jsonify({
-        'session_id': session.id,
-        'payment': payment.id,
-    }), 200
-
 @api.route('/order/checkout-cash/<int:order_id>', methods=['PUT'])
 @token_required
 def generate_checkout_cash(order_id):
@@ -250,49 +213,6 @@ def generate_checkout_cash(order_id):
     return jsonify({
         'payment': payment.id,
     }), 200
-
-@api.route('order/confirm-stripe-payment/<int:order_id>', methods=['PUT'])
-@token_required
-def confirm_stripe_payment(order_id):
-    data = request.json
-    auth_headers = request.headers.get('Authorization', '').split()
-    customer = Customer.verify_auth_token(auth_headers[1])
-    last_order = customer.orders.order_by(Order.id.desc()).first()
-    order = OrderEntity(order_id)
-    driver_email = last_order.product.vehicle.carrier_company.email
-
-    try:
-        payment = order.confirm_stripe_payment(data['session_id'])
-        if payment.status == 'paid':
-
-            subject = '[Pago con tarjeta] Orden {}'.format(order_id)
-            bcc = [os.getenv('OPS_MAIL'), driver_email] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
-            current_year = date.today().year
-            send_email(
-                os.getenv('ADMIN_MAIL'),
-                subject,
-                'email/admin_new_order',
-                bcc=bcc,
-                order=last_order,
-                mobile_phone=customer.mobile_phone,
-                customer=customer,
-                payment_type='card',
-            )
-            send_email(
-                customer.email, 'Tu pago ha sido procesado correctamente',
-                'email/stripe_payment_completed',
-                bcc=[],
-                customer_name=customer.name,
-                mobile_phone=customer.mobile_phone,
-            )
-            return jsonify({
-                'payment': payment.status,
-            }), 200
-    except:
-        return jsonify({
-            'message': 'There was a problem processing the payment.'
-        }), 400
-
 
 def send_email_to_carrier_companies(order_id, order_data):
     emails_sent = []

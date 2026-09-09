@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Chalán is a marketplace for moving/freight services deployed in Mexico (chalan.mx) and Peru (chalan.pe). Customers create orders, carrier companies submit quotations, customers pay via Stripe, and carriers fulfill the move. Real estate agents can refer customers via referral links and earn commission on completed orders.
+Chalán is a marketplace for moving/freight services deployed in Mexico (chalan.mx) and Peru (chalan.pe). Customers create orders, carrier companies submit quotations, customers pay the carrier in cash, and carriers fulfill the move. Real estate agents can refer customers via referral links and earn commission on completed orders.
 
 ## Architecture
 
@@ -103,7 +103,7 @@ docker-compose -f docker-compose-peru.prod.yml up --build  # Peru
 
 - **Auth**: JWT tokens (PyJWT) for both customer and admin APIs, validated via decorators in `app/api/decorators.py` and `backoffice-api/app/api/decorators.py`
 - **Config**: Environment-driven via `.env.dev` / `.env.prod` files; `config.py` maps `FLASK_ENV` to config classes
-- **Payments**: Stripe integration with success/cancel redirect URLs
+- **Payments**: cash only (`PUT /api/v1/order/checkout-cash/:order_id`), which creates a `payments` row and emails carrier + customer. Stripe was removed; the `lu_payment_type` row `stripe` and `payments.reference` stay for historical rows. Culqi is the planned gateway for Peru
 - **Storage**: S3-backed file uploads via factory pattern (`app/storage/factory.py`)
 - **Serialization**: Marshmallow schemas defined alongside models in `app/models.py`
 - **Two deployment targets**: Mexico (`Dockerfile.prod`) and Peru (`Dockerfile.peru.prod`) with timezone and domain differences
