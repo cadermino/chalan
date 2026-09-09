@@ -492,9 +492,12 @@ export default {
         this.setOrder({ section: 'currentOrder', field, value: '' });
       });
     },
+    missingFields() {
+      return this.steps[this.viewName].requisites
+        .filter(field => this.formValidationMessages[field]);
+    },
     scrollToFirstMissingField() {
-      const firstMissingField = this.steps[this.viewName].requisites
-        .find(field => this.formValidationMessages[field]);
+      const [firstMissingField] = this.missingFields();
       const elementId = fieldElementIds[firstMissingField];
       const element = elementId && document.getElementById(elementId);
       if (element) {
@@ -571,6 +574,17 @@ export default {
             });
         }
       } else {
+        // Al usuario le pasa que da clic en "continuar" y la página no se
+        // mueve: la validación solo pinta mensajes inline. Mandamos el primer
+        // campo que bloquea (el mismo que enfoca el scroll) porque es el que
+        // realmente lo detiene, y solo ese: los parámetros de GA4 se cortan a
+        // 100 caracteres y la lista completa no cabe. Nombres de campo, nunca
+        // sus valores.
+        const missing = this.missingFields();
+        track('step_one_blocked', {
+          missing_field: missing[0],
+          missing_count: missing.length,
+        });
         this.scrollToFirstMissingField();
       }
     },
