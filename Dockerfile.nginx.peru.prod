@@ -1,8 +1,13 @@
 FROM node:18-alpine as vue-build-stage
 WORKDIR /chalan
-COPY /frontend .
 ENV NODE_OPTIONS=--openssl-legacy-provider
-RUN npm install && npm run build
+# Dependencias antes del código, igual que en el stage del backoffice: así un
+# cambio de .vue no vuelve a bajar node_modules entero. Es el build más pesado
+# del deploy.
+COPY /frontend/package.json /frontend/package-lock.json ./
+RUN npm install
+COPY /frontend .
+RUN npm run build
 
 FROM node:20-alpine as backoffice-build-stage
 WORKDIR /app
