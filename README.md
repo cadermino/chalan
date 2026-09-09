@@ -31,9 +31,6 @@ MAIL_USE_TLS=
 DEV_DATABASE_URL=
 FLASK_APP=
 FLASK_DEBUG=1
-STRIPE_SECRET_KEY=
-STRIPE_SUCCESS=
-STRIPE_CANCEL=
 CORS=[r"http://localhost:*"]
 ```
 and ask to one of the DevOps guys for the credentials for the .env file

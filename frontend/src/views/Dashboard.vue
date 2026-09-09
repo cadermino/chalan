@@ -68,7 +68,7 @@
   </div>
 </template>
 <script>
-import { mapMutations, mapActions, mapState } from 'vuex';
+import { mapMutations, mapState } from 'vuex';
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../api/chalan';
@@ -76,7 +76,6 @@ import chalan from '../api/chalan';
 export default {
   name: 'dashboard',
   props: {
-    sessionId: String,
     countryData: Object,
   },
   data() {
@@ -95,49 +94,10 @@ export default {
   },
   mounted() {
     this.$moment.locale('es');
-    if (this.sessionId && this.currentOrder.order_id) {
-      const payload = {
-        sessionId: this.sessionId,
-        orderId: this.currentOrder.order_id,
-        token: this.customer.token,
-      };
-      chalan.confirmStripePayment(payload)
-        .then((response) => {
-          if (response.status === 200) {
-            this.getPendingOrders();
-            this.setViewsMessages({
-              view: this.viewName,
-              message: {
-                text: 'Su pago ha sido recibido con exito!',
-                type: 'success',
-              },
-            });
-            Object.keys(this.currentOrder).forEach((field) => {
-              this.setOrder({ field, value: null });
-            });
-            this.addDataToLocalStorage(['currentOrder']);
-            this.$router.push(this.$route.path).catch(() => {});
-          }
-        })
-        .catch(() => {
-          this.setViewsMessages({
-            view: this.viewName,
-            message: {
-              text: 'Hubo un error, intenta después de recargar la página',
-              type: 'error',
-            },
-          });
-        });
-    } else {
-      this.getPendingOrders();
-    }
+    this.getPendingOrders();
   },
   methods: {
-    ...mapActions([
-      'addDataToLocalStorage',
-    ]),
     ...mapMutations([
-      'setOrder',
       'setViewsMessages',
       'setLoader',
     ]),
@@ -171,7 +131,6 @@ export default {
   },
   computed: {
     ...mapState([
-      'currentOrder',
       'customer',
       'viewsMessages',
     ]),

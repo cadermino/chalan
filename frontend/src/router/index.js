@@ -80,10 +80,9 @@ const routes = [
     name: 'dashboard',
     component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),
     meta: { requiresAuth: true },
-    props: route => ({
-      sessionId: route.query.session_id,
+    props: {
       countryData: countryData[country].dashboard,
-    }),
+    },
   },
   {
     path: '/login',

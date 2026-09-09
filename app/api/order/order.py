@@ -128,21 +128,6 @@ class Order:
             query = query.filter(getattr(OrderModel, attr) == value)
         return query.all()
 
-    def create_stripe_payment(self, session_id):
-        order = db.session.get(OrderModel, self.order_id)
-        payment = PaymentModel(
-            order_id = self.order_id,
-            amount = order.product.price,
-            lu_payment_type_id = 1,
-            status = 'pending',
-            reference = session_id,
-            active = 1
-        )
-        db.session.add(payment)
-        db.session.commit()
-
-        return payment
-
     def create_cash_payment(self):
         order = db.session.get(OrderModel, self.order_id)
         quotation = order.quotations.filter(QuotationsModel.quotation_status_id\
@@ -156,14 +141,5 @@ class Order:
         )
         db.session.add(payment)
         db.session.commit()
-
-        return payment
-
-    def confirm_stripe_payment(self, session_id):
-        payment = PaymentModel.query.filter_by(order_id = self.order_id).filter_by(reference = session_id).first()
-        if payment.reference == session_id:
-            payment.status = 'paid'
-            db.session.add(payment)
-            db.session.commit()
 
         return payment
