@@ -260,18 +260,25 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach((to) => {
   if (typeof window.gtag !== 'function') return;
 
-  // La URL del navegador todavía no se actualizó en afterEach, así que
-  // window.location.href apunta a la página anterior: los hits salían con el
-  // page_path nuevo y el page_location viejo, contradiciéndose entre sí.
-  // Se arma desde to.fullPath, que sí es la ruta de destino.
-  // El título lo pone el componente al montarse, de ahí el nextTick.
-  Vue.nextTick(() => {
+  // vue-router corre los hooks afterEach ANTES de hacer el pushState, así que
+  // aquí el navegador todavía está en la URL anterior. Medido en producción:
+  // el page_view salía con dl de la página vieja mientras el begin_order que
+  // sale del mounted, unos ms después, ya traía la correcta.
+  //
+  // Encolar con nextTick no alcanza: es un microtask y corre dentro del mismo
+  // turno, antes del pushState. Un setTimeout de 0 lo manda al siguiente
+  // turno, cuando la URL y el título ya son los de destino.
+  //
+  // gtag ignora el page_location que se le pasa por evento y arma dl leyendo
+  // document.location al momento del envío, así que la única forma de que
+  // salga bien es enviar tarde, no pasarle el valor correcto.
+  setTimeout(() => {
     window.gtag('event', 'page_view', {
       page_path: to.fullPath,
-      page_location: window.location.origin + to.fullPath,
+      page_location: window.location.href,
       page_title: document.title,
     });
-  });
+  }, 0);
 });
 
 export default router;
