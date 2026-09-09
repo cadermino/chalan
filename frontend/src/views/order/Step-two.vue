@@ -316,6 +316,7 @@ import { Settings } from 'luxon';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
+import { track } from '../../utils/analytics';
 
 Settings.defaultLocale = 'es';
 
@@ -489,6 +490,19 @@ export default {
         chalan.updateOrder(payload)
           .then((response) => {
             if (response.status === 200) {
+              // El paso siguiente exige sesión, así que el usuario choca con
+              // el registro justo después de esto: la distancia entre este
+              // evento y sign_up/login es la caída del muro de auth, aislada
+              // de la fricción del propio formulario.
+              track('step_two_submitted', {
+                order_id: this.currentOrder.order_id,
+                items_count: this.recognizedItems.length,
+                photos_used: this.photoThumbnails.length,
+                days_ahead: this.$moment(this.currentOrder.appointment_date)
+                  .startOf('day').diff(this.$moment().startOf('day'), 'days'),
+                packaging: this.services.packaging === '1',
+                cargo: this.services.cargo === '1',
+              });
               this.$router.push({
                 name: this.steps[this.viewName].next,
               }).catch(() => {});
