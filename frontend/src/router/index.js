@@ -258,13 +258,20 @@ router.beforeEach(async (to, from, next) => {
 // window.gtag only exists in production (see index.html), so this is a
 // no-op in local dev.
 router.afterEach((to) => {
-  if (typeof window.gtag === 'function') {
+  if (typeof window.gtag !== 'function') return;
+
+  // La URL del navegador todavía no se actualizó en afterEach, así que
+  // window.location.href apunta a la página anterior: los hits salían con el
+  // page_path nuevo y el page_location viejo, contradiciéndose entre sí.
+  // Se arma desde to.fullPath, que sí es la ruta de destino.
+  // El título lo pone el componente al montarse, de ahí el nextTick.
+  Vue.nextTick(() => {
     window.gtag('event', 'page_view', {
       page_path: to.fullPath,
-      page_location: window.location.href,
+      page_location: window.location.origin + to.fullPath,
       page_title: document.title,
     });
-  }
+  });
 });
 
 export default router;

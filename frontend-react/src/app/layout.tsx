@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Suspense } from "react";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { ChatWidget } from "@/components/ChatWidget";
+import { PageViewTracker } from "@/components/PageViewTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
 
@@ -65,6 +66,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ReferralCapture />
         </Suspense>
+        <PageViewTracker />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-indigo-950 focus:text-white"
@@ -90,19 +92,26 @@ export default function RootLayout({
         )}
         {GA_ENABLED && (
           <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-              strategy="afterInteractive"
-            />
+            {/* El shim y el config van beforeInteractive a propósito. Con
+                send_page_view en false el page_view inicial lo manda
+                PageViewTracker desde un efecto, que corre durante la
+                hidratación — antes de que cargue gtag.js. Definiendo
+                window.gtag temprano, ese evento se encola en dataLayer en vez
+                de perderse, y queda después del config, que es el orden que
+                GA necesita. */}
             <Script
               id="ga4"
-              strategy="afterInteractive"
+              strategy="beforeInteractive"
               dangerouslySetInnerHTML={{
                 __html: `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${GA_MEASUREMENT_ID}'${GA_DEBUG ? ", { debug_mode: true }" : ""});`,
+gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false${GA_DEBUG ? ", debug_mode: true" : ""} });`,
               }}
+            />
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
             />
           </>
         )}
