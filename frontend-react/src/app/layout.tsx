@@ -4,6 +4,7 @@ import Script from "next/script";
 import { Suspense } from "react";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { ChatWidget } from "@/components/ChatWidget";
+import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -87,10 +88,10 @@ export default function RootLayout({
             }}
           />
         )}
-        {process.env.NODE_ENV === "production" && (
+        {GA_ENABLED && (
           <>
             <Script
-              src="https://www.googletagmanager.com/gtag/js?id=G-72KVLDWMQD"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
               strategy="afterInteractive"
             />
             <Script
@@ -100,7 +101,7 @@ export default function RootLayout({
                 __html: `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', 'G-72KVLDWMQD');`,
+gtag('config', '${GA_MEASUREMENT_ID}'${GA_DEBUG ? ", { debug_mode: true }" : ""});`,
               }}
             />
           </>

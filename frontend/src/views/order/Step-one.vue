@@ -386,6 +386,7 @@ import ViewsMessages from '@/components/ViewsMessages.vue';
 import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue';
 import Modal from '@/components/Modal.vue';
 import chalan from '../../api/chalan';
+import { track } from '../../utils/analytics';
 import steps from '../../store/steps';
 
 const fieldElementIds = {
@@ -426,6 +427,7 @@ export default {
   },
   mounted() {
     this.buildRequisites();
+    track('begin_order');
   },
   props: {
     countryData: Object,
@@ -526,6 +528,10 @@ export default {
               if (response.status === 201) {
                 this.setOrder({ section: 'currentOrder', field: 'order_id', value: response.data.order_id });
                 this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId.pending });
+                track('order_created', {
+                  order_id: response.data.order_id,
+                  ref_code: referralCode,
+                });
                 this.proceedToStepTwo();
               }
             })
@@ -572,14 +578,22 @@ export default {
       if (this.shouldPromptForLeadPhone) {
         this.setLoader(false);
         this.showLeadPhoneModal = true;
+        track('lead_phone_prompted', { order_id: this.currentOrder.order_id });
         return;
       }
       this.$router.push({ name: 'step-two' }).catch(() => {});
     },
-    skipLeadPhone() {
+    // Cerrar y seguir, sin evento. submitLeadPhone y skipLeadPhone comparten
+    // este paso: si el tracking viviera aquí, cada envío exitoso dispararía
+    // también lead_phone_skipped y la tasa de omisión saldría siempre al 100%.
+    closeLeadPhoneModal() {
       this.setOrder({ section: 'currentOrder', field: 'lead_phone_prompted', value: true });
       this.showLeadPhoneModal = false;
       this.$router.push({ name: 'step-two' }).catch(() => {});
+    },
+    skipLeadPhone() {
+      track('lead_phone_skipped', { order_id: this.currentOrder.order_id });
+      this.closeLeadPhoneModal();
     },
     submitLeadPhone() {
       if (this.leadPhone) {
@@ -588,8 +602,14 @@ export default {
           orderId: this.currentOrder.order_id,
           leadPhone: this.leadPhone,
         }).catch(() => {});
+        // El número nunca se manda a GA, solo el hecho de que lo dejó.
+        track('lead_phone_submitted', { order_id: this.currentOrder.order_id });
+      } else {
+        // "Continuar" con el campo vacío se comporta igual que omitir, y así
+        // prompted == submitted + skipped siempre cuadra.
+        track('lead_phone_skipped', { order_id: this.currentOrder.order_id });
       }
-      this.skipLeadPhone();
+      this.closeLeadPhoneModal();
     },
   },
   computed: {

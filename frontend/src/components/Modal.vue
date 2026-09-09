@@ -34,8 +34,13 @@ export default {
     },
   },
   created() {
+    // El listener es global y el componente sigue montado con visible en
+    // false (el v-if está dentro de su propio template), así que sin
+    // comprobar `visible` un Escape en cualquier parte de la página emite
+    // close. En Step-one eso disparaba el flujo de "omitir" del modal de
+    // WhatsApp y navegaba a step-two sin que el modal se hubiera mostrado.
     const handleEscape = (e) => {
-      if (this.closable && (e.key === 'Esc' || e.key === 'Escape')) {
+      if (this.visible && this.closable && (e.key === 'Esc' || e.key === 'Escape')) {
         this.$emit('close');
       }
     };

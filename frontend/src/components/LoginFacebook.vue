@@ -42,6 +42,7 @@
 import { mapMutations, mapGetters } from 'vuex';
 import VFacebookLogin from 'vue-facebook-login-component';
 import chalan from '../api/chalan';
+import { track } from '../utils/analytics';
 
 export default {
   name: 'LoginFacebook',
@@ -111,6 +112,7 @@ export default {
               .then((response) => {
                 if (response.status === 201) {
                   this.handleUserData(response.data);
+                  track('login', { method: 'facebook' });
                   this.$emit('facebook-logged');
                 }
               })
