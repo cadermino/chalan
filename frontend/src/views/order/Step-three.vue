@@ -188,6 +188,7 @@ import CardSkeleton from '@/components/CardSkeleton.vue';
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
 import axios from 'axios';
 import chalan from '../../api/chalan';
+import { track } from '../../utils/analytics';
 
 export default {
   name: 'step-three',
@@ -359,6 +360,14 @@ export default {
         this.setOrder({ section: 'currentOrder', field, value: this.selectedQuotation[this.quotationFields[field]] });
       });
       if (jumpToNextStep) {
+        // Solo aquí: con jumpToNextStep en false esto es la reconciliación al
+        // cargar la vista, no una elección del usuario.
+        track('quotation_selected', {
+          order_id: this.currentOrder.order_id,
+          quotation_id: quotation.id,
+          value: quotation.total_amount,
+          currency: this.countryData.currency,
+        });
         this.quotationSelectionPending = true;
         this.openPaymentModal();
       }

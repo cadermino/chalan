@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
+import { track } from '@/lib/analytics'
 
 // ─── Sizes ──────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,15 @@ function extractComponents(components: AddrComponents) {
   const map: Record<string, string> = {}
   components.forEach(c => { map[c.types[0]] = c.long_name })
   return map
+}
+
+// Solo para analítica. En Perú Google devuelve el distrito como `locality`
+// (Miraflores, San Isidro...) y la provincia como administrative_area_level_2;
+// el fallback cubre las direcciones de provincia donde no viene locality.
+// Nunca se manda la dirección completa a GA: es PII y viola sus términos.
+function districtOf(components?: AddrComponents) {
+  const map = extractComponents(components || [])
+  return map.locality || map.administrative_area_level_2 || undefined
 }
 
 type PlaceArg = {
@@ -149,6 +159,11 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
 
   const placesLoadedRef = useRef(false)
 
+  const fromDistrict = useRef<string | undefined>(undefined)
+  const toDistrict   = useRef<string | undefined>(undefined)
+  const interactedRef    = useRef(false)
+  const lastEstimateRef  = useRef<string | null>(null)
+
   // Restaurar estado desde localStorage al volver a la landing
   useEffect(() => {
     try {
@@ -202,6 +217,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
         const lat: number = place.geometry.location.lat()
         const lng: number = place.geometry.location.lng()
         fromLatLng.current = { lat, lng }
+        fromDistrict.current = districtOf(place.address_components)
         setFrom(place.formatted_address || '')
         saveOrigin({ ...place, lat, lng })
         if (toLatLng.current) setKm(haversineKm(lat, lng, toLatLng.current.lat, toLatLng.current.lng))
@@ -214,6 +230,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
         const lat: number = place.geometry.location.lat()
         const lng: number = place.geometry.location.lng()
         toLatLng.current = { lat, lng }
+        toDistrict.current = districtOf(place.address_components)
         setTo(place.formatted_address || '')
         saveDestination({ ...place, lat, lng })
         if (fromLatLng.current) setKm(haversineKm(fromLatLng.current.lat, fromLatLng.current.lng, lat, lng))
@@ -251,11 +268,49 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
     loadGooglePlaces(apiKey, init)
   }
 
+  // `ensurePlacesLoaded` también se llama al montar cuando hay direcciones
+  // viejas sin coordenadas, así que el evento de interacción no puede colgarse
+  // de ahí: tiene que salir de un gesto real del usuario.
+  // `size` explícito porque cuando la interacción es un click en una tarjeta
+  // el `setSizeId` todavía no se aplicó y `sizeId` seguiría siendo el anterior.
+  function markInteraction(size: string = sizeId) {
+    if (interactedRef.current) return
+    interactedRef.current = true
+    track('quote_widget_start', { move_size: size })
+  }
+
+  function handleAddressFocus() {
+    markInteraction()
+    ensurePlacesLoaded()
+  }
+
   const price = useMemo(() => {
     const s = SIZES.find(s => s.id === sizeId)
     if (!s || km === null) return null
     return Math.round(s.base + km * s.perKm)
   }, [sizeId, km])
+
+  // Un `quote_estimated` por combinación tamaño+distancia, y solo si el
+  // usuario hizo algo en esta visita. El widget está embebido en siete
+  // páginas y restaura las direcciones de localStorage, así que sin el guard
+  // alguien navegando la landing dispararía el evento en cada página sin
+  // haber tocado nada.
+  useEffect(() => {
+    if (price === null || !interactedRef.current) return
+
+    const signature = `${sizeId}:${km}`
+    if (lastEstimateRef.current === signature) return
+    lastEstimateRef.current = signature
+
+    track('quote_estimated', {
+      move_size: sizeId,
+      distance_km: km ?? undefined,
+      value: price,
+      currency: 'PEN',
+      origin_district: fromDistrict.current,
+      destination_district: toDistrict.current,
+    })
+  }, [price, km, sizeId])
 
   return (
     <div className={theme === 'light' ? 'quote-widget quote-widget--light' : 'quote-widget'}>
@@ -276,7 +331,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
           className="quote-input"
           value={from}
           onChange={e => setFrom(e.target.value)}
-          onFocus={ensurePlacesLoaded}
+          onFocus={handleAddressFocus}
           placeholder="¿Desde dónde?"
           autoComplete="off"
         />
@@ -292,7 +347,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
           className="quote-input"
           value={to}
           onChange={e => setTo(e.target.value)}
-          onFocus={ensurePlacesLoaded}
+          onFocus={handleAddressFocus}
           placeholder="¿Hasta dónde?"
           autoComplete="off"
         />
@@ -303,7 +358,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
           <button
             key={s.id}
             className={'size-card' + (sizeId === s.id ? ' active' : '')}
-            onClick={() => { setSizeId(s.id); localStorage.setItem('quoteSize', s.id) }}
+            onClick={() => { markInteraction(s.id); setSizeId(s.id); localStorage.setItem('quoteSize', s.id) }}
             aria-pressed={sizeId === s.id}
             type="button"
           >
@@ -323,7 +378,21 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
         </span>
       </div>
 
-      <Link href="/order/step-one" className="quote-cta">
+      {/* gtag.js manda los eventos con sendBeacon, así que este sobrevive a
+          la navegación al flujo de orden (que es otra app, carga completa). */}
+      <Link
+        href="/order/step-one"
+        className="quote-cta"
+        onClick={() => track('quote_cta_click', {
+          move_size: sizeId,
+          distance_km: km ?? undefined,
+          value: price ?? undefined,
+          currency: 'PEN',
+          origin_district: fromDistrict.current,
+          destination_district: toDistrict.current,
+          has_estimate: price !== null,
+        })}
+      >
         Continuar con esta cotización
         <ArrowIcon />
       </Link>

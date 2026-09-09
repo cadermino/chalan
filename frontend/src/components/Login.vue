@@ -314,6 +314,7 @@ import {
   mapMutations, mapState, mapGetters,
 } from 'vuex';
 import chalan from '../api/chalan';
+import { track } from '../utils/analytics';
 
 export default {
   name: 'Login',
@@ -428,6 +429,7 @@ export default {
           .then((response) => {
             if (response.status === 200) {
               this.handleUserData(response.data);
+              track('login', { method: 'email' });
               this.emitUserLogged();
             }
           })
@@ -462,6 +464,7 @@ export default {
           .then((response) => {
             if (response.status === 201) {
               this.handleUserData(response.data);
+              track('sign_up', { method: 'email' });
               this.emitUserLogged();
             }
           })
@@ -529,6 +532,7 @@ export default {
       chalan.loginGoogle({ credential: response.credential })
         .then(({ data }) => {
           this.handleUserData(data);
+          track('login', { method: 'google' });
           if (data.mobile_phone) {
             this.emitUserLogged();
             return;

@@ -46,6 +46,7 @@ import { mapState, mapMutations } from 'vuex';
 import 'moment/locale/es';
 import Modal from '@/components/Modal.vue';
 import chalan from '../api/chalan';
+import { track } from '../utils/analytics';
 
 const quotationFields = {
   quotation_id: 'id',
@@ -155,6 +156,17 @@ export default {
           services: this.services,
         };
         await chalan.updateOrder(orderPayload);
+        // Conversión final del embudo. No se llama `purchase` a propósito:
+        // eso queda reservado para cuando entre Culqi y haya cobro real, para
+        // no tener que reinterpretar el histórico. El guard cashPaymentCreated
+        // ya evita el doble disparo si el usuario reintenta.
+        track('order_confirmed', {
+          order_id: this.currentOrder.order_id,
+          quotation_id: this.quotation.id,
+          value: this.quotation.total_amount,
+          currency: this.currency,
+          payment_method: 'cash',
+        });
         this.setViewsMessages({
           view: 'dashboard',
           message: {
