@@ -8,6 +8,7 @@ import { LandingNav } from "@/components/LandingNav";
 import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { SectionMarker } from "@/components/SectionMarker";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { CarrierSignupForm } from "@/components/CarrierSignupForm";
 
@@ -140,7 +141,7 @@ export default async function BlogPost({ params }: Props) {
           <MDXRemote
             source={post.content}
             options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-            components={{ QuoteWidget }}
+            components={{ QuoteWidget, SectionMarker }}
           />
         </article>
 
