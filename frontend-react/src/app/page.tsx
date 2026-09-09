@@ -192,7 +192,7 @@ export default function Home() {
               </span>
             </h1>
             <div className="hero-meta">
-              <QuoteWidget />
+              <QuoteWidget placement="hero" />
             </div>
           </div>
         </div>

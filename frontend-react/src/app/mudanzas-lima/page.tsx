@@ -138,7 +138,7 @@ export default function MudanzasLima() {
         {/* CTA */}
         <div className="mb-12">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Cotiza tu mudanza en Lima ahora</p>
-          <QuoteWidget theme="light" />
+          <QuoteWidget theme="light" placement="page" />
         </div>
 
         {/* Cómo funciona */}

@@ -158,7 +158,7 @@ export default async function BlogPost({ params }: Props) {
         ) : (
           <div className="mt-16">
             <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
-            <QuoteWidget theme="light" />
+            <QuoteWidget theme="light" placement="post_footer" />
           </div>
         )}
 

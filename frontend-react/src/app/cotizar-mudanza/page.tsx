@@ -96,7 +96,7 @@ export default function CotizarMudanza() {
         {/* Quote widget — arriba, es el objetivo de la página */}
         <div className="mb-14">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Cotiza tu mudanza ahora</p>
-          <QuoteWidget theme="light" />
+          <QuoteWidget theme="light" placement="page" />
         </div>
 
         {/* Cómo cotizar */}
