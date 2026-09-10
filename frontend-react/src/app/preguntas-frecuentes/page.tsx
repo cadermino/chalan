@@ -137,7 +137,7 @@ export default function PreguntasFrecuentes() {
 
         <div className="mt-12 mb-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para cotizar?</p>
-          <QuoteWidget theme="light" />
+          <QuoteWidget theme="light" placement="page" />
         </div>
 
         <div className="bg-indigo-50 rounded-xl p-8 text-center">

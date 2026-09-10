@@ -123,7 +123,7 @@ export default function FletesPeru() {
         {/* CTA */}
         <div className="mb-12">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Cotiza tu flete gratis</p>
-          <QuoteWidget theme="light" />
+          <QuoteWidget theme="light" placement="page" />
         </div>
 
         {/* Tipos de vehículos */}

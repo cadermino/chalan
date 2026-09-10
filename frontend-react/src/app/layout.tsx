@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { ChatWidget } from "@/components/ChatWidget";
 import { PageViewTracker } from "@/components/PageViewTracker";
+import { ScrollDepth } from "@/components/ScrollDepth";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
 
@@ -67,6 +68,7 @@ export default function RootLayout({
           <ReferralCapture />
         </Suspense>
         <PageViewTracker />
+        <ScrollDepth />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-indigo-950 focus:text-white"

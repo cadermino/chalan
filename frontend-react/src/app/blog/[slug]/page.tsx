@@ -8,6 +8,7 @@ import { LandingNav } from "@/components/LandingNav";
 import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { SectionMarker } from "@/components/SectionMarker";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { CarrierSignupForm } from "@/components/CarrierSignupForm";
 
@@ -140,7 +141,7 @@ export default async function BlogPost({ params }: Props) {
           <MDXRemote
             source={post.content}
             options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
-            components={{ QuoteWidget }}
+            components={{ QuoteWidget, SectionMarker }}
           />
         </article>
 
@@ -158,7 +159,7 @@ export default async function BlogPost({ params }: Props) {
         ) : (
           <div className="mt-16">
             <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
-            <QuoteWidget theme="light" />
+            <QuoteWidget theme="light" placement="post_footer" />
           </div>
         )}
 

@@ -146,7 +146,15 @@ function saveDestination(place: PlaceArg) {
 
 // ─── Widget ──────────────────────────────────────────────────────────────────
 
-export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
+// `placement` identifica QUÉ instancia del widget disparó el evento, no en qué
+// página — de eso ya se encarga page_location. Los dos posts de precios montan
+// dos widgets a la vez (uno inline en el MDX, otro al cierre desde el template)
+// y hasta ahora los eventos salían indistinguibles, que es exactamente lo que
+// dejó sin responder si la posición importa o si la fricción está en el CTA.
+export function QuoteWidget({
+  theme = 'dark',
+  placement = 'unknown',
+}: { theme?: 'dark' | 'light'; placement?: string }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sizeId, setSizeId] = useState('medium')
@@ -276,7 +284,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   function markInteraction(size: string = sizeId) {
     if (interactedRef.current) return
     interactedRef.current = true
-    track('quote_widget_start', { move_size: size })
+    track('quote_widget_start', { move_size: size, placement })
   }
 
   function handleAddressFocus() {
@@ -303,6 +311,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
     lastEstimateRef.current = signature
 
     track('quote_estimated', {
+      placement,
       move_size: sizeId,
       distance_km: km ?? undefined,
       value: price,
@@ -384,6 +393,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
         href="/order/step-one"
         className="quote-cta"
         onClick={() => track('quote_cta_click', {
+          placement,
           move_size: sizeId,
           distance_km: km ?? undefined,
           value: price ?? undefined,

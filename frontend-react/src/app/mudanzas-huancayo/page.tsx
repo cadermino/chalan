@@ -111,7 +111,7 @@ export default function MudanzasHuancayo() {
         {/* CTA */}
         <div className="mb-12">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Cotiza tu mudanza en Huancayo</p>
-          <QuoteWidget theme="light" />
+          <QuoteWidget theme="light" placement="top" />
         </div>
 
         {/* Cómo funciona */}
@@ -223,7 +223,7 @@ export default function MudanzasHuancayo() {
           <p className="text-gray-600 mb-6 text-center">
             Cotiza gratis y compara precios en segundos.
           </p>
-          <QuoteWidget theme="light" />
+          <QuoteWidget theme="light" placement="bottom" />
         </div>
       </div>
       <LandingFooter />
