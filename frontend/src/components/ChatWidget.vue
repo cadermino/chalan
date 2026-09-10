@@ -172,7 +172,7 @@
 <script>
 // Agente de cotización (LLM).
 // Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type, text }] }
-const AGENT_URL = process.env.VUE_APP_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message';
+const AGENT_URL = process.env.VUE_APP_CHAT_API_URL || 'https://api.automajob.com/chat/message';
 const TENANT_ID = process.env.VUE_APP_CHAT_TENANT_ID || '';
 
 const SESSION_KEY = 'chalan_chat_session';

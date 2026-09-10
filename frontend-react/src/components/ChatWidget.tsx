@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 // Agente de cotización (LLM).
 // Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type, text }] }
-const AGENT_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'https://api.agente.chalan.pe/chat/message'
+const AGENT_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || 'https://api.automajob.com/chat/message'
 const TENANT_ID = process.env.NEXT_PUBLIC_CHAT_TENANT_ID || ''
 
 const SESSION_KEY = 'chalan_chat_session'
