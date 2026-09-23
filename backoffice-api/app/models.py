@@ -258,6 +258,10 @@ class Order(db.Model):
             **self.to_dict(),
             'total_amount': self.total_amount,
             'lead_phone': self.lead_phone,
+            # Solo en la variante full (admin): el formulario de edición lo
+            # necesita para saber qué cliente viene preseleccionado, y el
+            # transportista no tiene por qué recibir el id.
+            'customer_id': self.customer_id,
         }
 
 
