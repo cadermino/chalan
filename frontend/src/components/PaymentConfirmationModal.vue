@@ -53,8 +53,14 @@
         para reservar. El resto (S/ {{ remainingLabel }}) lo pagas en efectivo al
         transportista el día de la mudanza.
       </p>
+      <!-- width/height son los píxeles reales del archivo. No fijan el tamaño
+           (lo manda w-40), sirven para que el navegador reserve la caja por
+           relación de aspecto antes de bajar el JPG: sin ellos la imagen mide
+           cero hasta que carga y el modal da un salto de 243px al abrirse. -->
       <img :src="yapeQrSrc"
         alt="Código QR de Yape para reservar tu mudanza"
+        width="460"
+        height="700"
         class="w-40 mx-auto rounded" />
       <!-- Desde el celular no se puede escanear la pantalla del propio equipo.
            La app de Yape deja subir una imagen desde "Escanear QR", así que en
