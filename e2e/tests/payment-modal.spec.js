@@ -13,10 +13,18 @@ const PLATFORM_FEE = 0.1;
 // 450 * 1.1 da 495.00000000000006 en coma flotante.
 const EXPECTED_TOTAL = Math.round(RAW_QUOTATION * (1 + PLATFORM_FEE) * 100) / 100;
 
-function getPaymentAmount(orderId) {
-  return execSync(
-    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT amount FROM payments WHERE order_id=${orderId} ORDER BY id DESC LIMIT 1;"`,
+// Desde la migración 016 el checkout deja una fila por movimiento: el efectivo
+// del transportista y la reserva que el cliente le yapea a Chalán. Lo que tiene
+// que cuadrar es la suma, no una fila suelta.
+function getPayments(orderId) {
+  const raw = execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT concept, amount FROM payments WHERE order_id=${orderId} ORDER BY id;"`,
   ).toString().trim();
+  if (!raw) return [];
+  return raw.split('\n').map((line) => {
+    const [concept, amount] = line.split('|');
+    return { concept, amount: Number(amount) };
+  });
 }
 
 test.describe('Cash checkout via the Step-three payment modal', () => {
@@ -31,11 +39,12 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
 
-    // "Elegir" opens the modal in place; phone comes prefilled from
-    // registration, so submitting confirms straight away.
+    // "Elegir" opens the modal in place. El teléfono ya vino del registro, así
+    // que el modal no lo vuelve a pedir: solo aparece cuando no lo tenemos
+    // (login con Google, o alguien que omitió el prompt de step-one).
     await page.getByRole('button', { name: 'Elegir', exact: true }).click();
-    await expect(page.locator('text=Confirma tu pedido')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#modal-phone')).toHaveValue('987654321');
+    await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#modal-phone')).toHaveCount(0);
 
     // El monto del modal ya trae el fee de plataforma sumado: es el número
     // que la persona está aceptando. Se captura para compararlo contra el que
@@ -55,12 +64,20 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
     await expect(dashboardAmount).toBeVisible({ timeout: 15000 });
     await expect(page.locator(`td:text-is("${RAW_QUOTATION}")`)).toHaveCount(0);
 
-    // La fila de pago también guardaba el monto crudo, sin el fee: la plata
-    // que quedaba registrada era menor que la que el cliente entrega en mano.
-    expect(Number(getPaymentAmount(orderId))).toBe(EXPECTED_TOTAL);
+    // Las filas de pago tienen que reconstruir el total: si el reparto entre
+    // reserva y efectivo se descuadra, la plata registrada deja de coincidir
+    // con la que el cliente aceptó.
+    const payments = getPayments(orderId);
+    const carrierCash = payments.find((p) => p.concept === 'carrier_cash');
+    const reservation = payments.find((p) => p.concept === 'reservation');
+
+    expect(carrierCash.amount).toBe(RAW_QUOTATION);
+    expect(reservation.amount).toBe(Math.round((EXPECTED_TOTAL - RAW_QUOTATION) * 100) / 100);
+    const sum = payments.reduce((acc, p) => acc + p.amount, 0);
+    expect(Math.round(sum * 100) / 100).toBe(EXPECTED_TOTAL);
   });
 
-  test('should require a phone number before confirming', async ({ page }) => {
+  test('should require a phone number when the customer has none', async ({ page }) => {
     const orderId = await createOrderViaApi(page);
     await registerAndReturn(page);
 
@@ -69,8 +86,17 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
 
+    // El registro siempre deja teléfono, así que se borra del store para
+    // reproducir al que entró con Google (que no trae uno) u omitió el prompt
+    // de step-one. Es el único caso en que el modal lo sigue pidiendo.
+    await page.evaluate(() => {
+      document.querySelector('#app').__vue__.$store.commit(
+        'setCustomerData', { field: 'mobile_phone', value: null },
+      );
+    });
+
     await page.getByRole('button', { name: 'Elegir', exact: true }).click();
-    await expect(page.locator('text=Confirma tu pedido')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
 
     await page.fill('#modal-phone', '');
     await page.click('button:has-text("Agendar vehículo")');

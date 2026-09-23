@@ -188,7 +188,7 @@ def generate_checkout_cash(order_id):
     order_model = order_entity.query_orders({'id': order_id})
     quotation = order_model[0].quotations.filter_by(quotation_status_id = 2).first()
     carrier_company = quotation.carrier_company
-    payment = order_entity.create_cash_payment()
+    payment = order_entity.create_order_payments()
     carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
 
     subject = '[Pago en efectivo] Orden {} '.format(order_id)
