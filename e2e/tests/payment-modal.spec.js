@@ -18,12 +18,12 @@ const EXPECTED_TOTAL = Math.round(RAW_QUOTATION * (1 + PLATFORM_FEE) * 100) / 10
 // que cuadrar es la suma, no una fila suelta.
 function getPayments(orderId) {
   const raw = execSync(
-    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT concept, amount FROM payments WHERE order_id=${orderId} ORDER BY id;"`,
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT concept, amount, status FROM payments WHERE order_id=${orderId} ORDER BY id;"`,
   ).toString().trim();
   if (!raw) return [];
   return raw.split('\n').map((line) => {
-    const [concept, amount] = line.split('|');
-    return { concept, amount: Number(amount) };
+    const [concept, amount, status] = line.split('|');
+    return { concept, amount: Number(amount), status };
   });
 }
 
@@ -75,6 +75,40 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
     expect(reservation.amount).toBe(Math.round((EXPECTED_TOTAL - RAW_QUOTATION) * 100) / 100);
     const sum = payments.reduce((acc, p) => acc + p.amount, 0);
     expect(Math.round(sum * 100) / 100).toBe(EXPECTED_TOTAL);
+  });
+
+  test('should not book twice when confirming the same quotation again', async ({ page }) => {
+    const orderId = await createOrderViaApi(page);
+    await registerAndReturn(page);
+
+    seedQuotation(orderId);
+
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Elegir', exact: true }).click();
+    await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
+    await page.click('button:has-text("Agendar vehículo")');
+    await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+
+    expect(getPayments(orderId)).toHaveLength(2);
+
+    // Volver al paso tres y confirmar otra vez la misma cotización. El guard
+    // del modal es estado de componente y no sobrevive al remontaje, así que
+    // el endpoint se vuelve a llamar: la idempotencia tiene que estar en el
+    // servidor. Sin ella se duplicaban las filas de pago y salían de nuevo los
+    // dos correos, al transportista y al cliente.
+    await page.goto('/order/step-three');
+    await expect(page.getByRole('button', { name: 'Seleccionado', exact: true }))
+      .toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Seleccionado', exact: true }).click();
+    await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
+    await page.click('button:has-text("Agendar vehículo")');
+    await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
+
+    const after = getPayments(orderId);
+    expect(after).toHaveLength(2);
+    expect(after.filter((p) => p.status !== 'cancelled')).toHaveLength(2);
   });
 
   test('should require a phone number when the customer has none', async ({ page }) => {

@@ -171,6 +171,35 @@ class Order:
         order = db.session.get(OrderModel, self.order_id)
         quotation = order.quotations.filter(QuotationsModel.quotation_status_id\
                                             == QuotationStatus.Selected()).first()
+
+        # Ya se agendó con esta cotización: no se duplican filas ni se reenvían
+        # correos. Volver desde el dashboard y confirmar otra vez pasa por aquí
+        # de nuevo, y el guard del modal no sobrevive al remontaje de la vista.
+        # Las filas sin quotation_id son anteriores a la 017 y también cuentan
+        # como agendadas.
+        existing = PaymentModel.query.filter(
+            PaymentModel.order_id == self.order_id,
+            PaymentModel.concept == 'carrier_cash',
+            PaymentModel.status != 'cancelled',
+            db.or_(PaymentModel.quotation_id == quotation.id,
+                   PaymentModel.quotation_id.is_(None)),
+        ).first()
+        if existing:
+            return existing, False
+
+        # Cambió de transportista. Las filas de la cotización anterior dejan de
+        # valer: sin cancelarlas la orden quedaría con dos reservas vivas y su
+        # suma daría el doble de lo que el cliente debe.
+        stale = PaymentModel.query.filter(
+            PaymentModel.order_id == self.order_id,
+            PaymentModel.quotation_id.isnot(None),
+            PaymentModel.quotation_id != quotation.id,
+            PaymentModel.status != 'cancelled',
+        ).all()
+        for previous in stale:
+            previous.status = 'cancelled'
+            db.session.add(previous)
+
         platform_fee = float(os.getenv('PLATFORM_FEE'))
         commission_rate = 0
         referred = ReferredOrder.query.filter_by(order_id=self.order_id).first()
@@ -184,6 +213,7 @@ class Order:
 
         carrier_payment = PaymentModel(
             order_id = self.order_id,
+            quotation_id = quotation.id,
             amount = carrier_amount,
             lu_payment_type_id = payment_type_id('cash'),
             concept = 'carrier_cash',
@@ -195,6 +225,7 @@ class Order:
         if reservation_amount > 0:
             db.session.add(PaymentModel(
                 order_id = self.order_id,
+                quotation_id = quotation.id,
                 amount = reservation_amount,
                 lu_payment_type_id = payment_type_id('yape'),
                 concept = 'reservation',
@@ -205,5 +236,7 @@ class Order:
         db.session.commit()
 
         # Se devuelve la del transportista porque es la que siempre existe y la
-        # que el endpoint venía reportando como "el pago" de la orden.
-        return carrier_payment
+        # que el endpoint venía reportando como "el pago" de la orden. El bool
+        # dice si se agendó ahora: el endpoint solo manda correos cuando es
+        # cierto, y el modal solo dispara order_confirmed en ese caso.
+        return carrier_payment, True

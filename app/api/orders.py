@@ -188,30 +188,37 @@ def generate_checkout_cash(order_id):
     order_model = order_entity.query_orders({'id': order_id})
     quotation = order_model[0].quotations.filter_by(quotation_status_id = 2).first()
     carrier_company = quotation.carrier_company
-    payment = order_entity.create_order_payments()
-    carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
+    payment, created = order_entity.create_order_payments()
 
-    subject = '[Pago en efectivo] Orden {} '.format(order_id)
-    bcc = [os.getenv('OPS_MAIL')] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
+    # Los correos solo salen cuando la orden se agendó en esta llamada. Volver
+    # atrás desde el dashboard y confirmar de nuevo reenviaba ambos: el
+    # transportista recibía dos veces el mismo pedido y el cliente dos
+    # confirmaciones de la misma mudanza.
+    if created:
+        carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
 
-    send_email(
-        carrier_company.email,
-        subject,
-        'email/admin_new_order',
-        bcc=bcc,
-        carrier_company_orders_url=carrier_company_orders_url,
-    )
-    send_email(
-        customer.email,
-        'Hemos agendado tu mudanza!',
-        'email/cash_payment_selected',
-        bcc=[],
-        customer_name=customer.name,
-        mobile_phone=customer.mobile_phone,
-    )
+        subject = '[Pago en efectivo] Orden {} '.format(order_id)
+        bcc = [os.getenv('OPS_MAIL')] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
+
+        send_email(
+            carrier_company.email,
+            subject,
+            'email/admin_new_order',
+            bcc=bcc,
+            carrier_company_orders_url=carrier_company_orders_url,
+        )
+        send_email(
+            customer.email,
+            'Hemos agendado tu mudanza!',
+            'email/cash_payment_selected',
+            bcc=[],
+            customer_name=customer.name,
+            mobile_phone=customer.mobile_phone,
+        )
 
     return jsonify({
         'payment': payment.id,
+        'created': created,
     }), 200
 
 def send_email_to_carrier_companies(order_id, order_data):

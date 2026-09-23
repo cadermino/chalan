@@ -139,6 +139,10 @@ export default {
       error: null,
       yapeQrSrc: yapeQr,
       cashPaymentCreated: false,
+      // Si el checkout agendó la orden en esta llamada o si ya estaba agendada.
+      // Sobrevive a un reintento dentro del mismo montaje, porque en ese caso
+      // no se vuelve a llamar al endpoint y el dato ya no llegaría.
+      checkoutCreated: false,
       orderStatusId: {
         pending: 1,
         'in progress': 2,
@@ -156,6 +160,7 @@ export default {
         if (!oldVal || oldVal.id !== newVal.id) {
           this.error = null;
           this.cashPaymentCreated = false;
+          this.checkoutCreated = false;
         }
         if (!this.phone) {
           this.phone = this.customer.mobile_phone;
@@ -191,11 +196,12 @@ export default {
           token: this.customer.token,
         });
         if (!this.cashPaymentCreated) {
-          await chalan.checkoutCash({
+          const { data } = await chalan.checkoutCash({
             orderId: this.currentOrder.order_id,
             token: this.customer.token,
           });
           this.cashPaymentCreated = true;
+          this.checkoutCreated = !data || data.created !== false;
         }
         this.setCustomerData({ field: 'mobile_phone', value: phone });
         await chalan.updateCustomerProfile({
@@ -221,13 +227,18 @@ export default {
         // eso queda reservado para cuando entre Culqi y haya cobro real, para
         // no tener que reinterpretar el histórico. El guard cashPaymentCreated
         // ya evita el doble disparo si el usuario reintenta.
-        track('order_confirmed', {
-          order_id: this.currentOrder.order_id,
-          quotation_id: this.quotation.id,
-          value: this.quotation.total_amount,
-          currency: this.currency,
-          payment_method: 'cash',
-        });
+        // Solo si se agendó ahora. Volver desde el dashboard y confirmar otra
+        // vez la misma cotización llegaba hasta aquí y contaba una conversión
+        // por cada repetición.
+        if (this.checkoutCreated) {
+          track('order_confirmed', {
+            order_id: this.currentOrder.order_id,
+            quotation_id: this.quotation.id,
+            value: this.quotation.total_amount,
+            currency: this.currency,
+            payment_method: 'cash',
+          });
+        }
         this.setViewsMessages({
           view: 'dashboard',
           message: {
