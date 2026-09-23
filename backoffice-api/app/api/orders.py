@@ -538,6 +538,19 @@ def update_order(order_id):
         order.lead_phone = data['lead_phone']
     if 'loaders_quantity' in data:
         order.loaders_quantity = data['loaders_quantity']
+    if 'customer_id' in data:
+        # Se comprueba que exista antes de asignar. La FK lo rechazaría igual,
+        # pero como IntegrityError en el commit de más abajo: un 500 opaco,
+        # después de haber aplicado el resto de los campos. Mejor un 404 claro
+        # y sin escribir nada.
+        new_customer_id = data['customer_id']
+        if new_customer_id in (None, ''):
+            order.customer_id = None
+        else:
+            customer = db.session.get(Customer, new_customer_id)
+            if customer is None:
+                return jsonify({'message': 'customer not found'}), 404
+            order.customer_id = customer.id
 
     for addr_type, key in [('carry_from', 'origin'), ('deliver_to', 'destination')]:
         addr_data = data.get(key)

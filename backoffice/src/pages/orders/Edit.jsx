@@ -48,6 +48,92 @@ function AddressFields({ title, values, onChange }) {
   )
 }
 
+function CustomerPicker({ customerId, customerLabel, onPick }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  // Debounce: la búsqueda pega a la base con ILIKE sobre cuatro columnas y el
+  // admin escribe un nombre entero, no una letra.
+  useEffect(() => {
+    if (!open) return undefined
+    const term = query.trim()
+    if (term.length < 2) { setResults([]); return undefined }
+    const timer = setTimeout(() => {
+      setSearching(true)
+      client.get(`/api/customers?q=${encodeURIComponent(term)}`)
+        .then(({ data }) => setResults(data.customers.slice(0, 8)))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query, open])
+
+  return (
+    <div className="col-span-2">
+      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+        Cliente
+      </label>
+
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-gray-800">
+          {customerLabel || (customerId ? `Cliente #${customerId}` : 'Sin cliente asignado')}
+        </p>
+        <button
+          type="button"
+          onClick={() => { setOpen(!open); setQuery(''); setResults([]) }}
+          className="text-xs text-teal-600 hover:underline"
+        >
+          {open ? 'Cancelar' : 'Cambiar'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="mt-2">
+          <input
+            type="text"
+            value={query}
+            autoFocus
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar por nombre, email o teléfono"
+            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          {searching && <p className="text-xs text-gray-400 mt-2">Buscando...</p>}
+          {!searching && query.trim().length >= 2 && results.length === 0 && (
+            <p className="text-xs text-gray-400 mt-2">Sin resultados</p>
+          )}
+
+          {results.length > 0 && (
+            <ul className="mt-2 border border-gray-200 rounded-md divide-y divide-gray-100 max-h-60 overflow-y-auto">
+              {results.map(c => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onPick(c)
+                      setOpen(false)
+                      setQuery('')
+                      setResults([])
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50"
+                  >
+                    <span className="text-sm text-gray-800">{c.full_name || 'Sin nombre'}</span>
+                    <span className="block text-xs text-gray-400">
+                      {[c.email, c.mobile_phone].filter(Boolean).join(' · ')}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function OrderEdit() {
   const { orderId } = useParams()
   const navigate = useNavigate()
@@ -59,6 +145,9 @@ export default function OrderEdit() {
   const [uploadWarning, setUploadWarning] = useState(null)
   const [error, setError] = useState(null)
   const [deletingImageId, setDeletingImageId] = useState(null)
+  // Solo para mostrar: el detalle devuelve el nombre ya armado, y al elegir
+  // otro cliente se reemplaza sin tener que recargar la orden.
+  const [customerLabel, setCustomerLabel] = useState(null)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -67,7 +156,9 @@ export default function OrderEdit() {
         street: '', country: '', floor_number: '',
         approximate_distance_from_parking: '', map_url: '', has_elevator: false,
       }
+      setCustomerLabel(o.customer_name || null)
       setForm({
+        customer_id: o.customer_id ?? null,
         appointment_date: o.appointment_date ? o.appointment_date.slice(0, 16) : '',
         order_status_id: o.order_status_id,
         approximate_budget: o.approximate_budget ?? '',
@@ -169,6 +260,14 @@ export default function OrderEdit() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-white rounded-xl shadow p-5 grid grid-cols-2 gap-4">
+          <CustomerPicker
+            customerId={form.customer_id}
+            customerLabel={customerLabel}
+            onPick={(c) => {
+              setForm(f => ({ ...f, customer_id: c.id }))
+              setCustomerLabel(c.full_name || c.email)
+            }}
+          />
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Estado</label>
             <select
