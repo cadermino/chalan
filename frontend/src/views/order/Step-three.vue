@@ -313,11 +313,18 @@ export default {
       this.showPaymentModal = false;
     },
     getQuotations() {
-      if (!this.quotationSelectionPending) {
-        // Solo el id, para que el botón ya diga "Seleccionado" mientras llega
-        // la lista; el objeto completo lo arma la reconciliación de abajo. Se
-        // reemplaza el objeto entero en vez de mutarle la propiedad: `id` no
-        // existe en el `{}` inicial, así que asignarla no sería reactiva.
+      // Solo el id, para que el botón ya diga "Seleccionado" mientras llega la
+      // lista; el objeto completo lo arma la reconciliación de abajo. Se
+      // reemplaza el objeto entero en vez de mutarle la propiedad: `id` no
+      // existe en el `{}` inicial, así que asignarla no sería reactiva.
+      //
+      // El guard de total_amount es lo que evita pisar una cotización que ya
+      // está completa. Sin él esto corría en cada tick del poll —cada 5s— y
+      // dejaba el objeto pelado durante todo el viaje de red: con el modal
+      // abierto, monto y QR desaparecían ~20ms y volvían, un parpadeo
+      // constante. Si la selección cambió en el servidor, la reconciliación
+      // de abajo la reemplaza igual.
+      if (!this.quotationSelectionPending && !this.selectedQuotation.total_amount) {
         this.selectedQuotation = { id: this.currentOrder.quotation_id || null };
       }
       const payload = {
