@@ -373,6 +373,44 @@ class Quotation(db.Model):
         }
 
 
+class Payment(db.Model):
+    """Espejo de `payments`, que administra el API principal.
+
+    Una fila por movimiento de plata desde la migración 016: 'reservation' es
+    el yapeo a Chalán y 'carrier_cash' el efectivo al transportista. Las filas
+    anteriores traen 'order_total' y guardan el bruto de la orden en una sola,
+    así que no se pueden mezclar con las nuevas en una suma.
+    """
+    __tablename__ = 'payments'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    lu_payment_type_id = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False, server_default='pending')
+    reference = db.Column(db.String(100))
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+    comments = db.Column(db.String(500))
+    active = db.Column(db.Integer)
+    concept = db.Column(db.String(20))
+    paid_at = db.Column(db.DateTime())
+    confirmed_by_admin_id = db.Column(db.Integer)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'amount': self.amount,
+            'order_id': self.order_id,
+            'concept': self.concept,
+            'status': self.status,
+            'reference': self.reference,
+            'created_date': _iso(self.created_date),
+            'paid_at': _iso(self.paid_at),
+            'confirmed_by_admin_id': self.confirmed_by_admin_id,
+        }
+
+
 class ReferredOrder(db.Model):
     __tablename__ = 'referred_orders'
 

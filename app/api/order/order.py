@@ -6,6 +6,7 @@ from ...models import OrderDetails as OrderDetailsModel
 from ...models import Order as OrderModel
 from ...models import OrdersServices as OrdersServicesModel
 from ...models import Payment as PaymentModel
+from ...models import PaymentType as PaymentTypeModel
 from ...models import Quotations as QuotationsModel
 from ...models import AdminUser, ReferredOrder
 from ...models import OrderSchema, \
@@ -16,6 +17,25 @@ from ...models import OrderSchema, \
     OrdersServicesSchema,\
     OrderImageSchema,\
     VehicleSchema
+
+_PAYMENT_TYPE_IDS = {}
+
+
+def payment_type_id(type_name):
+    """Resuelve el id de lu_payment_type por nombre.
+
+    Los ids salen de un SERIAL sembrado en db/init.sql, así que hardcodearlos
+    (como se hacía con el 2 de 'cash') los ata al orden de inserción. Revienta
+    a propósito si el tipo no existe: significa que falta correr la migración
+    que lo siembra, y crear el pago con un id inventado rompería la FK.
+    """
+    if type_name not in _PAYMENT_TYPE_IDS:
+        row = PaymentTypeModel.query.filter_by(type=type_name).first()
+        if row is None:
+            raise ValueError(f'lu_payment_type sin fila "{type_name}"')
+        _PAYMENT_TYPE_IDS[type_name] = row.id
+    return _PAYMENT_TYPE_IDS[type_name]
+
 
 class Order:
 
@@ -129,21 +149,28 @@ class Order:
             query = query.filter(getattr(OrderModel, attr) == value)
         return query.all()
 
-    def create_cash_payment(self):
+    def create_order_payments(self):
+        """Crea una fila por movimiento de plata de la orden.
+
+        Son dos, con destinatario y momento distintos: la reserva que el
+        cliente le yapea a Chalán (su comisión más la del agente si la orden
+        viene referida) y el efectivo que le entrega al transportista el día de
+        la mudanza. Juntas suman el total cotizado.
+
+        Las dos nacen 'pending'. La reserva es opcional — el modal no la exige
+        — y Yape personal no tiene webhook, así que se confirma a mano desde el
+        backoffice. Si el cliente nunca yapea, la fila se queda pendiente y el
+        transportista termina cobrando todo en efectivo, como antes.
+
+        OJO con el histórico: las filas anteriores a la migración 016 quedaron
+        marcadas 'order_total' y guardan el bruto de la orden en una sola fila.
+        Además arrastran tres eras distintas de `amount` separables solo por
+        created_date. Cualquier agregación por movimiento debe filtrar por
+        `concept` en vez de sumar la tabla entera.
+        """
         order = db.session.get(OrderModel, self.order_id)
         quotation = order.quotations.filter(QuotationsModel.quotation_status_id\
                                             == QuotationStatus.Selected()).first()
-        # quotation.amount es lo que cobra el transportista. El cliente paga eso
-        # más el fee de plataforma y, si la orden viene referida, la comisión
-        # del agente — es el número que ve en el paso tres y en el modal, y el
-        # que entrega en efectivo. Guardar el crudo dejaba la fila de pago por
-        # debajo de lo realmente cobrado.
-        #
-        # OJO: las filas anteriores al 2026-09-09 tienen el monto crudo. No se
-        # migraron a propósito: el PLATFORM_FEE y las comisiones por agente
-        # cambian con el tiempo, así que recalcular el histórico con los valores
-        # de hoy inventaría cifras en vez de corregirlas. Para separar unas de
-        # otras, usar created_date.
         platform_fee = float(os.getenv('PLATFORM_FEE'))
         commission_rate = 0
         referred = ReferredOrder.query.filter_by(order_id=self.order_id).first()
@@ -151,14 +178,32 @@ class Order:
             agent = db.session.get(AdminUser, referred.admin_user_id)
             commission_rate = agent.commission_rate
 
-        payment = PaymentModel(
+        carrier_amount = round(quotation.amount, 2)
+        total = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+        reservation_amount = round(total - carrier_amount, 2)
+
+        carrier_payment = PaymentModel(
             order_id = self.order_id,
-            amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2),
-            lu_payment_type_id = 2,
+            amount = carrier_amount,
+            lu_payment_type_id = payment_type_id('cash'),
+            concept = 'carrier_cash',
             status = 'pending',
             active = 1
         )
-        db.session.add(payment)
+        db.session.add(carrier_payment)
+
+        if reservation_amount > 0:
+            db.session.add(PaymentModel(
+                order_id = self.order_id,
+                amount = reservation_amount,
+                lu_payment_type_id = payment_type_id('yape'),
+                concept = 'reservation',
+                status = 'pending',
+                active = 1
+            ))
+
         db.session.commit()
 
-        return payment
+        # Se devuelve la del transportista porque es la que siempre existe y la
+        # que el endpoint venía reportando como "el pago" de la orden.
+        return carrier_payment

@@ -8,10 +8,94 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, OrderImage, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, OrderImage, AdminUser, Payment, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 QUOTATION_STATUS_SELECTED = 2
+
+
+def _financial_breakdown(order):
+    """Admin-only money split for an order.
+
+    Mirrors how the main API builds the customer price: the carrier's quotation
+    is stored raw and the agent commission + platform fee ride on top. Only the
+    platform fee is Chalán's own sale, so it's the only leg carrying IGV — the
+    agent bills it by recibo por honorarios (4ta categoría, sin IGV) and the
+    carrier collects its cash straight from the customer.
+
+    Returns None when no quotation has been picked yet: there is nothing to
+    split until then.
+    """
+    # Una orden puede tener varias cotizaciones, pero solo una en estado
+    # Seleccionada: pickQuotation() degrada la anterior a Activa antes de
+    # marcar la nueva. El order_by es defensivo — si ese invariante alguna vez
+    # se rompe, más vale tomar siempre la última de forma determinista que
+    # dejarlo al orden que devuelva la base.
+    quotation = Quotation.query.filter_by(
+        order_id=order.id, quotation_status_id=QUOTATION_STATUS_SELECTED
+    ).order_by(Quotation.id.desc()).first()
+    if quotation is None or quotation.amount is None:
+        return None
+
+    base = float(quotation.amount)
+    igv_rate = float(os.environ.get('IGV_RATE', 0.18))
+
+    agent_code = None
+    agent_commission = 0.0
+    referred = ReferredOrder.query.filter_by(order_id=order.id).first()
+    if referred:
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        if agent:
+            agent_code = agent.referral_code
+        # La comisión se congela al elegir la cotización. Se usa la guardada y
+        # no la tasa actual del agente: si se le renegoció el porcentaje, las
+        # órdenes viejas tienen que seguir mostrando lo que se le debe.
+        if referred.commission is not None:
+            agent_commission = float(referred.commission)
+        elif agent:
+            agent_commission = base * float(agent.commission_rate or 0)
+
+    # Se prefiere el total grabado al elegir: es lo que se le cotizó al cliente
+    # y lo que va a pagar. Derivar de ahí hace que el desglose siempre sume el
+    # total exacto, aunque PLATFORM_FEE haya cambiado después. Sin total
+    # grabado (cotización aún no elegida) se estima con la tasa de hoy.
+    current_fee = float(os.environ.get('PLATFORM_FEE', 0.1))
+    stored_total = float(order.total_amount) if order.total_amount else None
+    if stored_total is not None:
+        total = stored_total
+        platform_gross = total - base - agent_commission
+    else:
+        platform_gross = base * current_fee
+        total = base + agent_commission + platform_gross
+
+    # El IGV se deriva del neto ya redondeado, no del exacto: así neto + IGV
+    # siempre suma el bruto al céntimo y las filas del desglose cuadran con el
+    # total, que es como se va a emitir la boleta (base imponible + IGV).
+    platform_net = round(platform_gross / (1 + igv_rate), 2)
+    platform_igv = round(platform_gross - platform_net, 2)
+
+    return {
+        'carrier_amount': round(base, 2),
+        'agent_code': agent_code,
+        'agent_commission': round(agent_commission, 2),
+        'platform_gross': round(platform_gross, 2),
+        'platform_igv': platform_igv,
+        'platform_net': platform_net,
+        'igv_rate': igv_rate,
+        # Tasa que realmente se le aplicó a esta orden. Sirve para distinguir
+        # las cotizadas antes del cambio de PLATFORM_FEE de las de después.
+        'effective_fee_rate': round(platform_gross / base, 4) if base else None,
+        # Lo que se cobra por adelantado (Yape): todo lo que no es del
+        # transportista. Mismo número que muestra el modal del cliente.
+        'reservation_amount': round(agent_commission + platform_gross, 2),
+        'total_amount': round(total, 2),
+        'is_estimate': stored_total is None,
+        # Para señalar las órdenes cerradas con la tasa anterior, donde el IGV
+        # salió del margen en vez de trasladarse al cliente. No se re-cotiza
+        # nada: es solo referencia contra lo que costaría hoy.
+        'current_fee_rate': current_fee,
+        'total_at_current_rate': round(base + agent_commission + base * current_fee, 2),
+    }
 
 
 def _street_without_number(street):
@@ -418,6 +502,7 @@ def get_order(order_id):
             'lead_phone': order.lead_phone if is_admin else None,
             'services': services,
             'images': images,
+            'financials': _financial_breakdown(order) if is_admin else None,
         }
     }), 200
 
@@ -672,6 +757,57 @@ def accept_quotation(order_id, quotation_id):
         return jsonify({'message': message}), res.status_code if res.status_code in (404, 409) else 502
 
     return jsonify(res.json()), 200
+
+
+@api.route('/orders/<int:order_id>/payments', methods=['GET'])
+@login_required
+def list_order_payments(order_id):
+    """Movimientos de plata de la orden. Solo admin: el transportista no tiene
+    por qué ver cuánto se llevó Chalán ni el agente."""
+    if g.current_user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    payments = Payment.query.filter_by(order_id=order_id)\
+        .order_by(Payment.id.asc()).all()
+    return jsonify({'payments': [p.to_dict() for p in payments]}), 200
+
+
+@api.route('/orders/<int:order_id>/payments/<int:payment_id>', methods=['PATCH'])
+@login_required
+def update_order_payment(order_id, payment_id):
+    """Marca un movimiento como pagado o cancelado.
+
+    Existe porque Yape personal no tiene webhook: alguien ve el yapeo en su
+    celular y lo confirma a mano. Queda sellado quién y cuándo.
+    """
+    if g.current_user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    payment = Payment.query.filter_by(id=payment_id, order_id=order_id).first()
+    if payment is None:
+        return jsonify({'message': 'payment not found'}), 404
+
+    data = request.get_json() or {}
+    new_status = (data.get('status') or '').strip()
+    if new_status not in ('pending', 'paid', 'cancelled'):
+        return jsonify({'message': 'invalid status'}), 400
+
+    payment.status = new_status
+    if new_status == 'paid':
+        payment.paid_at = datetime.now(timezone.utc)
+        payment.confirmed_by_admin_id = g.current_user.id
+    else:
+        # Al revertir se borra el sello: dejarlo mentiría sobre una
+        # confirmación que ya no está vigente.
+        payment.paid_at = None
+        payment.confirmed_by_admin_id = None
+
+    reference = data.get('reference')
+    if reference is not None:
+        payment.reference = str(reference).strip()[:100] or None
+
+    db.session.commit()
+    return jsonify({'payment': payment.to_dict()}), 200
 
 
 @api.route('/referred-orders', methods=['GET'])

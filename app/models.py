@@ -162,10 +162,16 @@ class Payment(db.Model):
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	lu_payment_type_id = db.Column(db.Integer, db.ForeignKey('lu_payment_type.id'), nullable=False)
 	status = db.Column(db.Enum('pending', 'paid', 'cancelled', name='payment_status'), nullable=False, server_default='pending')
-	reference = db.Column(db.String(100), comment='Stripe session id')
+	reference = db.Column(db.String(100), comment='Nro. de operación Yape; en filas Stripe históricas, el session id')
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	comments = db.Column(db.String(500))
 	active = db.Column(db.Integer)
+	# Qué representa la fila: 'reservation' (yapeo a Chalán), 'carrier_cash'
+	# (efectivo al transportista) o 'order_total' para las filas anteriores a
+	# la migración 016, que guardaban el bruto de la orden en una sola fila.
+	concept = db.Column(db.String(20))
+	paid_at = db.Column(db.DateTime())
+	confirmed_by_admin_id = db.Column(db.Integer)
 
 class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'

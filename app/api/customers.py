@@ -63,9 +63,17 @@ def customer_orders(customer_id):
     except:
         amount = '-'
     try:
-        payment_status = order.payments.order_by(Payment.id.desc()).first().status
+        # El badge del dashboard habla del pago del servicio, no de la reserva:
+        # se apunta al movimiento del transportista. El fallback por id cubre
+        # las filas anteriores a la migración 016, que no tienen concept.
+        payment_status = order.payments.filter(
+            Payment.concept == 'carrier_cash'
+        ).order_by(Payment.id.desc()).first().status
     except:
-        payment_status = 'pending'
+        try:
+            payment_status = order.payments.order_by(Payment.id.desc()).first().status
+        except:
+            payment_status = 'pending'
     try:
         appointment_date = order.appointment_date.isoformat()
     except:

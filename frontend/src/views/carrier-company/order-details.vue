@@ -350,6 +350,7 @@
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import { mapMutations, mapState } from 'vuex';
+import { cashToCollect } from '@/utils/payments';
 import chalan from '../../api/chalan';
 
 export default {
@@ -414,7 +415,9 @@ export default {
       return this.orderData?.images || [];
     },
     amountFromDatabase() {
-      return this.payment[0]?.amount;
+      // Lo que el transportista cobra en efectivo, que ya no es la primera fila
+      // de pagos: desde la 016 hay una por movimiento. Ver utils/payments.js.
+      return cashToCollect(this.payment);
     },
     packagingService() {
       return this.services.filter(item => item.name === 'packaging').length === 0 ? 'No' : 'Sí';

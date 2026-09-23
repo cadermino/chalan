@@ -28,13 +28,13 @@
                   <td class="border px-4 py-2">{{ order.appointment_date |
                     moment("dddd D MMMM - h:mm A") }}</td>
                   <td class="border px-4 py-2">{{
-                    lastPayment(order.payments).amount.toLocaleString('en-US', {
+                    cashToCollect(order.payments).toLocaleString('en-US', {
                       style: 'currency',
                       currency: countryData.currency,
                       maximumSignificantDigits: 5,
                     }) }}
                   </td>
-                  <td class="border px-4 py-2">{{ paymentStatus[lastPayment(
+                  <td class="border px-4 py-2">{{ paymentStatus[servicePayment(
                             order.payments
                             ).status] }}</td>
                   <td class="border px-4 py-2 text-xs">
@@ -60,6 +60,7 @@ import { mapMutations } from 'vuex';
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '@/api/chalan';
+import { cashToCollect, servicePayment } from '@/utils/payments';
 
 export default {
   name: 'ordersByCarrierCompany',
@@ -90,9 +91,8 @@ export default {
       'setViewsMessages',
       'setLoader',
     ]),
-    lastPayment(payments) {
-      return payments[payments.length - 1];
-    },
+    cashToCollect,
+    servicePayment,
     getPendingOrders() {
       const payload = {
         token: this.token,

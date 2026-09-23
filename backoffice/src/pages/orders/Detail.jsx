@@ -12,6 +12,168 @@ function Field({ label, value }) {
   )
 }
 
+const money = (n) =>
+  `S/ ${Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+function MoneyRow({ label, value, indent, strong, muted }) {
+  return (
+    <div className="flex justify-between items-baseline py-1.5">
+      <span className={`text-sm ${indent ? 'pl-4 ' : ''}${muted ? 'text-gray-400' : 'text-gray-600'}`}>
+        {label}
+      </span>
+      <span className={`text-sm tabular-nums ${strong ? 'font-bold text-gray-900' : muted ? 'text-gray-400' : 'text-gray-700'}`}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function FinancialsCard({ f }) {
+  if (!f) return null
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <div className="flex items-baseline justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-700">Desglose</h3>
+        {f.effective_fee_rate != null && (
+          <span className="text-xs text-gray-400">
+            comisión {(f.effective_fee_rate * 100).toFixed(1)}%
+          </span>
+        )}
+      </div>
+
+      {f.is_estimate && (
+        <p className="text-xs text-amber-700 bg-amber-50 rounded p-2 mb-2">
+          Estimado con las tasas de hoy: el cliente todavía no elige cotización.
+        </p>
+      )}
+
+      {/* Órdenes cerradas antes de trasladar el IGV al cliente: el total
+          grabado manda, pero conviene ver cuánto margen se fue en impuesto. */}
+      {!f.is_estimate && f.current_fee_rate != null
+        && f.effective_fee_rate < f.current_fee_rate - 0.0001 && (
+        <p className="text-xs text-gray-500 bg-gray-50 rounded p-2 mb-2">
+          Cotizada al {(f.effective_fee_rate * 100).toFixed(1)}%, antes de trasladar el IGV al
+          cliente: Chalán asumió {money(f.platform_igv)}. Hoy, al{' '}
+          {(f.current_fee_rate * 100).toFixed(1)}%, el mismo servicio se cotizaría en{' '}
+          {money(f.total_at_current_rate)}.
+        </p>
+      )}
+
+      <div className="divide-y divide-gray-100">
+        <MoneyRow label="Transportista (efectivo)" value={money(f.carrier_amount)} />
+        {f.agent_commission > 0 && (
+          <MoneyRow
+            label={`Comisión agente${f.agent_code ? ` · ${f.agent_code}` : ''}`}
+            value={money(f.agent_commission)}
+          />
+        )}
+        {/* Comisión e IGV van al mismo nivel, no anidados: así las filas suman
+            el total y se leen igual que la boleta (base imponible + IGV). */}
+        <MoneyRow label="Comisión Chalán" value={money(f.platform_net)} strong />
+        <MoneyRow label={`IGV ${Math.round(f.igv_rate * 100)}%`} value={money(f.platform_igv)} muted />
+        <MoneyRow label="Total al cliente" value={money(f.total_amount)} strong />
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-gray-100">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+          A cobrar por adelantado
+        </p>
+        <p className="text-lg font-bold text-teal-600">{money(f.reservation_amount)}</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          Comisión + agente. El transportista cobra {money(f.carrier_amount)} en efectivo.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+const PAYMENT_CONCEPTS = {
+  reservation: 'Reserva (Yape a Chalán)',
+  carrier_cash: 'Efectivo al transportista',
+  order_total: 'Total de la orden (registro anterior)',
+}
+
+const PAYMENT_STATUSES = {
+  pending: { label: 'Pendiente', className: 'bg-amber-50 text-amber-700' },
+  paid: { label: 'Pagado', className: 'bg-teal-50 text-teal-700' },
+  cancelled: { label: 'Cancelado', className: 'bg-gray-100 text-gray-500' },
+}
+
+function PaymentsCard({ payments, onSetStatus, savingId }) {
+  if (!payments || payments.length === 0) return null
+
+  const total = payments
+    .filter((p) => p.status !== 'cancelled')
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Pagos</h3>
+
+      <div className="divide-y divide-gray-100">
+        {payments.map((p) => {
+          const status = PAYMENT_STATUSES[p.status] || PAYMENT_STATUSES.pending
+          const saving = savingId === p.id
+          return (
+            <div key={p.id} className="py-2.5">
+              <div className="flex justify-between items-baseline gap-3">
+                <span className="text-sm text-gray-600">
+                  {PAYMENT_CONCEPTS[p.concept] || p.concept || 'Sin concepto'}
+                </span>
+                <span className="text-sm font-bold text-gray-900 tabular-nums">
+                  {money(p.amount)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center gap-3 mt-1">
+                <span className={`text-xs px-2 py-0.5 rounded ${status.className}`}>
+                  {status.label}
+                </span>
+                <div className="flex gap-3">
+                  {p.status !== 'paid' && (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => onSetStatus(p.id, 'paid')}
+                      className="text-xs text-teal-600 hover:underline disabled:opacity-50"
+                    >
+                      {saving ? 'Guardando...' : 'Marcar como pagado'}
+                    </button>
+                  )}
+                  {p.status === 'paid' && (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => onSetStatus(p.id, 'pending')}
+                      className="text-xs text-gray-400 hover:underline disabled:opacity-50"
+                    >
+                      {saving ? 'Guardando...' : 'Revertir'}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {p.paid_at && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Confirmado el{' '}
+                  {new Date(p.paid_at).toLocaleString('es-PE', {
+                    dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima',
+                  })}
+                </p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-baseline">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+          Suma registrada
+        </span>
+        <span className="text-sm font-bold text-gray-900 tabular-nums">{money(total)}</span>
+      </div>
+    </div>
+  )
+}
+
 function AddressCard({ title, addr }) {
   if (!addr) return null
   const hasFullDetails = 'country' in addr
@@ -72,11 +234,19 @@ export default function OrderDetail() {
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
   const [reviewUrl, setReviewUrl] = useState(null)
+  const [payments, setPayments] = useState([])
+  const [savingPaymentId, setSavingPaymentId] = useState(null)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
       setOrder(data.order)
     }).finally(() => setLoading(false))
+
+    if (isAdmin) {
+      client.get(`/api/orders/${orderId}/payments`)
+        .then(({ data }) => setPayments(data.payments))
+        .catch(() => setPayments([]))
+    }
 
     if (isAdmin) {
       client.get(`/api/orders/${orderId}/quotation-links`).then(({ data }) => {
@@ -99,6 +269,15 @@ export default function OrderDetail() {
   const canComplete = isCarrier
     && order?.order_status_id === 2
     && order?.existing_quotation?.quotation_status_id === 2
+
+  function setPaymentStatus(paymentId, status) {
+    setSavingPaymentId(paymentId)
+    client.patch(`/api/orders/${orderId}/payments/${paymentId}`, { status })
+      .then(({ data }) => {
+        setPayments((prev) => prev.map((p) => (p.id === data.payment.id ? data.payment : p)))
+      })
+      .finally(() => setSavingPaymentId(null))
+  }
 
   function handleComplete() {
     setCompleting(true)
@@ -138,6 +317,20 @@ export default function OrderDetail() {
           {isAdmin && <Field label="Teléfono cliente" value={order.customer_phone || order.lead_phone} />}
           {isAdmin && <Field label="Monto total" value={order.total_amount ? `S/ ${order.total_amount}` : null} />}
         </div>
+
+        {/* Desglose de la plata — solo admin: el transportista no debe ver el
+            margen de Chalán ni el agente la comisión del otro. */}
+        {isAdmin && <FinancialsCard f={order.financials} />}
+
+        {/* Movimientos reales de plata, con la confirmación manual del yapeo:
+            Yape personal no tiene webhook, alguien lo verifica a mano. */}
+        {isAdmin && (
+          <PaymentsCard
+            payments={payments}
+            onSetStatus={setPaymentStatus}
+            savingId={savingPaymentId}
+          />
+        )}
 
         {/* Addresses */}
         <AddressCard title="Origen" addr={order.origin} />
