@@ -86,6 +86,15 @@
                 {{ cargoService }}
                 <span v-if="loadersQuantity">({{ loadersQuantity }})</span>
               </p>
+              <!-- El catálogo tiene cinco servicios y solo dos se piden en el
+                   flujo del cliente. Los demás llegan asignados desde el
+                   backoffice, y sin esta línea el transportista cotizaría sin
+                   saber que también hay que armar o desarmar muebles. -->
+              <p v-if="otherServices.length > 0">
+                <span class="font-bold
+                  mr-1">Otros servicios: </span>
+                {{ otherServices.join(', ') }}
+              </p>
               <p>
                 <span class="font-bold
                   mr-1">Presupuesto aproximado: </span>
@@ -498,6 +507,15 @@ export default {
         return 'No';
       }
       return this.services.filter(item => item.name === 'cargo').length === 0 ? 'No' : 'Sí';
+    },
+    otherServices() {
+      // Todo lo que no tiene su propia línea arriba. Se rotula con la
+      // descripción del catálogo, que ya está en español, y se cae al nombre
+      // solo si la orden viene de antes de que el API la mandara.
+      const withOwnLine = ['packaging', 'cargo'];
+      return (this.services || [])
+        .filter(item => !withOwnLine.includes(item.name))
+        .map(item => item.description || item.name);
     },
     distanceBetweenAddress() {
       if (!this.fromAddress || !this.toAddress) {

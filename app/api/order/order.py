@@ -86,8 +86,13 @@ class Order:
         payment_data = PaymentSchema(many=True).dump(order.payments)
         services = OrdersServicesSchema(many=True).dump(order.services)
         for service in services:
-            name = order.services.filter_by(id = service["id"]).first().service.service
-            service["name"] = name
+            # La descripción viaja junto al nombre para que las vistas del
+            # transportista puedan rotular servicios que no conocen de
+            # antemano: el catálogo tiene cinco y el flujo del cliente solo
+            # ofrece dos, así que los demás solo llegan por el backoffice.
+            catalog_row = order.services.filter_by(id = service["id"]).first().service
+            service["name"] = catalog_row.service
+            service["description"] = catalog_row.description
 
         order_data['order_status_id'] = order.order_status_id
         order_data['order_details'] = order_details_data
