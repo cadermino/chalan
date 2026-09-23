@@ -173,6 +173,7 @@
             :visible="showPaymentModal"
             :quotation="selectedQuotation"
             :currency="countryData.currency"
+            show-yape-qr
             @close="closePaymentModal" />
         </div>
       </div>
@@ -313,7 +314,11 @@ export default {
     },
     getQuotations() {
       if (!this.quotationSelectionPending) {
-        this.selectedQuotation.id = this.currentOrder.quotation_id || null;
+        // Solo el id, para que el botón ya diga "Seleccionado" mientras llega
+        // la lista; el objeto completo lo arma la reconciliación de abajo. Se
+        // reemplaza el objeto entero en vez de mutarle la propiedad: `id` no
+        // existe en el `{}` inicial, así que asignarla no sería reactiva.
+        this.selectedQuotation = { id: this.currentOrder.quotation_id || null };
       }
       const payload = {
         orderId: this.currentOrder.order_id,
@@ -327,9 +332,17 @@ export default {
           // under the modal. The list itself still refreshes either way, so
           // quotations from other carriers keep showing up.
           if (!this.quotationSelectionPending) {
+            // Hay que leerlo antes: unSelectQuotation pone en null todos los
+            // campos de cotización del store, `quotation_id` incluido.
+            const pickedId = this.currentOrder.quotation_id;
             this.unSelectQuotation();
             this.quotationsList.forEach((quotation) => {
-              if (quotation.selected) {
+              // `selected` solo se marca en el server al confirmar el pago, así
+              // que una cotización elegida pero aún sin confirmar (el usuario
+              // salió a "Ver más" y volvió) solo se reconoce por el id
+              // guardado. Sin esto selectedQuotation se queda en {id} pelado y
+              // el modal abre sin monto ni QR.
+              if (quotation.selected || quotation.id === pickedId) {
                 this.selectQuotation({ quotation, jumpToNextStep: false });
               }
             });
