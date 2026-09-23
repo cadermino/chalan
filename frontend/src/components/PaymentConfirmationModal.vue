@@ -30,8 +30,13 @@
     <p v-if="error" class="text-red-500 text-xs italic mb-3">
       {{ error }}
     </p>
-    <p class="text-sm text-gray-500 mb-4">
-      Por el momento el pago es en efectivo. Pago con tarjeta próximamente.
+    <!-- Solo si no se muestra la reserva: cuando el bloque de Yape está
+         visible este aviso lo contradice (anuncia efectivo junto a un medio
+         que no lo es) y además ese bloque ya dice que el resto va en efectivo
+         al transportista. Sin el bloque, en cambio, esta es la única señal de
+         cómo se paga y no puede faltar. -->
+    <p v-if="!yapeQrVisible" class="text-sm text-gray-500 mb-4">
+      El pago es en efectivo, directo al transportista.
     </p>
     <!-- Reserva opcional con Yape. Solo Perú y detrás de VUE_APP_YAPE_QR_ENABLED.
          No bloquea la confirmación: el servicio se sigue pagando en efectivo al
