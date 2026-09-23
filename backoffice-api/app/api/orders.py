@@ -8,7 +8,7 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, OrderImage, AdminUser, Payment, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 QUOTATION_STATUS_SELECTED = 2
@@ -507,6 +507,19 @@ def get_order(order_id):
     }), 200
 
 
+@api.route('/services', methods=['GET'])
+@login_required
+def list_services():
+    """Catálogo de servicios contratables. El formulario de edición lo pide en
+    vez de llevar los nombres escritos a mano, para que agregar una fila a
+    lu_services no exija tocar el frontend."""
+    services = LuService.query.order_by(LuService.id).all()
+    return jsonify({'services': [
+        {'id': s.id, 'name': s.service, 'description': s.description}
+        for s in services
+    ]}), 200
+
+
 @api.route('/orders/<int:order_id>', methods=['PUT'])
 @login_required
 def update_order(order_id):
@@ -552,6 +565,27 @@ def update_order(order_id):
                 return jsonify({'message': 'customer not found'}), 404
             order.customer_id = customer.id
 
+    if 'services' in data:
+        # Lista completa de nombres, no un delta: lo que llega es el estado
+        # final. Omitir la clave deja los servicios como estaban, igual que el
+        # resto de campos de este endpoint.
+        requested = data['services'] or []
+        if not isinstance(requested, list):
+            return jsonify({'message': 'services must be a list'}), 400
+
+        catalog = {s.service: s.id for s in LuService.query.all()}
+        unknown = [name for name in requested if name not in catalog]
+        if unknown:
+            return jsonify({'message': 'unknown services: ' + ', '.join(unknown)}), 400
+
+        wanted = {catalog[name] for name in requested}
+        current = OrdersService.query.filter_by(order_id=order_id).all()
+        for row in current:
+            if row.service_id not in wanted:
+                db.session.delete(row)
+        for service_id in wanted - {row.service_id for row in current}:
+            db.session.add(OrdersService(order_id=order_id, service_id=service_id))
+
     for addr_type, key in [('carry_from', 'origin'), ('deliver_to', 'destination')]:
         addr_data = data.get(key)
         if addr_data is None:
@@ -577,6 +611,8 @@ def update_order(order_id):
             **order.to_dict_full(),
             'origin': origin.to_dict_full() if origin else None,
             'destination': destination.to_dict_full() if destination else None,
+            'services': [s.to_dict() for s in
+                         OrdersService.query.filter_by(order_id=order_id).all()],
         }
     }), 200
 

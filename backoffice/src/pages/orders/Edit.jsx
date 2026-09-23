@@ -48,6 +48,30 @@ function AddressFields({ title, values, onChange }) {
   )
 }
 
+function ServicesFields({ catalog, selected, onToggle }) {
+  if (catalog.length === 0) return null
+  return (
+    <div className="col-span-2">
+      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+        Servicios
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        {catalog.map(s => (
+          <label key={s.name} className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={selected.includes(s.name)}
+              onChange={e => onToggle(s.name, e.target.checked)}
+              className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+            />
+            {s.description || s.name}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function CustomerPicker({ customerId, customerLabel, onPick }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -148,6 +172,7 @@ export default function OrderEdit() {
   // Solo para mostrar: el detalle devuelve el nombre ya armado, y al elegir
   // otro cliente se reemplaza sin tener que recargar la orden.
   const [customerLabel, setCustomerLabel] = useState(null)
+  const [serviceCatalog, setServiceCatalog] = useState([])
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -159,6 +184,7 @@ export default function OrderEdit() {
       setCustomerLabel(o.customer_name || null)
       setForm({
         customer_id: o.customer_id ?? null,
+        services: (o.services || []).map(s => s.name).filter(Boolean),
         appointment_date: o.appointment_date ? o.appointment_date.slice(0, 16) : '',
         order_status_id: o.order_status_id,
         approximate_budget: o.approximate_budget ?? '',
@@ -171,6 +197,10 @@ export default function OrderEdit() {
       })
       setExistingImages(o.images || [])
     }).finally(() => setLoading(false))
+
+    client.get('/api/services')
+      .then(({ data }) => setServiceCatalog(data.services))
+      .catch(() => setServiceCatalog([]))
   }, [orderId])
 
   // Revoke object URLs on unmount / when the selection changes, so previews
@@ -267,6 +297,16 @@ export default function OrderEdit() {
               setForm(f => ({ ...f, customer_id: c.id }))
               setCustomerLabel(c.full_name || c.email)
             }}
+          />
+          <ServicesFields
+            catalog={serviceCatalog}
+            selected={form.services}
+            onToggle={(name, checked) => setForm(f => ({
+              ...f,
+              services: checked
+                ? [...f.services, name]
+                : f.services.filter(s => s !== name),
+            }))}
           />
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Estado</label>
