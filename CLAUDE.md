@@ -142,13 +142,18 @@ Real estate agents refer customers to Chalán via a referral link and earn commi
 3. Vue `App.vue` and Next.js `ReferralCapture.tsx` capture `?ref=` param → save to `chalan_ref` cookie (30-day TTL)
 4. Customer creates order → Vue `Step-one.vue` reads cookie and sends `referral_code` in the create order payload
 5. Main API `app/api/orders.py` looks up agent by `referral_code` → creates `referred_orders` record
-6. When carrier submits quotation (`app/api/quotations.py`), if order is referred, agent's `commission_rate` is added to the price before `PLATFORM_FEE`
-7. When customer picks a quotation, commission is calculated and stored in `referred_orders.commission`
+6. Carrier submits a quotation (`app/api/quotations.py`) — stored **raw**, exactly as the carrier typed it. Neither the fee nor the commission is written into it
+7. When the customer lists quotations, `commission_rate` + `PLATFORM_FEE` are applied on top to produce the `total_amount` shown. On picking one, that total is persisted to `orders.total_amount` and the commission is stored in `referred_orders.commission`
 
-### Commission Calculation (in `app/api/quotations.py`)
-- **create_quotation**: `amount = base + (base * agent.commission_rate) + (base * PLATFORM_FEE)` — agent commission baked into price
-- **pick_quotation**: `base = quotation.amount / (1 + commission_rate + PLATFORM_FEE)` → `commission = base * commission_rate` — stored in `referred_orders.commission`
-- Commission balance is calculated on-the-fly by summing `referred_orders.commission` for orders NOT in completed (3) or cancelled (4) status
+### Commission Calculation
+
+**`quotations.amount` always holds the carrier's raw price.** Neither `PLATFORM_FEE` nor the agent commission is ever written into it — both are applied on top, from the same formula, at display time and at pick time. Don't divide a stored amount to "back out" the fee; there is nothing baked in to remove.
+
+- **create_quotation** (`app/api/quotations.py`): stores the carrier's price as-is. No fee, no commission.
+- **Display** (`app/api/quotation/quotation.py`, `toJson`): `total_amount = round(amount * (1 + commission_rate + PLATFORM_FEE), 2)`. The response carries **both** `amount` (raw) and `total_amount`, so `total_amount - amount` is exactly what the customer owes Chalán — use that instead of recomputing the fee client-side.
+- **pick_quotation** → `_accept_quotation` (`app/api/quotations.py`): persists the same formula into `orders.total_amount`, and stores `referred_orders.commission = quotation.amount * commission_rate` — a straight percentage of the raw amount, no division.
+- `commission_rate` is `0` unless the order has a `referred_orders` row. So a non-referred order with a carrier price of 100 and `PLATFORM_FEE=0.1` shows a total of 110; the same order referred by an agent at 5% shows 115.
+- Commission balance is calculated on-the-fly by summing `referred_orders.commission` for orders NOT in completed (3) or cancelled (4) status (`backoffice-api/app/api/orders.py`)
 
 ### Key Tables
 - `admin_users.referral_code` — unique code per agent (e.g., `AGT-X7K2`)
