@@ -301,12 +301,19 @@ export default function OrderEdit() {
           <ServicesFields
             catalog={serviceCatalog}
             selected={form.services}
-            onToggle={(name, checked) => setForm(f => ({
-              ...f,
-              services: checked
+            onToggle={(name, checked) => setForm((f) => {
+              const services = checked
                 ? [...f.services, name]
-                : f.services.filter(s => s !== name),
-            }))}
+                : f.services.filter(s => s !== name)
+              if (name !== 'cargo') return { ...f, services }
+              // Misma conducta que Step-two en el flujo del cliente: marcar
+              // cargadores propone 1 si no hay cantidad, desmarcar la limpia.
+              return {
+                ...f,
+                services,
+                loaders_quantity: checked ? (f.loaders_quantity || 1) : '',
+              }
+            })}
           />
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Estado</label>
@@ -361,14 +368,22 @@ export default function OrderEdit() {
             />
           </div>
 
+          {/* Solo tiene sentido con el servicio de carga marcado. El backend
+              lo corrige igual, pero verlo desaparecer al desmarcar evita que
+              el admin escriba una cantidad que se va a descartar. */}
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Cantidad de cargadores</label>
             <input
               type="number"
+              min="1"
+              disabled={!form.services.includes('cargo')}
               value={form.loaders_quantity}
               onChange={e => setForm(f => ({ ...f, loaders_quantity: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:text-gray-400"
             />
+            {!form.services.includes('cargo') && (
+              <p className="text-xs text-gray-400 mt-1">Marca &quot;Servicio de carga&quot; para indicar cuántos.</p>
+            )}
           </div>
 
           <div className="col-span-2">

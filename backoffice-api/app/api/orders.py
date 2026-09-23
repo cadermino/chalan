@@ -565,6 +565,7 @@ def update_order(order_id):
                 return jsonify({'message': 'customer not found'}), 404
             order.customer_id = customer.id
 
+    final_service_names = None
     if 'services' in data:
         # Lista completa de nombres, no un delta: lo que llega es el estado
         # final. Omitir la clave deja los servicios como estaban, igual que el
@@ -585,6 +586,28 @@ def update_order(order_id):
                 db.session.delete(row)
         for service_id in wanted - {row.service_id for row in current}:
             db.session.add(OrdersService(order_id=order_id, service_id=service_id))
+        final_service_names = set(requested)
+
+    # `cargo` y `loaders_quantity` describen el mismo servicio desde dos lados y
+    # tienen que cuadrar. Se corrige en vez de rechazar: 180 órdenes traen cargo
+    # sin cantidad por ser anteriores a la migración 014, y un 400 dejaría esas
+    # órdenes imposibles de editar. Es además lo que ya hace el flujo del
+    # cliente en Step-two al marcar o desmarcar la casilla.
+    #
+    # Solo si la petición menciona alguno de los dos: sin esta guarda, editar
+    # únicamente los comentarios de una orden histórica le inventaría un
+    # cargador.
+    if 'services' in data or 'loaders_quantity' in data:
+        if final_service_names is None:
+            final_service_names = {
+                row.service.service
+                for row in OrdersService.query.filter_by(order_id=order_id).all()
+                if row.service
+            }
+        if 'cargo' not in final_service_names:
+            order.loaders_quantity = None
+        elif not order.loaders_quantity:
+            order.loaders_quantity = 1
 
     for addr_type, key in [('carry_from', 'origin'), ('deliver_to', 'destination')]:
         addr_data = data.get(key)
