@@ -172,6 +172,11 @@ class Payment(db.Model):
 	concept = db.Column(db.String(20))
 	paid_at = db.Column(db.DateTime())
 	confirmed_by_admin_id = db.Column(db.Integer)
+	# La cotización que originó el movimiento. Es lo que hace idempotente al
+	# checkout: si ya hay filas para esta cotización, no se crean otras ni se
+	# reenvían los correos. NULL en las filas 'order_total', anteriores al
+	# split por movimiento.
+	quotation_id = db.Column(db.Integer)
 
 class PaymentType(db.Model):
 	__tablename__ = 'lu_payment_type'

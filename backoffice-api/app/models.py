@@ -396,12 +396,14 @@ class Payment(db.Model):
     concept = db.Column(db.String(20))
     paid_at = db.Column(db.DateTime())
     confirmed_by_admin_id = db.Column(db.Integer)
+    quotation_id = db.Column(db.Integer)
 
     def to_dict(self):
         return {
             'id': self.id,
             'amount': self.amount,
             'order_id': self.order_id,
+            'quotation_id': self.quotation_id,
             'concept': self.concept,
             'status': self.status,
             'reference': self.reference,
