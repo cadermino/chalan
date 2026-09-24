@@ -72,7 +72,13 @@ export default function UsersList() {
                     {u.role}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-500">{u.carrier_company_id ?? '—'}</td>
+                <td className="px-4 py-3 text-gray-500">
+                  {u.carrier_company_id ? (
+                    <Link to={`/carrier-companies/${u.carrier_company_id}/edit`} className="text-teal-600 hover:underline">
+                      {u.carrier_company_name || `#${u.carrier_company_id}`}
+                    </Link>
+                  ) : '—'}
+                </td>
                 <td className="px-4 py-3">
                   {u.active
                     ? <span className="text-green-600 font-medium">Activo</span>

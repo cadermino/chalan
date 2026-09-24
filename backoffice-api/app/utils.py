@@ -4,7 +4,24 @@ from .models import CarrierCompany, Vehicle
 from . import db
 
 
-def create_blank_company_and_vehicle(email='', phone=''):
+# CarrierCompany.name es String(45); un nombre más largo reventaría el insert.
+_COMPANY_NAME_MAX = 45
+_DEFAULT_COMPANY_NAME = 'Nueva empresa'
+
+
+def _company_name_from(person_name):
+    """Nombre inicial de la empresa: el de quien la registra.
+
+    Antes todas nacían como "Nueva empresa" y en la lista del backoffice las
+    altas de la landing quedaban indistinguibles entre sí. Es un nombre
+    provisional igual — el transportista lo cambia por el de su empresa al
+    completar su perfil — pero mientras tanto se sabe de quién es cada una.
+    """
+    name = ' '.join((person_name or '').split())
+    return name[:_COMPANY_NAME_MAX] if name else _DEFAULT_COMPANY_NAME
+
+
+def create_blank_company_and_vehicle(email='', phone='', person_name=''):
     """Create a blank CarrierCompany + one blank Vehicle. Returns the company.
     Caller is responsible for committing the session.
 
@@ -15,7 +32,8 @@ def create_blank_company_and_vehicle(email='', phone=''):
     """
     country_id = os.getenv('COUNTRY_ID')
     company = CarrierCompany(
-        name='Nueva empresa', rfc='', email=email, phone=phone, address='', active=0,
+        name=_company_name_from(person_name), rfc='', email=email, phone=phone,
+        address='', active=0,
         country_id=int(country_id) if country_id else None,
     )
     db.session.add(company)
