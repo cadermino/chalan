@@ -627,15 +627,28 @@ export default {
         .createQuotation(payload)
         .then((response) => {
           if (response.status >= 200) {
-            this.quotations.push({
-              amount: response.data.amount,
-              carrier_company_id: this.carrierCompanyId,
-              quotation_status_id: response.data.quotation_status_id,
-            });
+            // Si esta empresa ya tenía cotización viva se reemplaza la que
+            // está en pantalla; un push dejaría la vieja y la nueva juntas,
+            // mostrando dos precios para el mismo transportista.
+            const existing = this.quotations
+              .find(quotation => quotation.carrier_company_id === this.carrierCompanyId
+                && quotation.quotation_status_id !== this.quotationStatus.cancelled);
+            if (existing) {
+              existing.amount = response.data.amount;
+              existing.quotation_status_id = response.data.quotation_status_id;
+            } else {
+              this.quotations.push({
+                amount: response.data.amount,
+                carrier_company_id: this.carrierCompanyId,
+                quotation_status_id: response.data.quotation_status_id,
+              });
+            }
             this.setViewsMessages({
               view: this.viewName,
               message: {
-                text: 'Cotización enviada exitosamente',
+                text: existing
+                  ? 'Cotización actualizada exitosamente'
+                  : 'Cotización enviada exitosamente',
                 type: 'success',
               },
             });
@@ -648,6 +661,10 @@ export default {
             message = 'El token es inválido';
           } else if (error.response && error.response.status === 401) {
             message = 'Proporciona un token por favor';
+          } else if (error.response && error.response.status === 409) {
+            // El cliente ya aceptó esta cotización y su precio quedó cerrado.
+            message = 'El cliente ya aceptó tu cotización, por eso no se puede '
+              + 'cambiar el monto. Escríbenos si necesitas ajustarlo.';
           } else {
             message = 'Hubo un error, intenta después de recargar la página';
           }
