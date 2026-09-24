@@ -173,6 +173,10 @@ export default function OrderEdit() {
   // otro cliente se reemplaza sin tener que recargar la orden.
   const [customerLabel, setCustomerLabel] = useState(null)
   const [serviceCatalog, setServiceCatalog] = useState([])
+  // Cotizaciones vigentes de la orden. Se cargan solo para poder decir cuántas
+  // se van a cancelar: un checkbox sin ese número se marca a ciegas.
+  const [liveQuotations, setLiveQuotations] = useState([])
+  const [cancelQuotations, setCancelQuotations] = useState(false)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -197,6 +201,12 @@ export default function OrderEdit() {
       })
       setExistingImages(o.images || [])
     }).finally(() => setLoading(false))
+
+    client.get(`/api/orders/${orderId}/quotations`)
+      .then(({ data }) => setLiveQuotations(
+        (data.quotations || []).filter(q => q.quotation_status_id === 1)
+      ))
+      .catch(() => setLiveQuotations([]))
 
     client.get('/api/services')
       .then(({ data }) => setServiceCatalog(data.services))
@@ -237,15 +247,18 @@ export default function OrderEdit() {
     setSaving(true)
     setError(null)
     setUploadWarning(null)
+    let cancelledCount = 0
     try {
-      await client.put(`/api/orders/${orderId}`, {
+      const { data } = await client.put(`/api/orders/${orderId}`, {
         ...form,
+        cancel_quotations: cancelQuotations,
         appointment_date: form.appointment_date || null,
         approximate_budget: form.approximate_budget === '' ? null : Number(form.approximate_budget),
         total_kilometers: form.total_kilometers === '' ? null : Number(form.total_kilometers),
         lead_phone: form.lead_phone === '' ? null : form.lead_phone,
         loaders_quantity: form.loaders_quantity === '' ? null : Number(form.loaders_quantity),
       })
+      cancelledCount = data?.cancelled_quotations || 0
     } catch (err) {
       setError(err.response?.data?.message || 'Error al guardar')
       setSaving(false)
@@ -275,7 +288,11 @@ export default function OrderEdit() {
       )
       return
     }
-    navigate(`/orders/${orderId}`)
+    navigate(`/orders/${orderId}`, {
+      state: cancelledCount > 0
+        ? { message: `Se cancelaron ${cancelledCount} cotización(es). Envía el enlace de cotización a las empresas para que coticen de nuevo.` }
+        : undefined,
+    })
   }
 
   if (loading) return <p className="text-gray-500 p-8">Cargando...</p>
@@ -478,6 +495,29 @@ export default function OrderEdit() {
               Ver orden →
             </Link>
           </div>
+        )}
+
+        {/* Solo aparece si hay algo que cancelar. Una orden sin cotizaciones
+            vigentes no necesita la opción, y mostrarla apagada solo agrega
+            ruido al formulario. */}
+        {liveQuotations.length > 0 && (
+          <label className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              checked={cancelQuotations}
+              onChange={e => setCancelQuotations(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Cancelar las {liveQuotations.length} cotización(es) vigente(s)
+              <span className="block text-xs text-amber-700 mt-0.5">
+                Márcalo si cambió lo que hay que mudar: los precios actuales se
+                hicieron sobre la mudanza anterior. Las empresas tendrán que
+                cotizar de nuevo con el enlace. No afecta a una cotización que
+                el cliente ya haya aceptado.
+              </span>
+            </span>
+          </label>
         )}
 
         <div className="flex gap-3 justify-end">

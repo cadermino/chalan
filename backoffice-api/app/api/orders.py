@@ -11,7 +11,9 @@ from .decorators import login_required
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
+QUOTATION_STATUS_ACTIVE = 1
 QUOTATION_STATUS_SELECTED = 2
+QUOTATION_STATUS_CANCELLED = 3
 
 
 def _financial_breakdown(order):
@@ -754,6 +756,21 @@ def update_order(order_id):
         if 'has_elevator' in addr_data:
             detail.has_elevator = int(bool(addr_data['has_elevator']))
 
+    # Cancelar las cotizaciones vigentes al editar es opcional y explícito: si
+    # cambió lo que hay que mudar, los precios viejos quedaron sobre otra
+    # mudanza, pero si el cambio fue un teléfono o un comentario no hay por qué
+    # hacer recotizar a nadie. Lo decide quien edita, con el checkbox del
+    # formulario, en vez de adivinarlo acá.
+    cancelled_quotations = 0
+    if data.get('cancel_quotations'):
+        # La seleccionada no se toca: el cliente ya la aceptó y su total quedó
+        # congelado en orders.total_amount. Cancelarla dejaría a la orden con
+        # un total que no corresponde a ninguna cotización viva.
+        cancelled_quotations = Quotation.query.filter(
+            Quotation.order_id == order_id,
+            Quotation.quotation_status_id == QUOTATION_STATUS_ACTIVE,
+        ).update({'quotation_status_id': QUOTATION_STATUS_CANCELLED})
+
     db.session.commit()
 
     details = list(order.order_details)
@@ -761,6 +778,7 @@ def update_order(order_id):
     destination = next((d for d in details if d.type == 'deliver_to'), None)
 
     return jsonify({
+        'cancelled_quotations': cancelled_quotations,
         'order': {
             **order.to_dict_full(),
             'origin': origin.to_dict_full() if origin else None,
