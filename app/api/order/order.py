@@ -102,10 +102,14 @@ class Order:
         order_data['images'] = OrderImageSchema(many=True).dump(order.images)
         return order_data
 
-    def update(self, request):
+    def update(self, request, customer_id=None):
         order = db.session.get(OrderModel, self.order_id)
 
-        order.customer_id = request['customer']['customer_id']
+        # customer_id llega ya validado contra el token por la ruta; el
+        # `customer` del cuerpo no se mira, porque cualquiera puede escribir
+        # ahí el id que quiera.
+        if customer_id is not None:
+            order.customer_id = customer_id
         order.appointment_date = request['order']['appointment_date']
         order.comments = request['order']['comments']
         if request['order'].get('order_status_id') is not None:

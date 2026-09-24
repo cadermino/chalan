@@ -5,9 +5,11 @@ from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
 from .order import Order as OrderEntity
 from .order.order_status import OrderStatus
-from .decorators import token_required, carrier_company_token_required
+from .decorators import (token_required, carrier_company_token_required,
+                         authenticated_customer, is_internal_request)
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from ..models import Customer, ReferredOrder, AdminUser
+from ..models import Quotations as QuotationsModel, Order as OrderModel
 from .email import send_email
 from .whatsapp import send_whatsapp
 from .. import db
@@ -51,7 +53,18 @@ def get_quotations(order_id):
 @token_required
 def pick_quotation(quotation_id):
     auth_headers = request.headers.get('Authorization', '').split()
-    Customer.verify_auth_token(auth_headers[1])
+    customer = Customer.verify_auth_token(auth_headers[1])
+
+    # El token bastaba: se verificaba y se tiraba el resultado, así que
+    # cualquier cliente con sesión podía elegir la cotización de la orden de
+    # otro, adjudicándole un transportista y un precio.
+    quotation = db.session.get(QuotationsModel, quotation_id)
+    if quotation is None:
+        return jsonify({'message': 'quotation not found'}), 404
+    order = db.session.get(OrderModel, quotation.order_id)
+    if customer is None or order is None or order.customer_id != customer.id:
+        return jsonify({'message': 'forbidden'}), 403
+
     _accept_quotation(quotation_id)
 
     return jsonify({
@@ -63,12 +76,20 @@ def pick_quotation(quotation_id):
 def admin_accept_quotation(order_id, quotation_id):
     """Accepts a quotation on a customer's behalf - for the backoffice, when
     an admin needs to do this because the customer arranged it directly with
-    the carrier instead of picking it themselves in the site. There's no
-    customer impersonation, so this is unauthenticated like the other
-    backoffice-proxied endpoints (POST /order, PUT /order/<id>) - reachable
-    only over the internal Docker network via INTERNAL_API_URL, not exposed
-    to the public otherwise."""
-    from ..models import Quotations as QuotationsModel, Order as OrderModel
+    the carrier instead of picking it themselves in the site.
+
+    Antes no pedía nada, con el argumento de que solo se llegaba por la red
+    interna de Docker. Era falso: `location /api` del nginx publica toda esta
+    API, así que cualquiera podía adjudicarle una orden al transportista que
+    quisiera. Ahora hace falta el token interno que firma el backoffice-api
+    (que ya validó el rol de quien pidió la acción) o el del propio cliente
+    dueño de la orden.
+    """
+    if not is_internal_request():
+        customer = authenticated_customer()
+        order_owner = db.session.get(OrderModel, order_id)
+        if customer is None or order_owner is None or order_owner.customer_id != customer.id:
+            return jsonify({'message': 'forbidden'}), 403
     quotation = QuotationsModel.query.filter_by(id=quotation_id, order_id=order_id).first()
     if quotation is None:
         return jsonify({'message': 'quotation not found'}), 404
