@@ -7,6 +7,23 @@ const STATUS_LABEL = { 1: 'Activa', 2: 'Seleccionada', 3: 'Cancelada' }
 
 const fmt = (n) => n != null ? `S/ ${Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : '—'
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  )
+}
+
+function BanIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.6 5.6 12.8 12.8" />
+    </svg>
+  )
+}
+
 function PencilIcon() {
   return (
     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -27,6 +44,11 @@ export default function OrderQuotations() {
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [acceptingId, setAcceptingId] = useState(null)
+  const [cancelingId, setCancelingId] = useState(null)
+  // Cancelar no se puede deshacer desde acá, así que pide un segundo clic en
+  // vez de un confirm() del navegador, que corta la página entera.
+  const [confirmCancelId, setConfirmCancelId] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}/quotations`)
@@ -65,6 +87,20 @@ export default function OrderQuotations() {
       .finally(() => setSaving(false))
   }
 
+  function cancelQuotation(quotationId) {
+    setCancelingId(quotationId)
+    setError(null)
+    client.patch(`/api/orders/${orderId}/quotations/${quotationId}/cancel`)
+      .then(({ data }) => {
+        setQuotations(prev => prev.map(q =>
+          q.id === quotationId ? { ...q, quotation_status_id: data.quotation_status_id } : q
+        ))
+        setConfirmCancelId(null)
+      })
+      .catch(err => setError(err.response?.data?.message || 'No se pudo cancelar la cotización'))
+      .finally(() => setCancelingId(null))
+  }
+
   function acceptQuotation(quotationId) {
     setAcceptingId(quotationId)
     client.patch(`/api/orders/${orderId}/quotations/${quotationId}/accept`)
@@ -87,6 +123,13 @@ export default function OrderQuotations() {
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">Cotizaciones</h1>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-800 flex justify-between items-start gap-4">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800 text-xs shrink-0">Cerrar</button>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="overflow-x-auto">
@@ -172,13 +215,47 @@ export default function OrderQuotations() {
                   {isAdmin && (
                     <td className="px-4 py-3">
                       {orderStatusId === 1 && q.quotation_status_id === 1 && (
-                        <button
-                          onClick={() => acceptQuotation(q.id)}
-                          disabled={acceptingId === q.id}
-                          className="text-xs px-3 py-1.5 rounded-lg border border-teal-600 text-teal-600 hover:bg-teal-50 disabled:opacity-50"
-                        >
-                          {acceptingId === q.id ? 'Aceptando...' : 'Aceptar'}
-                        </button>
+                        confirmCancelId === q.id ? (
+                          // Segundo paso: el texto dice qué va a pasar, porque
+                          // acá un ícono solo sería ambiguo entre confirmar y
+                          // desistir.
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-500">¿Cancelar?</span>
+                            <button
+                              onClick={() => cancelQuotation(q.id)}
+                              disabled={cancelingId === q.id}
+                              className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                            >
+                              {cancelingId === q.id ? 'Cancelando...' : 'Sí'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmCancelId(null)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => acceptQuotation(q.id)}
+                              disabled={acceptingId === q.id}
+                              title="Aceptar esta cotización a nombre del cliente"
+                              aria-label="Aceptar esta cotización a nombre del cliente"
+                              className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50 disabled:opacity-50"
+                            >
+                              <CheckIcon />
+                            </button>
+                            <button
+                              onClick={() => { setError(null); setConfirmCancelId(q.id) }}
+                              title="Cancelar esta cotización: deja de estar disponible para el cliente"
+                              aria-label="Cancelar esta cotización"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <BanIcon />
+                            </button>
+                          </div>
+                        )
                       )}
                     </td>
                   )}
