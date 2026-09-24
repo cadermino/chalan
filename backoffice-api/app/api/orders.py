@@ -177,6 +177,63 @@ def _generate_review_token(order_id, customer_id, carrier_company_id):
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
 
+def _customer_clauses(clauses):
+    """Envuelve condiciones sobre `customers` en una subconsulta por id.
+
+    Subconsulta en vez de join para no duplicar filas ni alterar el count() de
+    la paginación.
+    """
+    if not clauses:
+        return []
+    return [Order.customer_id.in_(
+        db.session.query(Customer.id).filter(db.or_(*clauses))
+    )]
+
+
+def _order_search_filter(search, include_customer):
+    """Arma el OR de búsqueda de la lista de órdenes.
+
+    Un término de solo dígitos es un número de orden o un teléfono, nunca un
+    nombre, así que no se compara contra nombre ni email: buscar "3" tiene que
+    traer la orden #3, no las 174 filas cuyo email contiene un 3. Se acepta con
+    o sin `#`. El teléfono entra solo desde 4 dígitos, por lo mismo: como
+    fragmento, "3" calza con casi toda la tabla.
+
+    El nombre se compara sobre la concatenación de los tres campos, no columna
+    por columna, para que "Juan Pérez" encuentre al cliente igual que "Juan".
+    """
+    like = f'%{search}%'
+    clauses = []
+    phone_clauses = []
+    if include_customer:
+        phone_clauses = [Customer.mobile_phone.ilike(like), Customer.phone.ilike(like)]
+
+    digits = search.lstrip('#').strip()
+    if digits.isdigit():
+        # El tope de dígitos no es cosmético: un número más largo que un int32
+        # desborda la columna y Postgres aborta la consulta entera.
+        if len(digits) <= 9:
+            clauses.append(Order.id == int(digits))
+        if len(digits) >= 4:
+            clauses += _customer_clauses(phone_clauses)
+            # Órdenes tomadas por teléfono, que todavía no tienen cliente.
+            if include_customer:
+                clauses.append(Order.lead_phone.ilike(like))
+    elif include_customer:
+        clauses += _customer_clauses([
+            db.func.concat(
+                Customer.name, ' ', Customer.paternal_last_name,
+                ' ', Customer.maternal_last_name,
+            ).ilike(like),
+            Customer.email.ilike(like),
+            *phone_clauses,
+        ])
+
+    # Sin ninguna cláusula aplicable (un transportista buscando por nombre, que
+    # no tiene permitido) se devuelve vacío, nunca la lista completa.
+    return db.or_(*clauses) if clauses else db.false()
+
+
 @api.route('/orders/pending', methods=['GET'])
 @login_required
 def list_pending_orders():
@@ -208,6 +265,14 @@ def list_pending_orders():
     query = Order.query
     if status_filter is not None:
         query = query.filter(Order.order_status_id.in_(status_filter))
+
+    # El transportista no ve nombre ni teléfono del cliente en esta lista, así
+    # que tampoco puede buscar por ellos: solo por número de orden.
+    search = request.args.get('q', '').strip()
+    if search:
+        query = query.filter(_order_search_filter(
+            search, include_customer=user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)
+        ))
 
     # El desempate por id no es cosmético: con offset/limit, dos órdenes que
     # comparten created_date pueden intercambiarse entre consultas y aparecer
