@@ -9,10 +9,17 @@ export default {
     });
   },
   updateOrder(orderData) {
+    const headers = { 'Content-Type': 'application/json' };
+    // El API ahora exige que quien edita una orden que ya tiene dueño sea ese
+    // mismo cliente. Los primeros pasos del formulario siguen siendo anónimos
+    // —la orden todavía no es de nadie—, así que la cabecera va solo cuando
+    // hay sesión, en vez de exigirla siempre y romper a quien no se registró.
+    const token = orderData.customer && orderData.customer.token;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     return axios.put(`${process.env.VUE_APP_API_URL}order/${orderData.order.order_id}`, orderData, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
   },
   saveLeadPhone(payload) {

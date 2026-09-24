@@ -7,7 +7,8 @@ from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, R
 from ..models import Quotations as QuotationsModel
 from ..models import CarrierCompanySchema, QuotationsSchema
 from . import api
-from .decorators import token_required, carrier_company_token_required
+from .decorators import (token_required, carrier_company_token_required,
+                         authenticated_customer, is_internal_request)
 from .order import Order as OrderEntity
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
@@ -70,6 +71,29 @@ def save_lead_phone(order_id):
 @api.route('/order/<int:order_id>', methods=['PUT'])
 def update_order(order_id):
     order_data = request.json or {}
+
+    # Esta ruta sale a internet por `location /api` del nginx, no solo por la
+    # red interna de Docker. Sin esto aceptaba cualquier `customer.customer_id`
+    # del cuerpo sin pedir nada: mandar el id de otra persona reasignaba la
+    # orden, y como GET /order/<id> filtra por pertenencia, el nuevo dueño
+    # pasaba a ver la dirección completa y el teléfono del original. Los ids de
+    # orden son correlativos, así que no había ni que adivinarlos.
+    db_order = db.session.get(Order, order_id)
+    if db_order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    internal = is_internal_request()
+    authenticated = None if internal else authenticated_customer()
+
+    if db_order.customer_id is not None and not internal:
+        # La orden ya tiene dueño: solo él la toca.
+        if authenticated is None or authenticated.id != db_order.customer_id:
+            return jsonify({'message': 'forbidden'}), 403
+
+    # Una orden todavía sin dueño (el visitante que va por el paso 1 y aún no
+    # se registró) sigue siendo editable sin sesión, porque así funciona el
+    # formulario. Lo que ya no se acepta es que el cuerpo diga a quién
+    # pertenece: eso sale del token o no pasa nada.
     customer = order_data.get('customer')
     order_fields = order_data.get('order')
     missing = []
@@ -114,8 +138,19 @@ def update_order(order_id):
     address_changed = AddressesStep(order_id).has_changed(order_data)
     belongings_changed = BelongingsAppointmentDateStep(order_id).has_changed(order_data)
     data_changed = address_changed or belongings_changed
+    # El dueño sale del token, nunca del cuerpo. Una llamada interna (el
+    # backoffice, que ya validó el rol de quien la hizo) conserva el que la
+    # orden ya tenga.
+    owner_id = db_order.customer_id
+    if internal:
+        # El backoffice ya validó el rol de quien pide, y reasignar el cliente
+        # de una orden es una de sus funciones, así que ahí sí se le cree.
+        owner_id = (order_data.get('customer') or {}).get('customer_id') or owner_id
+    elif authenticated is not None:
+        owner_id = authenticated.id
+
     order = OrderEntity(order_id)
-    order = order.update(request=order_data)
+    order = order.update(request=order_data, customer_id=owner_id)
 
     if 'requestQuotationFromCarrierCompany' not in order_data and data_changed:
         db_order = db.session.get(Order, order_id)

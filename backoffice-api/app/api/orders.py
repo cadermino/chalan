@@ -156,6 +156,25 @@ def _address_payload(addr, is_admin, reveal_full):
     return data
 
 
+def _internal_token():
+    """Token para llamar al API principal en nombre del backoffice.
+
+    No representa a ningún cliente: dice que la acción ya pasó por el control
+    de rol de acá. Va firmado con el SECRET_KEY que las dos apps comparten, así
+    que no hace falta una variable de entorno nueva en el servidor. Vida corta
+    porque solo tiene que sobrevivir a la petición que lo usa.
+    """
+    payload = {
+        'scope': 'internal',
+        'exp': datetime.now(timezone.utc) + timedelta(minutes=5),
+    }
+    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
+
+def _internal_headers():
+    return {'Authorization': f'Bearer {_internal_token()}'}
+
+
 def _generate_quotation_token(carrier_company_id, order_id):
     payload = {
         'carrier_company_id': carrier_company_id,
@@ -455,6 +474,7 @@ def create_order():
     try:
         update_res = requests.put(
             f'{internal_api}/api/v1/order/{order_id}',
+            headers=_internal_headers(),
             json={
                 'customer': {'customer_id': customer_id},
                 'order': {
@@ -928,6 +948,7 @@ def accept_quotation(order_id, quotation_id):
     try:
         res = requests.patch(
             f'{internal_api}/api/v1/order/{order_id}/quotation/{quotation_id}/accept',
+            headers=_internal_headers(),
             timeout=10,
         )
     except requests.RequestException:
