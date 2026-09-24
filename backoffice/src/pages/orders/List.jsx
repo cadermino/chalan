@@ -17,6 +17,34 @@ const FILTERS = [
 // Lo que vale cuando el parámetro no está en la URL. Los defaults no se
 // escriben nunca, así que /orders queda limpio y solo carga lo que el usuario
 // cambió de verdad — eso hace que el enlace se pueda pegar y compartir.
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function QuotationsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 13h8M8 17h5" />
+    </svg>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
+
 const DEFAULTS = { status: 'all', page: 1, per_page: 25, q: '' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
@@ -261,27 +289,36 @@ export default function OrdersList() {
                       : <span className="text-amber-500 font-medium">Pendiente</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-3">
+                    {/* El title da el tooltip nativo del navegador; el
+                        aria-label es lo que lee un lector de pantalla, que no
+                        siempre anuncia el title. */}
+                    <div className="flex gap-1">
                       <Link
                         to={`/orders/${o.id}`}
-                        className="text-teal-600 hover:underline"
+                        title={`Ver el detalle de la orden #${o.id}`}
+                        aria-label={`Ver el detalle de la orden #${o.id}`}
+                        className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50"
                       >
-                        Ver detalle
+                        <EyeIcon />
                       </Link>
                       {isAdmin && (
                         <Link
                           to={`/orders/${o.id}/quotations`}
-                          className="text-indigo-600 hover:underline"
+                          title={`Ver las cotizaciones de la orden #${o.id}`}
+                          aria-label={`Ver las cotizaciones de la orden #${o.id}`}
+                          className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50"
                         >
-                          Cotizaciones
+                          <QuotationsIcon />
                         </Link>
                       )}
                       {isSuperadmin && (
                         <Link
                           to={`/orders/${o.id}/edit`}
-                          className="text-amber-600 hover:underline"
+                          title={`Editar la orden #${o.id}`}
+                          aria-label={`Editar la orden #${o.id}`}
+                          className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50"
                         >
-                          Editar
+                          <PencilIcon />
                         </Link>
                       )}
                     </div>
