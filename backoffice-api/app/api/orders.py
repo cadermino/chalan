@@ -255,6 +255,24 @@ def _order_search_filter(search, include_customer):
     return db.or_(*clauses) if clauses else db.false()
 
 
+def _deposits_by_order(order_ids):
+    """Estado del adelanto de cada orden, en una sola consulta.
+
+    El adelanto (la reserva que el cliente le yapea a Chalán) es la plata que
+    cobra la plataforma, así que es lo que un admin necesita ver en la lista.
+    Las filas canceladas quedan fuera: son de una cotización que se reemplazó y
+    su monto ya no corre.
+    """
+    if not order_ids:
+        return {}
+    rows = Payment.query.filter(
+        Payment.order_id.in_(order_ids),
+        Payment.concept == 'reservation',
+        Payment.status != 'cancelled',
+    ).order_by(Payment.id).all()
+    return {r.order_id: {'amount': r.amount, 'status': r.status} for r in rows}
+
+
 @api.route('/orders/pending', methods=['GET'])
 @login_required
 def list_pending_orders():
@@ -315,6 +333,23 @@ def list_pending_orders():
     is_admin = user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)
     site_url = os.environ.get('SITE_URL', 'https://chalan.pe/')
 
+    # has_quotation mira las cotizaciones de la empresa del usuario, así que
+    # para un admin —que no tiene empresa— sale False en todas las filas: la
+    # columna decía "Pendiente" siempre, sin querer decir nada. Lo que sí le
+    # sirve es cómo va el adelanto.
+    deposits = {}
+    selected_by_order = set()
+    if is_admin:
+        page_ids = [o.id for o in all_sent_orders]
+        deposits = _deposits_by_order(page_ids)
+        if page_ids:
+            selected_by_order = {
+                q.order_id for q in Quotation.query.filter(
+                    Quotation.order_id.in_(page_ids),
+                    Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
+                ).all()
+            }
+
     result = []
     for order in all_sent_orders:
         has_quotation = order.id in own_quotation_by_order
@@ -347,6 +382,16 @@ def list_pending_orders():
             'customer_name': customer_name,
             'customer_phone': customer_phone,
             'lead_phone': order.lead_phone if is_admin else None,
+            # None para el transportista, que no ve la plata de la plataforma.
+            # Para el admin: el adelanto si está registrado; 'unregistered'
+            # cuando la orden ya se adjudicó y nadie cargó los pagos —el caso
+            # que hay que ir a resolver— y None cuando todavía no hay nada
+            # adjudicado y por lo tanto no hay adelanto que esperar.
+            'deposit': (
+                deposits.get(order.id)
+                or ({'status': 'unregistered', 'amount': None}
+                    if order.id in selected_by_order else None)
+            ) if is_admin else None,
         })
 
     # `pagination` se agrega sin tocar `orders`, así que cualquier consumidor
