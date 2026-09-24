@@ -37,6 +37,19 @@ def create_app(config_name='default'):
 
     db.init_app(app)
     mail.init_app(app)
+
+    # El backoffice-api lee su propio .env, distinto al del API principal, y
+    # arranca igual sin configuración de correo: el envío falla después, en un
+    # hilo, sin que nadie lo note. Este aviso al arrancar deja el hueco a la
+    # vista en `docker-compose logs backoffice-api`.
+    from .email import missing_mail_settings
+    missing = missing_mail_settings(app.config)
+    if missing:
+        print(
+            f'[Email] CORREO DESACTIVADO — faltan {", ".join(missing)} en el entorno. '
+            'No se enviarán avisos (p. ej. "Nuevo transportista registrado").',
+            flush=True,
+        )
     CORS(app, origins=_parse_cors_origins(), supports_credentials=True)
 
     from .auth import auth as auth_blueprint
