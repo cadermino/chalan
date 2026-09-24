@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -16,7 +17,7 @@ const FILTERS = [
 // Lo que vale cuando el parámetro no está en la URL. Los defaults no se
 // escriben nunca, así que /orders queda limpio y solo carga lo que el usuario
 // cambió de verdad — eso hace que el enlace se pueda pegar y compartir.
-const DEFAULTS = { status: 'all', page: 1, per_page: 25 }
+const DEFAULTS = { status: 'all', page: 1, per_page: 25, q: '' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
 export default function OrdersList() {
@@ -24,9 +25,6 @@ export default function OrdersList() {
   const isSuperadmin = user?.role === 'superadmin'
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
-  const [orders, setOrders] = useState([])
-  const [pagination, setPagination] = useState(null)
-  const [loading, setLoading] = useState(true)
 
   // La URL es la única fuente de verdad: no se duplica en estado de React,
   // que es lo que hace que recargar, compartir el enlace o usar atrás y
@@ -38,6 +36,14 @@ export default function OrdersList() {
   const perPage = PER_PAGE_OPTIONS.includes(Number(searchParams.get('per_page')))
     ? Number(searchParams.get('per_page'))
     : DEFAULTS.per_page
+  const search = searchParams.get('q')?.trim() || DEFAULTS.q
+
+  // El input sí lleva estado propio: escribir no debe consultar al servidor ni
+  // dejar una entrada en el historial por tecla. La búsqueda pasa a la URL al
+  // enviar el formulario. El efecto lo devuelve a lo que diga la URL cuando
+  // esta cambia por fuera (atrás/adelante del navegador, o "Limpiar").
+  const [searchInput, setSearchInput] = useState(search)
+  useEffect(() => { setSearchInput(search) }, [search])
 
   // Solo escribe lo que difiere del default, y conserva el resto de
   // parámetros. Cambiar un filtro vuelve a la página 1: quedarse en la 7 de un
@@ -53,19 +59,31 @@ export default function OrdersList() {
     setSearchParams(next)
   }
 
-  useEffect(() => {
-    setLoading(true)
-    const params = new URLSearchParams()
-    if (isAdmin) params.set('status', statusFilter)
-    params.set('page', page)
-    params.set('per_page', perPage)
-    client.get(`/api/orders/pending?${params}`).then(({ data }) => {
-      setOrders(data.orders)
-      setPagination(data.pagination || null)
-    }).finally(() => setLoading(false))
-  }, [isAdmin, statusFilter, page, perPage])
+  // La clave describe exactamente de qué depende esta lista, así que cada
+  // combinación de filtros se cachea aparte y una respuesta vieja ya no puede
+  // pisar a la nueva: si se pagina o se busca rápido, la petición anterior se
+  // aborta por su `signal` y su resultado va a su propia entrada del caché, no
+  // a la tabla. Con useEffect eso había que cancelarlo a mano.
+  const { data, isPending, isPlaceholderData, isError, error, refetch, isFetching } = useQuery({
+    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage }],
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams()
+      if (isAdmin) params.set('status', statusFilter)
+      if (search) params.set('q', search)
+      params.set('page', page)
+      params.set('per_page', perPage)
+      return client.get(`/api/orders/pending?${params}`, { signal }).then(r => r.data)
+    },
+    // Mantiene la tabla anterior en pantalla mientras carga la nueva página o
+    // búsqueda, en vez del parpadeo a "Cargando...". `isPlaceholderData` avisa
+    // que lo que se ve todavía es lo de antes.
+    placeholderData: keepPreviousData,
+  })
 
-  if (loading && orders.length === 0 && !pagination) {
+  const orders = data?.orders ?? []
+  const pagination = data?.pagination ?? null
+
+  if (isPending) {
     return <p className="text-gray-500 p-8">Cargando...</p>
   }
 
@@ -82,6 +100,60 @@ export default function OrdersList() {
           </Link>
         )}
       </div>
+
+      {/* Un fallo de red se veía igual que un resultado vacío: la tabla decía
+          "No hay órdenes para este filtro", que era mentira. El aviso va
+          arriba y la pantalla se mantiene entera — con buscador y filtros
+          vivos — para que el usuario pueda volver a lo que sí tenía cargado
+          en vez de quedarse frente a un cartel de error. */}
+      {isError && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800 flex justify-between items-center gap-4">
+          <span>
+            {orders.length > 0
+              ? 'No se pudo actualizar la lista; estás viendo datos anteriores.'
+              : 'No se pudieron cargar las órdenes.'}
+            {error?.response?.status ? ` (error ${error.response.status})` : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="text-amber-700 hover:text-amber-900 font-medium shrink-0"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); updateParams({ q: searchInput.trim() }) }}
+        className="flex gap-2 mb-4"
+      >
+        <input
+          type="search"
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          placeholder={isAdmin
+            ? 'Buscar por # de orden, cliente, email o teléfono...'
+            : 'Buscar por # de orden...'}
+          aria-label="Buscar órdenes"
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+        />
+        <button
+          type="submit"
+          className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+        >
+          Buscar
+        </button>
+        {search && (
+          <button
+            type="button"
+            onClick={() => updateParams({ q: '' })}
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+          >
+            Limpiar
+          </button>
+        )}
+      </form>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         {isAdmin ? (
@@ -105,7 +177,10 @@ export default function OrdersList() {
 
         {pagination && (
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>{pagination.total} órden{pagination.total === 1 ? '' : 'es'}</span>
+            <span>
+              {pagination.total} órden{pagination.total === 1 ? '' : 'es'}
+              {isFetching && <span className="text-gray-400"> · actualizando…</span>}
+            </span>
             <label className="flex items-center gap-1">
               <span className="sr-only">Órdenes por página</span>
               <select
@@ -120,7 +195,9 @@ export default function OrdersList() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className={`bg-white rounded-xl shadow overflow-hidden transition-opacity ${
+        isPlaceholderData ? 'opacity-60' : ''
+      }`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
@@ -211,12 +288,16 @@ export default function OrdersList() {
                   </td>
                 </tr>
               ))}
-              {orders.length === 0 && !loading && (
+              {orders.length === 0 && (
                 <tr>
                   <td colSpan={isAdmin ? 10 : 9} className="px-4 py-8 text-center text-gray-400">
-                    {pagination && pagination.total > 0
+                    {isError
+                      ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
+                      : pagination && pagination.total > 0
                       ? <>Esta página no existe. <button type="button" onClick={() => updateParams({ page: 1 })} className="text-teal-600 hover:underline">Volver a la primera</button></>
-                      : 'No hay órdenes para este filtro'}
+                      : search
+                        ? <>Ninguna orden coincide con «{search}». <button type="button" onClick={() => updateParams({ q: '' })} className="text-teal-600 hover:underline">Limpiar la búsqueda</button></>
+                        : 'No hay órdenes para este filtro'}
                   </td>
                 </tr>
               )}
