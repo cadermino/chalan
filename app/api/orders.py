@@ -149,10 +149,25 @@ def update_order(order_id):
     elif authenticated is not None:
         owner_id = authenticated.id
 
-    order = OrderEntity(order_id)
-    order = order.update(request=order_data, customer_id=owner_id)
+    # Quién puede escribir ya está resuelto arriba; esto decide qué se escribe.
+    # Solo el formulario de la mudanza (pasos 1 y 2) reescribe los datos de la
+    # orden. El resto de los PUT —login, registro, el paso 3 al pedir
+    # cotizaciones, el modal de pago— reenvían lo que quedó en el localStorage
+    # del navegador, que puede ser más viejo que la base si alguien corrigió la
+    # orden desde el backoffice. De esos solo se toma ligar al cliente.
+    order_entity = OrderEntity(order_id)
+    if order_data.get('orderEditedByCustomer'):
+        order = order_entity.update(request=order_data, customer_id=owner_id)
+    else:
+        order = order_entity.link_customer(owner_id)
 
-    if 'requestQuotationFromCarrierCompany' not in order_data and data_changed:
+    # Solo cancela cuando el cliente editó su mudanza en los pasos 1 o 2. Antes
+    # bastaba cualquier PUT sin `requestQuotationFromCarrierCompany`, y eso
+    # incluía el de Login/Register, que reenvía la orden tal como quedó en el
+    # localStorage del navegador: bastaba que la clienta volviera a entrar para
+    # que sus cotizaciones vivas se cancelaran solas. Si falta la marca no se
+    # cancela nada, que es el lado seguro del error.
+    if order_data.get('orderEditedByCustomer') and data_changed:
         db_order = db.session.get(Order, order_id)
         recently_notified = (
             db_order and db_order.carrier_notified_at and

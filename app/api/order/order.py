@@ -102,6 +102,23 @@ class Order:
         order_data['images'] = OrderImageSchema(many=True).dump(order.images)
         return order_data
 
+    def link_customer(self, customer_id):
+        """Liga la orden al cliente autenticado, sin tocar nada más.
+
+        Es lo único que necesitan los PUT que no vienen del formulario de la
+        mudanza (login, registro, el paso 3 al pedir cotizaciones, el modal de
+        pago). Todos ellos reenvían la orden entera tal como quedó guardada en
+        el navegador, así que pasarla por update() pisaba con datos viejos lo
+        que se hubiera corregido después desde el backoffice: el cliente entra,
+        y su copia del navegador gana.
+        """
+        order = db.session.get(OrderModel, self.order_id)
+        if customer_id is not None and order.customer_id != customer_id:
+            order.customer_id = customer_id
+            db.session.add(order)
+            db.session.commit()
+        return order
+
     def update(self, request, customer_id=None):
         order = db.session.get(OrderModel, self.order_id)
 
