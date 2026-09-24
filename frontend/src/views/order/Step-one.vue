@@ -555,6 +555,11 @@ export default {
             orderDetailsDestination: this.orderDetailsDestination,
             services: this.services,
             customer: this.customer,
+            // Marca el único caso en que el cliente cambió de verdad lo que
+            // hay que mudar. Sin esto el backend cancelaba las cotizaciones
+            // también cuando el PUT venía del login, que solo reenvía lo que
+            // quedó guardado en el navegador.
+            orderEditedByCustomer: true,
           };
           chalan.updateOrder(payload)
             .then((response) => {
