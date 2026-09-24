@@ -45,6 +45,29 @@ function PencilIcon() {
   )
 }
 
+const money = (n) => `S/ ${Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2 })}`
+
+// Cómo va el adelanto que el cliente le yapea a Chalán. 'unregistered' no es un
+// estado de la base: es una orden ya adjudicada a la que nadie le cargó los
+// pagos, que es justo la que hay que ir a resolver, así que se marca en ámbar.
+function DepositCell({ deposit }) {
+  if (!deposit) return <span className="text-gray-300">—</span>
+  if (deposit.status === 'unregistered') {
+    return (
+      <span
+        className="text-amber-600 font-medium"
+        title="La orden tiene cotización aceptada pero no tiene pagos registrados. Se cargan desde el detalle de la orden."
+      >
+        ⚠ Sin registrar
+      </span>
+    )
+  }
+  if (deposit.status === 'paid') {
+    return <span className="text-green-600 font-medium">✓ Cobrado {money(deposit.amount)}</span>
+  }
+  return <span className="text-amber-500 font-medium">○ Pendiente {money(deposit.amount)}</span>
+}
+
 const DEFAULTS = { status: 'all', page: 1, per_page: 25, q: '' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
@@ -238,7 +261,7 @@ export default function OrdersList() {
                 <th className="px-4 py-3 text-left">Creación</th>
                 <th className="px-4 py-3 text-left">Fecha mudanza</th>
                 <th className="px-4 py-3 text-left">Estado</th>
-                <th className="px-4 py-3 text-left">Cotización</th>
+                <th className="px-4 py-3 text-left">{isAdmin ? 'Adelanto' : 'Cotización'}</th>
                 <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
             </thead>
@@ -284,9 +307,11 @@ export default function OrdersList() {
                     {STATUS_LABEL[o.order_status_id] || o.order_status_id}
                   </td>
                   <td className="px-4 py-3">
-                    {o.has_quotation
-                      ? <span className="text-green-600 font-medium">Enviada</span>
-                      : <span className="text-amber-500 font-medium">Pendiente</span>}
+                    {isAdmin
+                      ? <DepositCell deposit={o.deposit} />
+                      : (o.has_quotation
+                        ? <span className="text-green-600 font-medium">Enviada</span>
+                        : <span className="text-amber-500 font-medium">Pendiente</span>)}
                   </td>
                   <td className="px-4 py-3">
                     {/* El title da el tooltip nativo del navegador; el
