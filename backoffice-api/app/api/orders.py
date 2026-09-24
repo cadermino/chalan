@@ -1031,6 +1031,96 @@ def list_order_payments(order_id):
     return jsonify({'payments': [p.to_dict() for p in payments]}), 200
 
 
+def _payment_type_id(type_name):
+    """Id de lu_payment_type por nombre.
+
+    Por nombre y no por número: los ids salen de un SERIAL sembrado en
+    db/init.sql, así que hardcodearlos los ata al orden de inserción. Revienta
+    a propósito si falta el tipo —significa que no se corrió la migración que
+    lo siembra— porque inventar un id rompería la foreign key.
+    """
+    row = db.session.execute(
+        db.text('SELECT id FROM lu_payment_type WHERE type = :name'),
+        {'name': type_name},
+    ).first()
+    if row is None:
+        raise RuntimeError(f'falta el tipo de pago "{type_name}" en lu_payment_type')
+    return row[0]
+
+
+@api.route('/orders/<int:order_id>/payments', methods=['POST'])
+@login_required
+def create_order_payments(order_id):
+    """Crea los movimientos de plata de una orden cerrada fuera del flujo.
+
+    Las filas de `payments` nacen solo cuando el cliente agenda desde el modal
+    del paso 3. Cuando el trato se cierra por teléfono o por WhatsApp —el
+    cliente yapea el adelanto y coordina el resto directo con el
+    transportista— esa pantalla nunca se abre, y la orden queda sin registro
+    de plata: no hay ninguna fila que marcar como pagada.
+
+    Los montos salen de _financial_breakdown, el mismo desglose que muestra el
+    detalle, para que lo registrado cuadre exactamente con lo que se le cotizó
+    al cliente en vez de recalcularse con la tasa de hoy.
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    breakdown = _financial_breakdown(order)
+    if breakdown is None:
+        return jsonify({'message': 'la orden todavía no tiene una cotización aceptada'}), 409
+
+    quotation = Quotation.query.filter_by(
+        order_id=order_id, quotation_status_id=QUOTATION_STATUS_SELECTED
+    ).order_by(Quotation.id.desc()).first()
+
+    # No se duplican: si ya hay movimientos vivos de esta cotización, la orden
+    # ya está registrada y volver a crearlos dejaría la suma al doble.
+    existing = Payment.query.filter(
+        Payment.order_id == order_id,
+        Payment.status != 'cancelled',
+    ).first()
+    if existing is not None:
+        return jsonify({'message': 'esta orden ya tiene pagos registrados'}), 409
+
+    reservation_paid = bool((request.get_json() or {}).get('reservation_paid'))
+
+    payments = [Payment(
+        order_id=order_id,
+        quotation_id=quotation.id,
+        amount=breakdown['carrier_amount'],
+        lu_payment_type_id=_payment_type_id('cash'),
+        concept='carrier_cash',
+        status='pending',
+        active=1,
+    )]
+
+    # La reserva es cero cuando no hay nada que cobrar por adelantado; en ese
+    # caso no se crea una fila de importe 0 que después habría que explicar.
+    if breakdown['reservation_amount'] > 0:
+        payments.append(Payment(
+            order_id=order_id,
+            quotation_id=quotation.id,
+            amount=breakdown['reservation_amount'],
+            lu_payment_type_id=_payment_type_id('yape'),
+            concept='reservation',
+            status='paid' if reservation_paid else 'pending',
+            paid_at=datetime.utcnow() if reservation_paid else None,
+            confirmed_by_admin_id=user.id if reservation_paid else None,
+            active=1,
+        ))
+
+    db.session.add_all(payments)
+    db.session.commit()
+
+    return jsonify({'payments': [p.to_dict() for p in payments]}), 201
+
+
 @api.route('/orders/<int:order_id>/payments/<int:payment_id>', methods=['PATCH'])
 @login_required
 def update_order_payment(order_id, payment_id):

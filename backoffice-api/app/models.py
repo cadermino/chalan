@@ -392,7 +392,13 @@ class Payment(db.Model):
     amount = db.Column(db.Float)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     lu_payment_type_id = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(20), nullable=False, server_default='pending')
+    # Enum nativo de Postgres, igual que en el modelo del API principal. Como
+    # String, un INSERT desde acá manda varchar y Postgres lo rechaza sin cast
+    # implícito; el UPDATE del PATCH funcionaba igual y por eso no se notó.
+    status = db.Column(
+        db.Enum('pending', 'paid', 'cancelled', name='payment_status'),
+        nullable=False, server_default='pending',
+    )
     reference = db.Column(db.String(100))
     created_date = db.Column(db.DateTime(), server_default=func.now())
     comments = db.Column(db.String(500))

@@ -99,8 +99,40 @@ const PAYMENT_STATUSES = {
   cancelled: { label: 'Cancelado', className: 'bg-gray-100 text-gray-500' },
 }
 
-function PaymentsCard({ payments, onSetStatus, savingId }) {
-  if (!payments || payments.length === 0) return null
+function PaymentsCard({ payments, onSetStatus, savingId, onRegister, registering, canRegister }) {
+  // Sin movimientos y con cotización aceptada, la orden se cerró fuera del
+  // flujo del sitio: el cliente nunca abrió el modal del paso 3, así que no
+  // hay filas que marcar. Desde acá se registran.
+  if (!payments || payments.length === 0) {
+    if (!canRegister) return null
+    return (
+      <div className="bg-white rounded-xl shadow p-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">Pagos</h3>
+        <p className="text-sm text-gray-500 mb-3">
+          Esta orden no tiene pagos registrados: se cerró sin pasar por el
+          checkout del sitio.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={registering}
+            onClick={() => onRegister({ reservation_paid: true })}
+            className="text-xs px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-50"
+          >
+            {registering ? 'Registrando...' : 'Registrar y marcar el adelanto como recibido'}
+          </button>
+          <button
+            type="button"
+            disabled={registering}
+            onClick={() => onRegister({ reservation_paid: false })}
+            className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Registrar como pendientes
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const total = payments
     .filter((p) => p.status !== 'cancelled')
@@ -239,6 +271,8 @@ export default function OrderDetail() {
   const [reviewUrl, setReviewUrl] = useState(null)
   const [payments, setPayments] = useState([])
   const [savingPaymentId, setSavingPaymentId] = useState(null)
+  const [registeringPayments, setRegisteringPayments] = useState(false)
+  const [paymentsError, setPaymentsError] = useState(null)
   // Aviso que deja el formulario de edición al volver acá, p. ej. cuántas
   // cotizaciones se cancelaron al guardar.
   const location = useLocation()
@@ -276,6 +310,17 @@ export default function OrderDetail() {
   const canComplete = isCarrier
     && order?.order_status_id === 2
     && order?.existing_quotation?.quotation_status_id === 2
+
+  function registerPayments(options) {
+    setRegisteringPayments(true)
+    setPaymentsError(null)
+    client.post(`/api/orders/${orderId}/payments`, options)
+      .then(({ data }) => setPayments(data.payments))
+      .catch(err => setPaymentsError(
+        err.response?.data?.message || 'No se pudieron registrar los pagos'
+      ))
+      .finally(() => setRegisteringPayments(false))
+  }
 
   function setPaymentStatus(paymentId, status) {
     setSavingPaymentId(paymentId)
@@ -347,13 +392,23 @@ export default function OrderDetail() {
         {isAdmin && <FinancialsCard f={order.financials} />}
 
         {/* Movimientos reales de plata, con la confirmación manual del yapeo:
-            Yape personal no tiene webhook, alguien lo verifica a mano. */}
+            Yape personal no tiene webhook, alguien lo verifica a mano.
+            canRegister mira lo mismo que el backend antes de crear las filas:
+            sin cotización aceptada no hay montos que registrar. */}
         {isAdmin && (
-          <PaymentsCard
-            payments={payments}
-            onSetStatus={setPaymentStatus}
-            savingId={savingPaymentId}
-          />
+          <>
+            <PaymentsCard
+              payments={payments}
+              onSetStatus={setPaymentStatus}
+              savingId={savingPaymentId}
+              onRegister={registerPayments}
+              registering={registeringPayments}
+              canRegister={Boolean(order.financials)}
+            />
+            {paymentsError && (
+              <p className="text-sm text-red-600">{paymentsError}</p>
+            )}
+          </>
         )}
 
         {/* Addresses */}
