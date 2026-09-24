@@ -98,6 +98,43 @@ def _financial_breakdown(order):
     }
 
 
+DEFAULT_PER_PAGE = 25
+MAX_PER_PAGE = 100
+
+
+def _pagination_args():
+    """Lee page/per_page de la query string, tolerando basura.
+
+    Los valores llegan de la URL, que el usuario puede editar a mano o heredar
+    de un enlace viejo, así que nada de 400: se saneàn a un rango usable. El
+    tope de per_page evita que `?per_page=99999` se traiga la tabla entera.
+    """
+    def _as_int(name, fallback):
+        try:
+            return int(request.args.get(name, fallback))
+        except (TypeError, ValueError):
+            return fallback
+
+    page = max(1, _as_int('page', 1))
+    per_page = min(max(1, _as_int('per_page', DEFAULT_PER_PAGE)), MAX_PER_PAGE)
+    return page, per_page
+
+
+def _paginate(query, page, per_page):
+    """Devuelve (filas, metadatos). Pide una página pasada del final devuelve
+    lista vacía en vez de recortar a la última: la UI muestra "sin resultados"
+    y el usuario ve que no hay nada ahí, en vez de creer que navegó bien."""
+    total = query.count()
+    rows = query.limit(per_page).offset((page - 1) * per_page).all()
+    pages = max(1, -(-total // per_page))  # techo sin importar math
+    return rows, {
+        'page': page,
+        'per_page': per_page,
+        'total': total,
+        'pages': pages,
+    }
+
+
 def _street_without_number(street):
     """Strips the house/building number so a carrier can't go straight to the
     customer's door before winning the job through the platform. Cuts at the
@@ -171,7 +208,14 @@ def list_pending_orders():
     query = Order.query
     if status_filter is not None:
         query = query.filter(Order.order_status_id.in_(status_filter))
-    all_sent_orders = query.order_by(Order.created_date.desc()).all()
+
+    # El desempate por id no es cosmético: con offset/limit, dos órdenes que
+    # comparten created_date pueden intercambiarse entre consultas y aparecer
+    # dos veces o ninguna al pasar de página.
+    query = query.order_by(Order.created_date.desc(), Order.id.desc())
+
+    page, per_page = _pagination_args()
+    all_sent_orders, pagination = _paginate(query, page, per_page)
 
     # Quotations already submitted (per company if carrier_company, all if admin)
     if company_id is not None:
@@ -219,7 +263,9 @@ def list_pending_orders():
             'lead_phone': order.lead_phone if is_admin else None,
         })
 
-    return jsonify({'orders': result}), 200
+    # `pagination` se agrega sin tocar `orders`, así que cualquier consumidor
+    # que solo leía la lista sigue funcionando igual.
+    return jsonify({'orders': result, 'pagination': pagination}), 200
 
 
 @api.route('/orders/my-orders', methods=['GET'])
