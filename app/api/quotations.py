@@ -147,10 +147,26 @@ def create_quotation():
             body_label='[Plantilla: Nueva cotización disponible]',
             customer_id=customer.id,
         )
+    elif previous_quotation.quotation_status_id == QuotationStatus.Selected():
+        # La cotización ya fue aceptada por el cliente y su total quedó
+        # congelado en orders.total_amount. Dejar que el transportista la
+        # cambie por detrás desalinearía el precio del trato cerrado, así que
+        # se rechaza y se le dice que hable con Chalán.
+        return jsonify({
+            'message': 'quotation already accepted by the customer',
+            'quotation_id': previous_quotation.id,
+            'amount': previous_quotation.amount,
+            'quotation_status_id': previous_quotation.quotation_status_id,
+        }), 409
     else:
-        message = 'quotation {id} created!'.format(id=previous_quotation.id)
+        # Recotización sobre una cotización activa. Antes esto devolvía 200 con
+        # el monto viejo sin guardar nada: el transportista creía haber
+        # actualizado su precio, Chalán seguía viendo el anterior y la
+        # diferencia aparecía recién al mudarse. Ahora se actualiza de verdad.
+        QuotationEntity(previous_quotation.id).update({'amount': base_amount})
+        message = 'quotation {id} updated!'.format(id=previous_quotation.id)
         quotation_id = previous_quotation.id
-        quotation_amount = previous_quotation.amount
+        quotation_amount = base_amount
         quotation_status_id = previous_quotation.quotation_status_id
         status_response = 200
 
