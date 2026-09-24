@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useLocation } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -227,6 +227,9 @@ export default function OrderDetail() {
   const { orderId } = useParams()
   const { user } = useAuth()
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
+  // Editar orden es superadmin, igual que la ruta /orders/:orderId/edit y que
+  // el enlace de la lista: mostrárselo a un admin sería mandarlo a un rebote.
+  const isSuperadmin = user?.role === 'superadmin'
   const isCarrier = user?.role === 'carrier_company'
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -236,6 +239,10 @@ export default function OrderDetail() {
   const [reviewUrl, setReviewUrl] = useState(null)
   const [payments, setPayments] = useState([])
   const [savingPaymentId, setSavingPaymentId] = useState(null)
+  // Aviso que deja el formulario de edición al volver acá, p. ej. cuántas
+  // cotizaciones se cancelaron al guardar.
+  const location = useLocation()
+  const [banner, setBanner] = useState(location.state?.message || null)
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -291,16 +298,33 @@ export default function OrderDetail() {
 
   return (
     <div className="max-w-2xl">
+      {banner && (
+        <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 mb-4 text-sm text-teal-800 flex justify-between items-start gap-4">
+          <span>{banner}</span>
+          <button onClick={() => setBanner(null)} className="text-teal-600 hover:text-teal-800 text-xs shrink-0">Cerrar</button>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 mb-6">
         <Link to="/orders" className="text-teal-600 hover:underline text-sm">← Órdenes</Link>
         <h1 className="text-2xl font-bold text-gray-900">Orden #{order.id}</h1>
         {isAdmin && (
-          <Link
-            to={`/orders/${orderId}/quotations`}
-            className="ml-auto text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg"
-          >
-            Ver cotizaciones
-          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            {isSuperadmin && (
+              <Link
+                to={`/orders/${orderId}/edit`}
+                className="text-sm bg-gray-100 hover:bg-gray-200 text-amber-700 px-3 py-1.5 rounded-lg"
+              >
+                Editar
+              </Link>
+            )}
+            <Link
+              to={`/orders/${orderId}/quotations`}
+              className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg"
+            >
+              Ver cotizaciones
+            </Link>
+          </div>
         )}
       </div>
 
