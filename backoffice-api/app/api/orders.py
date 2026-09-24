@@ -949,6 +949,43 @@ def update_quotation_amount(order_id, quotation_id):
     }), 200
 
 
+@api.route('/orders/<int:order_id>/quotations/<int:quotation_id>/cancel', methods=['PATCH'])
+@login_required
+def cancel_quotation(order_id, quotation_id):
+    """Cancela una cotización suelta desde el backoffice.
+
+    Sirve para sacar del listado un precio que ya no corre —el transportista
+    se arrepintió, o cotizó sobre una mudanza que después cambió— sin tener
+    que cancelarlas todas desde el formulario de edición.
+
+    A diferencia de aceptar, acá no hay cálculo de precios que replicar, así
+    que se escribe directo en vez de proxyar al API principal.
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    quotation = Quotation.query.filter_by(id=quotation_id, order_id=order_id).first()
+    if quotation is None:
+        return jsonify({'message': 'quotation not found'}), 404
+    if quotation.quotation_status_id == QUOTATION_STATUS_SELECTED:
+        # El cliente ya la aceptó y su total quedó grabado en la orden;
+        # cancelarla dejaría a orders.total_amount sin cotización que lo
+        # respalde. Para deshacer una aceptación hay que aceptar otra.
+        return jsonify({'message': 'no se puede cancelar una cotización aceptada'}), 409
+    if quotation.quotation_status_id == QUOTATION_STATUS_CANCELLED:
+        return jsonify({'message': 'la cotización ya estaba cancelada'}), 409
+
+    order = db.session.get(Order, order_id)
+    if order and order.order_status_id == 2:
+        return jsonify({'message': 'la orden ya está en progreso'}), 409
+
+    quotation.quotation_status_id = QUOTATION_STATUS_CANCELLED
+    db.session.commit()
+
+    return jsonify(quotation.to_dict()), 200
+
+
 @api.route('/orders/<int:order_id>/quotations/<int:quotation_id>/accept', methods=['PATCH'])
 @login_required
 def accept_quotation(order_id, quotation_id):
