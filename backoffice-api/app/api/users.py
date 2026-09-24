@@ -12,7 +12,21 @@ from .. import db
 @superadmin_required
 def list_users():
     users = AdminUser.query.order_by(AdminUser.created_date.desc()).all()
-    return jsonify({'users': [u.to_dict() for u in users]}), 200
+
+    # La columna "Empresa" mostraba el id pelado, que no le dice nada a nadie.
+    # Se resuelven los nombres en una sola consulta en vez de una por usuario.
+    company_ids = {u.carrier_company_id for u in users if u.carrier_company_id}
+    names = {}
+    if company_ids:
+        names = dict(
+            db.session.query(CarrierCompany.id, CarrierCompany.name)
+            .filter(CarrierCompany.id.in_(company_ids)).all()
+        )
+
+    return jsonify({'users': [
+        {**u.to_dict(), 'carrier_company_name': names.get(u.carrier_company_id)}
+        for u in users
+    ]}), 200
 
 
 @api.route('/users', methods=['POST'])
@@ -45,7 +59,10 @@ def create_user():
 
         # Auto-create blank company + vehicle for new carrier_company users
         if data['role'] == ROLE_CARRIER and not carrier_company_id:
-            company = create_blank_company_and_vehicle(email=data['email'].lower())
+            company = create_blank_company_and_vehicle(
+                email=data['email'].lower(),
+                person_name=f"{user.first_name or ''} {user.last_name or ''}",
+            )
             user.carrier_company_id = company.id
 
         db.session.commit()

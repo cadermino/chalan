@@ -58,6 +58,7 @@ def register():
             company = create_blank_company_and_vehicle(
                 email=data['email'].strip().lower(),
                 phone=data['phone'].strip(),
+                person_name=f"{user.first_name} {user.last_name}",
             )
             user.carrier_company_id = company.id
 

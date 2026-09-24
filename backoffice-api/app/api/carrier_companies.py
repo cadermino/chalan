@@ -2,7 +2,7 @@ from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required
-from ..models import CarrierCompany, ROLE_CARRIER
+from ..models import AdminUser, CarrierCompany, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN
 from .. import db
 
 
@@ -14,6 +14,38 @@ def _can_access_company(company_id):
     return True
 
 
+def _users_by_company(company_ids):
+    """Usuarios ligados a cada empresa, en una sola consulta.
+
+    Sin esto no hay forma de saber de quién es una empresa desde la lista. El
+    registro público de la landing crea la empresa en blanco junto con el
+    usuario; ahora nace con el nombre de quien la registró, pero eso es un
+    provisional que el transportista cambia por el de su empresa apenas
+    completa el perfil, y ahí se vuelve a perder el rastro.
+
+    Una empresa puede no tener usuario (las que crea un admin a mano) o tener
+    más de uno, por eso el valor es una lista y no un solo usuario.
+    """
+    if not company_ids:
+        return {}
+    users = AdminUser.query.filter(
+        AdminUser.carrier_company_id.in_(company_ids)
+    ).order_by(AdminUser.id).all()
+
+    grouped = {}
+    for user in users:
+        grouped.setdefault(user.carrier_company_id, []).append({
+            'id': user.id,
+            'name': ' '.join(filter(None, [user.first_name, user.last_name])) or None,
+            'email': user.email,
+            'role': user.role,
+            # Un transportista recién registrado queda inactivo esperando
+            # aprobación: es justo el caso en que hay que saber quién es.
+            'active': bool(user.active),
+        })
+    return grouped
+
+
 @api.route('/carrier-companies', methods=['GET'])
 @login_required
 def list_carrier_companies():
@@ -22,7 +54,16 @@ def list_carrier_companies():
         companies = CarrierCompany.query.filter_by(id=user.carrier_company_id).all()
     else:
         companies = CarrierCompany.query.order_by(CarrierCompany.name).all()
-    return jsonify({'carrier_companies': [c.to_dict() for c in companies]}), 200
+
+    # Solo para admins: al transportista se le devuelve únicamente su propia
+    # empresa, y no tiene por qué recibir la lista de cuentas ligadas a ella.
+    users_by_company = {}
+    if user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        users_by_company = _users_by_company([c.id for c in companies])
+
+    return jsonify({'carrier_companies': [
+        {**c.to_dict(), 'users': users_by_company.get(c.id, [])} for c in companies
+    ]}), 200
 
 
 @api.route('/carrier-companies/<int:company_id>', methods=['GET'])
