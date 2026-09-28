@@ -389,6 +389,13 @@ import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
 import steps from '../../store/steps';
 
+// Number('') es 0, así que vaciar el campo guardaba un cero y el paso quedaba
+// "completo" con la casilla en blanco. Vacío es null; el cero solo llega
+// cuando el usuario escribe un cero de verdad.
+function toNumberOrNull(value) {
+  return value === '' || value === null || value === undefined ? null : Number(value);
+}
+
 const fieldElementIds = {
   from_street: 'address-from-street',
   from_floor_number: 'address-from-floor',
@@ -675,7 +682,7 @@ export default {
         return this.orderDetailsOrigin.from_floor_number;
       },
       set(value) {
-        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_floor_number', value: Number(value) });
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_floor_number', value: toNumberOrNull(value) });
       },
     },
     selectedToFloor: {
@@ -683,7 +690,7 @@ export default {
         return this.orderDetailsDestination.to_floor_number;
       },
       set(value) {
-        this.setOrder({ section: 'orderDetailsDestination', field: 'to_floor_number', value: Number(value) });
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_floor_number', value: toNumberOrNull(value) });
       },
     },
     fromParkingDistance: {
@@ -691,7 +698,7 @@ export default {
         return this.orderDetailsOrigin.from_approximate_distance_from_parking;
       },
       set(value) {
-        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_approximate_distance_from_parking', value: Number(value) });
+        this.setOrder({ section: 'orderDetailsOrigin', field: 'from_approximate_distance_from_parking', value: toNumberOrNull(value) });
       },
     },
     toParkingDistance: {
@@ -699,7 +706,7 @@ export default {
         return this.orderDetailsDestination.to_approximate_distance_from_parking;
       },
       set(value) {
-        this.setOrder({ section: 'orderDetailsDestination', field: 'to_approximate_distance_from_parking', value: Number(value) });
+        this.setOrder({ section: 'orderDetailsDestination', field: 'to_approximate_distance_from_parking', value: toNumberOrNull(value) });
       },
     },
     fromHasElevator: {

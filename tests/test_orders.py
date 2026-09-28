@@ -4,6 +4,7 @@ import pytest
 
 from app import db
 from app.api.order import Order as OrderEntity
+from app.api.order.steps.addresses import Addresses as AddressesStep
 from app.api.orders import send_email_to_carrier_companies
 from app.models import LuServices, Order, OrdersServices
 
@@ -182,3 +183,15 @@ def test_update_order_without_loaders_quantity_stays_none(client, customer):
 
     order = db.session.get(Order, order_id)
     assert order.loaders_quantity is None
+
+
+def test_ground_floor_counts_as_a_complete_address(client, customer):
+    # Piso 0 es planta baja, no un campo vacío. Con bool() esas direcciones
+    # quedaban incompletas para siempre y la orden nunca salía a cotizar.
+    order_id = _create_order(client, customer)
+    for detail in db.session.get(Order, order_id).order_details:
+        detail.floor_number = 0
+        detail.map_url = 'https://maps.google.com/z'
+    db.session.commit()
+
+    assert AddressesStep(order_id).is_complete() is True

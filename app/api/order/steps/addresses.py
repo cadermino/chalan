@@ -47,7 +47,11 @@ class Addresses:
         address_from_database.update(self.to_address)
         is_complete = []
         for requisite in self.requisites():
-            req = bool(address_from_database[requisite])
+            # El piso cuenta lleno aunque sea 0: planta baja es un piso válido,
+            # y con bool() esas direcciones quedaban incompletas para siempre,
+            # así que la orden nunca salía a cotizar.
+            value = address_from_database[requisite]
+            req = value is not None and value != ''
             if not is_complete:
                 is_complete.append(req)
             else:
