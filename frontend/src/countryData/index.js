@@ -1,7 +1,18 @@
-const arrayFromCeroToNineteen = [...Array(20).keys()];
-const objectFromOneToTweenty = {};
-arrayFromCeroToNineteen
-  .forEach((index) => { objectFromOneToTweenty[index + 1] = index + 1; });
+// Lista y no objeto: con claves negativas, JavaScript itera primero las
+// enteras no negativas y deja las negativas para el final, en orden de
+// inserción, así que los sótanos salían abajo de todo y desordenados. Una
+// lista se recorre como está escrita.
+const floorOption = (value, label = String(value)) => ({ value, label });
+
+// Tres sótanos alcanzan para los edificios residenciales de Lima. Bajar
+// muebles desde un sótano cuesta el mismo trabajo que subirlos, así que el
+// transportista necesita saberlo para cotizar.
+const basements = [3, 2, 1].map(level => floorOption(-level, `Sótano ${level}`));
+const floorsFromOneToTwenty = [...Array(20).keys()].map(index => floorOption(index + 1));
+const floorsFromCeroToNineteen = [
+  floorOption(0, 'Planta baja'),
+  ...[...Array(19).keys()].map(index => floorOption(index + 1)),
+];
 
 export default {
   peru: {
@@ -12,7 +23,7 @@ export default {
     'step-one': {
       fromStreetPlaceholder: 'Ejem: Calle Londres 198 Perú',
       toStreetPlaceholder: 'Ejem: Calle Londres 198 Perú',
-      floor: objectFromOneToTweenty,
+      floor: [...basements, ...floorsFromOneToTwenty],
     },
     'step-three': {
       currency: 'PEN',
@@ -33,7 +44,7 @@ export default {
     'step-one': {
       fromStreetPlaceholder: 'Ejem: Calle Londres 198 México',
       toStreetPlaceholder: 'Ejem: Calle Londres 198 México',
-      floor: { ...arrayFromCeroToNineteen, 0: 'Planta baja' },
+      floor: floorsFromCeroToNineteen,
     },
     'step-three': {
       currency: 'MXN',

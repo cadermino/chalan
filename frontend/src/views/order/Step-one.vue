@@ -75,10 +75,10 @@
                     v-model="selectedFromFloor">
                       <option disabled value="">Selecciona un piso</option>
                       <option
-                      v-for="(item, index) in countryData.floor"
-                      v-bind:value="index"
-                      v-bind:key="index">
-                        {{ item }}
+                      v-for="option in countryData.floor"
+                      v-bind:value="option.value"
+                      v-bind:key="option.value">
+                        {{ option.label }}
                       </option>
                     </select>
                     <div class="pointer-events-none
@@ -232,10 +232,10 @@
                     v-model="selectedToFloor">
                       <option disabled value="">Selecciona un piso</option>
                       <option
-                      v-for="(item, index) in countryData.floor"
-                      v-bind:value="index"
-                      v-bind:key="index">
-                        {{ item }}
+                      v-for="option in countryData.floor"
+                      v-bind:value="option.value"
+                      v-bind:key="option.value">
+                        {{ option.label }}
                       </option>
                     </select>
                     <div class="pointer-events-none
