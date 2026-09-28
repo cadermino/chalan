@@ -27,6 +27,16 @@ export const fieldLabels = {
   quotation_id: 'Cotización seleccionada',
 };
 
+// Un campo está lleno si el usuario puso algo, aunque ese algo sea cero.
+// Boolean() no sirve acá: descartaba el 0, y varios requisitos del paso uno son
+// números que valen cero de verdad —planta baja, o el vehículo estacionado en
+// la puerta—. El cliente veía la casilla con un 0 y el botón sin habilitarse,
+// sin ningún mensaje que dijera qué faltaba. `false` sigue contando como vacío
+// porque los servicios sin elegir arrancan así.
+function isFilled(value) {
+  return value !== null && value !== undefined && value !== '' && value !== false;
+}
+
 function checkCompleteStep(state) {
   const allStepsData = {
     ...state.currentOrder,
@@ -40,7 +50,7 @@ function checkCompleteStep(state) {
       requisitesValues.push(allStepsData[requisite]);
     });
     state.steps[key].isComplete = requisitesValues
-      .reduce((prev, curr) => prev && Boolean(curr), true);
+      .reduce((prev, curr) => prev && isFilled(curr), true);
     if (state.steps[key].isComplete) {
       state.viewsMessages[key] = null;
     }
