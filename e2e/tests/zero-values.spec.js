@@ -47,6 +47,17 @@ test.describe('Step one with zeros', () => {
     expect(await isStepOneComplete(page)).toBe(true);
   });
 
+  test('a 0 is not flagged as a missing field when submitting', async ({ page }) => {
+    // nextStep() valida y después avanza. Con la validación vieja el campo se
+    // pintaba en rojo y salía el cartel de campos faltantes aunque el paso
+    // siguiera adelante: te avisaba que faltaba algo y te dejaba pasar igual.
+    await fillStepOne(page, { distance: 0, floor: 3 });
+    await page.getByRole('button', { name: 'Guardar y continuar' }).click();
+
+    await expect(page.locator('#from-parking-distance')).not.toHaveClass(/border-red-300/);
+    await expect(page.getByText('no olvides llenar este campo')).toHaveCount(0);
+  });
+
   test('an empty distance still leaves the step incomplete', async ({ page }) => {
     // El arreglo distingue el cero del vacío; no afloja la validación.
     await fillStepOne(page, { distance: 5, floor: 3 });
