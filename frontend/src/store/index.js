@@ -330,7 +330,10 @@ export default new Vuex.Store({
         ...state.services,
       };
       state.steps[viewName].requisites.forEach((field) => {
-        if (!stepOneRequisites[field]) {
+        // Misma noción de "lleno" que checkCompleteStep. Con `!valor`, una
+        // distancia de 0 se marcaba en rojo como si faltara, y el paso avanzaba
+        // igual: el formulario decía que faltaba un campo y te dejaba pasar.
+        if (!isFilled(stepOneRequisites[field])) {
           emptyFields.push(field);
         }
       });
