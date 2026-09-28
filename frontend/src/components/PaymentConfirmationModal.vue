@@ -143,10 +143,6 @@ export default {
       // Sobrevive a un reintento dentro del mismo montaje, porque en ese caso
       // no se vuelve a llamar al endpoint y el dato ya no llegaría.
       checkoutCreated: false,
-      orderStatusId: {
-        pending: 1,
-        'in progress': 2,
-      },
     };
   },
   mounted() {
@@ -210,11 +206,10 @@ export default {
           token: this.customer.token,
         });
         this.setOrder({ section: 'currentOrder', field: 'payment_method', value: 'cash' });
-        this.setOrder({
-          section: 'currentOrder',
-          field: 'order_status_id',
-          value: this.orderStatusId['in progress'],
-        });
+        // El estado de la orden lo escribe checkout-cash en el backend. Esto
+        // solo lo ponia en el store: el PUT de abajo no lleva
+        // orderEditedByCustomer —a proposito, reenvia el localStorage— asi que
+        // nunca llegaba a la base y simulaba un guardado que no ocurria.
         const orderPayload = {
           order: this.currentOrder,
           customer: this.customer,

@@ -550,6 +550,13 @@ def create_order():
                     'cargo': '1' if data.get('cargo') else '0',
                     'packaging': '1' if data.get('packaging') else '0',
                 },
+                # Sin esta marca el API principal no escribe nada: desde
+                # 02e8f88 un PUT sin ella cae en link_customer(), que solo liga
+                # al cliente y devuelve 200 igual. Las ordenes creadas aca
+                # perdian appointment_date, comments, loaders_quantity y
+                # services, y al quedar incompletas tampoco disparaban el aviso
+                # a los transportistas que esta misma funcion promete arriba.
+                'orderEditedByCustomer': True,
                 'requestQuotationFromCarrierCompany': bool(data.get('notify_carriers', True)),
             },
             timeout=10,

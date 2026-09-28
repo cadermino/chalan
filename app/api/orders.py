@@ -10,6 +10,7 @@ from . import api
 from .decorators import (token_required, carrier_company_token_required,
                          authenticated_customer, is_internal_request)
 from .order import Order as OrderEntity
+from .order.order_status import OrderStatus
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
 from .quotation import Quotation as QuotationEntity
@@ -135,6 +136,16 @@ def update_order(order_id):
     if missing:
         return jsonify({'message': 'missing required fields: ' + ', '.join(missing)}), 400
 
+    # Un llamador interno es el backoffice-api, no un navegador: manda el cuerpo
+    # entero a proposito y siempre quiere escribirlo. Si llega sin la marca es
+    # un bug de programacion nuestro, no un login reenviando localStorage, y
+    # controlamos las dos puntas. Devolverlo en 400 evita que se repita lo de
+    # 02e8f88, que dejo cuatro dias de ordenes vacias respondiendo 200.
+    if internal and not order_data.get('orderEditedByCustomer'):
+        return jsonify({
+            'message': 'internal callers must send orderEditedByCustomer'
+        }), 400
+
     address_changed = AddressesStep(order_id).has_changed(order_data)
     belongings_changed = BelongingsAppointmentDateStep(order_id).has_changed(order_data)
     data_changed = address_changed or belongings_changed
@@ -158,8 +169,21 @@ def update_order(order_id):
     order_entity = OrderEntity(order_id)
     if order_data.get('orderEditedByCustomer'):
         order = order_entity.update(request=order_data, customer_id=owner_id)
+        written = 'full'
     else:
         order = order_entity.link_customer(owner_id)
+        written = 'customer_link'
+        if data_changed:
+            # El cuerpo traia datos distintos a los guardados y se descartaron
+            # enteros. Para login, registro y el modal de pago eso es lo
+            # correcto —reenvian una copia vieja del navegador— pero es tambien
+            # la firma exacta de un cliente que cree estar guardando y no lo
+            # esta. Sin esta linea el unico sintoma es un 200.
+            current_app.logger.warning(
+                'PUT /order/%s sin orderEditedByCustomer descarto cambios '
+                '(direcciones=%s, mudanza=%s)',
+                order_id, address_changed, belongings_changed,
+            )
 
     # Solo cancela cuando el cliente editó su mudanza en los pasos 1 o 2. Antes
     # bastaba cualquier PUT sin `requestQuotationFromCarrierCompany`, y eso
@@ -182,9 +206,18 @@ def update_order(order_id):
             db.session.commit()
 
     emails_sent = send_email_to_carrier_companies(order_id, order_data)
+    # El mensaje dejo de decir "updated!" pase lo que pase: un PUT que solo
+    # ligo al cliente no actualizo la orden. `written` y `fields_written` son
+    # aditivos —ningun cliente actual los lee, todos miran el status— y le dan
+    # al backoffice y al agente externo algo contra que afirmar.
+    message = (
+        'order {id} updated!' if written == 'full' else 'order {id} linked to customer'
+    ).format(id=order.id)
     return jsonify({
-        'message': 'order {id} updated!'.format(id=order.id),
+        'message': message,
         'order_id': order.id,
+        'written': written,
+        'fields_written': order_entity.written_fields,
         'emails_sent_by_company_id': emails_sent
     }), 200
 
@@ -245,6 +278,19 @@ def generate_checkout_cash(order_id):
     # transportista recibía dos veces el mismo pedido y el cliente dos
     # confirmaciones de la misma mudanza.
     if created:
+        # Agendar es lo que pone la orden en marcha, asi que el estado se
+        # escribe aca. Antes lo hacia el PUT del modal de pago, que desde
+        # 02e8f88 ya no escribe nada: la orden se quedaba en pending aunque
+        # estuviera agendada y cobrada, y con eso el transportista no la veia
+        # en su lista (carrierCompany.py:43), no podia marcarla completada
+        # (backoffice-api/app/api/orders.py:847) y el guard de quotations.py:99
+        # seguia dejando elegir otra cotizacion. `created` ya garantiza que
+        # esto corre una sola vez por orden.
+        db_order = db.session.get(Order, order_id)
+        if db_order is not None and db_order.order_status_id == OrderStatus.pending():
+            db_order.order_status_id = OrderStatus.in_progress()
+            db.session.commit()
+
         carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
 
         subject = '[Pago en efectivo] Orden {} '.format(order_id)

@@ -41,6 +41,11 @@ class Order:
 
     def __init__(self, order_id=None):
         self.order_id = order_id
+        # Lo que la ultima llamada escribio de verdad. La ruta lo devuelve
+        # al cliente para que un PUT que no escribe nada deje de ser
+        # indistinguible de uno que si. Se llena junto a cada asignacion,
+        # para que no pueda desfasarse de lo que realmente ocurre.
+        self.written_fields = []
 
     def create(self, request):
         order = OrderModel(
@@ -113,10 +118,12 @@ class Order:
         y su copia del navegador gana.
         """
         order = db.session.get(OrderModel, self.order_id)
+        self.written_fields = []
         if customer_id is not None and order.customer_id != customer_id:
             order.customer_id = customer_id
             db.session.add(order)
             db.session.commit()
+            self.written_fields = ['customer_id']
         return order
 
     def update(self, request, customer_id=None):
@@ -125,15 +132,20 @@ class Order:
         # customer_id llega ya validado contra el token por la ruta; el
         # `customer` del cuerpo no se mira, porque cualquiera puede escribir
         # ahí el id que quiera.
+        written = []
         if customer_id is not None:
             order.customer_id = customer_id
+            written.append('customer_id')
         order.appointment_date = request['order']['appointment_date']
         order.comments = request['order']['comments']
+        written.extend(['appointment_date', 'comments'])
         if request['order'].get('order_status_id') is not None:
             order.order_status_id = request['order']['order_status_id']
+            written.append('order_status_id')
         approximate_budget = request['order']['approximate_budget']
         order.approximate_budget = approximate_budget if approximate_budget is not None else 0
         order.loaders_quantity = request['order'].get('loaders_quantity')
+        written.extend(['approximate_budget', 'loaders_quantity'])
         db.session.add(order)
         db.session.commit()
 
@@ -167,6 +179,8 @@ class Order:
                 order_service_model.delete()
             db.session.commit()
 
+        written.extend(['order_details', 'services'])
+        self.written_fields = written
         return order
 
     def query_orders(self, data):

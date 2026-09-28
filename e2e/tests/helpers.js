@@ -121,6 +121,11 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
         orderDetailsDestination,
         services: { packaging: TEST_DATA.stepTwo.packaging, cargo: TEST_DATA.stepTwo.cargo },
         customer: { customer_id: null },
+        // Este helper hace de Step-two, asi que manda su misma marca. Sin ella
+        // el backend responde 200 pero no escribe nada, y el estado que estos
+        // tests creen sembrar solo existe en el store de Vuex de mas abajo:
+        // la fila de la orden queda vacia.
+        orderEditedByCustomer: true,
       },
     });
   }

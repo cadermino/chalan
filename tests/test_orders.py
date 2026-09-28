@@ -3,10 +3,12 @@ from datetime import datetime
 import pytest
 
 from app import db
+from app.api.decorators import generate_internal_token
 from app.api.order import Order as OrderEntity
 from app.api.order.steps.addresses import Addresses as AddressesStep
 from app.api.orders import send_email_to_carrier_companies
-from app.models import LuServices, Order, OrdersServices
+from app.api.order.order_status import OrderStatus
+from app.models import LuServices, Order, OrdersServices, PaymentType, Quotations
 
 
 ORIGIN = {
@@ -195,3 +197,197 @@ def test_ground_floor_counts_as_a_complete_address(client, customer):
     db.session.commit()
 
     assert AddressesStep(order_id).is_complete() is True
+
+
+def _auth(customer):
+    return {'Authorization': f'Bearer {customer.generate_auth_token(3600)}'}
+
+
+def _internal_auth():
+    return {'Authorization': f'Bearer {generate_internal_token()}'}
+
+
+def _route_update_payload(edited_by_customer):
+    """Cuerpo de PUT /order/<id> tal como lo manda un cliente real.
+
+    appointment_date va en None a proposito: la ruta escribe el string crudo
+    del JSON (order.py:130) y el SQLite de estas pruebas solo acepta datetime
+    de Python. Lo que se verifica aca es si la ruta escribe, no que formato de
+    fecha parsea.
+    """
+    payload = {
+        'customer': {'customer_id': None},
+        'order': {
+            'appointment_date': None,
+            'comments': '1 sofa, 3 cajas',
+            'approximate_budget': 500,
+            'loaders_quantity': 2,
+        },
+        'orderDetailsOrigin': ORIGIN,
+        'orderDetailsDestination': DESTINATION,
+        'services': {'cargo': '1', 'packaging': '0'},
+    }
+    if edited_by_customer:
+        payload['orderEditedByCustomer'] = True
+    return payload
+
+
+def test_put_with_edit_flag_persists_the_order(client, customer):
+    # Los otros tests de update() llaman a OrderEntity directo y se saltean la
+    # ruta, que es por donde entra todo el trafico real. Esta prueba existe
+    # porque 02e8f88 dejo de escribir por HTTP sin que nada se pusiera en rojo:
+    # el endpoint siguio respondiendo 200 "updated!" durante cuatro dias.
+    order_id = _create_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=True),
+        headers=_auth(customer),
+    )
+
+    assert res.status_code == 200
+    order = db.session.get(Order, order_id)
+    assert order.comments == '1 sofa, 3 cajas'
+    assert order.loaders_quantity == 2
+    assert order.approximate_budget == 500
+    assert [row.service.service for row in order.services] == ['cargo']
+
+
+def test_put_without_edit_flag_writes_nothing(client, customer):
+    # Login, registro, el paso tres y el modal de pago reenvian la orden entera
+    # desde el localStorage del navegador: de esos PUT solo se toma ligar al
+    # cliente. Sin esta prueba, sacar el guard de 02e8f88 vuelve a dejar que un
+    # login pise la orden con una copia vieja y le cancele las cotizaciones.
+    order_id = _create_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=False),
+        headers=_auth(customer),
+    )
+
+    assert res.status_code == 200
+    order = db.session.get(Order, order_id)
+    assert order.comments is None
+    assert order.loaders_quantity is None
+    assert order.services.count() == 0
+
+
+def test_put_reports_what_it_wrote(client, customer):
+    # El 200 de esta ruta no distinguia un PUT que escribio todo de uno que no
+    # escribio nada, y por eso el bug de 02e8f88 vivio cuatro dias en dos
+    # clientes a la vez. La respuesta ahora lo dice.
+    order_id = _create_order(client, customer)
+
+    full = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=True),
+        headers=_auth(customer),
+    ).get_json()
+
+    assert full['written'] == 'full'
+    assert 'comments' in full['fields_written']
+    assert 'loaders_quantity' in full['fields_written']
+    assert 'updated!' in full['message']
+
+    link_only = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=False),
+        headers=_auth(customer),
+    ).get_json()
+
+    assert link_only['written'] == 'customer_link'
+    assert link_only['fields_written'] == []
+    assert 'updated!' not in link_only['message']
+
+
+def test_internal_caller_without_the_edit_flag_is_rejected(client, customer):
+    # El backoffice-api manda el cuerpo entero a proposito y siempre quiere
+    # escribirlo; si olvida la marca es un bug nuestro, no un navegador
+    # reenviando localStorage. Controlamos las dos puntas, asi que falla fuerte.
+    order_id = _create_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=False),
+        headers=_internal_auth(),
+    )
+
+    assert res.status_code == 400
+    assert 'orderEditedByCustomer' in res.get_json()['message']
+
+
+def test_internal_caller_with_the_edit_flag_writes(client, customer):
+    order_id = _create_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=True),
+        headers=_internal_auth(),
+    )
+
+    assert res.status_code == 200
+    assert res.get_json()['written'] == 'full'
+    assert db.session.get(Order, order_id).comments == '1 sofa, 3 cajas'
+
+
+def test_cash_checkout_moves_the_order_to_in_progress(client, customer, carrier_company, monkeypatch):
+    # Agendar es lo unico que pone la orden en marcha. Antes ese estado lo
+    # escribia el PUT del modal de pago, que desde 02e8f88 no escribe nada, y
+    # la orden se quedaba en pending aunque estuviera cobrada: el transportista
+    # no la veia en su lista y no podia marcarla completada.
+    from app.api.order import order as order_module
+    order_module._PAYMENT_TYPE_IDS.clear()
+    monkeypatch.setenv('PLATFORM_FEE', '0.1')
+    monkeypatch.setenv('SITE_URL', 'https://chalan.pe/')
+    monkeypatch.setattr('app.api.orders.send_email', lambda *args, **kwargs: None)
+
+    db.session.add_all([PaymentType(type='cash'), PaymentType(type='yape')])
+    carrier_company.email = 'carrier@example.com'
+    db.session.commit()
+
+    order_id = _create_order(client, customer)
+    db.session.add(Quotations(
+        order_id=order_id,
+        carrier_company_id=carrier_company.id,
+        amount=200,
+        quotation_status_id=2,
+    ))
+    db.session.commit()
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+
+    res = client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer))
+
+    assert res.status_code == 200
+    assert res.get_json()['created'] is True
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.in_progress()
+
+
+def test_cash_checkout_is_idempotent(client, customer, carrier_company, monkeypatch):
+    # Volver desde el dashboard y confirmar otra vez la misma cotizacion pasa
+    # por aca de nuevo: ni duplica pagos ni reenvia correos, y el estado ya
+    # escrito se queda como esta.
+    from app.api.order import order as order_module
+    order_module._PAYMENT_TYPE_IDS.clear()
+    monkeypatch.setenv('PLATFORM_FEE', '0.1')
+    monkeypatch.setenv('SITE_URL', 'https://chalan.pe/')
+    monkeypatch.setattr('app.api.orders.send_email', lambda *args, **kwargs: None)
+
+    db.session.add_all([PaymentType(type='cash'), PaymentType(type='yape')])
+    carrier_company.email = 'carrier@example.com'
+    db.session.commit()
+
+    order_id = _create_order(client, customer)
+    db.session.add(Quotations(
+        order_id=order_id,
+        carrier_company_id=carrier_company.id,
+        amount=200,
+        quotation_status_id=2,
+    ))
+    db.session.commit()
+
+    client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer))
+    again = client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer))
+
+    assert again.get_json()['created'] is False
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.in_progress()
