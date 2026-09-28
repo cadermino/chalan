@@ -1,16 +1,18 @@
+import formatFloor from '../utils/floor';
+
 // Lista y no objeto: con claves negativas, JavaScript itera primero las
 // enteras no negativas y deja las negativas para el final, en orden de
 // inserción, así que los sótanos salían abajo de todo y desordenados. Una
 // lista se recorre como está escrita.
-const floorOption = (value, label = String(value)) => ({ value, label });
+const floorOption = value => ({ value, label: formatFloor(value) });
 
 // Tres sótanos alcanzan para los edificios residenciales de Lima. Bajar
 // muebles desde un sótano cuesta el mismo trabajo que subirlos, así que el
 // transportista necesita saberlo para cotizar.
-const basements = [3, 2, 1].map(level => floorOption(-level, `Sótano ${level}`));
+const basements = [3, 2, 1].map(level => floorOption(-level));
 const floorsFromOneToTwenty = [...Array(20).keys()].map(index => floorOption(index + 1));
 const floorsFromCeroToNineteen = [
-  floorOption(0, 'Planta baja'),
+  floorOption(0),
   ...[...Array(19).keys()].map(index => floorOption(index + 1)),
 ];
 

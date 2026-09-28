@@ -185,7 +185,7 @@
               <p>
                 <span class="font-bold
                   mr-1">Piso: </span>
-                {{fromAddress.floor_number}}
+                {{ formatFloor(fromAddress.floor_number) }}
               </p>
               <p>
                 <span class="font-bold
@@ -259,7 +259,7 @@
               <p>
                 <span class="font-bold
                   mr-1">Piso: </span>
-                {{toAddress.floor_number}}
+                {{ formatFloor(toAddress.floor_number) }}
               </p>
               <p>
                 <span class="font-bold
@@ -420,6 +420,7 @@ import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import { mapMutations, mapState } from 'vuex';
 import chalan from '../../api/chalan';
+import formatFloor from '../../utils/floor';
 
 export default {
   name: 'quotation',
@@ -558,6 +559,7 @@ export default {
     },
   },
   methods: {
+    formatFloor,
     ...mapMutations([
       'setFormValidationMessages',
       'setViewsMessages',
