@@ -168,7 +168,7 @@
               <p>
                 <span class="font-bold
                   mr-1">Piso: </span>
-                {{fromAddress.floor_number}}
+                {{ formatFloor(fromAddress.floor_number) }}
               </p>
               <p>
                 <span class="font-bold
@@ -242,7 +242,7 @@
               <p>
                 <span class="font-bold
                   mr-1">Piso: </span>
-                {{toAddress.floor_number}}
+                {{ formatFloor(toAddress.floor_number) }}
               </p>
               <p>
                 <span class="font-bold
@@ -361,6 +361,7 @@ import ViewsMessages from '@/components/ViewsMessages.vue';
 import { mapMutations, mapState } from 'vuex';
 import { cashToCollect } from '@/utils/payments';
 import chalan from '../../api/chalan';
+import formatFloor from '../../utils/floor';
 
 export default {
   name: 'carrierCompanyOrderDetails',
@@ -457,6 +458,7 @@ export default {
     },
   },
   methods: {
+    formatFloor,
     ...mapMutations([
       'setFormValidationMessages',
       'setViewsMessages',
