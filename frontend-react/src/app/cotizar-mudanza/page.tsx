@@ -186,7 +186,7 @@ export default function CotizarMudanza() {
         <section className="mb-12">
           <p className="text-gray-600">
             ¿Buscas algo más específico? Revisa nuestro servicio de{" "}
-            <Link href="/mudanzas-lima" className="text-indigo-600 hover:underline">mudanzas en Lima</Link>,{" "}
+            <Link href="/mudanzas-lima" className="text-indigo-600 hover:underline">servicio de mudanza en Lima</Link>,{" "}
             <Link href="/mudanzas-huancayo" className="text-indigo-600 hover:underline">mudanzas en Huancayo</Link>{" "}
             o los <Link href="/fletes-peru" className="text-indigo-600 hover:underline">fletes en todo el Perú</Link>.
           </p>

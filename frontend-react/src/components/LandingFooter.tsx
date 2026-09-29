@@ -22,7 +22,7 @@ export function LandingFooter() {
               <h4>Servicios</h4>
               <ul>
                 <li><Link href="/como-funciona">Cómo funciona</Link></li>
-                <li><Link href="/mudanzas-lima">Mudanzas en Lima</Link></li>
+                <li><Link href="/mudanzas-lima">Servicio de mudanza en Lima</Link></li>
                 <li><Link href="/mudanzas-huancayo">Mudanzas en Huancayo</Link></li>
                 <li><Link href="/fletes-peru">Fletes en Perú</Link></li>
                 <li><Link href="/embalaje-profesional">Embalaje profesional</Link></li>

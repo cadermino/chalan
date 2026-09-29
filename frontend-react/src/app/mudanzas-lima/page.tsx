@@ -7,18 +7,18 @@ import { QuoteWidget } from "@/components/QuoteWidget";
 import { Testimonials } from "@/components/Testimonials";
 
 export const metadata: Metadata = {
-  title: "Mudanzas en Lima - Cotiza y compara vehículos | Chalán",
+  title: "Servicio de mudanza en Lima, grande o pequeña | Chalán",
   description:
-    "Servicio de mudanzas en Lima al mejor precio. Compara vehículos, elige fecha y múdate fácil. Cobertura en todos los distritos de Lima Metropolitana.",
+    "Contrata tu mudanza en Lima con transportistas verificados. Desde unas cajas hasta una casa completa: comparas, eliges y reservas sin llamar a nadie.",
   keywords:
-    "mudanzas lima, empresa mudanzas lima, mudanza barata lima, servicio mudanza lima metropolitana, mudanzas miraflores, mudanzas surco, mudanzas san isidro",
+    "servicio de mudanza en lima, servicio de mudanza lima, servicio de mudanzas en lima, mudanza pequeña, mudanzas pequeñas, mudanzas economicas, empresa de mudanzas lima, mudanzas miraflores, mudanzas surco, mudanzas san isidro",
   alternates: {
     canonical: "/mudanzas-lima",
   },
   openGraph: {
-    title: "Mudanzas en Lima - Chalán",
+    title: "Servicio de mudanza en Lima - Chalán",
     description:
-      "Servicio de mudanzas en Lima al mejor precio. Compara vehículos y múdate fácil.",
+      "Contrata tu mudanza en Lima con transportistas verificados, desde unas cajas hasta una casa completa.",
     url: "https://chalan.pe/mudanzas-lima",
   },
 };
@@ -45,7 +45,7 @@ const localBusinessJsonLd = {
       name: "Perú",
     },
   },
-  serviceType: ["Mudanzas locales", "Mudanzas entre distritos", "Fletes en Lima"],
+  serviceType: ["Servicio de mudanza", "Mudanzas pequeñas", "Mudanzas entre distritos", "Fletes en Lima"],
   priceRange: "$$",
 };
 
@@ -64,6 +64,7 @@ const faqs = [
       </>
     ),
   },
+  { q: "¿Atienden mudanzas pequeñas?", a: "Sí. Una habitación, un estudio o unas cajas con un par de muebles se mueven en furgoneta o camión pequeño, y se cobran como un traslado chico, no como una mudanza completa." },
   { q: "¿Hacen mudanzas los fines de semana?", a: "Sí, operamos los 7 días de la semana incluyendo feriados." },
   { q: "¿Qué distritos cubren?", a: "Cubrimos todos los distritos de Lima Metropolitana, desde San Juan de Lurigancho hasta Chorrillos, Miraflores, La Molina y más." },
   { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
@@ -123,16 +124,17 @@ export default function MudanzasLima() {
         <BreadcrumbJsonLd
           items={[
             { name: "Inicio", url: "https://chalan.pe" },
-            { name: "Mudanzas en Lima", url: "https://chalan.pe/mudanzas-lima" },
+            { name: "Servicio de mudanza en Lima", url: "https://chalan.pe/mudanzas-lima" },
           ]}
         />
 
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Mudanzas en Lima
+          Servicio de mudanza en Lima
         </h1>
         <p className="text-lg text-gray-600 mb-10">
-          Encuentra vehículos disponibles para tu mudanza en Lima Metropolitana.
-          Compara precios y reserva en minutos.
+          Transportistas verificados en toda Lima Metropolitana, para mudanzas de
+          cualquier tamaño: desde unas cajas y un par de muebles hasta una casa
+          completa. Comparas, eliges y reservas sin llamar a nadie.
         </p>
 
         {/* CTA */}
@@ -183,6 +185,44 @@ export default function MudanzasLima() {
               <p>Trabajamos con chalanes confiables y con experiencia en mudanzas dentro de Lima.</p>
             </div>
           </div>
+        </section>
+
+        {/* Mudanzas pequeñas */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            ¿Mudanza pequeña? También
+          </h2>
+          <p className="text-gray-600 mb-4">
+            No hace falta mudar una casa entera para contratar el servicio. Una
+            habitación, un estudio o unas cajas con dos muebles entran en una
+            furgoneta o un camión pequeño, y se cobran como lo que son: un
+            traslado chico, no una mudanza completa.
+          </p>
+          <p className="text-gray-600 mb-4">
+            Tres formas de que salga más barato cuando tienes poca cosa:
+          </p>
+          <ul className="list-disc pl-5 space-y-2 text-gray-600 mb-4">
+            <li>
+              <strong className="text-gray-900">El vehículo justo.</strong>{" "}
+              Pagar un camión grande a medio llenar es el error más caro. Mira{" "}
+              <Link href="/blog/camion-de-mudanza-que-tamano-elegir" className="text-indigo-600 hover:underline">
+                qué tamaño necesitas
+              </Link>{" "}
+              antes de reservar.
+            </li>
+            <li>
+              <strong className="text-gray-900">Compartir el camión.</strong>{" "}
+              Si tu carga no llena el vehículo, la{" "}
+              <Link href="/blog/mudanza-compartida-como-ahorrar-en-tu-flete" className="text-indigo-600 hover:underline">
+                mudanza compartida
+              </Link>{" "}
+              reparte el viaje y el costo con otra carga.
+            </li>
+            <li>
+              <strong className="text-gray-900">Entre semana.</strong> De lunes a
+              viernes hay más vehículos disponibles y los precios bajan.
+            </li>
+          </ul>
         </section>
 
         {/* Distritos */}
