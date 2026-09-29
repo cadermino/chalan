@@ -49,6 +49,10 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
+    # Explicito aunque False ya sea el default de Flask: con DEBUG prendido
+    # cualquier excepcion le muestra al usuario el traceback y una consola que
+    # ejecuta codigo. Escrito aca, agregar DEBUG = True a Config no lo arrastra.
+    DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 
     @classmethod
@@ -79,4 +83,11 @@ config = {
     'testing': TestingConfig,
     'prod': ProductionConfig,
     'default': DevelopmentConfig
+}
+
+# 'production' es como Flask llama a este entorno, asi que se tipea solo. Antes
+# daba KeyError y el proceso no arrancaba: se mapea en vez de dejar que muera
+# por un sinonimo.
+CONFIG_ALIASES = {
+    'production': 'prod',
 }

@@ -227,9 +227,6 @@
                     min="1"
                     v-model="loadersQuantity"
                     type="number">
-                <p class="text-xs text-gray-500 mt-1">
-                  El servicio ya incluye un cargador. Indícanos si necesitas más.
-                </p>
               </div>
             </div>
             <div class="w-full px-3 mb-4">
@@ -617,7 +614,16 @@ export default {
         return this.currentOrder.loaders_quantity;
       },
       set(value) {
-        this.setOrder({ section: 'currentOrder', field: 'loaders_quantity', value });
+        // v-model sobre un input number devuelve '' cuando el campo queda
+        // vacío, no null. La columna es Integer: ese '' llegaba crudo al PUT y
+        // Postgres lo rechazaba con DataError, o sea un 500 en la cara del
+        // cliente por borrar el número para escribir otro. Mismo guard que usa
+        // approximate_budget acá abajo.
+        this.setOrder({
+          section: 'currentOrder',
+          field: 'loaders_quantity',
+          value: value === '' ? null : value,
+        });
       },
     },
     approximateBudget: {

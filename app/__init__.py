@@ -2,7 +2,7 @@ from flask import Flask, got_request_exception
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from config import config
+from config import config, CONFIG_ALIASES
 from flask_cors import CORS
 from flask_mail import Mail
 import ast
@@ -35,6 +35,18 @@ def create_app(config_name):
 			integrations=[FlaskIntegration()],
 			environment='production',
 			traces_sample_rate=0,
+		)
+
+	config_name = CONFIG_ALIASES.get(config_name, config_name)
+	if config_name not in config:
+		# A proposito no cae a 'default', que es DevelopmentConfig: un nombre
+		# mal escrito o un FLASK_ENV sin setear arrancarian produccion con
+		# DEBUG prendido, mostrandole el traceback y una consola al usuario.
+		# No arrancar es el lado seguro del error.
+		raise ValueError(
+			'FLASK_ENV={!r} no es una configuracion valida. Opciones: {}.'.format(
+				config_name, ', '.join(sorted(config))
+			)
 		)
 
 	app = Flask(__name__)

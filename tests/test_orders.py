@@ -391,3 +391,24 @@ def test_cash_checkout_is_idempotent(client, customer, carrier_company, monkeypa
 
     assert again.get_json()['created'] is False
     assert db.session.get(Order, order_id).order_status_id == OrderStatus.in_progress()
+
+
+def test_empty_numeric_strings_do_not_blow_up_the_route(client, customer):
+    # Vaciar "Número de cargadores" en el paso dos manda '' (v-model sobre un
+    # input number no da null). Asignarlo a una columna Integer es un DataError
+    # y el cliente se come un 500 por borrar el número para escribir otro.
+    order_id = _create_order(client, customer)
+    payload = _route_update_payload(edited_by_customer=True)
+    payload['order']['loaders_quantity'] = ''
+    payload['order']['approximate_budget'] = ''
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=payload,
+        headers=_auth(customer),
+    )
+
+    assert res.status_code == 200
+    order = db.session.get(Order, order_id)
+    assert order.loaders_quantity is None
+    assert order.approximate_budget == 0

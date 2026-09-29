@@ -142,9 +142,16 @@ class Order:
         if request['order'].get('order_status_id') is not None:
             order.order_status_id = request['order']['order_status_id']
             written.append('order_status_id')
+        # Un campo numerico que el usuario dejo vacio llega como '' desde
+        # cualquier formulario, y asignarlo a una columna Integer/Float es un
+        # DataError, o sea un 500. Vale lo mismo que ausente: ningun cliente
+        # deberia poder tirar la ruta por borrar un numero.
         approximate_budget = request['order']['approximate_budget']
-        order.approximate_budget = approximate_budget if approximate_budget is not None else 0
-        order.loaders_quantity = request['order'].get('loaders_quantity')
+        if approximate_budget is None or approximate_budget == '':
+            approximate_budget = 0
+        order.approximate_budget = approximate_budget
+        loaders_quantity = request['order'].get('loaders_quantity')
+        order.loaders_quantity = loaders_quantity if loaders_quantity != '' else None
         written.extend(['approximate_budget', 'loaders_quantity'])
         db.session.add(order)
         db.session.commit()
