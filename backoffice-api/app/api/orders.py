@@ -856,6 +856,64 @@ def update_order(order_id):
     }), 200
 
 
+@api.route('/orders/bulk-cancel', methods=['POST'])
+@login_required
+def bulk_cancel_orders():
+    """Cancela varias órdenes de una vez desde la lista.
+
+    Solo toca órdenes pendientes. Una en progreso ya tiene transportista
+    adjudicado y quizá un adelanto cobrado: eso se resuelve de a una desde la
+    edición, mirando los pagos, no en lote. Las que no califican se devuelven
+    en `skipped` con el motivo en vez de hacer fallar el lote entero.
+
+    Las cotizaciones activas se cancelan junto con la orden: son precios para
+    una mudanza que ya no va a ocurrir y no deberían seguir contando como
+    ofertas vivas.
+    """
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    data = request.get_json() or {}
+    raw_ids = data.get('order_ids')
+    if not isinstance(raw_ids, list) or not raw_ids:
+        return jsonify({'message': 'order_ids must be a non-empty list'}), 400
+    try:
+        order_ids = list(dict.fromkeys(int(i) for i in raw_ids))
+    except (TypeError, ValueError):
+        return jsonify({'message': 'order_ids must be integers'}), 400
+    if len(order_ids) > MAX_PER_PAGE:
+        return jsonify({'message': f'at most {MAX_PER_PAGE} orders per request'}), 400
+
+    orders = {o.id: o for o in Order.query.filter(Order.id.in_(order_ids)).all()}
+
+    cancelled, skipped = [], []
+    for order_id in order_ids:
+        order = orders.get(order_id)
+        if order is None:
+            skipped.append({'id': order_id, 'reason': 'no existe'})
+        elif order.order_status_id != 1:
+            skipped.append({'id': order_id, 'reason': 'no está pendiente'})
+        else:
+            order.order_status_id = 4
+            cancelled.append(order_id)
+
+    cancelled_quotations = 0
+    if cancelled:
+        cancelled_quotations = Quotation.query.filter(
+            Quotation.order_id.in_(cancelled),
+            Quotation.quotation_status_id == QUOTATION_STATUS_ACTIVE,
+        ).update({'quotation_status_id': QUOTATION_STATUS_CANCELLED}, synchronize_session=False)
+
+    db.session.commit()
+
+    return jsonify({
+        'cancelled': cancelled,
+        'skipped': skipped,
+        'cancelled_quotations': cancelled_quotations,
+    }), 200
+
+
 @api.route('/orders/<int:order_id>/complete', methods=['PATCH'])
 @login_required
 def complete_order(order_id):

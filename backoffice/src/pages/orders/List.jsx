@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -134,6 +134,63 @@ export default function OrdersList() {
   const orders = data?.orders ?? []
   const pagination = data?.pagination ?? null
 
+  // Cancelación en lote. Solo las pendientes se pueden marcar: una en
+  // progreso ya tiene transportista y quizá adelanto, y eso se resuelve de a
+  // una desde la edición. La API aplica la misma regla por su cuenta.
+  const queryClient = useQueryClient()
+  const [selected, setSelected] = useState(() => new Set())
+  // Cancelar no se deshace desde acá, así que pide un segundo clic en vez de
+  // un confirm() del navegador, igual que en las cotizaciones.
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [bulkResult, setBulkResult] = useState(null)
+
+  // La selección es de la página que se está viendo: al cambiar de filtro o
+  // de página las filas marcadas dejan de estar a la vista, y cancelar algo
+  // que el usuario ya no ve es justo lo que no tiene que pasar.
+  useEffect(() => {
+    setSelected(new Set())
+    setConfirmingCancel(false)
+  }, [statusFilter, search, page, perPage])
+
+  const selectableIds = isSuperadmin
+    ? orders.filter(o => o.order_status_id === 1).map(o => o.id)
+    : []
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selected.has(id))
+  const someSelected = selectableIds.some(id => selected.has(id))
+
+  const toggleOne = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setConfirmingCancel(false)
+  }
+
+  const toggleAll = () => {
+    setSelected(allSelected ? new Set() : new Set(selectableIds))
+    setConfirmingCancel(false)
+  }
+
+  const bulkCancel = useMutation({
+    mutationFn: (orderIds) =>
+      client.post('/api/orders/bulk-cancel', { order_ids: orderIds }).then(r => r.data),
+    onSuccess: (result) => {
+      setBulkResult({ type: 'success', ...result })
+      setSelected(new Set())
+      setConfirmingCancel(false)
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+    onError: (err) => {
+      setBulkResult({
+        type: 'error',
+        message: err.response?.data?.message || 'No se pudieron cancelar las órdenes',
+      })
+      setConfirmingCancel(false)
+    },
+  })
+
   if (isPending) {
     return <p className="text-gray-500 p-8">Cargando...</p>
   }
@@ -246,6 +303,86 @@ export default function OrdersList() {
         )}
       </div>
 
+      {bulkResult && (
+        <div className={`border rounded-lg p-3 mb-4 text-sm flex justify-between items-start gap-4 ${
+          bulkResult.type === 'error'
+            ? 'bg-red-50 border-red-200 text-red-800'
+            : 'bg-green-50 border-green-200 text-green-800'
+        }`}>
+          {bulkResult.type === 'error' ? (
+            <span>{bulkResult.message}</span>
+          ) : (
+            <div>
+              <div>
+                Se cancelaron {bulkResult.cancelled.length} orden{bulkResult.cancelled.length === 1 ? '' : 'es'}
+                {bulkResult.cancelled_quotations > 0 &&
+                  ` y ${bulkResult.cancelled_quotations} cotización(es) activa(s)`}.
+              </div>
+              {bulkResult.skipped.length > 0 && (
+                <div className="text-amber-700 mt-1">
+                  No se cancelaron: {bulkResult.skipped.map(s => `#${s.id} (${s.reason})`).join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setBulkResult(null)}
+            className="text-xs shrink-0 opacity-70 hover:opacity-100"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      {isSuperadmin && selected.size > 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-4 text-sm flex flex-wrap items-center justify-between gap-3">
+          <span className="text-gray-700">
+            {selected.size} orden{selected.size === 1 ? '' : 'es'} seleccionada{selected.size === 1 ? '' : 's'}
+          </span>
+          {confirmingCancel ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-red-700">
+                ¿Cancelar {selected.size === 1 ? 'la orden' : `las ${selected.size} órdenes`}? También se cancelan sus cotizaciones activas.
+              </span>
+              <button
+                type="button"
+                disabled={bulkCancel.isPending}
+                onClick={() => bulkCancel.mutate([...selected])}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
+              >
+                {bulkCancel.isPending ? 'Cancelando…' : 'Sí, cancelar'}
+              </button>
+              <button
+                type="button"
+                disabled={bulkCancel.isPending}
+                onClick={() => setConfirmingCancel(false)}
+                className="px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100"
+              >
+                Deseleccionar
+              </button>
+              <button
+                type="button"
+                onClick={() => { setBulkResult(null); setConfirmingCancel(true) }}
+                className="px-3 py-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 font-medium"
+              >
+                Cancelar órdenes
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={`bg-white rounded-xl shadow overflow-hidden transition-opacity ${
         isPlaceholderData ? 'opacity-60' : ''
       }`}>
@@ -253,6 +390,20 @@ export default function OrdersList() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>
+                {isSuperadmin && (
+                  <th className="pl-4 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                      onChange={toggleAll}
+                      disabled={selectableIds.length === 0}
+                      title="Seleccionar las órdenes pendientes de esta página"
+                      aria-label="Seleccionar las órdenes pendientes de esta página"
+                      className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:opacity-40"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3 text-left"># Orden</th>
                 <th className="px-4 py-3 text-left">Cliente</th>
                 {isAdmin && <th className="px-4 py-3 text-left">Teléfono</th>}
@@ -268,7 +419,22 @@ export default function OrdersList() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {orders.map((o) => (
-                <tr key={o.id} className="hover:bg-gray-50">
+                <tr key={o.id} className={selected.has(o.id) ? 'bg-teal-50' : 'hover:bg-gray-50'}>
+                  {isSuperadmin && (
+                    <td className="pl-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(o.id)}
+                        onChange={() => toggleOne(o.id)}
+                        disabled={o.order_status_id !== 1}
+                        title={o.order_status_id === 1
+                          ? `Seleccionar la orden #${o.id}`
+                          : 'Solo se pueden cancelar en lote las órdenes pendientes'}
+                        aria-label={`Seleccionar la orden #${o.id}`}
+                        className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:opacity-30"
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
                   <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
                   {isAdmin && <td className="px-4 py-3 text-gray-600">{o.customer_phone || o.lead_phone || '—'}</td>}
@@ -358,7 +524,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 11 : 9} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={(isAdmin ? 11 : 9) + (isSuperadmin ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
                     {isError
                       ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
                       : pagination && pagination.total > 0
