@@ -314,6 +314,7 @@ import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
+import { tagBlockedStep } from '../../utils/sessionTags';
 
 Settings.defaultLocale = 'es';
 
@@ -531,6 +532,7 @@ export default {
           missing_field: missing[0],
           missing_count: missing.length,
         });
+        tagBlockedStep('step_two', missing[0]);
       }
     },
   },

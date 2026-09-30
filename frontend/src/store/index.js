@@ -4,6 +4,7 @@ import VueJwtDecode from 'vue-jwt-decode';
 import steps from './steps';
 import chalan from '../api/chalan';
 import storage from '../utils/safeStorage';
+import { sessionTagsPlugin } from '../utils/sessionTags';
 
 const isEmpty = arr => !arr.length;
 
@@ -59,6 +60,7 @@ function checkCompleteStep(state) {
 Vue.use(Vuex);
 
 export default new Vuex.Store({
+  plugins: [sessionTagsPlugin],
   state: {
     FB: undefined,
     nowDate: '',

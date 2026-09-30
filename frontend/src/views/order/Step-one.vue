@@ -387,6 +387,7 @@ import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue'
 import Modal from '@/components/Modal.vue';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
+import { tagBlockedStep } from '../../utils/sessionTags';
 import steps from '../../store/steps';
 
 // Number('') es 0, así que vaciar el campo guardaba un cero y el paso quedaba
@@ -597,6 +598,7 @@ export default {
           missing_field: missing[0],
           missing_count: missing.length,
         });
+        tagBlockedStep('step_one', missing[0]);
         this.scrollToFirstMissingField();
       }
     },
