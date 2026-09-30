@@ -240,16 +240,19 @@ def _attention():
     now = _now_utc()
     lima_now = _now_lima()
     return {
-        # Entre 1 y 7 días sin ningún precio: todavía se pueden salvar
-        # empujando a los transportistas. Pasada la semana ya no.
+        # Más de una hora sin ningún precio. El cliente de una mudanza suele
+        # pedir precio a varios lados a la vez: si en la primera hora no le
+        # llegó nada, lo más probable es que cierre con otro. Las más recientes
+        # van primero porque son las que todavía se salvan empujando a los
+        # transportistas; pasada la semana ya no se cuentan acá.
         'cooling': _attention_list(
             Order.query.filter(
                 Order.order_status_id == STATUS_PENDING,
-                Order.created_date < now - timedelta(hours=24),
+                Order.created_date < now - timedelta(hours=1),
                 Order.created_date >= now - timedelta(days=7),
                 ~_has_quotation(),
             ),
-            [Order.created_date.asc()],
+            [Order.created_date.desc()],
         ),
         'unregistered': _attention_list(
             _unregistered(), [Order.appointment_date.asc().nullslast()],

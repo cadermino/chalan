@@ -21,6 +21,17 @@ function duration(hours) {
   return `${(hours / 24).toLocaleString('es-PE', { maximumFractionDigits: 1 })} días`
 }
 
+// Cuánto pasó desde una fecha, en la unidad que se lee de un vistazo. Para
+// urgencias "hace 3 h" dice más que "30 sep, 10:00": no obliga a restar.
+function ago(iso) {
+  if (!iso) return '—'
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000))
+  if (minutes < 60) return `hace ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 48) return `hace ${hours} h`
+  return `hace ${Math.floor(hours / 24)} días`
+}
+
 function shortDate(iso) {
   if (!iso) return 'sin fecha'
   return new Date(iso).toLocaleString('es-PE', {
@@ -129,11 +140,11 @@ function AdminDashboard({ data }) {
       <Section title="Para atender hoy" hint="Órdenes que necesitan que alguien haga algo.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <AttentionCard
-            title="Sin cotizaciones hace más de 24 h"
-            why="Pendientes de la última semana que ningún transportista cotizó. Todavía se salvan si se empuja a las empresas."
+            title="Sin cotizaciones hace más de 1 h"
+            why="Pendientes de la última semana que ningún transportista cotizó. Las más recientes primero: son las que todavía se salvan si se empuja a las empresas."
             data={a.cooling}
             to="/orders?sort=quotations&dir=asc"
-            renderMeta={o => `creada ${shortDate(o.created_date)}`}
+            renderMeta={o => `${ago(o.created_date)} sin cotizar`}
           />
           <AttentionCard
             title="Adjudicadas sin adelanto registrado"
