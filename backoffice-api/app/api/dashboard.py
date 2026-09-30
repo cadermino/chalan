@@ -20,7 +20,7 @@ from flask import jsonify, g, request
 
 from . import api
 from .decorators import login_required
-from .orders import _financial_breakdown, QUOTATION_STATUS_SELECTED
+from .orders import _financial_breakdown, QUOTATION_STATUS_SELECTED, QUOTATION_STATUS_CANCELLED
 from ..models import (
     Order, Quotation, Payment, ReferredOrder, Customer, CarrierCompany,
     ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, _iso, _iso_local,
@@ -66,6 +66,23 @@ def _created_between(start, end):
 
 def _has_quotation():
     return db.exists().where(Quotation.order_id == Order.id)
+
+
+def _has_live_quotation():
+    # Una cancelada no es un precio que el cliente pueda elegir: si al editar
+    # la orden se cancelaron todas, vuelve a estar sin cotizar.
+    return db.exists().where(
+        Quotation.order_id == Order.id,
+        Quotation.quotation_status_id != QUOTATION_STATUS_CANCELLED,
+    )
+
+
+def _sent_to_carriers():
+    return Order.query.filter(Order.quotation_requested.is_(True))
+
+
+def _not_sent_to_carriers():
+    return Order.query.filter(db.func.coalesce(Order.quotation_requested, False).is_(False))
 
 
 def _has_selected_quotation():
@@ -240,17 +257,29 @@ def _attention():
     now = _now_utc()
     lima_now = _now_lima()
     return {
-        # Más de una hora sin ningún precio. El cliente de una mudanza suele
-        # pedir precio a varios lados a la vez: si en la primera hora no le
-        # llegó nada, lo más probable es que cierre con otro. Las más recientes
-        # van primero porque son las que todavía se salvan empujando a los
-        # transportistas; pasada la semana ya no se cuentan acá.
+        # Mandadas a los transportistas hace más de una hora y sin ningún
+        # precio vivo. El cliente de una mudanza suele pedir precio a varios
+        # lados a la vez: si en la primera hora no le llegó nada, lo más
+        # probable es que cierre con otro. El reloj corre desde el envío y no
+        # desde la creación: antes de eso nadie podía cotizarla. Las más
+        # recientes primero porque son las que todavía se salvan.
         'cooling': _attention_list(
-            Order.query.filter(
+            _sent_to_carriers().filter(
                 Order.order_status_id == STATUS_PENDING,
-                Order.created_date < now - timedelta(hours=1),
+                Order.carrier_notified_at < now - timedelta(hours=1),
+                Order.carrier_notified_at >= now - timedelta(days=7),
+                ~_has_live_quotation(),
+            ),
+            [Order.carrier_notified_at.desc()],
+            item=lambda o: _order_item(o, notified_at=_iso(o.carrier_notified_at)),
+        ),
+        # Pendientes que nunca se mandaron porque les faltan datos: nadie las
+        # puede cotizar hasta que se llame al cliente y se completen. Incluye
+        # las que solo tienen teléfono, que casi siempre están en este caso.
+        'incomplete': _attention_list(
+            _not_sent_to_carriers().filter(
+                Order.order_status_id == STATUS_PENDING,
                 Order.created_date >= now - timedelta(days=7),
-                ~_has_quotation(),
             ),
             [Order.created_date.desc()],
         ),
@@ -266,15 +295,6 @@ def _attention():
             ),
             [Order.appointment_date.asc()],
             item=_reservation_item,
-        ),
-        'leads': _attention_list(
-            Order.query.filter(
-                Order.order_status_id == STATUS_PENDING,
-                Order.customer_id.is_(None),
-                db.func.coalesce(Order.lead_phone, '') != '',
-                Order.created_date >= now - timedelta(days=7),
-            ),
-            [Order.created_date.desc()],
         ),
         # Pendientes de más de una semana: casi seguro muertas. Solo el número,
         # para que se limpien en bloque desde la lista de órdenes.
@@ -341,8 +361,10 @@ def _carrier_dashboard(company_id):
         Quotation.order_id == Order.id,
         Quotation.carrier_company_id == company_id,
     )
-    # Una pendiente con la fecha de mudanza ya pasada no es oportunidad.
-    open_orders = Order.query.filter(
+    # Solo las que se le mandaron a los transportistas: una incompleta no se
+    # puede cotizar por falta de datos. Y una con la fecha de mudanza ya
+    # pasada tampoco es oportunidad.
+    open_orders = _sent_to_carriers().filter(
         Order.order_status_id == STATUS_PENDING,
         ~quoted_by_me,
         db.or_(Order.appointment_date.is_(None), Order.appointment_date >= lima_now),

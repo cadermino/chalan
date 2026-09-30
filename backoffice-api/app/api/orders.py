@@ -929,6 +929,10 @@ def update_order(order_id):
             Quotation.order_id == order_id,
             Quotation.quotation_status_id == QUOTATION_STATUS_ACTIVE,
         ).update({'quotation_status_id': QUOTATION_STATUS_CANCELLED})
+        # Sin precios vivos la orden vuelve a necesitar cotización, así que se
+        # puede mandar de nuevo a los transportistas. Es lo mismo que hace el
+        # API principal cuando el cliente edita su mudanza.
+        order.quotation_requested = False
 
     db.session.commit()
 
@@ -946,6 +950,34 @@ def update_order(order_id):
                          OrdersService.query.filter_by(order_id=order_id).all()],
         }
     }), 200
+
+
+@api.route('/orders/<int:order_id>/notify-carriers', methods=['POST'])
+@login_required
+def notify_order_carriers(order_id):
+    """Manda la orden a los transportistas desde la edición.
+
+    El envío lo hace el API principal, dueño de los correos y los WhatsApp;
+    acá solo se controla el rol. Superadmin, igual que editar la orden. Las
+    respuestas 409 (faltan datos, ya se había mandado) se devuelven tal cual
+    para que el formulario diga qué falta.
+    """
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/order/{order_id}/notify-carriers',
+            headers=_internal_headers(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the order service'}), 502
+    if res.status_code not in (200, 404, 409):
+        return jsonify({'message': 'failed to notify carriers'}), 502
+    return jsonify(res.json()), res.status_code
 
 
 @api.route('/orders/bulk-cancel', methods=['POST'])

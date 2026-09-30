@@ -11,6 +11,26 @@ const STATUS_OPTIONS = [
 
 const NUMBER_FIELDS = new Set(['floor_number', 'approximate_distance_from_parking'])
 
+// Lo que el API principal dice que falta para poder mandar la orden, con los
+// mismos nombres que tienen esos campos en este formulario, para que se
+// encuentren a simple vista.
+const MISSING_FIELD_LABELS = {
+  from_street: 'Origen: Calle',
+  from_floor_number: 'Origen: Piso',
+  from_country: 'Origen: País',
+  from_map_url: 'Origen: URL del mapa',
+  to_street: 'Destino: Calle',
+  to_floor_number: 'Destino: Piso',
+  to_country: 'Destino: País',
+  to_map_url: 'Destino: URL del mapa',
+  appointment_date: 'Fecha de mudanza',
+  comments: 'Comentarios',
+}
+
+const formatDateTime = iso => new Date(iso).toLocaleString('es-PE', {
+  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima',
+})
+
 function AddressFields({ title, values, onChange }) {
   const fields = [
     { key: 'street', label: 'Calle' },
@@ -177,6 +197,10 @@ export default function OrderEdit() {
   // se van a cancelar: un checkbox sin ese número se marca a ciegas.
   const [liveQuotations, setLiveQuotations] = useState([])
   const [cancelQuotations, setCancelQuotations] = useState(false)
+  // Si la orden ya se mandó a los transportistas y cuándo. Mientras no, el
+  // formulario ofrece guardar y mandarla en un solo paso.
+  const [sent, setSent] = useState({ requested: false, at: null })
+  const [missingFields, setMissingFields] = useState([])
 
   useEffect(() => {
     client.get(`/api/orders/${orderId}`).then(({ data }) => {
@@ -200,6 +224,7 @@ export default function OrderEdit() {
         destination: { ...addressDefaults, ...o.destination },
       })
       setExistingImages(o.images || [])
+      setSent({ requested: Boolean(o.quotation_requested), at: o.carrier_notified_at || null })
     }).finally(() => setLoading(false))
 
     client.get(`/api/orders/${orderId}/quotations`)
@@ -242,11 +267,16 @@ export default function OrderEdit() {
     }
   }
 
+  // "Guardar y enviar" primero guarda y recién después manda: así lo que les
+  // llega a los transportistas es siempre lo que está en pantalla, nunca la
+  // versión anterior a los cambios sin guardar.
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const sendToCarriers = e.nativeEvent?.submitter?.name === 'send'
     setSaving(true)
     setError(null)
     setUploadWarning(null)
+    setMissingFields([])
     let cancelledCount = 0
     try {
       const { data } = await client.put(`/api/orders/${orderId}`, {
@@ -267,33 +297,79 @@ export default function OrderEdit() {
 
     // Order fields already saved at this point - an image upload failure
     // shouldn't block leaving the page, just surface a warning.
-    let failedUploads = 0
+    // Las que suben pasan a la lista de ya guardadas y salen de la cola: si
+    // el formulario queda abierto (falló una subida, o faltan datos para
+    // enviar), volver a guardar no las sube por segunda vez.
+    const pending = []
+    const uploaded = []
     for (const img of images) {
       const formData = new FormData()
       formData.append('image', img.file)
       try {
         // eslint-disable-next-line no-await-in-loop
-        await client.post(`/api/orders/${orderId}/images`, formData, {
+        const { data } = await client.post(`/api/orders/${orderId}/images`, formData, {
           headers: { 'Content-Type': undefined },
         })
+        if (data?.image) uploaded.push(data.image)
       } catch {
-        failedUploads += 1
+        pending.push(img)
+      }
+    }
+    const failedUploads = pending.length
+    const attemptedUploads = images.length
+    if (attemptedUploads > 0) {
+      setImages(pending)
+      setExistingImages(prev => [...prev, ...uploaded])
+    }
+
+    let sentCount = null
+    if (sendToCarriers) {
+      try {
+        const { data } = await client.post(`/api/orders/${orderId}/notify-carriers`)
+        sentCount = data.emails_sent_by_company_id?.length ?? 0
+        setSent({ requested: sentCount > 0, at: data.carrier_notified_at })
+      } catch (err) {
+        setSaving(false)
+        const body = err.response?.data
+        if (body?.message === 'incomplete') {
+          // Lo guardado queda guardado; lo que falta se lista para completarlo
+          // y volver a intentar sin salir del formulario.
+          setMissingFields(body.missing_fields || [])
+        } else if (body?.message === 'already_requested') {
+          setSent({ requested: true, at: body.carrier_notified_at })
+          setError('Los cambios se guardaron. La orden ya se había mandado a los transportistas.')
+        } else {
+          setError('Los cambios se guardaron, pero no se pudo mandar la orden a los transportistas. Intenta de nuevo.')
+        }
+        return
       }
     }
 
     setSaving(false)
     if (failedUploads > 0) {
       setUploadWarning(
-        `Los cambios se guardaron, pero ${failedUploads} de ${images.length} imagen(es) no se pudieron subir.`
+        `Los cambios se guardaron, pero ${failedUploads} de ${attemptedUploads} imagen(es) no se pudieron subir.`
+        + (sentCount > 0 ? ` La orden se mandó a ${sentCount} transportista(s).` : '')
       )
       return
     }
+
+    const messages = []
+    if (cancelledCount > 0) {
+      messages.push(sendToCarriers
+        ? `Se cancelaron ${cancelledCount} cotización(es).`
+        : `Se cancelaron ${cancelledCount} cotización(es). Para que coticen de nuevo, envía la orden a los transportistas desde la edición.`)
+    }
+    if (sentCount > 0) messages.push(`Se mandó la orden a ${sentCount} transportista(s).`)
+    if (sentCount === 0) messages.push('No se mandó a nadie: todas las empresas activas ya tienen una cotización vigente para esta orden.')
     navigate(`/orders/${orderId}`, {
-      state: cancelledCount > 0
-        ? { message: `Se cancelaron ${cancelledCount} cotización(es). Envía el enlace de cotización a las empresas para que coticen de nuevo.` }
-        : undefined,
+      state: messages.length ? { message: messages.join(' ') } : undefined,
     })
   }
+
+  // Se puede mandar si todavía no se mandó, o si se están cancelando las
+  // cotizaciones vigentes: la API vuelve a marcarla como pendiente de envío.
+  const canSend = !sent.requested || cancelQuotations
 
   if (loading) return <p className="text-gray-500 p-8">Cargando...</p>
   if (!form) return <p className="text-red-500 p-8">Orden no encontrada</p>
@@ -513,14 +589,30 @@ export default function OrderEdit() {
               <span className="block text-xs text-amber-700 mt-0.5">
                 Márcalo si cambió lo que hay que mudar: los precios actuales se
                 hicieron sobre la mudanza anterior. Las empresas tendrán que
-                cotizar de nuevo con el enlace. No afecta a una cotización que
-                el cliente ya haya aceptado.
+                cotizar de nuevo: usa "Guardar y enviar a transportistas" para
+                avisarles. No afecta a una cotización que el cliente ya haya
+                aceptado.
               </span>
             </span>
           </label>
         )}
 
-        <div className="flex gap-3 justify-end">
+        {missingFields.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800">
+            <p className="font-medium">Los cambios se guardaron, pero la orden no se mandó: faltan datos para que puedan cotizar.</p>
+            <ul className="list-disc ml-5 mt-1">
+              {missingFields.map(f => <li key={f}>{MISSING_FIELD_LABELS[f] || f}</li>)}
+            </ul>
+          </div>
+        )}
+
+        <div className="text-sm text-gray-500">
+          {sent.requested && !cancelQuotations
+            ? <span className="text-green-700">✓ Mandada a los transportistas{sent.at ? ` el ${formatDateTime(sent.at)}` : ''}.</span>
+            : 'Esta orden todavía no se mandó a los transportistas.'}
+        </div>
+
+        <div className="flex flex-wrap gap-3 justify-end">
           <Link
             to={`/orders/${orderId}`}
             className="px-5 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50"
@@ -529,11 +621,26 @@ export default function OrderEdit() {
           </Link>
           <button
             type="submit"
+            name="save"
             disabled={saving}
-            className="px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium disabled:opacity-50"
+            className={`px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 ${
+              canSend
+                ? 'border border-teal-600 text-teal-700 hover:bg-teal-50'
+                : 'bg-teal-600 hover:bg-teal-700 text-white'
+            }`}
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
+          {canSend && (
+            <button
+              type="submit"
+              name="send"
+              disabled={saving}
+              className="px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium disabled:opacity-50"
+            >
+              {saving ? 'Guardando...' : 'Guardar y enviar a transportistas'}
+            </button>
+          )}
         </div>
       </form>
     </div>

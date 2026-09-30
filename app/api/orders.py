@@ -317,6 +317,62 @@ def generate_checkout_cash(order_id):
         'created': created,
     }), 200
 
+def _missing_fields_for_quotation(order_id):
+    """Campos que le faltan a la orden para que un transportista pueda cotizar.
+
+    Mismos requisitos que los pasos 1 y 2 del flujo del cliente. Se revisan
+    también las direcciones, que send_email_to_carrier_companies no mira
+    porque en el flujo del cliente el paso 1 ya las exige: una orden armada a
+    mano en el backoffice puede llegar acá sin ellas. Los servicios no se
+    revisan: siempre tienen valor, marcado o no.
+    """
+    addresses = AddressesStep(order_id)
+    address_values = {**addresses.from_address, **addresses.to_address}
+    missing = [
+        field for field in addresses.requisites()
+        if address_values.get(field) is None or address_values.get(field) == ''
+    ]
+    details = OrderEntity(order_id).details()
+    missing += [field for field in ('appointment_date', 'comments') if not details.get(field)]
+    return missing
+
+@api.route('/order/<int:order_id>/notify-carriers', methods=['POST'])
+def notify_carriers(order_id):
+    """Manda la orden a los transportistas a pedido del backoffice.
+
+    Para las órdenes que no salieron solas: las que se crearon a mano con
+    datos incompletos y se completaron después desde la edición, que no avisa
+    a nadie al guardar. Pasa por send_email_to_carrier_companies, el mismo
+    envío (correo + WhatsApp) que dispara el cliente al terminar el flujo.
+
+    Solo llamadas internas: el control de rol se hizo en el backoffice-api.
+    """
+    if not is_internal_request():
+        return jsonify({'message': 'forbidden'}), 403
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return not_found('order not found')
+
+    missing = _missing_fields_for_quotation(order_id)
+    if missing:
+        return jsonify({'message': 'incomplete', 'missing_fields': missing}), 409
+    if order.quotation_requested:
+        return jsonify({
+            'message': 'already_requested',
+            'carrier_notified_at': order.carrier_notified_at.isoformat() + '+00:00'
+            if order.carrier_notified_at else None,
+        }), 409
+
+    emails_sent = send_email_to_carrier_companies(
+        order_id, {'requestQuotationFromCarrierCompany': True}
+    )
+    db.session.refresh(order)
+    return jsonify({
+        'emails_sent_by_company_id': emails_sent,
+        'carrier_notified_at': order.carrier_notified_at.isoformat() + '+00:00'
+        if order.carrier_notified_at else None,
+    }), 200
+
 def send_email_to_carrier_companies(order_id, order_data):
     emails_sent = []
     if not order_data.get('requestQuotationFromCarrierCompany'):

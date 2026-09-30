@@ -86,7 +86,7 @@ function Section({ title, hint, children }) {
 // Lista corta de órdenes que piden acción. El total va arriba aunque solo se
 // listen unas pocas, y "Ver todas" lleva a la lista de órdenes ya filtrada y
 // ordenada para mostrar esas mismas primero.
-function AttentionCard({ title, why, data, to, renderMeta, tone = 'amber' }) {
+function AttentionCard({ title, why, data, to, renderMeta, itemLink = o => `/orders/${o.id}`, tone = 'amber' }) {
   const tones = {
     amber: 'border-amber-400',
     red: 'border-red-400',
@@ -106,18 +106,22 @@ function AttentionCard({ title, why, data, to, renderMeta, tone = 'amber' }) {
           <ul className="mt-3 divide-y divide-gray-100 text-sm">
             {data.items.map((o) => (
               <li key={o.id} className="py-1.5 flex items-center justify-between gap-3">
-                <Link to={`/orders/${o.id}`} className="text-teal-700 hover:underline font-medium shrink-0">
+                <Link to={itemLink(o)} className="text-teal-700 hover:underline font-medium shrink-0">
                   #{o.id}
                 </Link>
                 <span className="text-gray-500 text-right truncate">{renderMeta(o)}</span>
               </li>
             ))}
           </ul>
-          {to && data.total > data.items.length && (
+          {data.total > data.items.length && (to ? (
             <Link to={to} className="text-xs text-teal-700 hover:underline mt-2 inline-block">
               Ver las {data.total} →
             </Link>
-          )}
+          ) : (
+            // Sin un filtro equivalente en la lista de órdenes no hay adónde
+            // mandar "ver todas"; al menos que se sepa que hay más.
+            <p className="text-xs text-gray-400 mt-2">y {data.total - data.items.length} más</p>
+          ))}
         </>
       )}
     </div>
@@ -129,6 +133,8 @@ function who(o) {
 }
 
 function AdminDashboard({ data }) {
+  const { user } = useAuth()
+  const isSuperadmin = user?.role === 'superadmin'
   const { attention: a, funnel, supply, money: m, deposits, agent_commissions: commissions } = data
   const f = funnel.current
   const fp = funnel.previous
@@ -141,10 +147,9 @@ function AdminDashboard({ data }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <AttentionCard
             title="Sin cotizaciones hace más de 1 h"
-            why="Pendientes de la última semana que ningún transportista cotizó. Las más recientes primero: son las que todavía se salvan si se empuja a las empresas."
+            why="Se mandaron a los transportistas y ninguno cotizó. Las más recientes primero: son las que todavía se salvan si se empuja a las empresas."
             data={a.cooling}
-            to="/orders?sort=quotations&dir=asc"
-            renderMeta={o => `${ago(o.created_date)} sin cotizar`}
+            renderMeta={o => `enviada ${ago(o.notified_at)}, sin cotizar`}
           />
           <AttentionCard
             title="Adjudicadas sin adelanto registrado"
@@ -163,11 +168,15 @@ function AdminDashboard({ data }) {
             renderMeta={o => `${shortDate(o.appointment_date)} · ${money(o.amount)}`}
           />
           <AttentionCard
-            title="Órdenes solo con teléfono"
-            why="Pendientes de la última semana sin cliente registrado. Hay que llamar para completarlas."
-            data={a.leads}
+            title="Incompletas: faltan datos para cotizar"
+            why={isSuperadmin
+              ? 'Pendientes de la última semana que no se mandaron a los transportistas. Llama al cliente, complétalas y envíalas desde la edición.'
+              : 'Pendientes de la última semana que no se mandaron a los transportistas. Hay que llamar al cliente para completarlas.'}
+            data={a.incomplete}
             tone="blue"
-            to="/orders?sort=customer&dir=asc"
+            // Lo que hay que hacer con estas es completarlas, así que el
+            // superadmin va directo a la edición, donde también se envían.
+            itemLink={isSuperadmin ? o => `/orders/${o.id}/edit` : undefined}
             renderMeta={who}
           />
         </div>

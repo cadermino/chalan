@@ -237,6 +237,11 @@ class Order(db.Model):
     updated_date = db.Column(db.DateTime())
     loaders_quantity = db.Column(db.Integer, nullable=True)
     lead_phone = db.Column(db.String(15), nullable=True)
+    # Los escribe el API principal al mandar la orden a los transportistas
+    # (send_email_to_carrier_companies). Una orden pendiente sin
+    # quotation_requested no se mandó: le faltan datos para cotizar.
+    quotation_requested = db.Column(db.Boolean, nullable=True)
+    carrier_notified_at = db.Column(db.DateTime(), nullable=True)
 
     order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='order', lazy='dynamic')
@@ -262,6 +267,8 @@ class Order(db.Model):
             # necesita para saber qué cliente viene preseleccionado, y el
             # transportista no tiene por qué recibir el id.
             'customer_id': self.customer_id,
+            'quotation_requested': bool(self.quotation_requested),
+            'carrier_notified_at': _iso(self.carrier_notified_at),
         }
 
 
