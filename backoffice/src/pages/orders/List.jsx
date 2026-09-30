@@ -4,19 +4,58 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 
-const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
+const STATUS_ICON_PATHS = {
+  list: ['M8 6h13M8 12h13M8 18h13', 'M3 6h.01M3 12h.01M3 18h.01'],
+  clock: ['M12 7v5l3 2', { circle: [12, 12, 9] }],
+  truck: ['M1 4h14v12H1z', 'M15 9h4l3 3v4h-7z', { circle: [5.5, 18.5, 2] }, { circle: [18.5, 18.5, 2] }],
+  check: ['m8 12 3 3 5-6', { circle: [12, 12, 9] }],
+  cross: ['m15 9-6 6M9 9l6 6', { circle: [12, 12, 9] }],
+}
 
-const FILTERS = [
-  { key: 'all', label: 'Todas' },
-  { key: '1', label: 'Pendiente' },
-  { key: '2', label: 'En progreso' },
-  { key: '3', label: 'Completado' },
-  { key: '4', label: 'Cancelado' },
-]
+function StatusIcon({ icon, size = 16 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {STATUS_ICON_PATHS[icon].map((p, i) => (typeof p === 'string'
+        ? <path key={i} d={p} />
+        : <circle key={i} cx={p.circle[0]} cy={p.circle[1]} r={p.circle[2]} />))}
+    </svg>
+  )
+}
 
-// Lo que vale cuando el parámetro no está en la URL. Los defaults no se
-// escriben nunca, así que /orders queda limpio y solo carga lo que el usuario
-// cambió de verdad — eso hace que el enlace se pueda pegar y compartir.
+// Cada estado tiene su color e ícono, y son los mismos en el botón de filtro
+// y en la columna Estado: por eso la columna puede mostrar solo el ícono, el
+// botón de arriba hace de leyenda. Las clases van escritas completas porque
+// Tailwind solo genera las que encuentra literales en el código.
+const STATUSES = {
+  all: {
+    label: 'Todas', icon: 'list',
+    active: 'bg-gray-700 border-gray-700 text-white',
+    idle: 'border-gray-300 text-gray-600 hover:bg-gray-50',
+  },
+  1: {
+    label: 'Pendiente', icon: 'clock', color: 'text-amber-500',
+    active: 'bg-amber-500 border-amber-500 text-white',
+    idle: 'border-amber-300 text-amber-700 hover:bg-amber-50',
+  },
+  2: {
+    label: 'En progreso', icon: 'truck', color: 'text-blue-600',
+    active: 'bg-blue-600 border-blue-600 text-white',
+    idle: 'border-blue-300 text-blue-700 hover:bg-blue-50',
+  },
+  3: {
+    label: 'Completado', icon: 'check', color: 'text-green-600',
+    active: 'bg-green-600 border-green-600 text-white',
+    idle: 'border-green-300 text-green-700 hover:bg-green-50',
+  },
+  4: {
+    label: 'Cancelado', icon: 'cross', color: 'text-red-500',
+    active: 'bg-red-500 border-red-500 text-white',
+    idle: 'border-red-300 text-red-700 hover:bg-red-50',
+  },
+}
+
+const FILTERS = ['all', '1', '2', '3', '4'].map(key => ({ key, ...STATUSES[key] }))
+
 function EyeIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,7 +147,12 @@ function SortHeader({ column, label, sort, dir, onSort }) {
   )
 }
 
-const DEFAULTS = { status: 'all', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc' }
+// Lo que vale cuando el parámetro no está en la URL. Los defaults no se
+// escriben nunca, así que /orders queda limpio y solo carga lo que el usuario
+// cambió de verdad — eso hace que el enlace se pueda pegar y compartir.
+// El estado arranca en Pendiente: son las órdenes que piden trabajo, y "Todas"
+// queda a un clic (y en la URL como ?status=all).
+const DEFAULTS = { status: '1', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
 export default function OrdersList() {
@@ -330,12 +374,11 @@ export default function OrdersList() {
                 key={f.key}
                 onClick={() => updateParams({ status: f.key })}
                 aria-pressed={statusFilter === f.key}
-                className={`text-sm px-3 py-1.5 rounded-lg border ${
-                  statusFilter === f.key
-                    ? 'bg-teal-600 border-teal-600 text-white'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border ${
+                  statusFilter === f.key ? f.active : f.idle
                 }`}
               >
+                <StatusIcon icon={f.icon} />
                 {f.label}
               </button>
             ))}
@@ -470,7 +513,7 @@ export default function OrdersList() {
                 <th className="px-4 py-3 text-left">Destino</th>
                 <SortHeader column="created" label="Creación" sort={sort} dir={dir} onSort={onSort} />
                 <SortHeader column="appointment" label="Fecha mudanza" sort={sort} dir={dir} onSort={onSort} />
-                <th className="px-4 py-3 text-left">Estado</th>
+                <th className="px-4 py-3 text-center">Estado</th>
                 {isAdmin
                   ? <SortHeader column="deposit" label="Adelanto" sort={sort} dir={dir} onSort={onSort} />
                   : <th className="px-4 py-3 text-left">Cotización</th>}
@@ -531,8 +574,18 @@ export default function OrdersList() {
                       </div>
                     ) : '—'}
                   </td>
-                  <td className="px-4 py-3">
-                    {STATUS_LABEL[o.order_status_id] || o.order_status_id}
+                  <td className="px-4 py-3 text-center">
+                    {STATUSES[o.order_status_id] ? (
+                      // El title da el nombre al pasar el mouse; el texto
+                      // sr-only es lo que anuncia el lector de pantalla.
+                      <span
+                        className={`inline-flex ${STATUSES[o.order_status_id].color}`}
+                        title={STATUSES[o.order_status_id].label}
+                      >
+                        <StatusIcon icon={STATUSES[o.order_status_id].icon} size={18} />
+                        <span className="sr-only">{STATUSES[o.order_status_id].label}</span>
+                      </span>
+                    ) : o.order_status_id}
                   </td>
                   <td className="px-4 py-3">
                     {isAdmin
