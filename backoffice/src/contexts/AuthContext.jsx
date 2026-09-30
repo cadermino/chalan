@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import client from '../api/client'
 
 const AuthContext = createContext(null)
@@ -12,6 +12,14 @@ export function AuthProvider({ children }) {
       return null
     }
   })
+
+  // Etiqueta la sesión de Clarity con el rol, para filtrar las grabaciones de
+  // admins y de transportistas por separado. Solo el rol: nada que identifique
+  // a la persona. `window.clarity` existe solo en producción (main.jsx); antes
+  // de que cargue el script, el stub encola la llamada.
+  useEffect(() => {
+    window.clarity?.('set', 'role', user?.role || 'anonymous')
+  }, [user?.role])
 
   const login = useCallback(async (email, password) => {
     const { data } = await client.post('/auth/login', { email, password })
