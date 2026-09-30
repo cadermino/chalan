@@ -262,6 +262,7 @@ export default function OrdersList() {
                 <th className="px-4 py-3 text-left">Fecha mudanza</th>
                 <th className="px-4 py-3 text-left">Estado</th>
                 <th className="px-4 py-3 text-left">{isAdmin ? 'Adelanto' : 'Cotización'}</th>
+                {isAdmin && <th className="px-4 py-3 text-left">Cotizaciones</th>}
                 <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
             </thead>
@@ -313,6 +314,11 @@ export default function OrdersList() {
                         ? <span className="text-green-600 font-medium">Enviada</span>
                         : <span className="text-amber-500 font-medium">Pendiente</span>)}
                   </td>
+                  {isAdmin && (
+                    <td className={`px-4 py-3 ${o.quotation_count ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                      {o.quotation_count ?? 0}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     {/* El title da el tooltip nativo del navegador; el
                         aria-label es lo que lee un lector de pantalla, que no
@@ -352,7 +358,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 10 : 9} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={isAdmin ? 11 : 9} className="px-4 py-8 text-center text-gray-400">
                     {isError
                       ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
                       : pagination && pagination.total > 0

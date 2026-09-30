@@ -339,10 +339,22 @@ def list_pending_orders():
     # sirve es cómo va el adelanto.
     deposits = {}
     selected_by_order = set()
+    quotation_counts = {}
     if is_admin:
         page_ids = [o.id for o in all_sent_orders]
         deposits = _deposits_by_order(page_ids)
         if page_ids:
+            # Solo las activas: las canceladas y la ya seleccionada no son
+            # ofertas que el cliente todavía pueda elegir.
+            quotation_counts = dict(
+                db.session.query(Quotation.order_id, db.func.count(Quotation.id))
+                .filter(
+                    Quotation.order_id.in_(page_ids),
+                    Quotation.quotation_status_id == QUOTATION_STATUS_ACTIVE,
+                )
+                .group_by(Quotation.order_id)
+                .all()
+            )
             selected_by_order = {
                 q.order_id for q in Quotation.query.filter(
                     Quotation.order_id.in_(page_ids),
@@ -392,6 +404,9 @@ def list_pending_orders():
                 or ({'status': 'unregistered', 'amount': None}
                     if order.id in selected_by_order else None)
             ) if is_admin else None,
+            # Solo para el admin: al transportista no le toca saber cuántos
+            # competidores cotizaron la misma orden.
+            'quotation_count': quotation_counts.get(order.id, 0) if is_admin else None,
         })
 
     # `pagination` se agrega sin tocar `orders`, así que cualquier consumidor
