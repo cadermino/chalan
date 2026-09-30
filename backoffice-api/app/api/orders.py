@@ -255,6 +255,97 @@ def _order_search_filter(search, include_customer):
     return db.or_(*clauses) if clauses else db.false()
 
 
+def _order_sort_keys(is_admin):
+    """Expresiones por las que se puede ordenar la lista, por nombre de columna.
+
+    Todo va como subconsulta correlacionada y no como join, por lo mismo que la
+    búsqueda: un join con pagos o cotizaciones duplicaría filas y rompería el
+    count() de la paginación. Teléfono, adelanto y cotizaciones son columnas
+    que solo ve el admin, así que solo el admin puede ordenar por ellas.
+    """
+    customer = lambda expr: (
+        db.select(expr).where(Customer.id == Order.customer_id).scalar_subquery()
+    )
+    keys = {
+        'id': Order.id,
+        'customer': customer(db.func.lower(db.func.nullif(
+            db.func.trim(db.func.concat_ws(' ', Customer.name, Customer.paternal_last_name)), ''
+        ))),
+        'created': Order.created_date,
+        'appointment': Order.appointment_date,
+    }
+    if not is_admin:
+        return keys
+
+    # Mismo adelanto que muestra la fila (_deposits_by_order): la última
+    # reserva no cancelada.
+    reservation = lambda col: (
+        db.select(col).where(
+            Payment.order_id == Order.id,
+            Payment.concept == 'reservation',
+            Payment.status != 'cancelled',
+        ).order_by(Payment.id.desc()).limit(1).scalar_subquery()
+    )
+    deposit_status = reservation(Payment.status)
+    has_selected = db.exists().where(
+        Quotation.order_id == Order.id,
+        Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
+    )
+    keys.update({
+        'phone': db.func.coalesce(
+            db.func.nullif(customer(Customer.mobile_phone), ''),
+            db.func.nullif(Order.lead_phone, ''),
+        ),
+        # Agrupa por estado, de más resuelto a menos: cobrado, pendiente, sin
+        # registrar. Descendente deja arriba las que hay que ir a resolver; las
+        # que no tienen nada adjudicado quedan en NULL, como cualquier vacío.
+        'deposit': (
+            db.case(
+                (deposit_status == 'paid', 0),
+                (deposit_status == 'pending', 1),
+                (has_selected, 2),
+                else_=None,
+            ),
+            reservation(Payment.amount),
+        ),
+        # Mismo criterio que la columna: solo las activas.
+        'quotations': (
+            db.select(db.func.count(Quotation.id)).where(
+                Quotation.order_id == Order.id,
+                Quotation.quotation_status_id == QUOTATION_STATUS_ACTIVE,
+            ).scalar_subquery()
+        ),
+    })
+    return keys
+
+
+def _order_by_clauses(sort, direction, is_admin):
+    """Traduce ?sort=&dir= a cláusulas ORDER BY. Un `sort` desconocido o que
+    el rol no puede usar cae al orden de siempre, sin 400: el valor llega de la
+    URL, igual que la paginación."""
+    keys = _order_sort_keys(is_admin)
+    exprs = keys.get(sort)
+    if exprs is None:
+        exprs, direction = Order.created_date, 'desc'
+    if not isinstance(exprs, tuple):
+        exprs = (exprs,)
+    descending = direction == 'desc'
+    # Un vacío cuenta como el valor más bajo: ascendente lo pone primero y
+    # descendente al final. Así se puede llegar a ellos —"las que no tienen
+    # teléfono"— invirtiendo el sentido, y no quedan enterrados para siempre
+    # como con NULLS LAST fijo. Postgres por defecto hace lo contrario (NULL
+    # como el más alto), por eso se dice explícito.
+    clauses = [
+        e.desc().nullslast() if descending else e.asc().nullsfirst()
+        for e in exprs
+    ]
+    # El desempate por id no es cosmético: con offset/limit, dos órdenes con
+    # el mismo valor pueden intercambiarse entre consultas y aparecer dos veces
+    # o ninguna al pasar de página.
+    clauses.append(Order.id.desc())
+    return clauses
+
+
 def _deposits_by_order(order_ids):
     """Estado del adelanto de cada orden, en una sola consulta.
 
@@ -313,10 +404,11 @@ def list_pending_orders():
             search, include_customer=user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)
         ))
 
-    # El desempate por id no es cosmético: con offset/limit, dos órdenes que
-    # comparten created_date pueden intercambiarse entre consultas y aparecer
-    # dos veces o ninguna al pasar de página.
-    query = query.order_by(Order.created_date.desc(), Order.id.desc())
+    query = query.order_by(*_order_by_clauses(
+        request.args.get('sort'),
+        request.args.get('dir'),
+        is_admin=user.role in (ROLE_SUPERADMIN, ROLE_ADMIN),
+    ))
 
     page, per_page = _pagination_args()
     all_sent_orders, pagination = _paginate(query, page, per_page)

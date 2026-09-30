@@ -68,7 +68,47 @@ function DepositCell({ deposit }) {
   return <span className="text-amber-500 font-medium">○ Pendiente {money(deposit.amount)}</span>
 }
 
-const DEFAULTS = { status: 'all', page: 1, per_page: 25, q: '' }
+// Columnas ordenables y con qué dirección arrancan al primer clic: la que
+// suele interesar. Lo más reciente primero en fechas y números de orden, el
+// que más ofertas tiene primero en cotizaciones, y en adelanto los que falta
+// registrar arriba, que son los que hay que ir a resolver. Los vacíos cuentan
+// como el valor más bajo (la API los pone primero en ascendente), así que
+// "sin teléfono" o "sin fecha" se ven invirtiendo el sentido. Las de admin
+// las rechaza también la API para los demás roles.
+const SORTS = {
+  id: { firstDir: 'desc' },
+  customer: { firstDir: 'asc' },
+  phone: { firstDir: 'asc', adminOnly: true },
+  created: { firstDir: 'desc' },
+  appointment: { firstDir: 'desc' },
+  deposit: { firstDir: 'desc', adminOnly: true },
+  quotations: { firstDir: 'desc', adminOnly: true },
+}
+
+// aria-sort le dice al lector de pantalla por qué columna y en qué sentido
+// está ordenada la tabla; la flecha es lo mismo para el ojo.
+function SortHeader({ column, label, sort, dir, onSort }) {
+  const active = sort === column
+  return (
+    <th
+      className="px-4 py-3 text-left"
+      aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={`inline-flex items-center gap-1 uppercase hover:text-gray-800 ${active ? 'text-gray-800' : ''}`}
+      >
+        {label}
+        <span aria-hidden="true" className={active ? '' : 'opacity-30'}>
+          {active ? (dir === 'asc' ? '▲' : '▼') : '↕'}
+        </span>
+      </button>
+    </th>
+  )
+}
+
+const DEFAULTS = { status: 'all', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
 export default function OrdersList() {
@@ -88,6 +128,13 @@ export default function OrdersList() {
     ? Number(searchParams.get('per_page'))
     : DEFAULTS.per_page
   const search = searchParams.get('q')?.trim() || DEFAULTS.q
+  const sortParam = searchParams.get('sort')
+  const sort = SORTS[sortParam] && (isAdmin || !SORTS[sortParam].adminOnly)
+    ? sortParam
+    : DEFAULTS.sort
+  const dir = ['asc', 'desc'].includes(searchParams.get('dir'))
+    ? searchParams.get('dir')
+    : DEFAULTS.dir
 
   // El input sí lleva estado propio: escribir no debe consultar al servidor ni
   // dejar una entrada en el historial por tecla. La búsqueda pasa a la URL al
@@ -110,16 +157,28 @@ export default function OrdersList() {
     setSearchParams(next)
   }
 
+  // Otro clic en la misma columna invierte el sentido; una columna nueva
+  // arranca en el suyo. Los dos parámetros se escriben siempre juntos para
+  // que el que no cambió no quede heredado de la columna anterior.
+  const onSort = (column) => {
+    const nextDir = column === sort
+      ? (dir === 'asc' ? 'desc' : 'asc')
+      : SORTS[column].firstDir
+    updateParams({ sort: column, dir: nextDir })
+  }
+
   // La clave describe exactamente de qué depende esta lista, así que cada
   // combinación de filtros se cachea aparte y una respuesta vieja ya no puede
   // pisar a la nueva: si se pagina o se busca rápido, la petición anterior se
   // aborta por su `signal` y su resultado va a su propia entrada del caché, no
   // a la tabla. Con useEffect eso había que cancelarlo a mano.
   const { data, isPending, isPlaceholderData, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage }],
+    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage, sort, dir }],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams()
       if (isAdmin) params.set('status', statusFilter)
+      params.set('sort', sort)
+      params.set('dir', dir)
       if (search) params.set('q', search)
       params.set('page', page)
       params.set('per_page', perPage)
@@ -150,7 +209,7 @@ export default function OrdersList() {
   useEffect(() => {
     setSelected(new Set())
     setConfirmingCancel(false)
-  }, [statusFilter, search, page, perPage])
+  }, [statusFilter, search, page, perPage, sort, dir])
 
   const selectableIds = isSuperadmin
     ? orders.filter(o => o.order_status_id === 1).map(o => o.id)
@@ -404,16 +463,18 @@ export default function OrdersList() {
                     />
                   </th>
                 )}
-                <th className="px-4 py-3 text-left"># Orden</th>
-                <th className="px-4 py-3 text-left">Cliente</th>
-                {isAdmin && <th className="px-4 py-3 text-left">Teléfono</th>}
+                <SortHeader column="id" label="# Orden" sort={sort} dir={dir} onSort={onSort} />
+                <SortHeader column="customer" label="Cliente" sort={sort} dir={dir} onSort={onSort} />
+                {isAdmin && <SortHeader column="phone" label="Teléfono" sort={sort} dir={dir} onSort={onSort} />}
                 <th className="px-4 py-3 text-left">Origen</th>
                 <th className="px-4 py-3 text-left">Destino</th>
-                <th className="px-4 py-3 text-left">Creación</th>
-                <th className="px-4 py-3 text-left">Fecha mudanza</th>
+                <SortHeader column="created" label="Creación" sort={sort} dir={dir} onSort={onSort} />
+                <SortHeader column="appointment" label="Fecha mudanza" sort={sort} dir={dir} onSort={onSort} />
                 <th className="px-4 py-3 text-left">Estado</th>
-                <th className="px-4 py-3 text-left">{isAdmin ? 'Adelanto' : 'Cotización'}</th>
-                {isAdmin && <th className="px-4 py-3 text-left">Cotizaciones</th>}
+                {isAdmin
+                  ? <SortHeader column="deposit" label="Adelanto" sort={sort} dir={dir} onSort={onSort} />
+                  : <th className="px-4 py-3 text-left">Cotización</th>}
+                {isAdmin && <SortHeader column="quotations" label="Cotizaciones" sort={sort} dir={dir} onSort={onSort} />}
                 <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
             </thead>
