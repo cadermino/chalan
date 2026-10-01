@@ -24,7 +24,7 @@ marshmallow-sqlalchemy==1.0.0
 cryptography==48.0.1
 cffi==2.1.0
 pycparser==2.22
-PyJWT==2.13.0
+PyJWT==2.15.0
 
 # CORS & HTTP
 Flask-Cors==6.0.0
