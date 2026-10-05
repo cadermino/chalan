@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark; /* calendario y selectores nativos en oscuro */
+}
+
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+  margin: 0;
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-lg border border-line bg-paper2 px-3 py-3 text-base text-inkStrong placeholder:text-mute focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-base font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:brightness-110;
+  }
+  .btn-secondary {
+    @apply btn border border-lineStrong text-inkStrong hover:bg-paper2;
+  }
+}
+
+/* El desplegable de sugerencias de Google Places se pinta fuera del árbol de React. */
+.pac-container {
+  background: #2a3344;
+  border: 1px solid #3a4558;
+  border-radius: 8px;
+  margin-top: 4px;
+  font-family: inherit;
+  z-index: 1000;
+}
+.pac-item {
+  color: #c8c0b4;
+  border-top: 1px solid #3a4558;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.pac-item:hover, .pac-item-selected { background: #1f2632; }
+.pac-item-query { color: #f3ede2; }
+.pac-icon { display: none; }
