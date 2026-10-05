@@ -89,7 +89,7 @@ export default function ContactStep() {
             onChange={(event) => { setErrors((e) => ({ ...e, date: '' })); setPreferredDate(event.target.value) }}
           />
           {draft.preferredDate && !errors.date && (
-            <p className="mt-1 text-sm capitalize text-accent">{formatDateLabel(draft.preferredDate)}</p>
+            <p className="mt-1 text-sm text-accent first-letter:uppercase">{formatDateLabel(draft.preferredDate)}</p>
           )}
           <p className="mt-1 text-xs text-mute">
             Para una casa completa te recomendamos pedirlo con 2–3 días de anticipación.
