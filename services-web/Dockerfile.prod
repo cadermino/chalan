@@ -1,0 +1,21 @@
+# Mini app de servicios (embalaje) en su propio contenedor, para desplegarla sin
+# reconstruir el nginx principal (que arrastra el build del Vue y del backoffice).
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY services-web/package.json services-web/package-lock.json ./
+RUN npm ci
+# Selectivo a propósito: no hay .dockerignore en la raíz, y copiar la carpeta
+# entera traería el node_modules del host (binarios de macOS) encima del de Linux.
+COPY services-web/index.html services-web/vite.config.js services-web/tailwind.config.js services-web/postcss.config.js ./
+COPY services-web/public ./public
+COPY services-web/src ./src
+ARG VITE_PLACES_API_KEY
+ARG VITE_GA_ID
+ENV VITE_PLACES_API_KEY=$VITE_PLACES_API_KEY
+ENV VITE_GA_ID=$VITE_GA_ID
+ENV VITE_API_URL=/api/v1
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html/services-web
+COPY services-web/nginx.conf /etc/nginx/conf.d/default.conf
