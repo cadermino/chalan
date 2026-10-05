@@ -48,7 +48,24 @@ interface NavCta {
   label: string
   href: string
   external?: boolean
+  // Un <a> común en vez de next/link: para rutas que no son de Next (p. ej. el
+  // formulario de /embalaje/cotizar, servido por otro contenedor), donde el
+  // prefetch y la navegación del cliente pedirían un payload RSC que no existe.
+  plain?: boolean
   icon?: React.ReactNode
+}
+
+function CtaLink({ cta, className, onClick, children }: {
+  cta: NavCta
+  className: string
+  onClick?: () => void
+  children: React.ReactNode
+}) {
+  const external = cta.external ? { target: '_blank', rel: 'noopener' } : {}
+  if (cta.plain) {
+    return <a href={cta.href} className={className} onClick={onClick} {...external}>{children}</a>
+  }
+  return <Link href={cta.href} className={className} onClick={onClick} {...external}>{children}</Link>
 }
 
 interface LandingNavProps {
@@ -101,15 +118,11 @@ export function LandingNav({ links = DEFAULT_LINKS, cta = DEFAULT_CTA }: Landing
                 </Link>
               ))}
               <span className="sep" aria-hidden />
-              <Link
-                href={cta.href}
-                className="btn btn-primary"
-                {...(cta.external ? { target: '_blank', rel: 'noopener' } : {})}
-              >
+              <CtaLink cta={cta} className="btn btn-primary">
                 {cta.icon}
                 {cta.label}
                 <Arrow className="arrow" />
-              </Link>
+              </CtaLink>
             </nav>
 
             {/* Hamburger */}
@@ -139,16 +152,11 @@ export function LandingNav({ links = DEFAULT_LINKS, cta = DEFAULT_CTA }: Landing
                   </Link>
                 ))}
                 <div className="nav-mobile-sep" />
-                <Link
-                  href={cta.href}
-                  className="btn btn-primary nav-mobile-cta"
-                  onClick={close}
-                  {...(cta.external ? { target: '_blank', rel: 'noopener' } : {})}
-                >
+                <CtaLink cta={cta} className="btn btn-primary nav-mobile-cta" onClick={close}>
                   {cta.icon}
                   {cta.label}
                   <Arrow className="arrow" />
-                </Link>
+                </CtaLink>
               </div>
             </div>
           )}

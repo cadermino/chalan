@@ -40,6 +40,9 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 })
 
+// El formulario vive en otro contenedor (services-web): se enlaza con <a>, no con next/link.
+const FORM_URL = '/embalaje/cotizar'
+
 const WHATSAPP_URL =
   'https://wa.me/51972643007?text=Hola%2C%20quiero%20cotizar%20un%20servicio%20de%20embalaje%20profesional'
 
@@ -123,8 +126,8 @@ const jsonLdFaq = {
 const STEPS = [
   {
     n: '01',
-    title: 'Cotiza por WhatsApp',
-    body: 'Cuéntanos qué necesitas embalar — muebles, electrodomésticos, objetos frágiles — y te damos un precio en minutos.',
+    title: 'Cuéntanos qué embalar',
+    body: 'Llena el formulario en 2 minutos: dirección, qué hay que embalar y la fecha. Los transportistas te cotizan por WhatsApp.',
     icon: Chat,
   },
   {
@@ -277,10 +280,9 @@ export default function EmbalajeProfesional() {
           { label: 'Blog', href: '/blog' },
         ]}
         cta={{
-          label: 'Cotizar por WhatsApp',
-          href: WHATSAPP_URL,
-          external: true,
-          icon: <WhatsAppIcon />,
+          label: 'Cotizar en 2 minutos',
+          href: FORM_URL,
+          plain: true,
         }}
       />
       <main id="main-content" className={`chalan-landing ${fontVars}`}>
@@ -346,18 +348,26 @@ export default function EmbalajeProfesional() {
                       Cotiza ahora
                     </div>
                     <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--ink)' }}>
-                      Escríbenos por WhatsApp y te damos precio en minutos. Sin formularios.
+                      Cuéntanos qué hay que embalar y los transportistas te cotizan por WhatsApp.
                     </p>
                   </div>
+                  <a
+                    href={FORM_URL}
+                    className="btn btn-primary"
+                    style={{ justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 }}
+                  >
+                    Cotizar en 2 minutos
+                    <Arrow className="arrow" />
+                  </a>
                   <Link
                     href={WHATSAPP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-primary"
-                    style={{ justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 }}
+                    className="btn btn-ghost"
+                    style={{ justifyContent: 'center', gap: 10, padding: '12px 20px', fontSize: 14 }}
                   >
                     <WhatsAppIcon />
-                    Cotizar por WhatsApp
+                    Prefiero escribir por WhatsApp
                   </Link>
                   <p
                     style={{
@@ -444,14 +454,9 @@ export default function EmbalajeProfesional() {
                   <span className="figure col-hide" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-soft)' }}>
                     {p.detail}
                   </span>
-                  <Link
-                    href={WHATSAPP_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="pick"
-                  >
+                  <a href={FORM_URL} className="pick">
                     cotizar <Arrow />
-                  </Link>
+                  </a>
                 </div>
               ))}
             </div>
@@ -542,23 +547,23 @@ export default function EmbalajeProfesional() {
                   <em>Cotiza en 2 minutos.</em>
                 </h2>
                 <p className="lede" style={{ marginTop: 24 }}>
-                  Sin formularios, sin llamadas. Cuéntanos qué necesitas embalar y te damos precio por WhatsApp.
+                  Sin llamadas. Cuéntanos qué necesitas embalar y los transportistas te cotizan por WhatsApp.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <a href={FORM_URL} className="btn btn-primary" style={{ gap: 10 }}>
+                  Cotizar en 2 minutos
+                  <Arrow className="arrow" />
+                </a>
                 <Link
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
+                  className="btn btn-ghost"
                   style={{ gap: 10 }}
                 >
                   <WhatsAppIcon />
                   Escribir por WhatsApp
-                  <Arrow className="arrow" />
-                </Link>
-                <Link href="/como-funciona" className="btn btn-ghost">
-                  Cómo funciona
                 </Link>
               </div>
             </div>
