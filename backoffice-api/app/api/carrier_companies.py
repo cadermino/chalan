@@ -2,7 +2,7 @@ from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required
-from ..models import AdminUser, CarrierCompany, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN
+from ..models import AdminUser, CarrierCompany, ServiceType, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN
 from .. import db
 
 
@@ -46,6 +46,23 @@ def _users_by_company(company_ids):
     return grouped
 
 
+def _company_dict(company):
+    return {**company.to_dict(), 'service_type_ids': sorted(s.id for s in company.service_types)}
+
+
+def _service_types_from(ids):
+    """Servicios sueltos (no mudanza) que ofrece la empresa. Devuelve (tipos, error).
+
+    Solo un admin los marca: Chalán decide quién embala bien, no la propia empresa.
+    """
+    if not isinstance(ids, list) or not all(isinstance(i, int) and not isinstance(i, bool) for i in ids):
+        return None, 'service_type_ids must be a list of ids'
+    types = ServiceType.query.filter(ServiceType.id.in_(ids), ServiceType.active == 1).all() if ids else []
+    if len(types) != len(set(ids)):
+        return None, 'unknown service_type_ids'
+    return types, None
+
+
 @api.route('/carrier-companies', methods=['GET'])
 @login_required
 def list_carrier_companies():
@@ -74,7 +91,7 @@ def get_carrier_company(company_id):
     company = db.session.get(CarrierCompany, company_id)
     if company is None:
         return jsonify({'message': 'carrier company not found'}), 404
-    return jsonify({'carrier_company': company.to_dict()}), 200
+    return jsonify({'carrier_company': _company_dict(company)}), 200
 
 
 @api.route('/carrier-companies', methods=['POST'])
@@ -97,9 +114,14 @@ def create_carrier_company():
         country_id=data.get('country_id'),
         active=1,
     )
+    if 'service_type_ids' in data:
+        types, error = _service_types_from(data['service_type_ids'])
+        if error:
+            return jsonify({'message': error}), 400
+        company.service_types = types
     db.session.add(company)
     db.session.commit()
-    return jsonify({'carrier_company': company.to_dict()}), 201
+    return jsonify({'carrier_company': _company_dict(company)}), 201
 
 
 @api.route('/carrier-companies/<int:company_id>', methods=['PUT'])
@@ -112,6 +134,14 @@ def update_carrier_company(company_id):
         return jsonify({'message': 'carrier company not found'}), 404
 
     data = request.get_json() or {}
+    if 'service_type_ids' in data:
+        # Un 403 explícito y no ignorarlo en silencio: la empresa creería que se guardó.
+        if g.current_user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+            return jsonify({'message': 'only admins can change the services of a company'}), 403
+        types, error = _service_types_from(data['service_type_ids'])
+        if error:
+            return jsonify({'message': error}), 400
+        company.service_types = types
     for field in ('name', 'description', 'rfc', 'email', 'phone', 'address',
                   'cover_image', 'facebook', 'youtube', 'country_id'):
         if field in data:
@@ -120,7 +150,7 @@ def update_carrier_company(company_id):
         company.active = 1 if data['active'] else 0
 
     db.session.commit()
-    return jsonify({'carrier_company': company.to_dict()}), 200
+    return jsonify({'carrier_company': _company_dict(company)}), 200
 
 
 @api.route('/carrier-companies/<int:company_id>', methods=['DELETE'])
