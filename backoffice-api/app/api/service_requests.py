@@ -12,7 +12,7 @@ from .orders import _internal_headers
 from .. import db
 from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestItem, ServiceRequestMedia, ServiceRequestNotification,
-                      ServiceType, _iso)
+                      ServiceMaterial, ServiceType, _iso)
 
 STATUSES = ('draft', 'submitted', 'cancelled')
 TOKEN_PURPOSE = 'service_request'
@@ -56,6 +56,47 @@ def _materials_summary(service_request):
 def list_service_types():
     types = ServiceType.query.filter_by(active=1).order_by(ServiceType.id).all()
     return jsonify({'service_types': [t.to_dict() for t in types]}), 200
+
+
+@api.route('/service-types/<code>/materials', methods=['GET'])
+@login_required
+def list_service_materials(code):
+    """Catálogo de materiales del servicio, para el formulario de alta manual."""
+    service_type = ServiceType.query.filter_by(code=code, active=1).first()
+    if service_type is None:
+        return jsonify({'message': 'service type not found'}), 404
+    materials = (
+        ServiceMaterial.query.filter_by(service_type_id=service_type.id, active=1)
+        .order_by(ServiceMaterial.position, ServiceMaterial.id).all()
+    )
+    return jsonify({'materials': [
+        {'code': m.code, 'name': m.name, 'description': m.description} for m in materials
+    ]}), 200
+
+
+@api.route('/service-requests', methods=['POST'])
+@admin_required
+def create_service_request():
+    """Anota a mano una solicitud que el cliente describió por WhatsApp o llamada.
+
+    Las reglas (dirección con link de mapa, materiales del catálogo, fecha, avisos a
+    los transportistas) viven en el API principal, dueña de los correos y los
+    WhatsApp; acá solo se controla el rol y se reenvía el cuerpo. Los 400 de la
+    validación se devuelven tal cual para que el formulario diga qué falta.
+    """
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/service-requests/manual',
+            json=request.get_json(silent=True) or {},
+            headers=_internal_headers(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the service request service'}), 502
+    if res.status_code not in (201, 400):
+        return jsonify({'message': 'failed to create the service request'}), 502
+    return jsonify(res.json()), res.status_code
 
 
 def _counts(model, request_ids):

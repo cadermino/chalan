@@ -315,6 +315,66 @@ def submit_service_request(public_id):
     return jsonify(_serialize(service_request)), 200
 
 
+@api.route('/service-requests/manual', methods=['POST'])
+def create_manual_service_request():
+    """Una solicitud que un admin anota a mano: el cliente la describió por
+    WhatsApp o llamada en vez de usar el formulario. Interno: el backoffice-api la
+    llama después de revisar el rol.
+
+    Nace ya enviada, con las mismas reglas que el formulario (dirección con link de
+    mapa, items, materiales del catálogo, WhatsApp válido). Cambia lo que tiene
+    sentido para quien tipea: puede pedirla para hoy, y el distrito se escribe a
+    mano porque no sale de Google Places.
+    """
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    data = request.get_json(silent=True) or {}
+
+    service_type = _get_service_type(data.get('service_type'))
+    if service_type is None:
+        raise InvalidRequest('unknown service_type')
+    address = validate_address(data.get('address'))
+    if not address['neighborhood']:
+        raise InvalidRequest('address.neighborhood is required')
+    if not address['map_url'].startswith(('http://', 'https://')):
+        raise InvalidRequest('address.map_url must be a link')
+    items = validate_items(data.get('items'), service_type.id)
+    if not items:
+        raise InvalidRequest('at least one item is required')
+    preferred_date = validate_preferred_date(data.get('preferred_date'), allow_today=True)
+    whatsapp = normalize_phone(data.get('whatsapp'))
+    if whatsapp is None:
+        raise InvalidRequest('a valid whatsapp number is required')
+
+    country_id = os.getenv('COUNTRY_ID')
+    service_request = ServiceRequest(
+        public_id=uuid.uuid4().hex,
+        service_type_id=service_type.id,
+        country_id=int(country_id) if country_id else None,
+        status='submitted',
+        whatsapp=whatsapp,
+        preferred_date=preferred_date,
+        submitted_at=datetime.utcnow(),
+        details={},
+    )
+    _set_address(service_request, address)
+    _set_items(service_request, items)
+    db.session.add(service_request)
+    db.session.commit()
+
+    # El admin que la crea ya la conoce: solo se avisa a los transportistas, y
+    # solo si no pidió revisarla antes (se reenvía luego desde el detalle).
+    notified = []
+    if data.get('notify_carriers', True):
+        try:
+            notified = notify_service_request(service_request, notify_admin=False)
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Service request notification error: {e}')
+    return jsonify({'id': service_request.id, 'public_id': service_request.public_id,
+                    'notified_carrier_ids': notified}), 201
+
+
 @api.route('/service-requests/<int:service_request_id>/notify-carriers', methods=['POST'])
 def notify_service_request_carriers(service_request_id):
     """Resend to the carriers that were not told yet. Internal: the backoffice-api
