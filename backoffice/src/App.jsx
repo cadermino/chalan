@@ -26,6 +26,9 @@ import CustomersList from './pages/customers/List'
 import CustomerCreate from './pages/customers/Create'
 import WhatsappConversations from './pages/whatsapp/Conversations'
 import WhatsappChat from './pages/whatsapp/Chat'
+import ServiceRequestsList from './pages/service-requests/List'
+import ServiceRequestDetail from './pages/service-requests/Detail'
+import ServiceRequestCarrierView from './pages/service-requests/CarrierView'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -39,6 +42,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        {/* Pública: la abre un transportista con el link que le llega, sin cuenta. */}
+        <Route path="/carrier-view/:token" element={<ServiceRequestCarrierView />} />
 
         <Route
           element={
@@ -184,6 +189,24 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <WhatsappChat />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Service requests (embalaje, ...) — admin and superadmin */}
+          <Route
+            path="service-requests"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <ServiceRequestsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="service-requests/:id"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <ServiceRequestDetail />
               </ProtectedRoute>
             }
           />
