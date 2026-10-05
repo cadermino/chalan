@@ -6,6 +6,7 @@ const navItems = [
   { to: '/orders', label: 'Órdenes', icon: '📦', roles: ['superadmin', 'admin', 'carrier_company'] },
   { to: '/referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['real_estate_agent'] },
   { to: '/admin-referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['superadmin', 'admin'] },
+  { to: '/service-requests', label: 'Embalajes', icon: '🧰', roles: ['superadmin', 'admin'] },
   { to: '/carrier-companies', label: 'Empresas', icon: '🏢', roles: ['superadmin', 'admin', 'carrier_company'] },
   { to: '/customers', label: 'Clientes', icon: '🧑‍💼', roles: ['superadmin', 'admin'] },
   { to: '/whatsapp', label: 'WhatsApp', icon: '💬', roles: ['superadmin', 'admin'] },

@@ -2,24 +2,33 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
+import { useAuth } from '../../contexts/AuthContext'
 
 const EMPTY = {
   name: '', description: '', rfc: '', email: '', phone: '',
   address: '', cover_image: '', facebook: '', youtube: '', active: true, country_id: '',
+  service_type_ids: [],
 }
 
 export default function CarrierCompanyForm() {
   const { id } = useParams()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const { user } = useAuth()
+  // Qué servicios ofrece lo marca un admin: Chalán decide quién embala bien.
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
+  const [serviceTypes, setServiceTypes] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    if (isAdmin) {
+      client.get('/api/service-types').then(({ data }) => setServiceTypes(data.service_types))
+    }
     if (isEdit) {
       client.get(`/api/carrier-companies/${id}`).then(({ data }) => {
         const c = data.carrier_company
-        setForm({ ...c, active: Boolean(c.active), country_id: c.country_id ?? '' })
+        setForm({ ...c, active: Boolean(c.active), country_id: c.country_id ?? '', service_type_ids: c.service_type_ids ?? [] })
       })
     }
   }, [id])
@@ -34,6 +43,8 @@ export default function CarrierCompanyForm() {
     setLoading(true)
     try {
       const payload = { ...form, country_id: form.country_id === '' ? null : Number(form.country_id) }
+      // El servidor responde 403 si una empresa intenta cambiar sus propios servicios.
+      if (!isAdmin) delete payload.service_type_ids
       if (isEdit) {
         await client.put(`/api/carrier-companies/${id}`, payload)
         toast.success('Empresa actualizada')
@@ -94,6 +105,31 @@ export default function CarrierCompanyForm() {
           <Field label="YouTube (URL)">
             <input value={form.youtube} onChange={set('youtube')} className="input" />
           </Field>
+          {isAdmin && serviceTypes.length > 0 && (
+            <Field label="Servicios que ofrece" span={2}>
+              <div className="flex flex-wrap gap-4 mt-1">
+                {serviceTypes.map((t) => (
+                  <label key={t.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.service_type_ids.includes(t.id)}
+                      onChange={(e) => setForm((f) => ({
+                        ...f,
+                        service_type_ids: e.target.checked
+                          ? [...f.service_type_ids, t.id]
+                          : f.service_type_ids.filter((id) => id !== t.id),
+                      }))}
+                      className="w-4 h-4 accent-teal-600"
+                    />
+                    <span className="text-sm">{t.name}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Las mudanzas llegan a todas las empresas activas. Esto marca quién recibe las solicitudes de estos otros servicios.
+              </p>
+            </Field>
+          )}
           <Field label="Estado">
             <label className="flex items-center gap-2 cursor-pointer mt-1">
               <input type="checkbox" checked={form.active} onChange={set('active')} className="w-4 h-4 accent-teal-600" />
