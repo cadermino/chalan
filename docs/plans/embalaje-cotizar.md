@@ -611,11 +611,15 @@ cualquiera de los dos tumba los contenedores del otro.
    Hasta entonces solo salen emails.
 2. **CORS del bucket S3**: permitir `POST` desde `https://chalan.pe`, `https://www.chalan.pe` y
    `http://local.chalan.mx`.
-3. **SECRET_KEY**: confirmar que `.env.prod` y `.env.backoffice.prod` tienen el mismo valor
+3. **Lectura pública del prefijo `service-requests/*`** en el bucket: las fotos y videos se
+   sirven por su URL directa (`public_url`) en la vista del transportista y en las miniaturas del
+   formulario. Una subida con presigned POST queda con ACL privada por defecto; si la política del
+   bucket solo abre `orders/*`, hay que abrir también este prefijo o las imágenes no cargarán.
+4. **SECRET_KEY**: confirmar que `.env.prod` y `.env.backoffice.prod` tienen el mismo valor
    (el token se firma en la main API y se verifica en el backoffice-api).
-4. **Google Places key**: verificar que su restricción por referrer cubra `chalan.pe/embalaje/*`.
-5. Marcar en el backoffice qué transportistas ofrecen embalaje.
-6. Correr la migración 018 en producción **antes** de reiniciar `backoffice-api`: ese servicio
+5. **Google Places key**: verificar que su restricción por referrer cubra `chalan.pe/embalaje/*`.
+6. Marcar en el backoffice qué transportistas ofrecen embalaje.
+7. Correr la migración 018 en producción **antes** de reiniciar `backoffice-api`: ese servicio
    hace `db.create_all()` al arrancar y, si ve los modelos nuevos sin las tablas, las crea él con
    una definición más pobre (sin `UNIQUE` ni `ON DELETE CASCADE`). La 018 ya tolera ese caso
    (índices únicos con `IF NOT EXISTS`), pero el orden correcto es migración primero.
