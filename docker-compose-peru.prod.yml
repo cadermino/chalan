@@ -32,6 +32,18 @@ services:
         NEXT_PUBLIC_CHAT_API_URL: ${NEXT_PUBLIC_CHAT_API_URL:-https://api.automajob.com/chat/message}
     restart: always
     command: sh -c "HOSTNAME=0.0.0.0 node server.js"
+  # Formulario de servicios (embalaje) en /embalaje/cotizar. Contenedor propio para
+  # poder desplegarlo solo: `up -d --build services-web`, sin tocar nginx ni el Vue.
+  # Ojo: no va en el depends_on de nginx a propósito (el proxy resuelve el nombre en
+  # cada petición), así nginx arranca aunque este contenedor se esté reconstruyendo.
+  services-web:
+    build:
+      context: .
+      dockerfile: services-web/Dockerfile.prod
+      args:
+        VITE_PLACES_API_KEY: ${NEXT_PUBLIC_PLACES_API_KEY}
+        VITE_GA_ID: ${VITE_GA_ID:-G-72KVLDWMQD}
+    restart: always
   backoffice-api:
     build:
       context: .

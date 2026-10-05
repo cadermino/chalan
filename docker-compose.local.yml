@@ -36,6 +36,21 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8002
     restart: always
+  services-web:
+    build:
+      context: .
+      dockerfile: services-web/Dockerfile.local
+    volumes:
+      - ./services-web/src:/app/src
+    ports:
+      - 5174:5174
+    # Trae VITE_PLACES_API_KEY (la misma key de Places que NEXT_PUBLIC_PLACES_API_KEY);
+    # sin ella el formulario cae al aviso con botón de WhatsApp.
+    env_file: .env.dev
+    environment:
+      - VITE_API_URL=/api/v1
+      - DEV_API_PROXY_TARGET=http://flask:8001
+    restart: always
   vuex:
     build:
       context: .
