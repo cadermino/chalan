@@ -615,7 +615,10 @@ cualquiera de los dos tumba los contenedores del otro.
    (el token se firma en la main API y se verifica en el backoffice-api).
 4. **Google Places key**: verificar que su restricción por referrer cubra `chalan.pe/embalaje/*`.
 5. Marcar en el backoffice qué transportistas ofrecen embalaje.
-6. Correr la migración 018 en producción.
+6. Correr la migración 018 en producción **antes** de reiniciar `backoffice-api`: ese servicio
+   hace `db.create_all()` al arrancar y, si ve los modelos nuevos sin las tablas, las crea él con
+   una definición más pobre (sin `UNIQUE` ni `ON DELETE CASCADE`). La 018 ya tolera ese caso
+   (índices únicos con `IF NOT EXISTS`), pero el orden correcto es migración primero.
 
 ## 9. Orden de implementación
 

@@ -30,6 +30,8 @@ class CarrierCompany(db.Model):
 
 	vehicles = db.relationship("Vehicle", backref="carrier_company")
 	country = db.relationship("LuCountry", backref="carrier_company")
+	# Servicios sueltos (no mudanza) que la empresa ofrece, p. ej. 'packing'.
+	service_types = db.relationship("ServiceType", secondary="carrier_company_service_types")
 
 class Customer(db.Model):
 	__tablename__ = 'customers'
@@ -244,6 +246,103 @@ class OrderImage(db.Model):
 	storage_key = db.Column(db.String(300), nullable=False)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
+
+class ServiceType(db.Model):
+	"""Catalogo de servicios que se piden fuera de una mudanza ('packing', ...)."""
+	__tablename__ = 'lu_service_types'
+	id = db.Column(db.Integer, primary_key=True)
+	code = db.Column(db.String(30), nullable=False, unique=True)
+	name = db.Column(db.String(60), nullable=False)
+	active = db.Column(db.SmallInteger, nullable=False, server_default='1')
+
+class ServiceMaterial(db.Model):
+	"""Material que se puede marcar en un item (carton, film, ...), por tipo de servicio."""
+	__tablename__ = 'lu_service_materials'
+	__table_args__ = (db.UniqueConstraint('service_type_id', 'code'),)
+	id = db.Column(db.Integer, primary_key=True)
+	service_type_id = db.Column(db.Integer, db.ForeignKey('lu_service_types.id'), nullable=False)
+	code = db.Column(db.String(30), nullable=False)
+	name = db.Column(db.String(60), nullable=False)
+	description = db.Column(db.String(200))
+	position = db.Column(db.Integer, nullable=False, server_default='0')
+	active = db.Column(db.SmallInteger, nullable=False, server_default='1')
+
+	service_type = db.relationship('ServiceType')
+
+service_request_item_materials = db.Table(
+	'service_request_item_materials',
+	db.Column('item_id', db.Integer, db.ForeignKey('service_request_items.id', ondelete='CASCADE'), primary_key=True),
+	db.Column('material_id', db.Integer, db.ForeignKey('lu_service_materials.id'), primary_key=True),
+)
+
+class ServiceRequest(db.Model):
+	__tablename__ = 'service_requests'
+	id = db.Column(db.Integer, primary_key=True)
+	public_id = db.Column(db.String(32), nullable=False, unique=True)
+	service_type_id = db.Column(db.Integer, db.ForeignKey('lu_service_types.id'), nullable=False)
+	country_id = db.Column(db.Integer, db.ForeignKey('lu_country.id'), nullable=True)
+	status = db.Column(db.String(20), nullable=False, server_default='draft')  # draft | submitted | cancelled
+	whatsapp = db.Column(db.String(20))
+	preferred_date = db.Column(db.Date)
+	street = db.Column(db.String(200))
+	interior = db.Column(db.String(100))
+	neighborhood = db.Column(db.String(100))
+	city = db.Column(db.String(100))
+	state = db.Column(db.String(100))
+	country = db.Column(db.String(20))
+	map_url = db.Column(db.String(400))
+	details = db.Column(db.JSON)
+	submitted_at = db.Column(db.DateTime())
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+	service_type = db.relationship('ServiceType')
+	items = db.relationship('ServiceRequestItem', backref='service_request',
+		order_by='ServiceRequestItem.position', cascade='all, delete-orphan')
+	media = db.relationship('ServiceRequestMedia', backref='service_request',
+		order_by='ServiceRequestMedia.id', cascade='all, delete-orphan')
+	notifications = db.relationship('ServiceRequestNotification', backref='service_request',
+		cascade='all, delete-orphan')
+
+class ServiceRequestItem(db.Model):
+	__tablename__ = 'service_request_items'
+	id = db.Column(db.Integer, primary_key=True)
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
+	description = db.Column(db.String(200), nullable=False)
+	quantity = db.Column(db.Integer, nullable=False, server_default='1')
+	position = db.Column(db.Integer, nullable=False, server_default='0')
+
+	materials = db.relationship('ServiceMaterial', secondary=service_request_item_materials,
+		order_by='ServiceMaterial.position')
+
+class ServiceRequestMedia(db.Model):
+	__tablename__ = 'service_request_media'
+	id = db.Column(db.Integer, primary_key=True)
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
+	url = db.Column(db.String(500), nullable=False)
+	storage_key = db.Column(db.String(300), nullable=False)
+	media_type = db.Column(db.String(10), nullable=False)  # image | video
+	content_type = db.Column(db.String(60))
+	size_bytes = db.Column(db.Integer)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+class CarrierCompanyServiceType(db.Model):
+	"""Que servicios suelto ofrece cada transportista; lo marca un admin."""
+	__tablename__ = 'carrier_company_service_types'
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), primary_key=True)
+	service_type_id = db.Column(db.Integer, db.ForeignKey('lu_service_types.id', ondelete='CASCADE'), primary_key=True)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+class ServiceRequestNotification(db.Model):
+	"""A que transportista se le aviso de que solicitud; hace idempotente el envio."""
+	__tablename__ = 'service_request_notifications'
+	__table_args__ = (db.UniqueConstraint('service_request_id', 'carrier_company_id'),)
+	id = db.Column(db.Integer, primary_key=True)
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+	sent_at = db.Column(db.DateTime(), server_default=func.now())
+
+	carrier_company = db.relationship('CarrierCompany')
 
 class WhatsappMessage(db.Model):
 	__tablename__ = 'whatsapp_messages'
