@@ -651,3 +651,80 @@ def test_media_cannot_change_after_submit(client, storage):
     submit(client, public_id)
 
     assert presign(client, public_id).status_code == 409
+
+
+# --- manual creation by an admin ----------------------------------------------------
+
+MANUAL = {
+    'service_type': 'packing',
+    'address': {**ADDRESS, 'map_url': 'https://maps.app.goo.gl/abc123'},
+    'preferred_date': TOMORROW,
+    'whatsapp': '987654321',
+    'items': [{'description': 'Sofá', 'quantity': 1, 'materials': ['stretch_film']}],
+}
+
+
+def manual(client, headers=True, **overrides):
+    return client.post('/api/v1/service-requests/manual', json={**MANUAL, **overrides},
+                       headers=internal_headers() if headers else {})
+
+
+def test_manual_creation_requires_the_internal_token(client):
+    assert manual(client, headers=False).status_code == 403
+    assert ServiceRequest.query.count() == 0
+
+
+def test_manual_request_is_born_submitted_and_tells_the_carriers_but_not_the_admin(client, sent, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    carrier = make_carrier()
+
+    response = manual(client)
+
+    assert response.status_code == 201
+    saved = ServiceRequest.query.one()
+    assert (saved.status, saved.whatsapp, saved.neighborhood) == ('submitted', '+51987654321', 'San Isidro')
+    assert saved.submitted_at is not None
+    assert [i.description for i in saved.items] == ['Sofá']
+    assert response.get_json()['notified_carrier_ids'] == [carrier.id]
+    # The admin who typed it in does not need an alert about their own request.
+    assert [e['to'] for e in sent['email']] == ['embala@example.com']
+
+
+def test_manual_request_can_wait_for_review_before_notifying(client, sent):
+    make_carrier()
+
+    response = manual(client, notify_carriers=False)
+
+    assert response.status_code == 201
+    assert response.get_json()['notified_carrier_ids'] == []
+    assert sent['email'] == []
+    assert ServiceRequestNotification.query.count() == 0
+
+
+def test_an_admin_may_ask_for_today_but_not_for_the_past(client):
+    assert manual(client, preferred_date='2026-10-05').status_code == 201
+    assert manual(client, preferred_date='2026-10-04').status_code == 400
+
+
+def test_the_customer_form_still_rejects_today(client):
+    public_id = create_draft(client)
+
+    response = client.patch(f'/api/v1/service-requests/{public_id}', json={'preferred_date': '2026-10-05'})
+
+    assert response.status_code == 400
+
+
+@pytest.mark.parametrize('overrides', [
+    {'address': {**ADDRESS, 'neighborhood': '', 'map_url': 'https://maps.app.goo.gl/abc'}},
+    {'address': {**ADDRESS, 'map_url': 'maps.app.goo.gl/abc'}},
+    {'address': {**ADDRESS, 'map_url': ''}},
+    {'items': []},
+    {'items': [{'description': 'Sofá', 'quantity': 1, 'materials': ['unknown']}]},
+    {'whatsapp': '12345'},
+    {'whatsapp': None},
+    {'preferred_date': None},
+    {'service_type': 'cleaning'},
+])
+def test_manual_request_keeps_the_form_rules(client, overrides):
+    assert manual(client, **overrides).status_code == 400
+    assert ServiceRequest.query.count() == 0

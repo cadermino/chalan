@@ -349,3 +349,64 @@ def test_creating_a_company_can_set_its_services(client, admin, packing):
 
     assert res.status_code == 201
     assert res.get_json()['carrier_company']['service_type_ids'] == [packing.id]
+
+
+# --- manual creation --------------------------------------------------------------
+
+def test_service_materials_are_listed_in_order_and_skip_inactive(client, admin, packing, materials):
+    db.session.add(ServiceMaterial(service_type_id=packing.id, code='old', name='Viejo', position=0, active=0))
+    db.session.commit()
+
+    res = client.get('/api/service-types/packing/materials', headers=admin)
+
+    assert res.status_code == 200
+    assert [m['code'] for m in res.get_json()['materials']] == ['cardboard_sheet', 'stretch_film']
+
+
+def test_service_materials_of_an_unknown_service_is_404(client, admin):
+    assert client.get('/api/service-types/nope/materials', headers=admin).status_code == 404
+
+
+def test_manual_creation_forwards_the_body_to_the_main_api_with_an_internal_token(client, admin, monkeypatch):
+    seen = {}
+
+    def fake_post(url, json, headers, timeout):
+        seen.update(url=url, json=json, headers=headers)
+        return FakeResponse(201, {'id': 5, 'public_id': 'x' * 32, 'notified_carrier_ids': [1]})
+    monkeypatch.setattr('app.api.service_requests.requests.post', fake_post)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+
+    res = client.post('/api/service-requests', json={'service_type': 'packing', 'whatsapp': '987654321'}, headers=admin)
+
+    assert res.status_code == 201
+    assert res.get_json()['id'] == 5
+    assert seen['url'] == 'http://flask-api:8001/api/v1/service-requests/manual'
+    assert seen['json'] == {'service_type': 'packing', 'whatsapp': '987654321'}
+    token = seen['headers']['Authorization'].split()[1]
+    assert jwt.decode(token, SECRET, algorithms=['HS256'])['scope'] == 'internal'
+
+
+def test_manual_creation_passes_validation_errors_through(client, admin, monkeypatch):
+    monkeypatch.setattr('app.api.service_requests.requests.post',
+                        lambda *a, **k: FakeResponse(400, {'message': 'address.map_url is required'}))
+
+    res = client.post('/api/service-requests', json={}, headers=admin)
+
+    assert res.status_code == 400
+    assert res.get_json()['message'] == 'address.map_url is required'
+
+
+def test_manual_creation_is_502_when_the_main_api_is_down(client, admin, monkeypatch):
+    def boom(*args, **kwargs):
+        raise requests_lib.ConnectionError('down')
+    monkeypatch.setattr('app.api.service_requests.requests.post', boom)
+
+    assert client.post('/api/service-requests', json={}, headers=admin).status_code == 502
+
+
+def test_manual_creation_requires_an_admin_role(client):
+    carrier = make_carrier()
+    headers = make_user('carrier_company', carrier_company_id=carrier.id)
+
+    assert client.post('/api/service-requests', json={}).status_code == 401
+    assert client.post('/api/service-requests', json={}, headers=headers).status_code == 403

@@ -28,6 +28,7 @@ import WhatsappConversations from './pages/whatsapp/Conversations'
 import WhatsappChat from './pages/whatsapp/Chat'
 import ServiceRequestsList from './pages/service-requests/List'
 import ServiceRequestDetail from './pages/service-requests/Detail'
+import ServiceRequestCreate from './pages/service-requests/Create'
 import ServiceRequestCarrierView from './pages/service-requests/CarrierView'
 
 function HomeRedirect() {
@@ -199,6 +200,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <ServiceRequestsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="service-requests/new"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <ServiceRequestCreate />
               </ProtectedRoute>
             }
           />

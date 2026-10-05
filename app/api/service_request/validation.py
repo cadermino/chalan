@@ -74,7 +74,9 @@ def validate_address(address):
     return cleaned
 
 
-def validate_preferred_date(value):
+def validate_preferred_date(value, allow_today=False):
+    """Fecha del servicio. El cliente pide desde mañana; un admin que anota un pedido
+    urgente que llegó por WhatsApp puede pedirlo para hoy (allow_today)."""
     if not isinstance(value, str):
         raise InvalidRequest('preferred_date must be a YYYY-MM-DD date')
     try:
@@ -82,8 +84,10 @@ def validate_preferred_date(value):
     except ValueError:
         raise InvalidRequest('preferred_date must be a YYYY-MM-DD date')
     today = today_lima()
-    if parsed <= today:
-        raise InvalidRequest('preferred_date must be from tomorrow on')
+    earliest = today if allow_today else today + timedelta(days=1)
+    if parsed < earliest:
+        raise InvalidRequest('preferred_date must be from today on' if allow_today
+                             else 'preferred_date must be from tomorrow on')
     if parsed > today + timedelta(days=MAX_ADVANCE_DAYS):
         raise InvalidRequest(f'preferred_date must be within {MAX_ADVANCE_DAYS} days')
     return parsed

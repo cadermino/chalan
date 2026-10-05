@@ -33,7 +33,15 @@ export default function ServiceRequestsList() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Embalajes</h1>
-        <span className="text-sm text-gray-400">{loading ? '' : `${rows.length} solicitudes`}</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-400">{loading ? '' : `${rows.length} solicitudes`}</span>
+          <Link
+            to="/service-requests/new"
+            className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium"
+          >
+            + Nueva solicitud
+          </Link>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-2">
