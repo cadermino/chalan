@@ -9,6 +9,7 @@ from ...models import (CarrierCompany, CarrierCompanyServiceType,
                        ServiceRequestNotification)
 from ..email import send_email
 from ..whatsapp import normalize_phone, send_whatsapp
+from .quotations import platform_fee_rate, total_with_fee
 
 TOKEN_PURPOSE = 'service_request'
 TOKEN_TTL = timedelta(days=10)
@@ -137,3 +138,60 @@ def _notify_admin(service_request, service_name, notified_names):
         )
     except Exception as e:
         print(f'[ServiceRequest] error sending admin WhatsApp: {e}', flush=True)
+
+
+def _money(value):
+    return f'S/ {value:,.2f}'
+
+
+def notify_new_quotation(service_request, quotation, created):
+    """Avisa al admin que un transportista mando (o corrigio) su precio.
+
+    Email siempre; WhatsApp solo cuando es nueva, para que un transportista que
+    ajusta su monto varias veces no llene el telefono. Un aviso que falla se loguea
+    y no tumba la respuesta: la cotizacion ya esta guardada.
+    """
+    service_name = service_request.service_type.name
+    carrier_name = quotation.carrier_company.name if quotation.carrier_company else 'Un transportista'
+    admin_url = f'{_site_url()}/backoffice/service-requests/{service_request.id}'
+
+    try:
+        notify_email = os.getenv('NOTIFY_EMAIL')
+        if notify_email:
+            try:
+                total = _money(total_with_fee(quotation.amount, platform_fee_rate()))
+            except RuntimeError:
+                total = None  # sin PLATFORM_FEE no se inventa un total: el aviso sale igual
+            subject = (
+                f'Nueva cotización de {carrier_name} para la solicitud #{service_request.id}'
+                if created else f'{carrier_name} actualizó su cotización (#{service_request.id})'
+            )
+            send_email(
+                notify_email,
+                subject,
+                'email/service_request_quotation_admin',
+                bcc=[],
+                service_name=service_name,
+                carrier_name=carrier_name,
+                created=created,
+                amount=_money(quotation.amount),
+                total=total,
+                note=quotation.note,
+                neighborhood=service_request.neighborhood,
+                preferred_date=_date_label(service_request),
+                quotations_count=len(service_request.quotations),
+                admin_url=admin_url,
+            )
+    except Exception as e:
+        print(f'[ServiceRequest] error sending quotation email: {e}', flush=True)
+
+    if created:
+        try:
+            send_whatsapp(
+                os.getenv('NOTIFY_WHATSAPP_PHONE'),
+                os.getenv('TWILIO_TEMPLATE_SERVICE_QUOTATION'),
+                {'1': carrier_name, '2': admin_url},
+                body_label='[Plantilla: Nueva cotización de servicio]',
+            )
+        except Exception as e:
+            print(f'[ServiceRequest] error sending quotation WhatsApp: {e}', flush=True)

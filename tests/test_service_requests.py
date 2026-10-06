@@ -8,7 +8,7 @@ from app.api.decorators import generate_internal_token
 from app.api.service_request.validation import LIMA
 from app.models import (CarrierCompany, CarrierCompanyServiceType, ServiceMaterial,
                         ServiceRequest, ServiceRequestMedia, ServiceRequestNotification,
-                        ServiceType)
+                        ServiceRequestQuotation, ServiceType)
 
 ADDRESS = {
     'street': 'Av. Javier Prado Este 123, San Isidro',
@@ -58,6 +58,7 @@ def sent(monkeypatch):
                             {'phone': phone, 'variables': variables}))
     monkeypatch.setenv('SITE_URL', 'https://chalan.pe')
     # The request takes its country from the environment; do not depend on the host's.
+    monkeypatch.setenv('PLATFORM_FEE', '0.1')
     monkeypatch.setenv('COUNTRY_ID', '2')
     monkeypatch.delenv('NOTIFY_EMAIL', raising=False)
     monkeypatch.delenv('NOTIFY_WHATSAPP_PHONE', raising=False)
@@ -728,3 +729,285 @@ def test_the_customer_form_still_rejects_today(client):
 def test_manual_request_keeps_the_form_rules(client, overrides):
     assert manual(client, **overrides).status_code == 400
     assert ServiceRequest.query.count() == 0
+
+
+# --- carrier quotations ---------------------------------------------------------------
+
+def make_submitted(client):
+    public_id = create_draft(client)
+    fill(client, public_id)
+    submit(client, public_id)
+    return ServiceRequest.query.one().id
+
+
+def quote(client, request_id, carrier_id, amount=350, note=None, internal=True):
+    body = {'carrier_company_id': carrier_id, 'amount': amount}
+    if note is not None:
+        body['note'] = note
+    return client.post(f'/api/v1/service-requests/{request_id}/quotations', json=body,
+                       headers=internal_headers() if internal else {})
+
+
+def select(client, request_id, quotation_id, admin_user_id=7, internal=True):
+    return client.post(f'/api/v1/service-requests/{request_id}/quotations/{quotation_id}/select',
+                       json={'admin_user_id': admin_user_id},
+                       headers=internal_headers() if internal else {})
+
+
+def test_quotation_endpoints_require_the_internal_token(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    assert quote(client, request_id, carrier.id, internal=False).status_code == 403
+    assert select(client, request_id, 1, internal=False).status_code == 403
+    assert ServiceRequestQuotation.query.count() == 0
+
+
+def test_first_quote_is_201_and_quoting_again_updates_the_same_row(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    first = quote(client, request_id, carrier.id, amount=350, note='Incluye materiales')
+    second = quote(client, request_id, carrier.id, amount='320.5', note='Rebajé el precio')
+
+    assert (first.status_code, first.get_json()['created']) == (201, True)
+    assert (second.status_code, second.get_json()['created']) == (200, False)
+    saved = ServiceRequestQuotation.query.one()
+    assert (float(saved.amount), saved.note, saved.status) == (320.5, 'Rebajé el precio', 'active')
+
+
+def test_each_carrier_gets_their_own_quotation(client):
+    request_id = make_submitted(client)
+    first, second = make_carrier('Uno SAC'), make_carrier('Dos SAC')
+
+    quote(client, request_id, first.id, amount=300)
+    quote(client, request_id, second.id, amount=280)
+
+    assert ServiceRequestQuotation.query.count() == 2
+
+
+def test_quoting_a_draft_or_a_cancelled_request_is_409(client):
+    carrier = make_carrier()
+    public_id = create_draft(client)
+    draft_id = ServiceRequest.query.one().id
+    assert quote(client, draft_id, carrier.id).status_code == 409
+
+    fill(client, public_id)
+    submit(client, public_id)
+    ServiceRequest.query.one().status = 'cancelled'
+    db.session.commit()
+    assert quote(client, draft_id, carrier.id).status_code == 409
+
+
+def test_missing_request_or_carrier_is_404(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    assert quote(client, 9999, carrier.id).status_code == 404
+    assert quote(client, request_id, 9999).status_code == 404
+
+
+@pytest.mark.parametrize('amount', [0, -5, 100000.01, '100000.01', 'abc', '', None, True, 'NaN', 'Infinity', 0.004])
+def test_invalid_amounts_are_rejected(client, amount):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    response = quote(client, request_id, carrier.id, amount=amount)
+
+    assert response.status_code == 400
+    assert ServiceRequestQuotation.query.count() == 0
+
+
+def test_amount_is_rounded_to_cents_and_the_limit_is_inclusive(client):
+    request_id = make_submitted(client)
+    one, two = make_carrier('Uno SAC'), make_carrier('Dos SAC')
+
+    assert quote(client, request_id, one.id, amount='350.555').status_code == 201
+    assert quote(client, request_id, two.id, amount=100000).status_code == 201
+
+    amounts = sorted(float(q.amount) for q in ServiceRequestQuotation.query.all())
+    assert amounts == [350.56, 100000.0]
+
+
+def test_the_carrier_id_must_be_a_number(client):
+    request_id = make_submitted(client)
+
+    for bad in (None, 'uno', True):
+        assert quote(client, request_id, bad).status_code == 400
+
+
+def test_note_is_trimmed_and_a_blank_one_is_stored_as_null(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    quote(client, request_id, carrier.id, note='   ')
+    assert ServiceRequestQuotation.query.one().note is None
+    quote(client, request_id, carrier.id, note='  vamos 2 personas  ')
+    assert ServiceRequestQuotation.query.one().note == 'vamos 2 personas'
+
+
+def test_a_note_over_500_characters_is_rejected(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    assert quote(client, request_id, carrier.id, note='x' * 501).status_code == 400
+    assert quote(client, request_id, carrier.id, note='x' * 500).status_code == 201
+
+
+def test_a_new_quotation_emails_and_whatsapps_the_admin(client, sent, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    monkeypatch.setenv('NOTIFY_WHATSAPP_PHONE', '999000111')
+    request_id = make_submitted(client)
+    carrier = make_carrier('Embala SAC')
+    sent['email'].clear()
+    sent['whatsapp'].clear()
+
+    quote(client, request_id, carrier.id, amount=100, note='Incluye cajas')
+
+    email = sent['email'][0]
+    assert email['to'] == 'admin@example.com'
+    assert email['template'] == 'email/service_request_quotation_admin'
+    assert email['subject'] == f'Nueva cotización de Embala SAC para la solicitud #{request_id}'
+    assert (email['amount'], email['total'], email['note']) == ('S/ 100.00', 'S/ 110.00', 'Incluye cajas')
+    assert email['quotations_count'] == 1
+    assert email['admin_url'] == f'https://chalan.pe/backoffice/service-requests/{request_id}'
+    assert sent['whatsapp'][0]['phone'] == '999000111'
+    assert sent['whatsapp'][0]['variables'] == {'1': 'Embala SAC', '2': email['admin_url']}
+
+
+def test_updating_a_quotation_only_emails_the_admin(client, sent, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    monkeypatch.setenv('NOTIFY_WHATSAPP_PHONE', '999000111')
+    request_id = make_submitted(client)
+    carrier = make_carrier('Embala SAC')
+    quote(client, request_id, carrier.id, amount=100)
+    sent['email'].clear()
+    sent['whatsapp'].clear()
+
+    quote(client, request_id, carrier.id, amount=90)
+
+    assert [e['subject'] for e in sent['email']] == [f'Embala SAC actualizó su cotización (#{request_id})']
+    assert sent['whatsapp'] == []
+
+
+def test_a_notification_failure_does_not_undo_the_quotation(client, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    def boom(*args, **kwargs):
+        raise RuntimeError('smtp down')
+    monkeypatch.setattr('app.api.service_request.notifications.send_email', boom)
+    monkeypatch.setattr('app.api.service_request.notifications.send_whatsapp', boom)
+
+    response = quote(client, request_id, carrier.id)
+
+    assert response.status_code == 201
+    assert ServiceRequestQuotation.query.count() == 1
+
+
+def test_selecting_freezes_the_fee_and_the_total(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+    quotation_id = quote(client, request_id, carrier.id, amount=100).get_json()['id']
+
+    response = select(client, request_id, quotation_id, admin_user_id=7)
+
+    assert response.status_code == 200
+    assert response.get_json() == {'id': quotation_id, 'status': 'selected', 'amount': 100.0,
+                                   'platform_fee_rate': 0.1, 'total_amount': 110.0}
+    saved = ServiceRequestQuotation.query.one()
+    assert (saved.status, float(saved.total_amount), saved.selected_by_admin_id) == ('selected', 110.0, 7)
+    assert saved.selected_at is not None
+
+
+def test_changing_the_fee_afterwards_does_not_move_a_frozen_total(client, monkeypatch):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+    quotation_id = quote(client, request_id, carrier.id, amount=100).get_json()['id']
+    select(client, request_id, quotation_id)
+
+    monkeypatch.setenv('PLATFORM_FEE', '0.25')
+
+    saved = ServiceRequestQuotation.query.one()
+    assert (float(saved.total_amount), float(saved.platform_fee_rate)) == (110.0, 0.1)
+
+
+def test_selecting_another_one_unmarks_the_previous_and_clears_its_frozen_fields(client):
+    request_id = make_submitted(client)
+    one, two = make_carrier('Uno SAC'), make_carrier('Dos SAC')
+    first_id = quote(client, request_id, one.id, amount=100).get_json()['id']
+    second_id = quote(client, request_id, two.id, amount=200).get_json()['id']
+    select(client, request_id, first_id)
+
+    select(client, request_id, second_id)
+
+    first, second = db.session.get(ServiceRequestQuotation, first_id), db.session.get(ServiceRequestQuotation, second_id)
+    assert (first.status, first.total_amount, first.platform_fee_rate, first.selected_at) == ('active', None, None, None)
+    assert (second.status, float(second.total_amount)) == ('selected', 220.0)
+    assert ServiceRequestQuotation.query.filter_by(status='selected').count() == 1
+
+
+def test_selecting_the_same_one_twice_keeps_its_selected_at(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+    quotation_id = quote(client, request_id, carrier.id, amount=100).get_json()['id']
+    select(client, request_id, quotation_id)
+    first_at = db.session.get(ServiceRequestQuotation, quotation_id).selected_at
+
+    response = select(client, request_id, quotation_id, admin_user_id=99)
+
+    assert response.status_code == 200
+    saved = db.session.get(ServiceRequestQuotation, quotation_id)
+    assert (saved.selected_at, saved.selected_by_admin_id) == (first_at, 7)
+
+
+def test_select_of_a_quotation_from_another_request_is_404(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+    other = ServiceRequest(public_id='z' * 32, service_type_id=ServiceType.query.first().id, status='submitted')
+    db.session.add(other)
+    db.session.commit()
+    foreign = ServiceRequestQuotation(service_request_id=other.id, carrier_company_id=carrier.id, amount=50)
+    db.session.add(foreign)
+    db.session.commit()
+
+    assert select(client, request_id, foreign.id).status_code == 404
+    assert select(client, request_id, 9999).status_code == 404
+    assert select(client, 9999, 1).status_code == 404
+
+
+def test_select_on_a_cancelled_request_is_409(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+    quotation_id = quote(client, request_id, carrier.id).get_json()['id']
+    ServiceRequest.query.one().status = 'cancelled'
+    db.session.commit()
+
+    assert select(client, request_id, quotation_id).status_code == 409
+
+
+def test_once_one_is_selected_nobody_else_can_quote_and_the_winner_cannot_change_it(client):
+    request_id = make_submitted(client)
+    winner, other = make_carrier('Gana SAC'), make_carrier('Otra SAC')
+    winner_id = quote(client, request_id, winner.id, amount=100).get_json()['id']
+    select(client, request_id, winner_id)
+
+    from_other = quote(client, request_id, other.id, amount=50)
+    from_winner = quote(client, request_id, winner.id, amount=10)
+
+    assert (from_other.status_code, from_other.get_json()['message']) == (409, 'service request already assigned')
+    assert (from_winner.status_code, from_winner.get_json()['message']) == (409, 'quotation already selected')
+    assert float(db.session.get(ServiceRequestQuotation, winner_id).amount) == 100.0
+    assert ServiceRequestQuotation.query.count() == 1
+
+
+def test_selecting_without_a_platform_fee_configured_fails_instead_of_inventing_one(client, monkeypatch):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+    quotation_id = quote(client, request_id, carrier.id).get_json()['id']
+    monkeypatch.delenv('PLATFORM_FEE')
+
+    with pytest.raises(RuntimeError):
+        select(client, request_id, quotation_id)
+    assert ServiceRequestQuotation.query.one().status == 'active'

@@ -6,7 +6,10 @@ from flask import current_app, jsonify, request
 
 from . import api
 from .decorators import is_internal_request
-from .service_request.notifications import notify_service_request
+from .service_request.notifications import notify_new_quotation, notify_service_request
+from .service_request.quotations import (
+    QuotationError, parse_amount, parse_note, save_quotation, select_quotation,
+)
 from .service_request.types import SERVICE_TYPES
 from .service_request.validation import (
     MAX_MEDIA, InvalidRequest, validate_address, validate_items,
@@ -21,6 +24,11 @@ from ..storage import get_storage
 @api.errorhandler(InvalidRequest)
 def _invalid_request(error):
     return jsonify({'message': str(error)}), 400
+
+
+@api.errorhandler(QuotationError)
+def _quotation_error(error):
+    return jsonify({'message': str(error)}), error.status
 
 
 def _message(text, status):
@@ -389,3 +397,53 @@ def notify_service_request_carriers(service_request_id):
 
     notified = notify_service_request(service_request, notify_admin=False)
     return jsonify({'notified_carrier_ids': notified}), 200
+
+
+@api.route('/service-requests/<int:service_request_id>/quotations', methods=['POST'])
+def create_service_request_quotation(service_request_id):
+    """Guarda el precio que manda un transportista. Interno: el backoffice-api lo
+    llama con el carrier_company_id sacado del token del link, nunca del cuerpo
+    que mando el navegador."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    data = request.get_json(silent=True) or {}
+
+    carrier_company_id = data.get('carrier_company_id')
+    if isinstance(carrier_company_id, bool) or not isinstance(carrier_company_id, int):
+        raise InvalidRequest('carrier_company_id is required')
+    amount = parse_amount(data.get('amount'))
+    note = parse_note(data.get('note'))
+
+    quotation, created = save_quotation(service_request_id, carrier_company_id, amount, note)
+    # Guardada y confirmada: lo que falle al avisar no la deshace.
+    try:
+        notify_new_quotation(quotation.service_request, quotation, created)
+    except Exception as e:
+        current_app.logger.error(f'Quotation notification error: {e}')
+    return jsonify({
+        'id': quotation.id,
+        'amount': float(quotation.amount),
+        'note': quotation.note,
+        'status': quotation.status,
+        'created': created,
+    }), 201 if created else 200
+
+
+@api.route('/service-requests/<int:service_request_id>/quotations/<int:quotation_id>/select', methods=['POST'])
+def select_service_request_quotation(service_request_id, quotation_id):
+    """El admin elige una cotizacion. Interno: el backoffice-api revisa el rol."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    data = request.get_json(silent=True) or {}
+    admin_user_id = data.get('admin_user_id')
+    if admin_user_id is not None and (isinstance(admin_user_id, bool) or not isinstance(admin_user_id, int)):
+        raise InvalidRequest('admin_user_id must be an id')
+
+    quotation = select_quotation(service_request_id, quotation_id, admin_user_id)
+    return jsonify({
+        'id': quotation.id,
+        'status': quotation.status,
+        'amount': float(quotation.amount),
+        'platform_fee_rate': float(quotation.platform_fee_rate),
+        'total_amount': float(quotation.total_amount),
+    }), 200
