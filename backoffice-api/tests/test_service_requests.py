@@ -653,3 +653,36 @@ def test_selecting_requires_an_admin_role(client, submitted):
 
     assert client.post(f'/api/service-requests/{submitted.id}/quotations/5/select').status_code == 401
     assert client.post(f'/api/service-requests/{submitted.id}/quotations/5/select', headers=headers).status_code == 403
+
+
+# --- services column in the companies list ---------------------------------------------
+
+def test_companies_list_includes_the_services_each_one_offers(client, admin, packing):
+    embala = make_carrier(packing, name='Embala SAC')
+    solo_mudanza = make_carrier(None, name='Solo mudanza SAC')
+
+    rows = {c['id']: c for c in client.get('/api/carrier-companies', headers=admin).get_json()['carrier_companies']}
+
+    assert [t['code'] for t in rows[embala.id]['service_types']] == ['packing']
+    assert rows[embala.id]['service_types'][0]['name'] == 'Embalaje'
+    assert rows[solo_mudanza.id]['service_types'] == []
+
+
+def test_companies_list_skips_services_that_were_taken_down(client, admin, packing):
+    carrier = make_carrier(packing)
+    packing.active = 0
+    db.session.commit()
+
+    rows = client.get('/api/carrier-companies', headers=admin).get_json()['carrier_companies']
+
+    assert rows[0]['service_types'] == []
+
+
+def test_a_company_user_still_sees_only_their_own_company_with_its_services(client, packing):
+    own = make_carrier(packing, name='Propia SAC')
+    make_carrier(packing, name='Ajena SAC')
+    headers = make_user('carrier_company', carrier_company_id=own.id)
+
+    rows = client.get('/api/carrier-companies', headers=headers).get_json()['carrier_companies']
+
+    assert [(c['name'], [t['code'] for t in c['service_types']]) for c in rows] == [('Propia SAC', ['packing'])]
