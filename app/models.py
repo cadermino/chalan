@@ -303,6 +303,8 @@ class ServiceRequest(db.Model):
 		order_by='ServiceRequestMedia.id', cascade='all, delete-orphan')
 	notifications = db.relationship('ServiceRequestNotification', backref='service_request',
 		cascade='all, delete-orphan')
+	quotations = db.relationship('ServiceRequestQuotation', backref='service_request',
+		order_by='ServiceRequestQuotation.amount', cascade='all, delete-orphan')
 
 class ServiceRequestItem(db.Model):
 	__tablename__ = 'service_request_items'
@@ -341,6 +343,30 @@ class ServiceRequestNotification(db.Model):
 	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
 	sent_at = db.Column(db.DateTime(), server_default=func.now())
+
+	carrier_company = db.relationship('CarrierCompany')
+
+class ServiceRequestQuotation(db.Model):
+	"""Precio que un transportista manda para una solicitud de servicio.
+
+	`amount` es el precio del transportista tal cual, sin comision. `platform_fee_rate`
+	y `total_amount` solo se llenan al elegirla y congelan lo acordado con el cliente.
+	"""
+	__tablename__ = 'service_request_quotations'
+	__table_args__ = (db.UniqueConstraint('service_request_id', 'carrier_company_id',
+		name='uq_service_request_quotations_request_carrier'),)
+	id = db.Column(db.Integer, primary_key=True)
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+	amount = db.Column(db.Numeric(10, 2), nullable=False)
+	note = db.Column(db.String(500))
+	status = db.Column(db.String(20), nullable=False, server_default='active')  # active | selected
+	platform_fee_rate = db.Column(db.Numeric(6, 4))
+	total_amount = db.Column(db.Numeric(10, 2))
+	selected_at = db.Column(db.DateTime())
+	selected_by_admin_id = db.Column(db.Integer)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
 	carrier_company = db.relationship('CarrierCompany')
 

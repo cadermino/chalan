@@ -20,6 +20,11 @@ def _iso(dt):
     return dt.isoformat()
 
 
+def _money(value):
+    """Numeric(10,2) -> float con 2 decimales, o None. Nunca Decimal: jsonify no lo serializa."""
+    return None if value is None else float(round(value, 2))
+
+
 def _iso_local(dt):
     # appointment_date is stored naive as the customer's local (Lima) wall-clock
     # time, never converted to UTC — unlike created_date, which is a true UTC
@@ -522,6 +527,8 @@ class ServiceRequest(db.Model):
     media = db.relationship('ServiceRequestMedia', backref='service_request',
                             order_by='ServiceRequestMedia.id')
     notifications = db.relationship('ServiceRequestNotification', backref='service_request')
+    quotations = db.relationship('ServiceRequestQuotation', backref='service_request',
+                                 order_by='ServiceRequestQuotation.amount')
 
     def to_dict(self):
         """Lo que ve el transportista: sin el WhatsApp del cliente."""
@@ -617,6 +624,45 @@ class ServiceRequestNotification(db.Model):
             'carrier_company_id': self.carrier_company_id,
             'carrier_company_name': self.carrier_company.name if self.carrier_company else None,
             'sent_at': _iso(self.sent_at),
+        }
+
+
+class ServiceRequestQuotation(db.Model):
+    """Espejo de `service_request_quotations`; la escribe el API principal.
+
+    Los montos son Numeric y se sacan siempre como float redondeado: jsonify no
+    sabe serializar Decimal.
+    """
+    __tablename__ = 'service_request_quotations'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    note = db.Column(db.String(500))
+    status = db.Column(db.String(20), nullable=False, server_default='active')  # active | selected
+    platform_fee_rate = db.Column(db.Numeric(6, 4))
+    total_amount = db.Column(db.Numeric(10, 2))
+    selected_at = db.Column(db.DateTime())
+    selected_by_admin_id = db.Column(db.Integer)
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+    updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+    carrier_company = db.relationship('CarrierCompany')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'carrier_company_id': self.carrier_company_id,
+            'carrier_company_name': self.carrier_company.name if self.carrier_company else None,
+            'amount': _money(self.amount),
+            'note': self.note,
+            'status': self.status,
+            'platform_fee_rate': float(self.platform_fee_rate) if self.platform_fee_rate is not None else None,
+            'selected_at': _iso(self.selected_at),
+            'created_date': _iso(self.created_date),
+            'updated_date': _iso(self.updated_date),
         }
 
 
