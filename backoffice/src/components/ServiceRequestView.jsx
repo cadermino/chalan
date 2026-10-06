@@ -10,6 +10,12 @@ export function formatDay(isoDate) {
   })
 }
 
+// 1234.5 -> 'S/ 1,234.50'. Los montos de embalaje llevan céntimos.
+export function formatMoney(value) {
+  if (value === null || value === undefined) return '—'
+  return `S/ ${Number(value).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 export function formatTimestamp(iso) {
   return iso
     ? new Date(iso).toLocaleString('es-PE', { timeZone: 'America/Lima', dateStyle: 'medium', timeStyle: 'short' })
