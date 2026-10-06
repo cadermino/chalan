@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
-import { formatTimestamp } from '../../components/ServiceRequestView'
+import { formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 
 const TABS = [
   { status: 'submitted', label: 'Enviadas' },
@@ -76,6 +76,8 @@ export default function ServiceRequestsList() {
                 <th className="px-4 py-3 text-left">Cosas</th>
                 <th className="px-4 py-3 text-left">Fotos/videos</th>
                 <th className="px-4 py-3 text-left">Avisados</th>
+                <th className="px-4 py-3 text-left">Cotizaciones</th>
+                <th className="px-4 py-3 text-left">Desde</th>
                 <th className="px-4 py-3 text-left">{status === 'draft' ? 'Creada' : 'Enviada'}</th>
               </tr>
             </thead>
@@ -91,14 +93,16 @@ export default function ServiceRequestsList() {
                   <td className="px-4 py-3 text-gray-500">{r.items_count}</td>
                   <td className="px-4 py-3 text-gray-500">{r.media_count}</td>
                   <td className="px-4 py-3 text-gray-500">{r.notified_count}</td>
+                  <td className="px-4 py-3 text-gray-700">{r.quotations_count}</td>
+                  <td className="px-4 py-3 text-gray-700">{formatMoney(r.min_amount)}</td>
                   <td className="px-4 py-3 text-gray-400">{formatTimestamp(status === 'draft' ? r.created_date : r.submitted_at)}</td>
                 </tr>
               ))}
               {loading && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Cargando...</td></tr>
+                <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">Cargando...</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No hay solicitudes</td></tr>
+                <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">No hay solicitudes</td></tr>
               )}
             </tbody>
           </table>
