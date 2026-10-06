@@ -165,15 +165,30 @@ export default function CarrierCompaniesList() {
               ))}
             </div>
 
-            <select
-              value={service}
-              onChange={(e) => update({ service: e.target.value })}
-              aria-label="Filtrar por servicio"
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              <option value="">Todos los servicios</option>
-              {options.map((o) => <option key={o.code} value={o.code}>{o.name}</option>)}
-            </select>
+            {/* La flecha nativa del select se pega al borde derecho: se oculta y se dibuja una propia con espacio parejo. */}
+            <div className="relative">
+              <select
+                value={service}
+                onChange={(e) => update({ service: e.target.value })}
+                aria-label="Filtrar por servicio"
+                className="appearance-none rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-9 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="">Todos los servicios</option>
+                {options.map((o) => <option key={o.code} value={o.code}>{o.name}</option>)}
+              </select>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 8l5 5 5-5" />
+              </svg>
+            </div>
 
             {canCreate && (pendingCount > 0 || state.pending) && (
               <button
