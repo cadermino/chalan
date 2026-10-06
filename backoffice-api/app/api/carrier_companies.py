@@ -2,7 +2,8 @@ from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required
-from ..models import AdminUser, CarrierCompany, ServiceType, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN
+from ..models import (AdminUser, CarrierCompany, CarrierCompanyServiceType, ServiceType,
+                      ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN)
 from .. import db
 
 
@@ -63,6 +64,27 @@ def _service_types_from(ids):
     return types, None
 
 
+def _service_types_by_company(company_ids):
+    """Servicios sueltos (no mudanza) que ofrece cada empresa, en una sola consulta.
+
+    La lista los muestra en una columna; pedirlos empresa por empresa seria una
+    consulta por fila. Solo los tipos activos: uno dado de baja ya no se ofrece.
+    """
+    if not company_ids:
+        return {}
+    rows = (
+        db.session.query(CarrierCompanyServiceType.carrier_company_id, ServiceType)
+        .join(ServiceType, ServiceType.id == CarrierCompanyServiceType.service_type_id)
+        .filter(CarrierCompanyServiceType.carrier_company_id.in_(company_ids),
+                ServiceType.active == 1)
+        .order_by(ServiceType.id).all()
+    )
+    grouped = {}
+    for company_id, service_type in rows:
+        grouped.setdefault(company_id, []).append(service_type.to_dict())
+    return grouped
+
+
 @api.route('/carrier-companies', methods=['GET'])
 @login_required
 def list_carrier_companies():
@@ -78,8 +100,13 @@ def list_carrier_companies():
     if user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
         users_by_company = _users_by_company([c.id for c in companies])
 
+    service_types_by_company = _service_types_by_company([c.id for c in companies])
+
     return jsonify({'carrier_companies': [
-        {**c.to_dict(), 'users': users_by_company.get(c.id, [])} for c in companies
+        {**c.to_dict(),
+         'users': users_by_company.get(c.id, []),
+         'service_types': service_types_by_company.get(c.id, [])}
+        for c in companies
     ]}), 200
 
 
