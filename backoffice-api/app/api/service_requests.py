@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
+from decimal import ROUND_HALF_UP, Decimal
 
 import jwt
 import requests
@@ -12,7 +13,7 @@ from .orders import _internal_headers
 from .. import db
 from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestItem, ServiceRequestMedia, ServiceRequestNotification,
-                      ServiceMaterial, ServiceType, _iso)
+                      ServiceRequestQuotation, ServiceMaterial, ServiceType, _iso, _money)
 
 STATUSES = ('draft', 'submitted', 'cancelled')
 TOKEN_PURPOSE = 'service_request'
@@ -49,6 +50,63 @@ def _materials_summary(service_request):
             entry['quantity'] += item.quantity
     ordered = sorted(summary.values(), key=lambda e: (e['position'], e['code']))
     return [{k: v for k, v in entry.items() if k != 'position'} for entry in ordered]
+
+
+def _platform_fee_rate():
+    """La comision vigente, con el mismo default que usan las ordenes en este API."""
+    return Decimal(os.environ.get('PLATFORM_FEE', '0.1'))
+
+
+def _total_with_fee(amount, rate):
+    """monto * (1 + comision), a 2 decimales. Misma cuenta que congela el API
+    principal al elegir una cotizacion (quotations.total_with_fee)."""
+    return (Decimal(amount) * (1 + Decimal(rate))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
+def _quotation_for_admin(quotation, current_rate):
+    """La cotizacion con su total para el cliente: el congelado si ya fue elegida,
+    y si no el que saldria hoy con la comision vigente."""
+    data = quotation.to_dict()
+    if quotation.status == 'selected' and quotation.total_amount is not None:
+        data['total_amount'] = _money(quotation.total_amount)
+    else:
+        data['total_amount'] = _money(_total_with_fee(quotation.amount, current_rate))
+        data['platform_fee_rate'] = float(current_rate)
+    return data
+
+
+def _quotation_state(service_request, carrier_company_id):
+    """Que puede hacer este transportista con la solicitud."""
+    if service_request.status == 'cancelled':
+        return 'cancelled'
+    selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
+    if selected is None:
+        return 'open'
+    return 'selected_mine' if selected.carrier_company_id == carrier_company_id else 'selected_other'
+
+
+def _resolve_carrier_link(token):
+    """Valida el link del transportista. Devuelve (solicitud, carrier_company_id, None)
+    o (None, None, respuesta de error).
+
+    Un token malo, de otro proposito o de una solicitud que no existe es 404, y uno
+    vencido es 410. Nunca 401: el interceptor de axios del backoffice manda a /login
+    ante un 401, y esta pagina la abre gente sin cuenta.
+    """
+    try:
+        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return None, None, (jsonify({'message': 'link expired'}), 410)
+    except jwt.InvalidTokenError:
+        return None, None, (jsonify({'message': 'invalid link'}), 404)
+    if payload.get('purpose') != TOKEN_PURPOSE:
+        return None, None, (jsonify({'message': 'invalid link'}), 404)
+
+    service_request = db.session.get(ServiceRequest, payload.get('service_request_id'))
+    # Un borrador no se aviso a nadie: si el link llega a uno, no existe todavia.
+    if service_request is None or service_request.status == 'draft':
+        return None, None, (jsonify({'message': 'invalid link'}), 404)
+    return service_request, payload.get('carrier_company_id'), None
 
 
 @api.route('/service-types', methods=['GET'])
@@ -129,6 +187,15 @@ def list_service_requests():
     items = _counts(ServiceRequestItem, ids)
     media = _counts(ServiceRequestMedia, ids)
     notified = _counts(ServiceRequestNotification, ids)
+    quotations = {}
+    if ids:
+        for request_id, count, lowest in (
+            db.session.query(ServiceRequestQuotation.service_request_id, func.count(),
+                             func.min(ServiceRequestQuotation.amount))
+            .filter(ServiceRequestQuotation.service_request_id.in_(ids))
+            .group_by(ServiceRequestQuotation.service_request_id).all()
+        ):
+            quotations[request_id] = (count, _money(lowest))
     return jsonify({'service_requests': [
         {
             'id': r.id,
@@ -139,6 +206,8 @@ def list_service_requests():
             'items_count': items.get(r.id, 0),
             'media_count': media.get(r.id, 0),
             'notified_count': notified.get(r.id, 0),
+            'quotations_count': quotations.get(r.id, (0, None))[0],
+            'min_amount': quotations.get(r.id, (0, None))[1],
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),
         }
@@ -163,10 +232,16 @@ def get_service_request(service_request_id):
         .order_by(CarrierCompany.name).all()
     )
     notified_ids = {n.carrier_company_id for n in service_request.notifications}
+    current_rate = _platform_fee_rate()
     return jsonify({'service_request': {
         **service_request.to_dict_full(),
         'materials_summary': _materials_summary(service_request),
         'notifications': [n.to_dict() for n in service_request.notifications],
+        'platform_fee_rate': float(current_rate),
+        'quotations': [
+            _quotation_for_admin(q, current_rate)
+            for q in sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
+        ],
         'links': [
             {
                 'id': c.id,
@@ -220,31 +295,77 @@ def update_service_request(service_request_id):
 
 @api.route('/public/service-requests/<token>', methods=['GET'])
 def get_service_request_for_carrier(token):
-    """La solicitud tal como la ve el transportista que recibió el link. Sin login.
+    """La solicitud tal como la ve el transportista que recibio el link. Sin login."""
+    service_request, carrier_company_id, error = _resolve_carrier_link(token)
+    if error:
+        return error
+    carrier = db.session.get(CarrierCompany, carrier_company_id)
+    mine = next((q for q in service_request.quotations if q.carrier_company_id == carrier_company_id), None)
 
-    Un token malo, de otro propósito o de una solicitud que no existe es 404, y
-    uno vencido es 410. Nunca 401: el interceptor de axios del backoffice manda
-    a /login ante un 401, y esta página la abre gente sin cuenta.
-    """
-    try:
-        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-    except jwt.ExpiredSignatureError:
-        return jsonify({'message': 'link expired'}), 410
-    except jwt.InvalidTokenError:
-        return jsonify({'message': 'invalid link'}), 404
-    if payload.get('purpose') != TOKEN_PURPOSE:
-        return jsonify({'message': 'invalid link'}), 404
-
-    service_request = db.session.get(ServiceRequest, payload.get('service_request_id'))
-    carrier = db.session.get(CarrierCompany, payload.get('carrier_company_id'))
-    # Un borrador no se avisó a nadie: si el link llega a uno, no existe todavía.
-    if service_request is None or service_request.status == 'draft':
-        return jsonify({'message': 'invalid link'}), 404
-
-    # to_dict() no incluye el WhatsApp del cliente a propósito: el transportista
-    # responde a Chalán, no al cliente.
+    # to_dict() no incluye el WhatsApp del cliente a proposito: el transportista
+    # responde a Chalan, no al cliente. Tampoco se expone ninguna cotizacion ajena:
+    # solo la suya y un estado.
     return jsonify({'service_request': {
         **service_request.to_dict(),
         'materials_summary': _materials_summary(service_request),
         'carrier_company_name': carrier.name if carrier else None,
+        'quotation_state': _quotation_state(service_request, carrier_company_id),
+        'my_quotation': None if mine is None else {
+            'amount': _money(mine.amount),
+            'note': mine.note,
+            'status': mine.status,
+            'updated_date': _iso(mine.updated_date),
+        },
     }}), 200
+
+
+@api.route('/public/service-requests/<token>/quotation', methods=['POST'])
+def send_carrier_quotation(token):
+    """El transportista manda (o corrige) su precio desde su link, sin login.
+
+    La escritura y los avisos los hace el API principal; aca solo se valida el
+    link y se reenvia. El carrier_company_id sale del token, nunca del cuerpo: si
+    el navegador pudiera elegirlo, cualquiera con un link cotizaria por otra
+    empresa. Las respuestas de validacion (400) y de estado (404, 409) se devuelven
+    tal cual para que la pagina diga que paso.
+    """
+    service_request, carrier_company_id, error = _resolve_carrier_link(token)
+    if error:
+        return error
+
+    data = request.get_json(silent=True) or {}
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/service-requests/{service_request.id}/quotations',
+            json={'carrier_company_id': carrier_company_id,
+                  'amount': data.get('amount'), 'note': data.get('note')},
+            headers=_internal_headers(),
+            timeout=15,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the quotation service'}), 502
+    if res.status_code not in (200, 201, 400, 404, 409):
+        return jsonify({'message': 'failed to save the quotation'}), 502
+    return jsonify(res.json()), res.status_code
+
+
+@api.route('/service-requests/<int:service_request_id>/quotations/<int:quotation_id>/select', methods=['POST'])
+@admin_required
+def select_service_request_quotation(service_request_id, quotation_id):
+    """El admin elige una cotizacion. La logica (exclusividad, congelar la comision
+    y el total) vive en el API principal; aca solo se controla el rol y se reenvia
+    con el id de quien eligio. 404 y 409 se devuelven tal cual."""
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/service-requests/{service_request_id}/quotations/{quotation_id}/select',
+            json={'admin_user_id': g.current_user.id},
+            headers=_internal_headers(),
+            timeout=15,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the quotation service'}), 502
+    if res.status_code not in (200, 400, 404, 409):
+        return jsonify({'message': 'failed to select the quotation'}), 502
+    return jsonify(res.json()), res.status_code

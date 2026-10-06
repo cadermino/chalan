@@ -7,7 +7,7 @@ import requests as requests_lib
 from app import db
 from app.models import (AdminUser, CarrierCompany, CarrierCompanyServiceType, ServiceMaterial,
                         ServiceRequest, ServiceRequestItem, ServiceRequestNotification,
-                        ServiceType)
+                        ServiceRequestQuotation, ServiceType)
 
 SECRET = 'test-secret-key-at-least-32-bytes-long'
 
@@ -410,3 +410,246 @@ def test_manual_creation_requires_an_admin_role(client):
 
     assert client.post('/api/service-requests', json={}).status_code == 401
     assert client.post('/api/service-requests', json={}, headers=headers).status_code == 403
+
+
+# --- carrier quotations ----------------------------------------------------------------
+
+def make_quotation(service_request, carrier, amount, note=None, status='active', total=None, rate=None):
+    quotation = ServiceRequestQuotation(
+        service_request_id=service_request.id, carrier_company_id=carrier.id, amount=amount,
+        note=note, status=status, total_amount=total, platform_fee_rate=rate)
+    db.session.add(quotation)
+    db.session.commit()
+    return quotation
+
+
+@pytest.fixture(autouse=True)
+def _platform_fee(monkeypatch):
+    monkeypatch.setenv('PLATFORM_FEE', '0.1')
+
+
+def public_get(client, service_request, carrier):
+    token = carrier_token(service_request.id, carrier.id)
+    return client.get(f'/api/public/service-requests/{token}')
+
+
+def test_carrier_view_has_no_quotation_until_they_send_one(client, submitted, packing):
+    carrier = make_carrier(packing)
+
+    data = public_get(client, submitted, carrier).get_json()['service_request']
+
+    assert (data['quotation_state'], data['my_quotation']) == ('open', None)
+
+
+def test_carrier_view_returns_only_their_own_quotation(client, submitted, packing):
+    mine, other = make_carrier(packing, name='Mia SAC'), make_carrier(packing, name='Ajena SAC')
+    make_quotation(submitted, mine, 300, note='Incluye cajas')
+    make_quotation(submitted, other, 180.5, note='Secreto de la otra')
+
+    res = public_get(client, submitted, mine)
+
+    data = res.get_json()['service_request']
+    assert data['quotation_state'] == 'open'
+    assert (data['my_quotation']['amount'], data['my_quotation']['note']) == (300.0, 'Incluye cajas')
+    body = res.get_data(as_text=True)
+    assert 'Ajena SAC' not in body and '180.5' not in body and 'Secreto de la otra' not in body
+
+
+def test_state_when_the_carrier_was_selected_and_when_another_was(client, submitted, packing):
+    winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
+    make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    make_quotation(submitted, loser, 280)
+
+    assert public_get(client, submitted, winner).get_json()['service_request']['quotation_state'] == 'selected_mine'
+    other_view = public_get(client, submitted, loser).get_json()['service_request']
+    assert other_view['quotation_state'] == 'selected_other'
+    # Pierde ve su propio precio, pero nada de lo del ganador.
+    assert other_view['my_quotation']['amount'] == 280.0
+    assert '300' not in str(other_view) and 'Gana SAC' not in str(other_view)
+
+
+def test_a_cancelled_request_reports_cancelled_even_if_one_was_selected(client, submitted, packing):
+    carrier = make_carrier(packing)
+    make_quotation(submitted, carrier, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'cancelled'
+    db.session.commit()
+
+    assert public_get(client, submitted, carrier).get_json()['service_request']['quotation_state'] == 'cancelled'
+
+
+def post_quotation(client, token, body, monkeypatch=None, response=None):
+    seen = {}
+
+    def fake_post(url, json, headers, timeout):
+        seen.update(url=url, json=json, headers=headers)
+        return response or FakeResponse(201, {'id': 1, 'amount': 350.0, 'created': True})
+    if monkeypatch is not None:
+        monkeypatch.setattr('app.api.service_requests.requests.post', fake_post)
+    res = client.post(f'/api/public/service-requests/{token}/quotation', json=body)
+    return res, seen
+
+
+def test_sending_a_price_forwards_it_with_the_carrier_taken_from_the_token(client, submitted, packing, monkeypatch):
+    carrier = make_carrier(packing)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+
+    res, seen = post_quotation(
+        client, carrier_token(submitted.id, carrier.id),
+        # The browser tries to quote as another company and to smuggle extra fields.
+        {'amount': '350', 'note': 'Incluye cajas', 'carrier_company_id': 999, 'status': 'selected'},
+        monkeypatch)
+
+    assert res.status_code == 201
+    assert seen['url'] == f'http://flask-api:8001/api/v1/service-requests/{submitted.id}/quotations'
+    assert seen['json'] == {'carrier_company_id': carrier.id, 'amount': '350', 'note': 'Incluye cajas'}
+    token = seen['headers']['Authorization'].split()[1]
+    assert jwt.decode(token, SECRET, algorithms=['HS256'])['scope'] == 'internal'
+
+
+@pytest.mark.parametrize('status, body', [
+    (400, {'message': 'amount must be a number between 0 and 100000'}),
+    (404, {'message': 'carrier company not found'}),
+    (409, {'message': 'service request already assigned'}),
+    (200, {'id': 1, 'amount': 320.0, 'created': False}),
+])
+def test_sending_a_price_passes_the_main_api_answer_through(client, submitted, packing, monkeypatch, status, body):
+    carrier = make_carrier(packing)
+
+    res, _ = post_quotation(client, carrier_token(submitted.id, carrier.id), {'amount': 1}, monkeypatch,
+                            FakeResponse(status, body))
+
+    assert (res.status_code, res.get_json()) == (status, body)
+
+
+def test_sending_a_price_is_502_when_the_main_api_is_down_or_answers_oddly(client, submitted, packing, monkeypatch):
+    carrier = make_carrier(packing)
+    token = carrier_token(submitted.id, carrier.id)
+
+    res, _ = post_quotation(client, token, {'amount': 1}, monkeypatch, FakeResponse(500, {}))
+    assert res.status_code == 502
+
+    def boom(*args, **kwargs):
+        raise requests_lib.ConnectionError('down')
+    monkeypatch.setattr('app.api.service_requests.requests.post', boom)
+    assert client.post(f'/api/public/service-requests/{token}/quotation', json={'amount': 1}).status_code == 502
+
+
+def test_sending_a_price_checks_the_link_and_never_answers_401(client, submitted, packing, monkeypatch):
+    carrier = make_carrier(packing)
+    draft = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='draft')
+    db.session.add(draft)
+    db.session.commit()
+    expired = carrier_token(submitted.id, carrier.id, exp=datetime.now(timezone.utc) - timedelta(minutes=1))
+    quotation_token = jwt.encode({'carrier_company_id': carrier.id, 'order_id': submitted.id,
+                                  'exp': datetime.now(timezone.utc) + timedelta(days=1)}, SECRET, algorithm='HS256')
+    calls = []
+    monkeypatch.setattr('app.api.service_requests.requests.post', lambda *a, **k: calls.append(1))
+
+    answers = {
+        'garbage': client.post('/api/public/service-requests/garbage/quotation', json={'amount': 1}).status_code,
+        'expired': client.post(f'/api/public/service-requests/{expired}/quotation', json={'amount': 1}).status_code,
+        'order token': client.post(f'/api/public/service-requests/{quotation_token}/quotation', json={'amount': 1}).status_code,
+        'draft': client.post(f'/api/public/service-requests/{carrier_token(draft.id, carrier.id)}/quotation',
+                             json={'amount': 1}).status_code,
+    }
+
+    assert answers == {'garbage': 404, 'expired': 410, 'order token': 404, 'draft': 404}
+    assert calls == []  # an invalid link never reaches the main API
+
+
+def test_admin_detail_lists_quotations_cheapest_first_with_the_total_for_the_customer(client, admin, submitted, packing):
+    dear, cheap = make_carrier(packing, name='Cara SAC'), make_carrier(packing, name='Barata SAC')
+    make_quotation(submitted, dear, 400, note='Todo incluido')
+    make_quotation(submitted, cheap, 100)
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert [(q['carrier_company_name'], q['amount'], q['total_amount']) for q in data['quotations']] == [
+        ('Barata SAC', 100.0, 110.0), ('Cara SAC', 400.0, 440.0)]
+    assert data['quotations'][1]['note'] == 'Todo incluido'
+    assert data['platform_fee_rate'] == 0.1
+    assert data['quotations'][0]['platform_fee_rate'] == 0.1
+
+
+def test_a_selected_quotation_keeps_its_frozen_total_when_the_fee_changes(client, admin, submitted, packing, monkeypatch):
+    carrier, other = make_carrier(packing, name='Elegida SAC'), make_carrier(packing, name='Otra SAC')
+    make_quotation(submitted, carrier, 100, status='selected', total=110, rate=0.1)
+    make_quotation(submitted, other, 200)
+    monkeypatch.setenv('PLATFORM_FEE', '0.25')
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    by_name = {q['carrier_company_name']: q for q in data['quotations']}
+    assert (by_name['Elegida SAC']['total_amount'], by_name['Elegida SAC']['platform_fee_rate']) == (110.0, 0.1)
+    # The one not picked yet follows the current fee.
+    assert (by_name['Otra SAC']['total_amount'], by_name['Otra SAC']['platform_fee_rate']) == (250.0, 0.25)
+
+
+def test_total_for_the_customer_rounds_half_up_to_cents(client, admin, submitted, packing):
+    carrier = make_carrier(packing)
+    make_quotation(submitted, carrier, 350.50)  # 350.50 * 1.1 = 385.55 exactly
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert data['quotations'][0]['total_amount'] == 385.55
+
+
+def test_list_shows_how_many_quotations_and_the_lowest(client, admin, submitted, packing):
+    one, two = make_carrier(packing, name='Uno SAC'), make_carrier(packing, name='Dos SAC')
+    make_quotation(submitted, one, 250)
+    make_quotation(submitted, two, 180.5)
+    empty = ServiceRequest(public_id='e' * 32, service_type_id=packing.id, status='submitted')
+    db.session.add(empty)
+    db.session.commit()
+
+    rows = {r['id']: r for r in client.get('/api/service-requests', headers=admin).get_json()['service_requests']}
+
+    assert (rows[submitted.id]['quotations_count'], rows[submitted.id]['min_amount']) == (2, 180.5)
+    assert (rows[empty.id]['quotations_count'], rows[empty.id]['min_amount']) == (0, None)
+
+
+def test_selecting_forwards_to_the_main_api_with_the_admin_who_picked(client, submitted, packing, monkeypatch):
+    seen = {}
+
+    def fake_post(url, json, headers, timeout):
+        seen.update(url=url, json=json, headers=headers)
+        return FakeResponse(200, {'id': 5, 'status': 'selected', 'total_amount': 110.0})
+    monkeypatch.setattr('app.api.service_requests.requests.post', fake_post)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    admin_headers = make_user('admin', suffix='quien-elige')
+    admin_id = AdminUser.query.filter_by(email='admin-quien-elige@example.com').one().id
+
+    res = client.post(f'/api/service-requests/{submitted.id}/quotations/5/select', headers=admin_headers)
+
+    assert res.status_code == 200
+    assert seen['url'] == f'http://flask-api:8001/api/v1/service-requests/{submitted.id}/quotations/5/select'
+    assert seen['json'] == {'admin_user_id': admin_id}
+    assert jwt.decode(seen['headers']['Authorization'].split()[1], SECRET, algorithms=['HS256'])['scope'] == 'internal'
+
+
+@pytest.mark.parametrize('status', [404, 409])
+def test_selecting_passes_not_found_and_conflict_through(client, admin, submitted, monkeypatch, status):
+    monkeypatch.setattr('app.api.service_requests.requests.post',
+                        lambda *a, **k: FakeResponse(status, {'message': 'nope'}))
+
+    res = client.post(f'/api/service-requests/{submitted.id}/quotations/5/select', headers=admin)
+
+    assert (res.status_code, res.get_json()['message']) == (status, 'nope')
+
+
+def test_selecting_is_502_when_the_main_api_fails(client, admin, submitted, monkeypatch):
+    monkeypatch.setattr('app.api.service_requests.requests.post', lambda *a, **k: FakeResponse(500, {}))
+    assert client.post(f'/api/service-requests/{submitted.id}/quotations/5/select', headers=admin).status_code == 502
+
+    def boom(*args, **kwargs):
+        raise requests_lib.ConnectionError('down')
+    monkeypatch.setattr('app.api.service_requests.requests.post', boom)
+    assert client.post(f'/api/service-requests/{submitted.id}/quotations/5/select', headers=admin).status_code == 502
+
+
+def test_selecting_requires_an_admin_role(client, submitted):
+    carrier = make_carrier()
+    headers = make_user('carrier_company', carrier_company_id=carrier.id)
+
+    assert client.post(f'/api/service-requests/{submitted.id}/quotations/5/select').status_code == 401
+    assert client.post(f'/api/service-requests/{submitted.id}/quotations/5/select', headers=headers).status_code == 403
