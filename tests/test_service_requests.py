@@ -8,7 +8,7 @@ from app.api.decorators import generate_internal_token
 from app.api.service_request.validation import LIMA
 from app.models import (CarrierCompany, CarrierCompanyServiceType, ServiceMaterial,
                         ServiceRequest, ServiceRequestMedia, ServiceRequestNotification,
-                        ServiceRequestQuotation, ServiceType)
+                        ServiceRequestCarrierDecline, ServiceRequestQuotation, ServiceType)
 
 ADDRESS = {
     'street': 'Av. Javier Prado Este 123, San Isidro',
@@ -1011,3 +1011,59 @@ def test_selecting_without_a_platform_fee_configured_fails_instead_of_inventing_
     with pytest.raises(RuntimeError):
         select(client, request_id, quotation_id)
     assert ServiceRequestQuotation.query.one().status == 'active'
+
+
+# --- carrier declines -----------------------------------------------------------------
+
+def decline(client, request_id, carrier_id, internal=True, method='post', **body):
+    body.setdefault('reason', 'zone')
+    return getattr(client, method)(f'/api/v1/service-requests/{request_id}/decline',
+                                   json={'carrier_company_id': carrier_id, **body},
+                                   headers=internal_headers() if internal else {})
+
+
+def test_decline_requires_the_internal_token(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    assert decline(client, request_id, carrier.id, internal=False).status_code == 403
+    assert ServiceRequestCarrierDecline.query.count() == 0
+
+
+def test_declining_removes_the_carrier_quotation(client):
+    request_id = make_submitted(client)
+    carrier, other = make_carrier('Uno SAC'), make_carrier('Dos SAC')
+    quote(client, request_id, carrier.id)
+    quote(client, request_id, other.id)
+
+    res = decline(client, request_id, carrier.id, reason='other', note='No tengo gente')
+
+    assert res.status_code == 200
+    assert res.get_json()['withdrew_quotation'] is True
+    assert [q.carrier_company_id for q in ServiceRequestQuotation.query.all()] == [other.id]
+    saved = ServiceRequestCarrierDecline.query.one()
+    assert (saved.reason, saved.note) == ('other', 'No tengo gente')
+
+
+def test_declining_an_assigned_request_is_409(client):
+    request_id = make_submitted(client)
+    winner, loser = make_carrier('Uno SAC'), make_carrier('Dos SAC')
+    quotation_id = quote(client, request_id, winner.id).get_json()['id']
+    select(client, request_id, quotation_id)
+
+    assert decline(client, request_id, winner.id).get_json()['message'] == 'quotation already selected'
+    assert decline(client, request_id, loser.id).get_json()['message'] == 'service request already assigned'
+    assert ServiceRequestCarrierDecline.query.count() == 0
+
+
+def test_quoting_after_declining_clears_the_decline_and_undo_deletes_it(client):
+    request_id = make_submitted(client)
+    carrier = make_carrier()
+
+    decline(client, request_id, carrier.id)
+    quote(client, request_id, carrier.id)
+    assert ServiceRequestCarrierDecline.query.count() == 0
+
+    decline(client, request_id, carrier.id)
+    assert decline(client, request_id, carrier.id, method='delete').status_code == 200
+    assert ServiceRequestCarrierDecline.query.count() == 0

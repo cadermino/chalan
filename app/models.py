@@ -370,6 +370,36 @@ class ServiceRequestQuotation(db.Model):
 
 	carrier_company = db.relationship('CarrierCompany')
 
+class OrderCarrierDecline(db.Model):
+	"""Un transportista avisa que no puede hacer una mudanza, y por que.
+
+	Tabla aparte y no un estado de `quotations`: ahi `amount` es obligatorio y
+	toda fila no cancelada se lee como una oferta real (ver la migracion 020).
+	"""
+	__tablename__ = 'order_carrier_declines'
+	__table_args__ = (db.UniqueConstraint('order_id', 'carrier_company_id',
+		name='uq_order_carrier_declines_order_carrier'),)
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+	reason = db.Column(db.String(30), nullable=False)
+	note = db.Column(db.String(500))
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+class ServiceRequestCarrierDecline(db.Model):
+	"""Lo mismo que OrderCarrierDecline, para una solicitud de servicio."""
+	__tablename__ = 'service_request_carrier_declines'
+	__table_args__ = (db.UniqueConstraint('service_request_id', 'carrier_company_id',
+		name='uq_service_request_carrier_declines_request_carrier'),)
+	id = db.Column(db.Integer, primary_key=True)
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+	reason = db.Column(db.String(30), nullable=False)
+	note = db.Column(db.String(500))
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
 class WhatsappMessage(db.Model):
 	__tablename__ = 'whatsapp_messages'
 	id = db.Column(db.Integer, primary_key=True)

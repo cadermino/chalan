@@ -6,7 +6,10 @@ from .quotation.quotation_status import QuotationStatus
 from .order import Order as OrderEntity
 from .order.order_status import OrderStatus
 from .decorators import (token_required, carrier_company_token_required,
-                         authenticated_customer, is_internal_request)
+                         authenticated_customer, is_internal_request, _bearer_token)
+from .carrier_declines import (clear_order_decline, decline_order, decline_to_dict,
+                               parse_decline, undo_order_decline)
+from .errors import bad_request, unauthorized
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from ..models import Customer, ReferredOrder, AdminUser
 from ..models import Quotations as QuotationsModel, Order as OrderModel
@@ -121,6 +124,10 @@ def create_quotation():
         'carrier_company_id': carrier_company_id,
     }
     previous_quotation = QuotationEntity().get(order_id, carrier_company_id)
+    if previous_quotation is None or previous_quotation.quotation_status_id != QuotationStatus.Selected():
+        # Cotizar despues de haber rechazado deja sin efecto el rechazo. Se
+        # confirma junto con la cotizacion (create/update hacen el commit).
+        clear_order_decline(order_id, carrier_company_id)
     customer = OrderEntity().query_orders({'id': order_id})[0].customers
     if previous_quotation is None:
         quotation = QuotationEntity().create(data)
@@ -176,3 +183,36 @@ def create_quotation():
         'amount': quotation_amount,
         'quotation_status_id': quotation_status_id,
     }), status_response
+
+
+@api.route('/order/<int:order_id>/decline', methods=['POST', 'DELETE'])
+def carrier_decline_order(order_id):
+    """El transportista avisa que no puede hacer la mudanza (POST) o se arrepiente
+    (DELETE). Lo llama la pagina del link con el token del transportista, o el
+    backoffice-api con su token interno y el carrier_company_id del usuario que
+    ya valido. Con el token del link la empresa sale del token, nunca del cuerpo,
+    y el token tiene que ser de esta misma orden."""
+    data = request.get_json(silent=True) or {}
+    if is_internal_request():
+        carrier_company_id = data.get('carrier_company_id')
+        if isinstance(carrier_company_id, bool) or not isinstance(carrier_company_id, int):
+            return bad_request('carrier_company_id is required')
+    else:
+        token = _bearer_token()
+        if token is None:
+            return unauthorized('Missing token')
+        token_data = CarrierCompanyEntity.verify_carrier_company_token(token)
+        if token_data is None or token_data.get('order_id') != order_id:
+            return bad_request('Invalid token')
+        carrier_company_id = token_data.get('carrier_company_id')
+
+    if request.method == 'DELETE':
+        undo_order_decline(order_id, carrier_company_id)
+        return jsonify({'decline': None}), 200
+
+    reason, note = parse_decline(data)
+    decline, withdrew_quotation = decline_order(order_id, carrier_company_id, reason, note)
+    return jsonify({
+        'decline': decline_to_dict(decline),
+        'withdrew_quotation': withdrew_quotation,
+    }), 200
