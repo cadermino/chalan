@@ -12,8 +12,9 @@ from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from .. import db
 from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
-                      ServiceRequestItem, ServiceRequestMedia, ServiceRequestNotification,
-                      ServiceRequestQuotation, ServiceMaterial, ServiceType, _iso, _money)
+                      ServiceRequestCarrierDecline, ServiceRequestItem, ServiceRequestMedia,
+                      ServiceRequestNotification, ServiceRequestQuotation, ServiceMaterial,
+                      ServiceType, _iso, _money)
 
 STATUSES = ('draft', 'submitted', 'cancelled')
 TOKEN_PURPOSE = 'service_request'
@@ -233,6 +234,8 @@ def get_service_request(service_request_id):
     )
     notified_ids = {n.carrier_company_id for n in service_request.notifications}
     current_rate = _platform_fee_rate()
+    declines = ServiceRequestCarrierDecline.query.filter_by(service_request_id=service_request.id) \
+        .order_by(ServiceRequestCarrierDecline.updated_date.desc()).all()
     return jsonify({'service_request': {
         **service_request.to_dict_full(),
         'materials_summary': _materials_summary(service_request),
@@ -242,6 +245,7 @@ def get_service_request(service_request_id):
             _quotation_for_admin(q, current_rate)
             for q in sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
         ],
+        'declines': [d.to_dict() for d in declines],
         'links': [
             {
                 'id': c.id,
@@ -301,6 +305,8 @@ def get_service_request_for_carrier(token):
         return error
     carrier = db.session.get(CarrierCompany, carrier_company_id)
     mine = next((q for q in service_request.quotations if q.carrier_company_id == carrier_company_id), None)
+    my_decline = ServiceRequestCarrierDecline.query.filter_by(
+        service_request_id=service_request.id, carrier_company_id=carrier_company_id).first()
 
     # to_dict() no incluye el WhatsApp del cliente a proposito: el transportista
     # responde a Chalan, no al cliente. Tampoco se expone ninguna cotizacion ajena:
@@ -315,6 +321,11 @@ def get_service_request_for_carrier(token):
             'note': mine.note,
             'status': mine.status,
             'updated_date': _iso(mine.updated_date),
+        },
+        'my_decline': None if my_decline is None else {
+            'reason': my_decline.reason,
+            'note': my_decline.note,
+            'updated_date': _iso(my_decline.updated_date),
         },
     }}), 200
 
@@ -347,6 +358,36 @@ def send_carrier_quotation(token):
         return jsonify({'message': 'could not reach the quotation service'}), 502
     if res.status_code not in (200, 201, 400, 404, 409):
         return jsonify({'message': 'failed to save the quotation'}), 502
+    return jsonify(res.json()), res.status_code
+
+
+@api.route('/public/service-requests/<token>/decline', methods=['POST', 'DELETE'])
+def decline_carrier_service_request(token):
+    """El transportista avisa desde su link que no puede hacer el trabajo (POST) o
+    lo deshace (DELETE), sin login. Igual que send_carrier_quotation: se valida el
+    link, la empresa sale del token y el API principal escribe."""
+    service_request, carrier_company_id, error = _resolve_carrier_link(token)
+    if error:
+        return error
+
+    data = request.get_json(silent=True) or {}
+    payload = {'carrier_company_id': carrier_company_id}
+    if request.method == 'POST':
+        payload.update({'reason': data.get('reason'), 'note': data.get('note')})
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            request.method,
+            f'{internal_api}/api/v1/service-requests/{service_request.id}/decline',
+            json=payload,
+            headers=_internal_headers(),
+            timeout=15,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the quotation service'}), 502
+    if res.status_code not in (200, 400, 404, 409):
+        return jsonify({'message': 'failed to save the decline'}), 502
     return jsonify(res.json()), res.status_code
 
 
