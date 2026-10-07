@@ -666,6 +666,58 @@ class ServiceRequestQuotation(db.Model):
         }
 
 
+class OrderCarrierDecline(db.Model):
+    """Espejo de `order_carrier_declines`; la escribe el API principal."""
+    __tablename__ = 'order_carrier_declines'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+    reason = db.Column(db.String(30), nullable=False)
+    note = db.Column(db.String(500))
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+    updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+    carrier_company = db.relationship('CarrierCompany')
+
+    def to_dict(self):
+        return {
+            'carrier_company_id': self.carrier_company_id,
+            'carrier_company_name': self.carrier_company.name if self.carrier_company else None,
+            'reason': self.reason,
+            'note': self.note,
+            'created_date': _iso(self.created_date),
+            'updated_date': _iso(self.updated_date),
+        }
+
+
+class ServiceRequestCarrierDecline(db.Model):
+    """Espejo de `service_request_carrier_declines`; la escribe el API principal."""
+    __tablename__ = 'service_request_carrier_declines'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
+    reason = db.Column(db.String(30), nullable=False)
+    note = db.Column(db.String(500))
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+    updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+    carrier_company = db.relationship('CarrierCompany')
+
+    def to_dict(self):
+        return {
+            'carrier_company_id': self.carrier_company_id,
+            'carrier_company_name': self.carrier_company.name if self.carrier_company else None,
+            'reason': self.reason,
+            'note': self.note,
+            'created_date': _iso(self.created_date),
+            'updated_date': _iso(self.updated_date),
+        }
+
+
 class WhatsappMessage(db.Model):
     __tablename__ = 'whatsapp_messages'
     __table_args__ = {'extend_existing': True}

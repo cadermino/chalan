@@ -8,7 +8,7 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 QUOTATION_STATUS_ACTIVE = 1
@@ -396,6 +396,16 @@ def list_pending_orders():
     if status_filter is not None:
         query = query.filter(Order.order_status_id.in_(status_filter))
 
+    # Las que el transportista rechazó no vuelven a aparecerle: ya las
+    # descartó. ?declined=1 las incluye, para poder deshacer el rechazo.
+    declined_ids = set()
+    if company_id is not None:
+        declined_ids = {
+            d.order_id for d in OrderCarrierDecline.query.filter_by(carrier_company_id=company_id).all()
+        }
+        if declined_ids and request.args.get('declined') != '1':
+            query = query.filter(~Order.id.in_(declined_ids))
+
     # El transportista no ve nombre ni teléfono del cliente en esta lista, así
     # que tampoco puede buscar por ellos: solo por número de orden.
     search = request.args.get('q', '').strip()
@@ -480,6 +490,7 @@ def list_pending_orders():
         result.append({
             **order.to_dict(),
             'has_quotation': has_quotation,
+            'declined': order.id in declined_ids,
             'quotation_url': quotation_url,
             'origin': _address_payload(origin, is_admin, reveal_full_address),
             'destination': _address_payload(destination, is_admin, reveal_full_address),
@@ -759,7 +770,14 @@ def get_order(order_id):
     origin = next((d for d in details if d.type == 'carry_from'), None)
     destination = next((d for d in details if d.type == 'deliver_to'), None)
 
-    existing_quotation = Quotation.query.filter_by(
+    # Sin las canceladas: una retirada al rechazar (o al editar el cliente su
+    # mudanza) ya no es "tu cotización enviada".
+    existing_quotation = Quotation.query.filter(
+        Quotation.order_id == order_id,
+        Quotation.carrier_company_id == company_id,
+        Quotation.quotation_status_id != QUOTATION_STATUS_CANCELLED,
+    ).first() if company_id is not None else None
+    decline = OrderCarrierDecline.query.filter_by(
         order_id=order_id, carrier_company_id=company_id
     ).first() if company_id is not None else None
     reveal_full_address = existing_quotation is not None and existing_quotation.quotation_status_id == QUOTATION_STATUS_SELECTED
@@ -789,6 +807,7 @@ def get_order(order_id):
             'destination': _address_payload(destination, is_admin, reveal_full_address),
             'quotation_url': quotation_url,
             'existing_quotation': existing_quotation.to_dict() if existing_quotation else None,
+            'decline': decline.to_dict() if decline else None,
             'customer_name': customer_name,
             'customer_phone': customer_phone,
             'lead_phone': order.lead_phone if is_admin else None,
@@ -1065,6 +1084,38 @@ def complete_order(order_id):
     return jsonify({'order_id': order_id, 'order_status_id': 3}), 200
 
 
+@api.route('/orders/<int:order_id>/decline', methods=['POST', 'DELETE'])
+@login_required
+def decline_order(order_id):
+    """El transportista avisa que no puede hacer la mudanza (POST) o lo deshace
+    (DELETE). La escritura vive en el API principal, que es la misma que usa la
+    página del link; acá solo se controla el rol y la empresa sale del usuario,
+    nunca del cuerpo. 400, 404 y 409 se devuelven tal cual."""
+    user = g.current_user
+    if user.role != ROLE_CARRIER or not user.carrier_company_id:
+        return jsonify({'message': 'carrier company access required'}), 403
+
+    data = request.get_json(silent=True) or {}
+    payload = {'carrier_company_id': user.carrier_company_id}
+    if request.method == 'POST':
+        payload.update({'reason': data.get('reason'), 'note': data.get('note')})
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            request.method,
+            f'{internal_api}/api/v1/order/{order_id}/decline',
+            json=payload,
+            headers=_internal_headers(),
+            timeout=15,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the order service'}), 502
+    if res.status_code not in (200, 400, 404, 409):
+        return jsonify({'message': 'failed to save the decline'}), 502
+    return jsonify(res.json()), res.status_code
+
+
 @api.route('/orders/<int:order_id>/quotation-links', methods=['GET'])
 @login_required
 def get_quotation_links(order_id):
@@ -1145,8 +1196,12 @@ def list_order_quotations(order_id):
             'total_amount': total_amount,
         })
 
+    declines = OrderCarrierDecline.query.filter_by(order_id=order_id) \
+        .order_by(OrderCarrierDecline.updated_date.desc()).all()
+
     return jsonify({
         'quotations': result,
+        'declines': [d.to_dict() for d in declines],
         'commission_rate': commission_rate,
         'platform_fee': platform_fee,
         'order_status_id': order.order_status_id,
