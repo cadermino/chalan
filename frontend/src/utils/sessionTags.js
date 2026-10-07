@@ -1,14 +1,14 @@
-// Etiqueta la grabación de Inspectlet con los ids internos de la orden y del
-// cliente, para poder encontrar la sesión de alguien que llama a soporte: se
-// lo busca por teléfono en el backoffice, se ve el número de orden y con eso
-// se filtra en Inspectlet.
+// Etiqueta la grabación de Inspectlet y la de Clarity con los ids internos de
+// la orden y del cliente, para poder encontrar la sesión de alguien que llama
+// a soporte: se lo busca por teléfono en el backoffice, se ve el número de
+// orden y con eso se filtra en cualquiera de los dos.
 //
 // Solo ids, nunca teléfono, email ni nombre: sin la base de Chalán un id no
 // dice quién es la persona, y así ninguna grabación queda ligada a datos
 // personales en un proveedor externo. Misma regla que utils/analytics.js.
 //
-// Inspectlet solo se carga en producción (public/index.html), así que en local
-// `window.__insp` no existe y esto no hace nada.
+// Los dos solo se cargan en producción (public/index.html), así que en local
+// `window.__insp` y `window.clarity` no existen y esto no hace nada.
 
 const lastTagged = {};
 
@@ -22,16 +22,23 @@ function inspectletQueue() {
   return queue && typeof queue.push === 'function' ? queue : null;
 }
 
+// Clarity solo acepta etiquetas clave/valor, y en texto.
+function clarityTag(key, value) {
+  if (typeof window !== 'undefined' && typeof window.clarity === 'function') {
+    window.clarity('set', key, String(value));
+  }
+}
+
 export function tagSession(key, value) {
   if (value === null || value === undefined || value === '') return;
-  const queue = inspectletQueue();
-  if (!queue) return;
   // La orden y el cliente se vuelven a escribir en el store a cada recarga
   // (se restauran del localStorage) y en cada paso: sin esto se mandaría la
   // misma etiqueta decenas de veces por sesión.
   if (lastTagged[key] === value) return;
   lastTagged[key] = value;
-  queue.push(['tagSession', { [key]: value }]);
+  const queue = inspectletQueue();
+  if (queue) queue.push(['tagSession', { [key]: value }]);
+  clarityTag(key, value);
 }
 
 const sentLabels = new Set();
@@ -41,10 +48,11 @@ const sentLabels = new Set();
 // con distinto detalle, como trabarse primero en un campo y después en otro.
 export function tagSessionLabel(label) {
   if (!label || sentLabels.has(label)) return;
-  const queue = inspectletQueue();
-  if (!queue) return;
   sentLabels.add(label);
-  queue.push(['tagSession', label]);
+  const queue = inspectletQueue();
+  if (queue) queue.push(['tagSession', label]);
+  // Sin valor en Clarity: la etiqueta va como clave.
+  clarityTag(label, 1);
 }
 
 // Gemelo en Inspectlet de los eventos step_one_blocked / step_two_blocked de

@@ -90,6 +90,22 @@ export default function RootLayout({
             }}
           />
         )}
+        {/* Microsoft Clarity, en paralelo con Inspectlet. Proyecto propio del
+            sitio público: el backoffice graba en otro (yqkk0rf3sv) para no
+            mezclar clientes con admins y transportistas. */}
+        {process.env.NODE_ENV === "production" && (
+          <Script
+            id="clarity"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `(function(c,l,a,r,i,t,y){
+  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "wa41vtag57");`,
+            }}
+          />
+        )}
         {GA_ENABLED && (
           <>
             {/* El shim y el config van beforeInteractive a propósito. Con
