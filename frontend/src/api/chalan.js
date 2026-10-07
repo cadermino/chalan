@@ -155,6 +155,21 @@ export default {
       },
     });
   },
+  declineOrder(token, orderId, payload) {
+    return axios.post(`${process.env.VUE_APP_API_URL}order/${orderId}/decline`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
+  undoDeclineOrder(token, orderId) {
+    return axios.delete(`${process.env.VUE_APP_API_URL}order/${orderId}/decline`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
   getOrdersByCarrierCompany(payload) {
     return axios.get(`${process.env.VUE_APP_API_URL}carrier-company/orders`, {
       headers: {
