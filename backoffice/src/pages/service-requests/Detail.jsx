@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import client from '../../api/client'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
+import { DeclinesList } from '../../components/DeclinePanel'
 
 const STATUS_LABEL = { draft: 'Incompleta', submitted: 'Enviada', cancelled: 'Cancelada' }
 
@@ -234,6 +235,10 @@ export default function ServiceRequestDetail() {
         onAskConfirm={setConfirmingSelectId}
         onSelect={selectQuotation}
       />
+
+      <div className="mt-4">
+        <DeclinesList declines={request.declines} />
+      </div>
 
       <div className="mt-4 rounded-xl bg-white p-5 shadow">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Transportistas</h2>

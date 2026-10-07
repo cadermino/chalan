@@ -152,7 +152,7 @@ function SortHeader({ column, label, sort, dir, onSort }) {
 // cambió de verdad — eso hace que el enlace se pueda pegar y compartir.
 // El estado arranca en Pendiente: son las órdenes que piden trabajo, y "Todas"
 // queda a un clic (y en la URL como ?status=all).
-const DEFAULTS = { status: '1', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc' }
+const DEFAULTS = { status: '1', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc', declined: '0' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
 export default function OrdersList() {
@@ -179,6 +179,9 @@ export default function OrdersList() {
   const dir = ['asc', 'desc'].includes(searchParams.get('dir'))
     ? searchParams.get('dir')
     : DEFAULTS.dir
+  // Solo para el transportista: las órdenes que rechazó no se le muestran,
+  // salvo que pida verlas (por ejemplo, para deshacer el rechazo).
+  const showDeclined = !isAdmin && searchParams.get('declined') === '1'
 
   // El input sí lleva estado propio: escribir no debe consultar al servidor ni
   // dejar una entrada en el historial por tecla. La búsqueda pasa a la URL al
@@ -217,13 +220,14 @@ export default function OrdersList() {
   // aborta por su `signal` y su resultado va a su propia entrada del caché, no
   // a la tabla. Con useEffect eso había que cancelarlo a mano.
   const { data, isPending, isPlaceholderData, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage, sort, dir }],
+    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage, sort, dir, showDeclined }],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams()
       if (isAdmin) params.set('status', statusFilter)
       params.set('sort', sort)
       params.set('dir', dir)
       if (search) params.set('q', search)
+      if (showDeclined) params.set('declined', '1')
       params.set('page', page)
       params.set('per_page', perPage)
       return client.get(`/api/orders/pending?${params}`, { signal }).then(r => r.data)
@@ -253,7 +257,7 @@ export default function OrdersList() {
   useEffect(() => {
     setSelected(new Set())
     setConfirmingCancel(false)
-  }, [statusFilter, search, page, perPage, sort, dir])
+  }, [statusFilter, search, page, perPage, sort, dir, showDeclined])
 
   const selectableIds = isSuperadmin
     ? orders.filter(o => o.order_status_id === 1).map(o => o.id)
@@ -383,7 +387,17 @@ export default function OrdersList() {
               </button>
             ))}
           </div>
-        ) : <span />}
+        ) : (
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={showDeclined}
+              onChange={e => updateParams({ declined: e.target.checked ? '1' : '0' })}
+              className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+            />
+            Mostrar las que rechacé
+          </label>
+        )}
 
         {pagination && (
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -590,9 +604,11 @@ export default function OrdersList() {
                   <td className="px-4 py-3">
                     {isAdmin
                       ? <DepositCell deposit={o.deposit} />
-                      : (o.has_quotation
-                        ? <span className="text-green-600 font-medium">Enviada</span>
-                        : <span className="text-amber-500 font-medium">Pendiente</span>)}
+                      : o.declined
+                        ? <span className="text-gray-400 font-medium">Rechazada</span>
+                        : (o.has_quotation
+                          ? <span className="text-green-600 font-medium">Enviada</span>
+                          : <span className="text-amber-500 font-medium">Pendiente</span>)}
                   </td>
                   {isAdmin && (
                     <td className={`px-4 py-3 ${o.quotation_count ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>

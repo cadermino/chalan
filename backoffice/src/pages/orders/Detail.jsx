@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
+import DeclinePanel from '../../components/DeclinePanel'
 
 function Field({ label, value }) {
   return (
@@ -278,10 +279,10 @@ export default function OrderDetail() {
   const location = useLocation()
   const [banner, setBanner] = useState(location.state?.message || null)
 
+  const loadOrder = () => client.get(`/api/orders/${orderId}`).then(({ data }) => setOrder(data.order))
+
   useEffect(() => {
-    client.get(`/api/orders/${orderId}`).then(({ data }) => {
-      setOrder(data.order)
-    }).finally(() => setLoading(false))
+    loadOrder().finally(() => setLoading(false))
 
     if (isAdmin) {
       client.get(`/api/orders/${orderId}/payments`)
@@ -306,6 +307,16 @@ export default function OrderDetail() {
       }).catch(() => setReviewUrl(null))
     }
   }, [orderId, isAdmin, order?.order_status_id])
+
+  // Rechazar es para una orden que todavía espera cotizaciones y que no le
+  // adjudicaron a este transportista; el API aplica la misma regla.
+  const canDecline = isCarrier
+    && order?.order_status_id === 1
+    && order?.existing_quotation?.quotation_status_id !== 2
+  const declined = Boolean(order?.decline)
+
+  const declineOrder = (body) => client.post(`/api/orders/${orderId}/decline`, body).then(loadOrder)
+  const undoDecline = () => client.delete(`/api/orders/${orderId}/decline`).then(loadOrder)
 
   const canComplete = isCarrier
     && order?.order_status_id === 2
@@ -520,7 +531,7 @@ export default function OrderDetail() {
         )}
 
         {/* CTA button — solo para empresas transportistas */}
-        {!isAdmin && order.quotation_url && (
+        {!isAdmin && order.quotation_url && !declined && (
           <div className="bg-white rounded-xl shadow p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-700">
@@ -539,6 +550,16 @@ export default function OrderDetail() {
               {order.existing_quotation ? 'Modificar cotización' : 'Cotizar ahora'}
             </a>
           </div>
+        )}
+
+        {canDecline && (
+          <DeclinePanel
+            decline={order.decline}
+            quotedAmount={order.existing_quotation ? `S/ ${order.existing_quotation.amount}` : null}
+            onDecline={declineOrder}
+            onUndo={undoDecline}
+            onConflict={loadOrder}
+          />
         )}
 
         {/* Link de reseña — solo para admins, orden completada */}
