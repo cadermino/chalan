@@ -96,8 +96,10 @@ Base URL defaults to `http://local.chalan.mx` (override with `BASE_URL` env var)
 ### Production Builds
 ```bash
 docker-compose -f docker-compose.prod.yml up --build       # Mexico
-docker-compose -f docker-compose-peru.prod.yml up --build  # Peru
+make deploy-peru                                           # Peru (see below)
 ```
+
+Peru deploys go through `make deploy-peru` (plan only: `make deploy-peru-plan`, undo: `make deploy-peru-rollback`). It deploys `origin/master`, runs the API tests locally, triggers the DB backup workflow when there is a migration, and runs `deploy/peru.sh` on the server: builds only the changed services one at a time (`nginx` last; the 924 MB host cannot build in parallel), migrates before restarting `backoffice-api`, health-checks every route and rolls back on failure. Never use a combined `up --build` on the Peru host.
 
 ## Key Technical Details
 
