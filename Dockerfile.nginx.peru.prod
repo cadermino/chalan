@@ -5,14 +5,16 @@ ENV NODE_OPTIONS=--openssl-legacy-provider
 # cambio de .vue no vuelve a bajar node_modules entero. Es el build más pesado
 # del deploy.
 COPY /frontend/package.json /frontend/package-lock.json ./
-RUN npm install
+RUN npm ci
 COPY /frontend .
 RUN npm run build
 
 FROM node:20-alpine as backoffice-build-stage
 WORKDIR /app
-COPY /backoffice/package.json ./
-RUN npm install
+# Lockfile + `npm ci` por lo mismo que el Next.js (Dockerfile.peru.prod):
+# versiones fijas, no la última que permita el ^.
+COPY /backoffice/package.json /backoffice/package-lock.json ./
+RUN npm ci
 COPY /backoffice .
 ENV VITE_API_URL=/backoffice-api
 ENV VITE_BASE_PATH=/backoffice/
