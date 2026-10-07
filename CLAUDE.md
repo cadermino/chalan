@@ -227,3 +227,13 @@ JWT signed with `SECRET_KEY`, payload: `{ carrier_company_id, order_id, exp (10 
 Migrations live in `migrations/versions/` and follow sequential numbering (`001_`, `002_`, etc.). They run inside the `flask` container. The backoffice-api does NOT have its own migrations — all schema changes go through the main API's Alembic setup since both apps share the same database.
 
 When writing migrations for tables that may already exist (e.g., created manually or by another process), use raw SQL with `IF NOT EXISTS` instead of `op.create_table()` to avoid `DuplicateTable` errors.
+
+## Carrier Declines
+
+A carrier can say "I can't do this one" with a reason, instead of just not answering.
+
+- **Tables**: `order_carrier_declines` and `service_request_carrier_declines` (migration 020), one row per carrier per order/request. Deliberately **not** a quotation status: `quotations.amount` is NOT NULL and every quotation query treats a non-cancelled row as a real offer.
+- **Reasons**: `date_unavailable`, `zone`, `vehicle`, `budget`, `other` (note required). Validated in `app/api/carrier_declines.py`, where all the write logic lives.
+- **Rules**: only while the order is pending / the request is open; a selected quotation cannot be declined (409). Declining withdraws the carrier's live quotation (cancelled for orders, deleted for service requests). Quoting afterwards, or `DELETE`, removes the decline.
+- **Endpoints**: main API `POST|DELETE /api/v1/order/:id/decline` (carrier link token, or internal token + `carrier_company_id`) and `POST|DELETE /api/v1/service-requests/:id/decline` (internal only). Backoffice-api forwards from `POST|DELETE /api/orders/:id/decline` (carrier role) and `/api/public/service-requests/:token/decline`.
+- **UI**: Vue `quotation.vue` and backoffice `components/DeclinePanel.jsx` (order detail, service request carrier view). The carrier's order list hides declined orders unless `?declined=1`. Admins see who declined in `orders/Quotations.jsx` and the service request detail. No email is sent.

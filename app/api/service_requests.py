@@ -6,6 +6,8 @@ from flask import current_app, jsonify, request
 
 from . import api
 from .decorators import is_internal_request
+from .carrier_declines import (decline_service_request, decline_to_dict, parse_decline,
+                               undo_service_request_decline)
 from .service_request.notifications import notify_new_quotation, notify_service_request
 from .service_request.quotations import (
     QuotationError, parse_amount, parse_note, save_quotation, select_quotation,
@@ -446,4 +448,29 @@ def select_service_request_quotation(service_request_id, quotation_id):
         'amount': float(quotation.amount),
         'platform_fee_rate': float(quotation.platform_fee_rate),
         'total_amount': float(quotation.total_amount),
+    }), 200
+
+
+@api.route('/service-requests/<int:service_request_id>/decline', methods=['POST', 'DELETE'])
+def decline_service_request_route(service_request_id):
+    """El transportista avisa que no puede hacer el trabajo (POST) o se arrepiente
+    (DELETE). Interno: el backoffice-api lo llama con el carrier_company_id sacado
+    del token del link, nunca del cuerpo que mando el navegador."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    data = request.get_json(silent=True) or {}
+    carrier_company_id = data.get('carrier_company_id')
+    if isinstance(carrier_company_id, bool) or not isinstance(carrier_company_id, int):
+        raise InvalidRequest('carrier_company_id is required')
+
+    if request.method == 'DELETE':
+        undo_service_request_decline(service_request_id, carrier_company_id)
+        return jsonify({'decline': None}), 200
+
+    reason, note = parse_decline(data)
+    decline, withdrew_quotation = decline_service_request(
+        service_request_id, carrier_company_id, reason, note)
+    return jsonify({
+        'decline': decline_to_dict(decline),
+        'withdrew_quotation': withdrew_quotation,
     }), 200

@@ -3,7 +3,8 @@ from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from ... import db
-from ...models import CarrierCompany, ServiceRequest, ServiceRequestQuotation
+from ...models import (CarrierCompany, ServiceRequest, ServiceRequestCarrierDecline,
+                       ServiceRequestQuotation)
 from .validation import InvalidRequest
 
 MAX_AMOUNT = Decimal('100000')
@@ -101,6 +102,9 @@ def save_quotation(service_request_id, carrier_company_id, amount, note):
         db.session.add(quotation)
     quotation.amount = amount
     quotation.note = note
+    # Cotizar despues de haber rechazado deja sin efecto el rechazo.
+    ServiceRequestCarrierDecline.query.filter_by(
+        service_request_id=service_request.id, carrier_company_id=carrier_company_id).delete()
     db.session.commit()
     return quotation, created
 

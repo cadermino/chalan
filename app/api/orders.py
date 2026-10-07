@@ -15,6 +15,7 @@ from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
 from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
+from .carrier_declines import decline_to_dict, find_order_decline
 
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
@@ -245,6 +246,7 @@ def order_detail():
     return jsonify({
         'order': order_details,
         'carrier_company_id': data['carrier_company_id'],
+        'decline': decline_to_dict(find_order_decline(data['order_id'], data['carrier_company_id'])),
     }), 200
 
 @api.route('/order/<int:order_id>', methods=['GET'])
