@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
+import { DeclinesList } from '../../components/DeclinePanel'
 
 const STATUS_LABEL = { 1: 'Activa', 2: 'Seleccionada', 3: 'Cancelada' }
 
@@ -38,6 +39,7 @@ export default function OrderQuotations() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [quotations, setQuotations] = useState([])
+  const [declines, setDeclines] = useState([])
   const [orderStatusId, setOrderStatusId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState(null)
@@ -54,6 +56,7 @@ export default function OrderQuotations() {
     client.get(`/api/orders/${orderId}/quotations`)
       .then(({ data }) => {
         setQuotations(data.quotations)
+        setDeclines(data.declines || [])
         setOrderStatusId(data.order_status_id)
       })
       .finally(() => setLoading(false))
@@ -271,6 +274,10 @@ export default function OrderQuotations() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <DeclinesList declines={declines} />
       </div>
     </div>
   )

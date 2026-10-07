@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import client from '../../api/client'
 import ServiceRequestView, { formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
+import DeclinePanel from '../../components/DeclinePanel'
 
 // Mismo número que usa la landing; ahora solo para dudas, ya no para cotizar.
 const CHALAN_WHATSAPP = '51972643007'
@@ -192,7 +193,11 @@ export default function ServiceRequestCarrierView() {
 
   const request = state.request
   const quotationState = request?.quotation_state
-  const canQuote = state.status === 'ok' && quotationState === 'open'
+  const declined = Boolean(request?.my_decline)
+  const canQuote = state.status === 'ok' && quotationState === 'open' && !declined
+
+  const decline = (body) => client.post(`/api/public/service-requests/${token}/decline`, body).then(load)
+  const undoDecline = () => client.delete(`/api/public/service-requests/${token}/decline`).then(load)
 
   return (
     <div className="min-h-screen bg-gray-100 pb-24">
@@ -215,7 +220,16 @@ export default function ServiceRequestCarrierView() {
               Hola{request.carrier_company_name ? `, ${request.carrier_company_name}` : ''}. Esta es la solicitud para cotizar.
             </p>
             <ServiceRequestView request={request} />
-            {quotationState === 'open' && <QuotationForm token={token} request={request} onSaved={load} />}
+            {canQuote && <QuotationForm token={token} request={request} onSaved={load} />}
+            {quotationState === 'open' && (
+              <DeclinePanel
+                decline={request.my_decline}
+                quotedAmount={request.my_quotation ? formatMoney(request.my_quotation.amount) : null}
+                onDecline={decline}
+                onUndo={undoDecline}
+                onConflict={load}
+              />
+            )}
             {(quotationState === 'selected_mine' || quotationState === 'selected_other') && (
               <Outcome state={quotationState} request={request} />
             )}
