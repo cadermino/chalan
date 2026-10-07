@@ -92,10 +92,14 @@ export default function RootLayout({
         )}
         {/* Microsoft Clarity, en paralelo con Inspectlet. Proyecto propio del
             sitio público: el backoffice graba en otro (yqkk0rf3sv) para no
-            mezclar clientes con admins y transportistas. */}
+            mezclar clientes con admins y transportistas.
+            El id NO puede ser "clarity": el navegador expone los elementos con
+            id como globales, window.clarity pasaba a ser este <script> y el
+            snippet (`c[a]=c[a]||function…`) lo daba por ya cargado, así que
+            Clarity nunca arrancaba en las páginas de Next. */}
         {process.env.NODE_ENV === "production" && (
           <Script
-            id="clarity"
+            id="ms-clarity-snippet"
             strategy="afterInteractive"
             dangerouslySetInnerHTML={{
               __html: `(function(c,l,a,r,i,t,y){
