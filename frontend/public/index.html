@@ -9,7 +9,10 @@
       __insp.push(['wid', 1681414770]);
       var ldinsp = function(){
       if(typeof window.__inspld != "undefined") return; window.__inspld = 1; var insp = document.createElement('script'); insp.type = 'text/javascript'; insp.async = true; insp.id = "inspsync"; insp.src = ('https:' == document.location.protocol ? 'https' : 'http') + '://cdn.inspectlet.com/inspectlet.js?wid=1681414770&r=' + Math.floor(new Date().getTime()/3600000); var x = document.getElementsByTagName('script')[0]; x.parentNode.insertBefore(insp, x); };
-      setTimeout(ldinsp, 0);
+      // Inspectlet comprime cada envío con CompressionStream (Safari < 16.4
+      // no lo tiene): ahí no graba nada y cada intento es un rechazo sin
+      // manejar que llena Sentry. Clarity sigue grabando esas sesiones.
+      if (typeof window.CompressionStream !== 'undefined') setTimeout(ldinsp, 0);
       })();
     </script>
     <!-- End Inspectlet Asynchronous Code -->
