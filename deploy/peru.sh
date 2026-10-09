@@ -19,6 +19,7 @@
 #      Si algo falla, vuelve a las imágenes y al commit anteriores. La migración
 #      NO se revierte (casi siempre agrega tablas o columnas, que el código viejo
 #      ignora).
+#   6. Borra las imágenes reemplazadas y la caché de build de más de una semana.
 #
 # Uso:
 #   deploy/peru.sh                 despliega lo que cambió en origin/master
@@ -306,4 +307,8 @@ fi
 # Borra solo las imágenes sin nombre (las viejas que reemplazó este build). Las
 # chalan-prev/* se quedan para --rollback hasta el próximo deploy.
 "${DOCKER[@]}" image prune -f >/dev/null
+# La caché de build no la borra lo anterior y en este disco de 16 GB llegó a
+# 4 GB y bloqueó un deploy. Se queda la de la última semana, que es la que
+# acelera el próximo build.
+"${DOCKER[@]}" builder prune -f --filter until=168h >/dev/null
 log "Deploy listo: ${NEW:0:7} (${TO_DEPLOY[*]}). Para volver atrás: make deploy-peru-rollback"
