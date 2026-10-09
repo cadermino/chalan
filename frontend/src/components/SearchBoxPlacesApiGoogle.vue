@@ -95,6 +95,10 @@ export default {
         map: this.map,
         position: place.geometry.location,
         title: place.name || place.formatted_address || '',
+        // El marcador solo señala el lugar elegido. Si es clickable, el
+        // manejador de puntero de marker.js de Google a veces recibe un evento
+        // sin coordenadas y revienta leyendo clientX de null (Sentry).
+        clickable: false,
       };
       if (place.icon) {
         markerOptions.icon = {
