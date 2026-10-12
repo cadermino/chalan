@@ -249,6 +249,11 @@ class Order(db.Model):
     # quotation_requested no se mandó: le faltan datos para cotizar.
     quotation_requested = db.Column(db.Boolean, nullable=True)
     carrier_notified_at = db.Column(db.DateTime(), nullable=True)
+    # Órdenes cerradas fuera del modelo estándar (p. ej. Chalán factura el
+    # total con IGV a cargo del cliente) cuyo desglose y pagos no reflejan la
+    # plata real. Con texto = "conciliar en contabilidad", y el texto dice
+    # cómo; NULL = la orden sigue el modelo de siempre. Migración 021.
+    accounting_note = db.Column(db.Text, nullable=True)
 
     order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='order', lazy='dynamic')
@@ -276,6 +281,7 @@ class Order(db.Model):
             'customer_id': self.customer_id,
             'quotation_requested': bool(self.quotation_requested),
             'carrier_notified_at': _iso(self.carrier_notified_at),
+            'accounting_note': self.accounting_note,
         }
 
 

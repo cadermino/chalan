@@ -418,6 +418,18 @@ export default function OrderDetail() {
 
         {/* Desglose de la plata — solo admin: el transportista no debe ver el
             margen de Chalán ni el agente la comisión del otro. */}
+        {/* Va antes del desglose a propósito: en estas órdenes el desglose y
+            los pagos muestran el modelo estándar, no la plata real, y quien
+            mira los números tiene que leer esto primero. */}
+        {isAdmin && order.accounting_note && (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-sm text-amber-900">
+            <p className="font-semibold">⚠ Esta orden se concilia aparte en contabilidad</p>
+            <p className="text-xs text-amber-800 mt-0.5">
+              El desglose y los pagos de abajo siguen el modelo estándar y no reflejan lo que se cobró. Lo que vale es esta nota:
+            </p>
+            <p className="mt-2 whitespace-pre-line">{order.accounting_note}</p>
+          </div>
+        )}
         {isAdmin && <FinancialsCard f={order.financials} />}
 
         {/* Movimientos reales de plata, con la confirmación manual del yapeo:

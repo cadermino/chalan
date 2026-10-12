@@ -406,6 +406,12 @@ def list_pending_orders():
         if declined_ids and request.args.get('declined') != '1':
             query = query.filter(~Order.id.in_(declined_ids))
 
+    # ?accounting=1: solo las marcadas para conciliar en contabilidad. Es
+    # contabilidad interna, así que para el transportista el parámetro no hace
+    # nada en vez de dejarle filtrar por una columna que no ve.
+    if company_id is None and request.args.get('accounting') == '1':
+        query = query.filter(Order.accounting_note.isnot(None))
+
     # El transportista no ve nombre ni teléfono del cliente en esta lista, así
     # que tampoco puede buscar por ellos: solo por número de orden.
     search = request.args.get('q', '').strip()
@@ -497,6 +503,8 @@ def list_pending_orders():
             'customer_name': customer_name,
             'customer_phone': customer_phone,
             'lead_phone': order.lead_phone if is_admin else None,
+            # Solo el admin: es contabilidad interna de Chalán.
+            'accounting_note': order.accounting_note if is_admin else None,
             # None para el transportista, que no ve la plata de la plataforma.
             # Para el admin: el adelanto si está registrado; 'unregistered'
             # cuando la orden ya se adjudicó y nadie cargó los pagos —el caso
@@ -860,6 +868,10 @@ def update_order(order_id):
         order.comments = data['comments']
     if 'lead_phone' in data:
         order.lead_phone = data['lead_phone']
+    if 'accounting_note' in data:
+        # Vacío o solo espacios vuelve a NULL: la marca es "hay texto", así que
+        # un espacio suelto no puede dejar la orden marcada sin explicación.
+        order.accounting_note = (data['accounting_note'] or '').strip() or None
     if 'loaders_quantity' in data:
         order.loaders_quantity = data['loaders_quantity']
     if 'customer_id' in data:

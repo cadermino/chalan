@@ -75,6 +75,15 @@ function QuotationsIcon() {
   )
 }
 
+function ReceiptIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 2v20l3-2 2 2 2-2 2 2 2-2 3 2V2l-3 2-2-2-2 2-2-2-2 2z" />
+      <path d="M9 8h6M9 12h6M9 16h3" />
+    </svg>
+  )
+}
+
 function PencilIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -152,7 +161,7 @@ function SortHeader({ column, label, sort, dir, onSort }) {
 // cambió de verdad — eso hace que el enlace se pueda pegar y compartir.
 // El estado arranca en Pendiente: son las órdenes que piden trabajo, y "Todas"
 // queda a un clic (y en la URL como ?status=all).
-const DEFAULTS = { status: '1', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc', declined: '0' }
+const DEFAULTS = { status: '1', page: 1, per_page: 25, q: '', sort: 'created', dir: 'desc', declined: '0', accounting: '0' }
 const PER_PAGE_OPTIONS = [25, 50, 100]
 
 export default function OrdersList() {
@@ -182,6 +191,8 @@ export default function OrdersList() {
   // Solo para el transportista: las órdenes que rechazó no se le muestran,
   // salvo que pida verlas (por ejemplo, para deshacer el rechazo).
   const showDeclined = !isAdmin && searchParams.get('declined') === '1'
+  // Solo para el admin: las órdenes marcadas para conciliar en contabilidad.
+  const onlyAccounting = isAdmin && searchParams.get('accounting') === '1'
 
   // El input sí lleva estado propio: escribir no debe consultar al servidor ni
   // dejar una entrada en el historial por tecla. La búsqueda pasa a la URL al
@@ -220,7 +231,7 @@ export default function OrdersList() {
   // aborta por su `signal` y su resultado va a su propia entrada del caché, no
   // a la tabla. Con useEffect eso había que cancelarlo a mano.
   const { data, isPending, isPlaceholderData, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage, sort, dir, showDeclined }],
+    queryKey: ['orders', { status: isAdmin ? statusFilter : null, q: search, page, perPage, sort, dir, showDeclined, onlyAccounting }],
     queryFn: ({ signal }) => {
       const params = new URLSearchParams()
       if (isAdmin) params.set('status', statusFilter)
@@ -228,6 +239,7 @@ export default function OrdersList() {
       params.set('dir', dir)
       if (search) params.set('q', search)
       if (showDeclined) params.set('declined', '1')
+      if (onlyAccounting) params.set('accounting', '1')
       params.set('page', page)
       params.set('per_page', perPage)
       return client.get(`/api/orders/pending?${params}`, { signal }).then(r => r.data)
@@ -257,7 +269,7 @@ export default function OrdersList() {
   useEffect(() => {
     setSelected(new Set())
     setConfirmingCancel(false)
-  }, [statusFilter, search, page, perPage, sort, dir, showDeclined])
+  }, [statusFilter, search, page, perPage, sort, dir, showDeclined, onlyAccounting])
 
   const selectableIds = isSuperadmin
     ? orders.filter(o => o.order_status_id === 1).map(o => o.id)
@@ -386,6 +398,27 @@ export default function OrdersList() {
                 {f.label}
               </button>
             ))}
+            {/* Se combina con el estado, pero al activarlo pasa a "Todas": las
+                que hay que conciliar suelen estar en progreso o completadas, y
+                con el Pendiente por defecto el filtro saldría casi siempre
+                vacío. Después se puede acotar por estado igual. */}
+            <span className="w-px bg-gray-200 mx-1" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => updateParams(onlyAccounting
+                ? { accounting: '0' }
+                : { accounting: '1', status: 'all' })}
+              aria-pressed={onlyAccounting}
+              title="Órdenes cerradas fuera del modelo estándar, que hay que conciliar a mano"
+              className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border ${
+                onlyAccounting
+                  ? 'bg-amber-600 border-amber-600 text-white'
+                  : 'border-amber-300 text-amber-700 hover:bg-amber-50'
+              }`}
+            >
+              <ReceiptIcon />
+              Por conciliar
+            </button>
           </div>
         ) : (
           <label className="flex items-center gap-2 text-sm text-gray-600">
@@ -553,7 +586,21 @@ export default function OrdersList() {
                       />
                     </td>
                   )}
-                  <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                    #{o.id}
+                    {/* Marca de "conciliar en contabilidad": el title muestra la
+                        nota al pasar el mouse, para encontrarlas al cerrar el mes
+                        sin abrir cada una. */}
+                    {o.accounting_note && (
+                      <span
+                        className="ml-1.5 inline-flex align-text-bottom text-amber-600 cursor-help"
+                        title={`Conciliar en contabilidad: ${o.accounting_note}`}
+                      >
+                        <ReceiptIcon />
+                        <span className="sr-only">Conciliar en contabilidad: {o.accounting_note}</span>
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
                   {isAdmin && <td className="px-4 py-3 text-gray-600">{o.customer_phone || o.lead_phone || '—'}</td>}
                   <td className="px-4 py-3 text-gray-600">

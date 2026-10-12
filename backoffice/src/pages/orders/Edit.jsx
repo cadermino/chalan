@@ -219,6 +219,7 @@ export default function OrderEdit() {
         total_kilometers: o.total_kilometers ?? '',
         comments: o.comments ?? '',
         lead_phone: o.lead_phone ?? '',
+        accounting_note: o.accounting_note ?? '',
         loaders_quantity: o.loaders_quantity ?? '',
         origin: { ...addressDefaults, ...o.origin },
         destination: { ...addressDefaults, ...o.destination },
@@ -561,6 +562,26 @@ export default function OrderEdit() {
           values={form.destination}
           onChange={(key, val) => setForm(f => ({ ...f, destination: { ...f.destination, [key]: val } }))}
         />
+
+        {/* Para tratos cerrados fuera del modelo estándar, cuyo desglose y
+            pagos en la plataforma no son la plata real. Escribir algo marca la
+            orden; dejarlo vacío la desmarca. */}
+        <div className={`rounded-lg p-4 space-y-2 ${form.accounting_note.trim() ? 'bg-amber-50 border border-amber-300' : 'bg-gray-50'}`}>
+          <label htmlFor="accounting_note" className="text-xs font-bold text-teal-600 uppercase tracking-wide block">
+            Conciliar en contabilidad
+          </label>
+          <p className="text-xs text-gray-500">
+            Úsalo cuando el trato no sigue el modelo de siempre (por ejemplo, Chalán factura el total con IGV a cargo del cliente). Explica qué se cobró, quién le pagó a quién y qué hay que conciliar. Con texto, la orden queda marcada en la lista y en el detalle; vacío, se desmarca.
+          </p>
+          <textarea
+            id="accounting_note"
+            rows={4}
+            value={form.accounting_note}
+            onChange={e => setForm(f => ({ ...f, accounting_note: e.target.value }))}
+            placeholder="Ej.: Chalán factura 220 + IGV 39.60 = 259.60. Adelanto 25.96 pagado, saldo 233.64 al terminar. Chalán le paga 200 al transportista, que no factura."
+            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+        </div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
