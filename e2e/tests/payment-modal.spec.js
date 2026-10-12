@@ -1,7 +1,6 @@
-const { execSync } = require('child_process');
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation,
+  createOrderViaApi, registerAndReturn, seedQuotation, getPayments, uniqueOperationNumber,
 } = require('./helpers');
 
 // seedQuotation inserta una cotización de 450 y .env.dev tiene
@@ -13,22 +12,12 @@ const PLATFORM_FEE = 0.1;
 // 450 * 1.1 da 495.00000000000006 en coma flotante.
 const EXPECTED_TOTAL = Math.round(RAW_QUOTATION * (1 + PLATFORM_FEE) * 100) / 100;
 
-// Desde la migración 016 el checkout deja una fila por movimiento: el efectivo
-// del transportista y la reserva que el cliente le yapea a Chalán. Lo que tiene
-// que cuadrar es la suma, no una fila suelta.
-function getPayments(orderId) {
-  const raw = execSync(
-    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT concept, amount, status FROM payments WHERE order_id=${orderId} ORDER BY id;"`,
-  ).toString().trim();
-  if (!raw) return [];
-  return raw.split('\n').map((line) => {
-    const [concept, amount, status] = line.split('|');
-    return { concept, amount: Number(amount), status };
-  });
-}
-
-test.describe('Cash checkout via the Step-three payment modal', () => {
-  test('should pay with cash and schedule the vehicle', async ({ page }) => {
+// .env.dev trae YAPE_RESERVATION_REQUIRED=true y VUE_APP_YAPE_QR_ENABLED=true,
+// así que agendar exige yapear la reserva e informar su número de operación.
+// El flujo de la reserva (verificación del admin, número repetido, página del
+// transportista) está en yape-reservation.spec.js.
+test.describe('Checkout via the Step-three payment modal', () => {
+  test('should book with the Yape reservation and cash for the rest', async ({ page }) => {
     // The modal lives on step-three; step-one/step-two UI is covered by
     // their own specs, so the order is created directly via API.
     const orderId = await createOrderViaApi(page);
@@ -52,10 +41,11 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
     const acceptedAmount = (await page.locator('.text-xl.font-bold').first().innerText()).trim();
     expect(acceptedAmount).toContain(String(EXPECTED_TOTAL));
 
+    await page.fill('#modal-operation-number', uniqueOperationNumber());
     await page.click('button:has-text("Agendar vehículo")');
 
     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
-    await expect(page.locator('text=Muy bien, tu vehículo ha sido agendado')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Recibimos tu número de operación')).toBeVisible({ timeout: 10000 });
 
     // El dashboard leía quotation.amount en crudo, sin el fee, así que
     // mostraba menos de lo que la persona acababa de aceptar. Que las dos
@@ -88,6 +78,8 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
 
     await page.getByRole('button', { name: 'Elegir', exact: true }).click();
     await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
+    const operationNumber = uniqueOperationNumber();
+    await page.fill('#modal-operation-number', operationNumber);
     await page.click('button:has-text("Agendar vehículo")');
     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
 
@@ -103,6 +95,7 @@ test.describe('Cash checkout via the Step-three payment modal', () => {
       .toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'Seleccionado', exact: true }).click();
     await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
+    await page.fill('#modal-operation-number', operationNumber);
     await page.click('button:has-text("Agendar vehículo")');
     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
 

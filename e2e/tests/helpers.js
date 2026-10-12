@@ -212,6 +212,93 @@ function seedQuotation(orderId) {
   return carrierId;
 }
 
+/**
+ * Filas de `payments` de una orden, con el número de operación que informó el
+ * cliente (`reference`).
+ */
+function getPayments(orderId) {
+  const raw = execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT concept, amount, status, COALESCE(reference, '') FROM payments WHERE order_id=${orderId} ORDER BY id;"`,
+  ).toString().trim();
+  if (!raw) return [];
+  return raw.split('\n').map((line) => {
+    const [concept, amount, status, reference] = line.split('|');
+    return {
+      concept, amount: Number(amount), status, reference,
+    };
+  });
+}
+
+function getOrderStatusId(orderId) {
+  return Number(execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT order_status_id FROM orders WHERE id=${orderId};"`,
+  ).toString().trim());
+}
+
+function getQuotationId(orderId) {
+  return Number(execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT id FROM quotations WHERE order_id=${orderId} ORDER BY id LIMIT 1;"`,
+  ).toString().trim());
+}
+
+// Estados de orden (app/api/order/order_status.py).
+const ORDER_STATUS = { pending: 1, inProgress: 2 };
+
+/**
+ * Número de operación que no se repite entre corridas: el API rechaza uno ya
+ * usado en otra orden, y la base local conserva las de corridas anteriores.
+ */
+function uniqueOperationNumber() {
+  return String(Date.now()).slice(-10) + String(Math.floor(Math.random() * 90) + 10);
+}
+
+const BACKOFFICE_API = process.env.BACKOFFICE_API_URL || 'http://localhost:8002';
+const E2E_ADMIN = { email: 'e2e-admin@example.com', password: 'E2e-admin-pass-1' };
+
+/**
+ * Deja un admin del backoffice listo para los tests. Pasa por el modelo del
+ * propio backoffice-api (no por un INSERT) para que el hash de la contraseña
+ * sea el real; es idempotente.
+ */
+function ensureE2eAdmin() {
+  const script = `
+from app import create_app, db
+from app.models import AdminUser, ROLE_ADMIN
+app = create_app()
+with app.app_context():
+    user = AdminUser.query.filter_by(email='${E2E_ADMIN.email}').first()
+    if user is None:
+        user = AdminUser(email='${E2E_ADMIN.email}', role=ROLE_ADMIN, active=1)
+        db.session.add(user)
+    user.password = '${E2E_ADMIN.password}'
+    user.active = 1
+    db.session.commit()
+`;
+  execSync('docker exec -i chalan-backoffice-api-1 python -', { input: script });
+}
+
+/**
+ * Hace lo que el admin hace en el backoffice al ver el yapeo en su celular:
+ * marcar la reserva como pagada. Devuelve la respuesta del API, cuyo
+ * `order_confirmation` dice si la orden pasó a en progreso.
+ */
+async function confirmReservationAsAdmin(request, orderId) {
+  ensureE2eAdmin();
+  const login = await request.post(`${BACKOFFICE_API}/auth/login`, { data: E2E_ADMIN });
+  const { token } = await login.json();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const list = await request.get(`${BACKOFFICE_API}/api/orders/${orderId}/payments`, { headers });
+  const { payments } = await list.json();
+  const reservation = payments.find((payment) => payment.concept === 'reservation');
+
+  const res = await request.patch(
+    `${BACKOFFICE_API}/api/orders/${orderId}/payments/${reservation.id}`,
+    { headers, data: { status: 'paid' } },
+  );
+  return res.json();
+}
+
 function getOrderIdFromStore(page) {
   return page.evaluate(() => document.querySelector('#app').__vue__.$store.state.currentOrder.order_id);
 }
@@ -391,6 +478,12 @@ module.exports = {
   createOrderViaApi,
   registerAndReturn,
   seedQuotation,
+  getPayments,
+  getOrderStatusId,
+  getQuotationId,
+  ORDER_STATUS,
+  uniqueOperationNumber,
+  confirmReservationAsAdmin,
   getOrderIdFromStore,
   mockGooglePlaces,
   selectMockAddress,

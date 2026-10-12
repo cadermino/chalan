@@ -4,12 +4,14 @@ import uuid
 from flask import jsonify, request, current_app
 from openai import OpenAI
 from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, ReferredOrder
+from ..models import Payment as PaymentModel
 from ..models import Quotations as QuotationsModel
 from ..models import CarrierCompanySchema, QuotationsSchema
 from . import api
 from .decorators import (token_required, carrier_company_token_required,
                          authenticated_customer, is_internal_request)
 from .order import Order as OrderEntity
+from .order.order import yape_reservation_required
 from .order.order_status import OrderStatus
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
@@ -19,13 +21,22 @@ from .carrier_declines import decline_to_dict, find_order_decline
 
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
-from .whatsapp import send_whatsapp
-from datetime import date, datetime, timedelta
+from .whatsapp import send_whatsapp, normalize_phone
+from datetime import date, datetime, timedelta, timezone
 from .errors import not_found
 from .. import db
 from ..storage import get_storage
 
 CARRIER_NOTIFICATION_COOLDOWN = timedelta(minutes=15)
+
+# Largo del número de operación de Yape que aceptamos. No conocemos el formato
+# exacto del comprobante, así que el rango es ancho a propósito: sirve para
+# descartar vacíos y basura, no para validar contra Yape.
+OPERATION_NUMBER_MIN_LENGTH = 4
+OPERATION_NUMBER_MAX_LENGTH = 20
+# Perú no tiene horario de verano, así que un offset fijo alcanza y evita
+# depender de que la imagen traiga la base de zonas horarias.
+LIMA_TZ = timezone(timedelta(hours=-5))
 
 @api.route('/order', methods=['POST'])
 def create_order():
@@ -263,61 +274,226 @@ def get_order(order_id):
         'order': order_detail,
     }), 200
 
+def _clean_operation_number(raw):
+    """Solo los dígitos del número de operación, o '' si no vino nada usable."""
+    return ''.join(ch for ch in str(raw or '') if ch.isdigit())
+
+
+def _ops_recipient():
+    return os.getenv('OPS_MAIL') if os.getenv('FLASK_ENV') == 'prod' else os.getenv('ADMIN_MAIL')
+
+
+def _contact_details(customer, carrier_company):
+    """Nombre y teléfono de las dos partes, para que se escriban entre ellas.
+
+    Chalán no hace de intermediario después de agendar: el cliente y el
+    transportista coordinan directo. Cada correo muestra solo los datos de la
+    otra parte (cada uno ya sabe los suyos), pero los dos reciben el diccionario
+    completo y la plantilla elige. El enlace de WhatsApp solo se arma si el
+    teléfono se puede normalizar; si no, queda el número a secas.
+    """
+    def whatsapp_url(phone):
+        e164 = normalize_phone(phone)
+        return 'https://wa.me/' + e164.lstrip('+') if e164 else None
+
+    return {
+        'customer_full_name': ' '.join(filter(None, [customer.name, customer.paternal_last_name])),
+        'customer_phone': customer.mobile_phone,
+        'customer_whatsapp_url': whatsapp_url(customer.mobile_phone),
+        'carrier_name': carrier_company.name,
+        'carrier_phone': carrier_company.phone,
+        'carrier_whatsapp_url': whatsapp_url(carrier_company.phone),
+    }
+
+
+def _send_order_scheduled_emails(order, customer, quotation, reservation=None):
+    """Los dos correos que dicen "la mudanza quedó agendada".
+
+    Salen cuando la orden pasa a in_progress: al agendar si no hay reserva que
+    verificar, o al confirmar el yapeo desde el backoffice si la hay. Con
+    `reservation` el correo al cliente suma los datos del pago como comprobante.
+    Ambos llevan los datos de contacto de las dos partes.
+    """
+    site_url = os.getenv('SITE_URL')
+    carrier_company = quotation.carrier_company
+    carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order.id, site_url)
+
+    bcc = [os.getenv('OPS_MAIL')] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
+    contact = _contact_details(customer, carrier_company)
+
+    send_email(
+        carrier_company.email,
+        '[Pago en efectivo] Orden {} '.format(order.id),
+        'email/admin_new_order',
+        bcc=bcc,
+        carrier_company_orders_url=carrier_company_orders_url,
+        **contact,
+    )
+    receipt = {}
+    if reservation is not None:
+        receipt = {
+            'reservation_amount': '{:.2f}'.format(reservation.amount),
+            'operation_number': reservation.reference,
+            'carrier_amount': '{:.2f}'.format(round(quotation.amount, 2)),
+        }
+    send_email(
+        customer.email,
+        'Hemos agendado tu mudanza!',
+        'email/cash_payment_selected',
+        bcc=[],
+        customer_name=customer.name,
+        mobile_phone=customer.mobile_phone,
+        **contact,
+        **receipt,
+    )
+
+
+def _send_reservation_emails(order, customer, quotation, reservation):
+    """Avisa que hay un yapeo por verificar: a operaciones y al cliente.
+
+    La orden sigue en pending; el transportista no se entera hasta que un admin
+    confirme la reserva (confirm_reservation).
+    """
+    customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
+    send_email(
+        _ops_recipient(),
+        '[Yape por verificar] Orden {}'.format(order.id),
+        'email/yape_reservation_submitted',
+        bcc=[],
+        order_id=order.id,
+        customer_name=customer_name,
+        customer_email=customer.email,
+        customer_phone=customer.mobile_phone,
+        carrier_name=quotation.carrier_company.name,
+        reservation_amount='{:.2f}'.format(reservation.amount),
+        operation_number=reservation.reference,
+        submitted_at=datetime.now(LIMA_TZ).strftime('%d/%m/%Y %H:%M'),
+    )
+    send_email(
+        customer.email,
+        'Recibimos tu pago',
+        'email/yape_reservation_received',
+        bcc=[],
+        customer_name=customer.name,
+        reservation_amount='{:.2f}'.format(reservation.amount),
+        operation_number=reservation.reference,
+        carrier_amount='{:.2f}'.format(round(quotation.amount, 2)),
+    )
+
+
+def _reservation_of(order_id, quotation_id):
+    """La reserva viva de la cotización elegida, o None si no tiene."""
+    return PaymentModel.query.filter(
+        PaymentModel.order_id == order_id,
+        PaymentModel.concept == 'reservation',
+        PaymentModel.status != 'cancelled',
+        db.or_(PaymentModel.quotation_id == quotation_id,
+               PaymentModel.quotation_id.is_(None)),
+    ).order_by(PaymentModel.id.desc()).first()
+
+
 @api.route('/order/checkout-cash/<int:order_id>', methods=['PUT'])
 @token_required
 def generate_checkout_cash(order_id):
-    site_url = os.getenv('SITE_URL')
     auth_headers = request.headers.get('Authorization', '').split()
     customer = Customer.verify_auth_token(auth_headers[1])
     order_entity = OrderEntity(order_id)
     order_model = order_entity.query_orders({'id': order_id})
     quotation = order_model[0].quotations.filter_by(quotation_status_id = 2).first()
-    carrier_company = quotation.carrier_company
-    payment, created = order_entity.create_order_payments()
+
+    # Con la exigencia activa, agendar pide yapear la reserva e informar su
+    # número de operación. Se valida acá y no solo en el modal: sin esto basta
+    # llamar al endpoint directo para agendar sin pagar.
+    breakdown = OrderEntity.reservation_breakdown(quotation)
+    requires_reservation = yape_reservation_required() and breakdown['reservation_amount'] > 0
+    operation_number = _clean_operation_number((request.get_json(silent=True) or {}).get('operation_number'))
+    valid_number = OPERATION_NUMBER_MIN_LENGTH <= len(operation_number) <= OPERATION_NUMBER_MAX_LENGTH
+    if requires_reservation:
+        if not valid_number:
+            return jsonify({'message': 'invalid_operation_number'}), 400
+        # Un mismo yapeo no puede agendar dos órdenes. Las reservas canceladas
+        # no cuentan: el número queda libre si esa orden se cayó.
+        reused = PaymentModel.query.filter(
+            PaymentModel.concept == 'reservation',
+            PaymentModel.status != 'cancelled',
+            PaymentModel.reference == operation_number,
+            PaymentModel.order_id != order_id,
+        ).first()
+        if reused is not None:
+            return jsonify({'message': 'operation_number_already_used'}), 409
+
+    payment, created = order_entity.create_order_payments(
+        reference=operation_number if valid_number else None
+    )
 
     # Los correos solo salen cuando la orden se agendó en esta llamada. Volver
     # atrás desde el dashboard y confirmar de nuevo reenviaba ambos: el
     # transportista recibía dos veces el mismo pedido y el cliente dos
     # confirmaciones de la misma mudanza.
     if created:
-        # Agendar es lo que pone la orden en marcha, asi que el estado se
-        # escribe aca. Antes lo hacia el PUT del modal de pago, que desde
-        # 02e8f88 ya no escribe nada: la orden se quedaba en pending aunque
-        # estuviera agendada y cobrada, y con eso el transportista no la veia
-        # en su lista (carrierCompany.py:43), no podia marcarla completada
-        # (backoffice-api/app/api/orders.py:847) y el guard de quotations.py:99
-        # seguia dejando elegir otra cotizacion. `created` ya garantiza que
-        # esto corre una sola vez por orden.
         db_order = db.session.get(Order, order_id)
-        if db_order is not None and db_order.order_status_id == OrderStatus.pending():
-            db_order.order_status_id = OrderStatus.in_progress()
-            db.session.commit()
+        reservation = _reservation_of(order_id, quotation.id)
+        if requires_reservation:
+            # La orden sigue en pending hasta que un admin confirme el yapeo en
+            # el backoffice (confirm_reservation). Hasta entonces el
+            # transportista no la ve en su lista ni recibe el pedido.
+            _send_reservation_emails(db_order, customer, quotation, reservation)
+        else:
+            # Agendar es lo que pone la orden en marcha, asi que el estado se
+            # escribe aca. Antes lo hacia el PUT del modal de pago, que desde
+            # 02e8f88 no escribe nada: la orden se quedaba en pending aunque
+            # estuviera agendada y cobrada, y con eso el transportista no la veia
+            # en su lista (carrierCompany.py:43), no podia marcarla completada
+            # (backoffice-api/app/api/orders.py:847) y el guard de quotations.py:99
+            # seguia dejando elegir otra cotizacion. `created` ya garantiza que
+            # esto corre una sola vez por orden.
+            if db_order is not None and db_order.order_status_id == OrderStatus.pending():
+                db_order.order_status_id = OrderStatus.in_progress()
+                db.session.commit()
+            _send_order_scheduled_emails(db_order, customer, quotation)
 
-        carrier_company_orders_url = CarrierCompanyEntity(carrier_company.id).generate_orders_url(order_id, site_url)
-
-        subject = '[Pago en efectivo] Orden {} '.format(order_id)
-        bcc = [os.getenv('OPS_MAIL')] if os.getenv('FLASK_ENV') == 'prod' else [os.getenv('ADMIN_MAIL')]
-
-        send_email(
-            carrier_company.email,
-            subject,
-            'email/admin_new_order',
-            bcc=bcc,
-            carrier_company_orders_url=carrier_company_orders_url,
-        )
-        send_email(
-            customer.email,
-            'Hemos agendado tu mudanza!',
-            'email/cash_payment_selected',
-            bcc=[],
-            customer_name=customer.name,
-            mobile_phone=customer.mobile_phone,
-        )
-
+    order_now = db.session.get(Order, order_id)
     return jsonify({
         'payment': payment.id,
         'created': created,
+        'awaiting_verification': bool(
+            requires_reservation and order_now.order_status_id == OrderStatus.pending()
+        ),
     }), 200
+
+
+@api.route('/order/<int:order_id>/confirm-reservation', methods=['POST'])
+def confirm_reservation(order_id):
+    """Pone la orden en marcha cuando un admin confirmó el yapeo de la reserva.
+
+    Lo llama el backoffice-api al marcar la reserva como pagada; el control de
+    rol ya se hizo allá. Es el momento en que el transportista se entera: hasta
+    acá la orden estaba en pending esperando la verificación.
+
+    Idempotente: si la orden ya no está pending (confirmada antes, completada o
+    cancelada) no hace nada ni reenvía correos.
+    """
+    if not is_internal_request():
+        return jsonify({'message': 'forbidden'}), 403
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return not_found('order not found')
+    if order.order_status_id != OrderStatus.pending():
+        return jsonify({'confirmed': False}), 200
+
+    quotation = order.quotations.filter_by(quotation_status_id=QuotationStatus.Selected()).first()
+    if quotation is None:
+        # Sin cotización elegida no hay transportista a quien avisar; mejor
+        # dejar la orden como está que ponerla en marcha sin dueño.
+        return jsonify({'message': 'no_selected_quotation'}), 409
+    customer = db.session.get(Customer, order.customer_id)
+
+    order.order_status_id = OrderStatus.in_progress()
+    db.session.commit()
+    _send_order_scheduled_emails(order, customer, quotation,
+                                 reservation=_reservation_of(order_id, quotation.id))
+    return jsonify({'confirmed': True}), 200
+
 
 def _missing_fields_for_quotation(order_id):
     """Campos que le faltan a la orden para que un transportista pueda cotizar.

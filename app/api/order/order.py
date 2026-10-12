@@ -21,6 +21,16 @@ from ...models import OrderSchema, \
 _PAYMENT_TYPE_IDS = {}
 
 
+def yape_reservation_required():
+    """True si agendar exige yapear la reserva e informar su nº de operación.
+
+    Es el gemelo de VUE_APP_YAPE_QR_ENABLED del lado del servidor: el modal
+    solo pide el número cuando esa variable está activa, y sin este chequeo
+    bastaría llamar al endpoint directo para saltarse la reserva.
+    """
+    return os.getenv('YAPE_RESERVATION_REQUIRED') == 'true'
+
+
 def payment_type_id(type_name):
     """Resuelve el id de lu_payment_type por nombre.
 
@@ -196,7 +206,30 @@ class Order:
             query = query.filter(getattr(OrderModel, attr) == value)
         return query.all()
 
-    def create_order_payments(self):
+    @staticmethod
+    def reservation_breakdown(quotation):
+        """Cómo se reparte el total cotizado entre la reserva y el efectivo.
+
+        Una sola fórmula para todos los que la necesitan (crear los pagos y
+        decidir si el checkout exige la reserva): si se duplicara, un cambio de
+        comisión dejaría a una de las dos mirando otro monto.
+        """
+        platform_fee = float(os.getenv('PLATFORM_FEE'))
+        commission_rate = 0
+        referred = ReferredOrder.query.filter_by(order_id=quotation.order_id).first()
+        if referred:
+            agent = db.session.get(AdminUser, referred.admin_user_id)
+            commission_rate = agent.commission_rate
+
+        carrier_amount = round(quotation.amount, 2)
+        total = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+        return {
+            'carrier_amount': carrier_amount,
+            'total': total,
+            'reservation_amount': round(total - carrier_amount, 2),
+        }
+
+    def create_order_payments(self, reference=None):
         """Crea una fila por movimiento de plata de la orden.
 
         Son dos, con destinatario y momento distintos: la reserva que el
@@ -204,10 +237,11 @@ class Order:
         viene referida) y el efectivo que le entrega al transportista el día de
         la mudanza. Juntas suman el total cotizado.
 
-        Las dos nacen 'pending'. La reserva es opcional — el modal no la exige
-        — y Yape personal no tiene webhook, así que se confirma a mano desde el
-        backoffice. Si el cliente nunca yapea, la fila se queda pendiente y el
-        transportista termina cobrando todo en efectivo, como antes.
+        Las dos nacen 'pending'. Yape personal no tiene webhook, así que la
+        reserva se confirma a mano desde el backoffice, comparando el número de
+        operación que el cliente informó (`reference`) con el yapeo recibido.
+        Con YAPE_RESERVATION_REQUIRED el checkout no llega aquí sin ese número;
+        sin la variable la reserva sigue siendo optativa y `reference` es None.
 
         OJO con el histórico: las filas anteriores a la migración 016 quedaron
         marcadas 'order_total' y guardan el bruto de la orden en una sola fila.
@@ -232,6 +266,20 @@ class Order:
                    PaymentModel.quotation_id.is_(None)),
         ).first()
         if existing:
+            # El cliente reintentó, quizá con el número corregido. Solo se toca
+            # la reserva que sigue pendiente: una ya confirmada por un admin
+            # quedó verificada contra ese número y no se reescribe.
+            if reference:
+                pending_reservation = PaymentModel.query.filter(
+                    PaymentModel.order_id == self.order_id,
+                    PaymentModel.concept == 'reservation',
+                    PaymentModel.status == 'pending',
+                    db.or_(PaymentModel.quotation_id == quotation.id,
+                           PaymentModel.quotation_id.is_(None)),
+                ).first()
+                if pending_reservation is not None:
+                    pending_reservation.reference = reference
+                    db.session.commit()
             return existing, False
 
         # Cambió de transportista. Las filas de la cotización anterior dejan de
@@ -247,16 +295,9 @@ class Order:
             previous.status = 'cancelled'
             db.session.add(previous)
 
-        platform_fee = float(os.getenv('PLATFORM_FEE'))
-        commission_rate = 0
-        referred = ReferredOrder.query.filter_by(order_id=self.order_id).first()
-        if referred:
-            agent = db.session.get(AdminUser, referred.admin_user_id)
-            commission_rate = agent.commission_rate
-
-        carrier_amount = round(quotation.amount, 2)
-        total = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
-        reservation_amount = round(total - carrier_amount, 2)
+        breakdown = self.reservation_breakdown(quotation)
+        carrier_amount = breakdown['carrier_amount']
+        reservation_amount = breakdown['reservation_amount']
 
         carrier_payment = PaymentModel(
             order_id = self.order_id,
@@ -277,6 +318,7 @@ class Order:
                 lu_payment_type_id = payment_type_id('yape'),
                 concept = 'reservation',
                 status = 'pending',
+                reference = reference,
                 active = 1
             ))
 

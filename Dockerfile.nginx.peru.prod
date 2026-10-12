@@ -7,6 +7,8 @@ ENV NODE_OPTIONS=--openssl-legacy-provider
 COPY /frontend/package.json /frontend/package-lock.json ./
 RUN npm ci
 COPY /frontend .
+# Reserva con Yape en el modal de agendar (solo Perú; ver PaymentConfirmationModal).
+ENV VUE_APP_YAPE_QR_ENABLED=true
 RUN npm run build
 
 FROM node:20-alpine as backoffice-build-stage

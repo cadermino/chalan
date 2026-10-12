@@ -32,25 +32,26 @@
     </p>
     <!-- Solo si no se muestra la reserva: cuando el bloque de Yape está
          visible este aviso lo contradice (anuncia efectivo junto a un medio
-         que no lo es) y además ese bloque ya dice que el resto va en efectivo
-         al transportista. Sin el bloque, en cambio, esta es la única señal de
+         que no lo es) y además ese bloque ya dice que el resto se le paga al
+         transportista. Sin el bloque, en cambio, esta es la única señal de
          cómo se paga y no puede faltar. -->
     <p v-if="!yapeQrVisible" class="text-sm text-gray-500 mb-4">
       El pago es en efectivo, directo al transportista.
     </p>
-    <!-- Reserva opcional con Yape. Solo Perú y detrás de VUE_APP_YAPE_QR_ENABLED.
-         No bloquea la confirmación: el servicio se sigue pagando en efectivo al
-         transportista, esto solo aparta la fecha. La verificación del yapeo es
-         manual (Yape personal no tiene webhook), así que nada aquí marca la
-         orden como pagada. -->
+    <!-- Reserva con Yape, obligatoria para agendar. Solo Perú y detrás de
+         VUE_APP_YAPE_QR_ENABLED. El resto del servicio se le paga directo al
+         transportista (el modal no dice con qué medio: puede ser efectivo,
+         Yape o transferencia); esto aparta la fecha. Yape personal no tiene webhook, así
+         que el cliente informa su número de operación y un admin lo verifica en
+         el backoffice: hasta entonces la orden queda pendiente y el
+         transportista no recibe el pedido. -->
     <div v-if="yapeQrVisible" class="border border-gray-200 rounded p-3 mb-4">
       <p class="text-sm font-bold text-gray-700 mb-1">
-        Aparta tu fecha con Yape
-        <span class="font-normal text-gray-500">(opcional)</span>
+        Yapea tu reserva para agendar
       </p>
       <p class="text-xs text-gray-500 mb-3">
         Yapea <span class="font-bold text-gray-700">S/ {{ reservationLabel }}</span>
-        para reservar. El resto (S/ {{ remainingLabel }}) lo pagas en efectivo al
+        para agendar. El resto (S/ {{ remainingLabel }}) lo pagas al
         transportista el día de la mudanza.
       </p>
       <!-- width/height son los píxeles reales del archivo. No fijan el tamaño
@@ -78,6 +79,34 @@
           Luego en Yape: Escanear QR &rarr; subir imagen.
         </p>
       </div>
+      <label class="block text-gray-700 text-sm font-bold mt-4 mb-2" for="modal-operation-number">
+        Número de operación <span class="text-red-500">*</span>
+      </label>
+      <input id="modal-operation-number"
+        v-model="operationNumber"
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        :class="operationError ? 'border-red-300' : ''"
+        class="appearance-none border rounded w-full py-2 px-3 text-gray-700
+        leading-tight focus:outline-none focus:border-blue-400 mb-1"
+        placeholder="Ej. 12345678" />
+      <p class="text-xs text-gray-400">
+        Lo ves en el comprobante de Yape después de yapear.
+      </p>
+      <!-- Plegado por defecto: en un celular la imagen sola ocupa casi media
+           pantalla y el modal ya trae el QR. Quien no sepa dónde está el número
+           la abre. La captura está censurada y lleva un número de ejemplo. -->
+      <details class="mt-2">
+        <summary class="text-xs text-blue-600 underline cursor-pointer">
+          ¿Dónde está el número de operación?
+        </summary>
+        <img :src="yapeOperationSrc"
+          alt="Comprobante de Yape con el Nro. de operación resaltado"
+          width="640"
+          height="612"
+          class="w-full max-w-xs mx-auto rounded mt-2" />
+      </details>
     </div>
     <button type="button"
       :disabled="loading"
@@ -95,6 +124,7 @@ import { mapState, mapMutations } from 'vuex';
 import 'moment/locale/es';
 import Modal from '@/components/Modal.vue';
 import yapeQr from '@/assets/yape-qr.jpg';
+import yapeOperation from '@/assets/yape-operation-number.jpg';
 import chalan from '../api/chalan';
 import { track } from '../utils/analytics';
 
@@ -126,8 +156,8 @@ export default {
       type: String,
       required: true,
     },
-    // El modal se monta también en la vista de carrier company, donde el QR no
-    // tiene sentido. Solo el flujo del cliente (Step-three) lo pide.
+    // Pide la reserva con Yape. Lo activan las dos vistas donde el cliente
+    // agenda: Step-three y la página pública del transportista (CarrierCompany).
     showYapeQr: {
       type: Boolean,
       default: false,
@@ -137,7 +167,12 @@ export default {
     return {
       phone: null,
       error: null,
+      operationNumber: '',
+      // Distingue el error del número de operación del resto para marcar solo
+      // ese campo en rojo.
+      operationError: false,
       yapeQrSrc: yapeQr,
+      yapeOperationSrc: yapeOperation,
       cashPaymentCreated: false,
       // Si el checkout agendó la orden en esta llamada o si ya estaba agendada.
       // Sobrevive a un reintento dentro del mismo montaje, porque en ese caso
@@ -155,6 +190,8 @@ export default {
         if (!newVal || !newVal.id) return;
         if (!oldVal || oldVal.id !== newVal.id) {
           this.error = null;
+          this.operationNumber = '';
+          this.operationError = false;
           this.cashPaymentCreated = false;
           this.checkoutCreated = false;
         }
@@ -181,6 +218,17 @@ export default {
         return;
       }
       this.error = null;
+      this.operationError = false;
+      // Con la reserva visible no se agenda sin el número de operación. Se
+      // valida antes de tocar nada: el servidor repite el chequeo, esto solo
+      // evita el viaje y le dice al cliente qué falta.
+      const reserved = this.yapeQrVisible;
+      const operationNumber = this.operationNumber.replace(/\D/g, '');
+      if (reserved && (operationNumber.length < 4 || operationNumber.length > 20)) {
+        this.error = 'ingresa el número de operación de tu yapeo';
+        this.operationError = true;
+        return;
+      }
       this.setLoader(true);
       try {
         Object.keys(quotationFields).forEach((field) => {
@@ -195,6 +243,7 @@ export default {
           const { data } = await chalan.checkoutCash({
             orderId: this.currentOrder.order_id,
             token: this.customer.token,
+            operationNumber: reserved ? operationNumber : null,
           });
           this.cashPaymentCreated = true;
           this.checkoutCreated = !data || data.created !== false;
@@ -205,7 +254,8 @@ export default {
           customerId: this.customer.customer_id,
           token: this.customer.token,
         });
-        this.setOrder({ section: 'currentOrder', field: 'payment_method', value: 'cash' });
+        const paymentMethod = reserved ? 'yape_reservation' : 'cash';
+        this.setOrder({ section: 'currentOrder', field: 'payment_method', value: paymentMethod });
         // El estado de la orden lo escribe checkout-cash en el backend. Esto
         // solo lo ponia en el store: el PUT de abajo no lleva
         // orderEditedByCustomer —a proposito, reenvia el localStorage— asi que
@@ -231,20 +281,33 @@ export default {
             quotation_id: this.quotation.id,
             value: this.quotation.total_amount,
             currency: this.currency,
-            payment_method: 'cash',
+            payment_method: paymentMethod,
           });
         }
         this.setViewsMessages({
           view: 'dashboard',
           message: {
-            text: 'Muy bien, tu vehículo ha sido agendado!',
+            text: reserved
+              ? 'Recibimos tu número de operación. Verificaremos tu pago y te confirmaremos el agendamiento por correo.'
+              : 'Muy bien, tu vehículo ha sido agendado!',
             type: 'success',
           },
         });
         this.$router.push({ name: 'dashboard' }).catch(() => {});
       } catch (error) {
         this.setLoader(false);
-        this.error = 'Hubo un error, intenta nuevamente';
+        // Se mira el mensaje y no solo el código: updateQuotation, que corre
+        // antes, también puede devolver 400/409 por otras razones.
+        const reason = error.response && error.response.data && error.response.data.message;
+        if (reserved && reason === 'invalid_operation_number') {
+          this.error = 'revisa el número de operación';
+          this.operationError = true;
+        } else if (reserved && reason === 'operation_number_already_used') {
+          this.error = 'ese número de operación ya se usó en otra orden';
+          this.operationError = true;
+        } else {
+          this.error = 'Hubo un error, intenta nuevamente';
+        }
       }
     },
   },

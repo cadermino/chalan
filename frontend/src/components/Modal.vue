@@ -2,7 +2,7 @@
   <div v-if="visible"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
     @click.self="onBackdropClick">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 relative">
+    <div class="modal-panel bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4 relative">
       <button v-if="closable"
         type="button"
         aria-label="Cerrar"
@@ -58,3 +58,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* El fondo es fixed y centra sin scroll propio: un modal más alto que la
+   pantalla (el de pago en un celular, con QR y campos) quedaba cortado arriba
+   y abajo sin forma de llegar al botón. El panel scrollea en vez de salirse. */
+.modal-panel {
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@supports (height: 100dvh) {
+  .modal-panel {
+    max-height: 90dvh;
+  }
+}
+</style>

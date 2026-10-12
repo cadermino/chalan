@@ -80,7 +80,14 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="bodycopy">
+                  <td class="bodycopy" style="padding: 15px 0 0 0;">
+                    <b>Datos del cliente</b><br/>
+                    <b>Nombre:</b> {{customer_full_name}}<br/>
+                    {% if customer_phone %}Teléfono: {{customer_phone}}{% if customer_whatsapp_url %} · <a href="{{customer_whatsapp_url}}">WhatsApp</a>{% endif %}<br/>{% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="bodycopy" style="padding: 15px 0 0 0;">
                     Link a la página de ordenes:
                   </td>
                 </tr>
