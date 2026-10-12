@@ -184,6 +184,11 @@ function PaymentsCard({ payments, onSetStatus, savingId, onRegister, registering
                   )}
                 </div>
               </div>
+              {p.reference && (
+                <p className="text-xs text-gray-500 mt-1">
+                  N.º de operación: <span className="font-semibold text-gray-700">{p.reference}</span>
+                </p>
+              )}
               {p.paid_at && (
                 <p className="text-xs text-gray-400 mt-1">
                   Confirmado el{' '}
@@ -335,10 +340,23 @@ export default function OrderDetail() {
 
   function setPaymentStatus(paymentId, status) {
     setSavingPaymentId(paymentId)
+    setPaymentsError(null)
     client.patch(`/api/orders/${orderId}/payments/${paymentId}`, { status })
       .then(({ data }) => {
         setPayments((prev) => prev.map((p) => (p.id === data.payment.id ? data.payment : p)))
+        // Confirmar la reserva pone la orden en progreso y avisa al
+        // transportista; si eso falló, el pago ya quedó guardado.
+        if (data.order_confirmation === 'ok') {
+          loadOrder()
+        } else if (data.order_confirmation === 'failed') {
+          setPaymentsError(
+            'El pago quedó registrado, pero la orden no se pudo poner en progreso. Hazlo desde Editar orden.'
+          )
+        }
       })
+      .catch(err => setPaymentsError(
+        err.response?.data?.message || 'No se pudo actualizar el pago'
+      ))
       .finally(() => setSavingPaymentId(null))
   }
 

@@ -1460,7 +1460,31 @@ def update_order_payment(order_id, payment_id):
         payment.reference = str(reference).strip()[:100] or None
 
     db.session.commit()
-    return jsonify({'payment': payment.to_dict()}), 200
+
+    result = {'payment': payment.to_dict()}
+    # Confirmar la reserva es lo que pone la orden en marcha y avisa al
+    # transportista (hasta entonces el cliente solo informó su número de
+    # operación). Va después del commit y sin deshacer el pago si falla: el
+    # yapeo ya está verificado, y lo que queda pendiente se resuelve desde
+    # Editar orden. Al revés —revertir a pending o cancelar— no se toca el
+    # estado de la orden: el transportista ya pudo recibir el pedido.
+    if payment.concept == 'reservation' and new_status == 'paid':
+        internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+        try:
+            res = requests.post(
+                f'{internal_api}/api/v1/order/{order_id}/confirm-reservation',
+                headers=_internal_headers(),
+                timeout=30,
+            )
+        except requests.RequestException:
+            res = None
+        if res is None or res.status_code != 200:
+            result['order_confirmation'] = 'failed'
+        elif res.json().get('confirmed'):
+            result['order_confirmation'] = 'ok'
+        else:
+            result['order_confirmation'] = 'unchanged'
+    return jsonify(result), 200
 
 
 @api.route('/referred-orders', methods=['GET'])

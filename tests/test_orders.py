@@ -8,7 +8,7 @@ from app.api.order import Order as OrderEntity
 from app.api.order.steps.addresses import Addresses as AddressesStep
 from app.api.orders import send_email_to_carrier_companies
 from app.api.order.order_status import OrderStatus
-from app.models import LuServices, Order, OrdersServices, PaymentType, Quotations
+from app.models import LuServices, Order, OrdersServices, Payment, PaymentType, Quotations
 
 
 ORIGIN = {
@@ -331,66 +331,265 @@ def test_internal_caller_with_the_edit_flag_writes(client, customer):
     assert db.session.get(Order, order_id).comments == '1 sofa, 3 cajas'
 
 
-def test_cash_checkout_moves_the_order_to_in_progress(client, customer, carrier_company, monkeypatch):
-    # Agendar es lo unico que pone la orden en marcha. Antes ese estado lo
-    # escribia el PUT del modal de pago, que desde 02e8f88 no escribe nada, y
-    # la orden se quedaba en pending aunque estuviera cobrada: el transportista
-    # no la veia en su lista y no podia marcarla completada.
+def _checkout_setup(monkeypatch, carrier_company, required):
+    """Entorno común de los tests de checkout. Devuelve la lista de correos enviados."""
     from app.api.order import order as order_module
     order_module._PAYMENT_TYPE_IDS.clear()
     monkeypatch.setenv('PLATFORM_FEE', '0.1')
     monkeypatch.setenv('SITE_URL', 'https://chalan.pe/')
-    monkeypatch.setattr('app.api.orders.send_email', lambda *args, **kwargs: None)
+    monkeypatch.setenv('ADMIN_MAIL', 'ops@example.com')
+    monkeypatch.setenv('OPS_MAIL', 'ops@example.com')
+    if required:
+        monkeypatch.setenv('YAPE_RESERVATION_REQUIRED', 'true')
+    else:
+        monkeypatch.delenv('YAPE_RESERVATION_REQUIRED', raising=False)
+
+    sent = []
+    monkeypatch.setattr(
+        'app.api.orders.send_email',
+        lambda to, subject, template, *args, **kwargs: sent.append((to, template, kwargs)),
+    )
 
     db.session.add_all([PaymentType(type='cash'), PaymentType(type='yape')])
     carrier_company.email = 'carrier@example.com'
     db.session.commit()
+    return sent
 
+
+def _order_with_selected_quotation(client, customer, carrier_company, amount=200):
     order_id = _create_order(client, customer)
     db.session.add(Quotations(
         order_id=order_id,
         carrier_company_id=carrier_company.id,
-        amount=200,
+        amount=amount,
         quotation_status_id=2,
     ))
     db.session.commit()
+    return order_id
+
+
+def _checkout(client, customer, order_id, operation_number=None):
+    body = {'operation_number': operation_number} if operation_number is not None else None
+    return client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer), json=body)
+
+
+def _templates(sent):
+    return [template for _, template, _ in sent]
+
+
+def test_cash_checkout_without_required_reservation_moves_to_in_progress(client, customer, carrier_company, monkeypatch):
+    # Agendar es lo unico que pone la orden en marcha. Antes ese estado lo
+    # escribia el PUT del modal de pago, que desde 02e8f88 no escribe nada, y
+    # la orden se quedaba en pending aunque estuviera cobrada: el transportista
+    # no la veia en su lista y no podia marcarla completada. Sin la exigencia
+    # de la reserva (YAPE_RESERVATION_REQUIRED) sigue siendo asi.
+    sent = _checkout_setup(monkeypatch, carrier_company, required=False)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
     assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
 
-    res = client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer))
+    res = _checkout(client, customer, order_id)
 
     assert res.status_code == 200
     assert res.get_json()['created'] is True
+    assert res.get_json()['awaiting_verification'] is False
     assert db.session.get(Order, order_id).order_status_id == OrderStatus.in_progress()
+    assert _templates(sent) == ['email/admin_new_order', 'email/cash_payment_selected']
+
+
+def test_scheduled_emails_carry_both_parties_contact_details(client, customer, carrier_company, monkeypatch):
+    # Una vez agendada, cliente y transportista coordinan directo: los dos
+    # correos llevan nombre y teléfono de ambos, con enlace a WhatsApp.
+    sent = _checkout_setup(monkeypatch, carrier_company, required=False)
+    customer.mobile_phone = '987654321'
+    carrier_company.phone = '+51 912 345 678'
+    db.session.commit()
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+
+    _checkout(client, customer, order_id)
+
+    expected = {
+        'customer_full_name': 'Nathalia Caceres',
+        'customer_phone': '987654321',
+        'customer_whatsapp_url': 'https://wa.me/51987654321',
+        'carrier_name': 'Jhon Romero',
+        'carrier_phone': '+51 912 345 678',
+        'carrier_whatsapp_url': 'https://wa.me/51912345678',
+    }
+    for _, _, kwargs in sent:
+        assert {key: kwargs[key] for key in expected} == expected
+
+
+def test_each_scheduled_email_shows_only_the_other_partys_details(app, customer, carrier_company):
+    # Cada uno ya sabe sus propios datos: el cliente ve al transportista y el
+    # transportista ve al cliente, no al revés.
+    from flask import render_template
+    from app.api.orders import _contact_details
+    customer.mobile_phone = '987654321'
+    carrier_company.phone = '912345678'
+    contact = _contact_details(customer, carrier_company)
+
+    with app.test_request_context():
+        to_customer = render_template('email/cash_payment_selected.html', customer_name=customer.name,
+                                      mobile_phone=customer.mobile_phone, **contact)
+        to_carrier = render_template('email/admin_new_order.html',
+                                     carrier_company_orders_url='https://chalan.pe/x', **contact)
+
+    assert 'Jhon Romero' in to_customer and '912345678' in to_customer
+    assert 'Nathalia Caceres' not in to_customer
+    assert 'Nathalia Caceres' in to_carrier and '987654321' in to_carrier
+    assert 'Jhon Romero' not in to_carrier and '912345678' not in to_carrier
+
+
+def test_contact_details_without_a_usable_phone_have_no_whatsapp_link(client, customer, carrier_company, monkeypatch):
+    sent = _checkout_setup(monkeypatch, carrier_company, required=False)
+    customer.mobile_phone = '123'
+    db.session.commit()
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+
+    _checkout(client, customer, order_id)
+
+    for _, _, kwargs in sent:
+        assert kwargs['customer_whatsapp_url'] is None
+        assert kwargs['carrier_phone'] is None
+        assert kwargs['carrier_whatsapp_url'] is None
 
 
 def test_cash_checkout_is_idempotent(client, customer, carrier_company, monkeypatch):
     # Volver desde el dashboard y confirmar otra vez la misma cotizacion pasa
     # por aca de nuevo: ni duplica pagos ni reenvia correos, y el estado ya
-    # escrito se queda como esta.
-    from app.api.order import order as order_module
-    order_module._PAYMENT_TYPE_IDS.clear()
-    monkeypatch.setenv('PLATFORM_FEE', '0.1')
-    monkeypatch.setenv('SITE_URL', 'https://chalan.pe/')
-    monkeypatch.setattr('app.api.orders.send_email', lambda *args, **kwargs: None)
+    # escrito se queda como esta. Con la reserva exigida, la orden sigue en
+    # pending hasta que un admin confirme el yapeo.
+    sent = _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
 
-    db.session.add_all([PaymentType(type='cash'), PaymentType(type='yape')])
-    carrier_company.email = 'carrier@example.com'
-    db.session.commit()
-
-    order_id = _create_order(client, customer)
-    db.session.add(Quotations(
-        order_id=order_id,
-        carrier_company_id=carrier_company.id,
-        amount=200,
-        quotation_status_id=2,
-    ))
-    db.session.commit()
-
-    client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer))
-    again = client.put(f'/api/v1/order/checkout-cash/{order_id}', headers=_auth(customer))
+    _checkout(client, customer, order_id, '12345678')
+    again = _checkout(client, customer, order_id, '12345678')
 
     assert again.get_json()['created'] is False
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+    assert _templates(sent) == ['email/yape_reservation_submitted', 'email/yape_reservation_received']
+
+
+def test_checkout_requires_operation_number(client, customer, carrier_company, monkeypatch):
+    sent = _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+
+    for bad in (None, '', 'abc', '12', '1' * 21):
+        res = _checkout(client, customer, order_id, bad)
+        assert res.status_code == 400
+        assert res.get_json()['message'] == 'invalid_operation_number'
+
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+    assert Payment.query.filter_by(order_id=order_id).count() == 0
+    assert sent == []
+
+
+def test_checkout_with_operation_number_keeps_order_pending(client, customer, carrier_company, monkeypatch):
+    sent = _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+
+    # Los separadores se limpian: el cliente puede pegar "N.° 123-456".
+    res = _checkout(client, customer, order_id, '123-456 78')
+
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body['created'] is True
+    assert body['awaiting_verification'] is True
+    reservation = Payment.query.filter_by(order_id=order_id, concept='reservation').one()
+    assert reservation.reference == '12345678'
+    assert reservation.status == 'pending'
+    assert reservation.amount == 20
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+    assert _templates(sent) == ['email/yape_reservation_submitted', 'email/yape_reservation_received']
+    assert 'email/admin_new_order' not in _templates(sent)
+    ops_to, _, ops_kwargs = sent[0]
+    assert ops_to == 'ops@example.com'
+    assert ops_kwargs['operation_number'] == '12345678'
+    assert ops_kwargs['reservation_amount'] == '20.00'
+
+
+def test_checkout_rejects_reused_operation_number(client, customer, carrier_company, monkeypatch):
+    _checkout_setup(monkeypatch, carrier_company, required=True)
+    first = _order_with_selected_quotation(client, customer, carrier_company)
+    second = _order_with_selected_quotation(client, customer, carrier_company)
+
+    assert _checkout(client, customer, first, '12345678').status_code == 200
+    res = _checkout(client, customer, second, '12345678')
+
+    assert res.status_code == 409
+    assert res.get_json()['message'] == 'operation_number_already_used'
+    assert Payment.query.filter_by(order_id=second).count() == 0
+
+    # Una reserva cancelada libera el número.
+    Payment.query.filter_by(order_id=first, concept='reservation').one().status = 'cancelled'
+    db.session.commit()
+    assert _checkout(client, customer, second, '12345678').status_code == 200
+
+
+def test_checkout_retry_updates_pending_reference(client, customer, carrier_company, monkeypatch):
+    _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+
+    _checkout(client, customer, order_id, '11111111')
+    again = _checkout(client, customer, order_id, '22222222')
+
+    assert again.get_json()['created'] is False
+    reservation = Payment.query.filter_by(order_id=order_id, concept='reservation').one()
+    assert reservation.reference == '22222222'
+
+    # Una vez que un admin la dio por pagada, el número quedó verificado y no
+    # se reescribe.
+    reservation.status = 'paid'
+    db.session.commit()
+    _checkout(client, customer, order_id, '33333333')
+    assert Payment.query.filter_by(order_id=order_id, concept='reservation').one().reference == '22222222'
+
+
+def test_confirm_reservation_moves_order_to_in_progress(client, customer, carrier_company, monkeypatch):
+    sent = _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+    _checkout(client, customer, order_id, '12345678')
+    sent.clear()
+
+    res = client.post(f'/api/v1/order/{order_id}/confirm-reservation', headers=_internal_auth())
+
+    assert res.status_code == 200
+    assert res.get_json() == {'confirmed': True}
     assert db.session.get(Order, order_id).order_status_id == OrderStatus.in_progress()
+    assert _templates(sent) == ['email/admin_new_order', 'email/cash_payment_selected']
+    receipt = sent[1][2]
+    assert receipt['reservation_amount'] == '20.00'
+    assert receipt['operation_number'] == '12345678'
+    assert receipt['carrier_amount'] == '200.00'
+    for _, _, kwargs in sent:
+        assert kwargs['customer_full_name'] == 'Nathalia Caceres'
+        assert kwargs['carrier_name'] == 'Jhon Romero'
+
+    sent.clear()
+    again = client.post(f'/api/v1/order/{order_id}/confirm-reservation', headers=_internal_auth())
+    assert again.get_json() == {'confirmed': False}
+    assert sent == []
+
+
+def test_confirm_reservation_is_internal_only(client, customer, carrier_company, monkeypatch):
+    _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+    _checkout(client, customer, order_id, '12345678')
+
+    for headers in ({}, _auth(customer)):
+        res = client.post(f'/api/v1/order/{order_id}/confirm-reservation', headers=headers)
+        assert res.status_code == 403
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+
+
+def test_confirm_reservation_needs_a_selected_quotation(client, customer, monkeypatch, carrier_company):
+    _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _create_order(client, customer)
+
+    res = client.post(f'/api/v1/order/{order_id}/confirm-reservation', headers=_internal_auth())
+
+    assert res.status_code == 409
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
 
 
 def test_empty_numeric_strings_do_not_blow_up_the_route(client, customer):

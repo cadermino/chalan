@@ -85,7 +85,23 @@
                   </td>
                 </tr>
                 <tr>
-                  <td class="bodycopy">
+                  <td class="bodycopy" style="padding: 15px 0 0 0;">
+                    <b>Datos del transportista</b><br/>
+                    <b>Nombre:</b> {{carrier_name}}<br/>
+                    {% if carrier_phone %}Teléfono: {{carrier_phone}}{% if carrier_whatsapp_url %} · <a href="{{carrier_whatsapp_url}}">WhatsApp</a>{% endif %}<br/>{% endif %}
+                  </td>
+                </tr>
+                {% if reservation_amount %}
+                <tr>
+                  <td class="bodycopy" style="padding: 15px 0 0 0;">
+                    <b>Reserva pagada con Yape:</b> S/ {{reservation_amount}}<br/>
+                    {% if operation_number %}<b>Número de operación:</b> {{operation_number}}<br/>{% endif %}
+                    <b>Saldo a pagar al transportista:</b> S/ {{carrier_amount}}
+                  </td>
+                </tr>
+                {% endif %}
+                <tr>
+                  <td class="bodycopy" style="padding: 15px 0 0 0;">
                     Puedes consultar el detalle de tu orden en <a href="{{site_url}}dashboard">{{site_url}}dashboard</a>
                   </td>
                 </tr>

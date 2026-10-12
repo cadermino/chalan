@@ -103,8 +103,11 @@ export default {
     return axios(options);
   },
   checkoutCash(payload) {
+    // El número de operación solo viaja cuando el modal pide la reserva con
+    // Yape; sin él el body queda vacío, como antes.
+    const body = payload.operationNumber ? { operation_number: payload.operationNumber } : {};
     return axios.put(`${process.env.VUE_APP_API_URL}order/checkout-cash/${payload.orderId}`,
-      {},
+      body,
       {
         headers: {
           'Content-Type': 'application/json',

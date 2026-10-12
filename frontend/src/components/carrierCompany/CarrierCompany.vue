@@ -92,6 +92,7 @@
       :visible="showPaymentModal"
       :quotation="orderQuotation || {}"
       :currency="countryData.currency"
+      show-yape-qr
       @close="showPaymentModal = false" />
     <!-- Reviews Section -->
     <div class="container px-5 py-10 mx-auto"
