@@ -23,7 +23,9 @@ export const GA_DEBUG = process.env.NODE_ENV !== 'production';
 export type LandingEvent =
   | 'quote_widget_start'
   | 'quote_estimated'
-  | 'quote_cta_click';
+  | 'quote_cta_click'
+  // Fuera del embudo: el botón de reseña en Google tras dejar la nuestra.
+  | 'google_review_click';
 
 type Params = Record<string, string | number | boolean | null | undefined>;
 

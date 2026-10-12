@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
+
+// Formulario de reseña de la ficha de Google Business de Chalán. Se ofrece a
+// todos sin mirar la calificación: pedírsela solo a quien puso 4–5★ es
+// "review gating" y Google lo sanciona.
+const GOOGLE_REVIEW_URL = "https://g.page/r/CUYZSsywYRIjEBM/review";
 
 interface TokenReviewFormProps {
   token: string;
@@ -51,6 +57,7 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetch(`/api/v1/reviews/verify/${token}`)
@@ -115,11 +122,42 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
   }
 
   if (alreadyReviewed || success) {
+    // Lo que escribió sobre Chalán es lo que corresponde en Google; si dejó ese
+    // campo vacío, sirve el comentario de la mudanza. Copiarlo le ahorra
+    // escribir dos veces, y el texto lo publica él desde su cuenta.
+    const googleText = platformComment.trim() || comment.trim();
+
+    const openGoogleReview = () => {
+      track("google_review_click", { with_comment: Boolean(googleText) });
+      if (!googleText) return;
+      navigator.clipboard?.writeText(googleText).then(() => setCopied(true)).catch(() => {});
+    };
+
     return (
-      <div className="text-center py-4">
+      <div className="text-center py-4 space-y-4">
         <p className="text-green-600 font-medium">
           {success ? "¡Gracias por tu reseña!" : "Ya publicaste una reseña para esta orden."}
         </p>
+
+        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <p className="text-sm text-gray-700">
+            ¿Nos ayudas también con una reseña en Google? Así más personas encuentran Chalán.
+          </p>
+          <a
+            href={GOOGLE_REVIEW_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={openGoogleReview}
+            className="inline-block bg-white border border-gray-300 text-gray-800 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+          >
+            {googleText ? "Copiar mi comentario y abrir Google" : "Dejar reseña en Google"}
+          </a>
+          {copied && (
+            <p className="text-xs text-gray-500">
+              Comentario copiado. Pégalo en Google y elige tus estrellas.
+            </p>
+          )}
+        </div>
       </div>
     );
   }
