@@ -110,7 +110,10 @@ export default function OrderCreate() {
         appointment_date: form.appointmentDate || null,
         comments: form.comments || null,
         approximate_budget: form.approximateBudget === '' ? null : Number(form.approximateBudget),
-        loaders_quantity: form.loadersQuantity === '' ? null : Number(form.loadersQuantity),
+        // Cargadores sin cantidad llegaban como null y el cliente veía la
+        // casilla marcada con el número vacío en Step-two. Sin cargadores, la
+        // cantidad que quedó escrita antes de desmarcar no debe viajar.
+        loaders_quantity: form.cargo ? (Number(form.loadersQuantity) || 1) : null,
         cargo: form.cargo,
         packaging: form.packaging,
         notify_carriers: form.notifyCarriers,
@@ -241,7 +244,16 @@ export default function OrderCreate() {
               <input
                 type="checkbox"
                 checked={form.cargo}
-                onChange={e => setForm(f => ({ ...f, cargo: e.target.checked }))}
+                onChange={e => {
+                  const checked = e.target.checked
+                  // Misma conducta que Edit.jsx y Step-two: marcar propone 1
+                  // si no hay cantidad, desmarcar la limpia.
+                  setForm(f => ({
+                    ...f,
+                    cargo: checked,
+                    loadersQuantity: checked ? (f.loadersQuantity || 1) : '',
+                  }))
+                }}
                 className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
               Necesita cargadores

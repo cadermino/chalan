@@ -227,6 +227,7 @@ export default new Vuex.Store({
         amount: currentOrder.amount,
         appointment_date: currentOrder.appointment_date,
         approximate_budget: currentOrder.approximate_budget,
+        loaders_quantity: currentOrder.loaders_quantity,
         comments: currentOrder.comments,
         created_date: currentOrder.created_date,
         order_status_id: currentOrder.order_status_id,
