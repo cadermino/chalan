@@ -110,6 +110,7 @@ export default function ContactStep() {
               autoComplete="tel-national"
               className={`field rounded-l-none ${errors.whatsapp ? 'border-danger' : ''}`}
               placeholder="987 654 321"
+              data-clarity-mask="true"
               value={draft.whatsapp}
               onChange={(event) => { setErrors((e) => ({ ...e, whatsapp: '' })); setWhatsapp(nineDigits(event.target.value)) }}
             />
@@ -122,7 +123,9 @@ export default function ContactStep() {
       <h2 className="mb-1 mt-8 text-lg font-semibold text-inkStrong">Revisa tu solicitud</h2>
       <div className="rounded-xl border border-line bg-paper2 px-4">
         <SummaryRow title="Dirección" editTo={PATHS.address}>
-          {address.street}{address.interior ? ` · ${address.interior}` : ''}
+          <span data-clarity-mask="true">
+            {address.street}{address.interior ? ` · ${address.interior}` : ''}
+          </span>
         </SummaryRow>
         <SummaryRow title={`Qué embalamos (${draft.items.length})`} editTo={PATHS.items}>
           <ul className="space-y-1">

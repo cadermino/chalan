@@ -109,6 +109,7 @@ function AddressForm() {
             className="field"
             maxLength={100}
             placeholder="Ej. Dpto 402, torre B"
+            data-clarity-mask="true"
             value={address.interior}
             onChange={(event) => setAddress((current) => ({ ...current, interior: event.target.value }))}
           />

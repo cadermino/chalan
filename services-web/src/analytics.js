@@ -25,6 +25,27 @@ export function initAnalytics() {
   document.head.appendChild(script)
 }
 
+// Microsoft Clarity, mismo proyecto que la landing (Next) y el flujo de mudanza
+// (Vue): así una visita que llega desde un post y sigue al formulario queda en
+// una sola grabación. Solo en producción, para no grabar el entorno local.
+// Los campos con datos personales llevan data-clarity-mask en el JSX.
+//
+// Ojo, aprendido en el Next: el <script> no puede llevar id="clarity". El
+// navegador expone los elementos con id como globales, window.clarity pasaba a
+// ser el <script>, el snippet lo daba por cargado y Clarity nunca arrancaba.
+const CLARITY_PROJECT_ID = 'wa41vtag57'
+
+export function initClarity() {
+  if (!import.meta.env.PROD) return
+  window.clarity = window.clarity || function clarity() {
+    (window.clarity.q = window.clarity.q || []).push(arguments)
+  }
+  const script = document.createElement('script')
+  script.async = true
+  script.src = `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`
+  document.head.appendChild(script)
+}
+
 // Los adblockers tumban gtag: envolverlo evita que un bloqueador rompa el formulario.
 export function track(event, params = {}) {
   if (typeof window.gtag !== 'function') return

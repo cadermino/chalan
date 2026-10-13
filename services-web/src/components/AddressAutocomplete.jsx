@@ -46,6 +46,7 @@ export default function AddressAutocomplete({ id, value, disabled, invalid, onTe
       className={`field ${invalid ? 'border-danger' : ''}`}
       placeholder="Calle, número y distrito"
       autoComplete="off"
+      data-clarity-mask="true"
       maxLength={200}
       disabled={disabled}
       value={value}
