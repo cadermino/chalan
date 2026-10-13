@@ -48,6 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `${SITE_URL}/blog/${slug}`,
       type: "article",
       publishedTime: toIsoDate(post.date),
+      ...(post.updated ? { modifiedTime: toIsoDate(post.updated) } : {}),
       images: [post.image ? absoluteUrl(post.image) : DEFAULT_OG_IMAGE],
     },
   };
@@ -76,7 +77,7 @@ export default async function BlogPost({ params }: Props) {
     description: post.description,
     image: imageUrl,
     datePublished: publishedIso,
-    dateModified: publishedIso,
+    dateModified: post.updated ? toIsoDate(post.updated) : publishedIso,
     author: { "@type": "Organization", name: "Chalán", url: SITE_URL },
     publisher: {
       "@type": "Organization",
@@ -119,9 +120,15 @@ export default async function BlogPost({ params }: Props) {
             {post.title}
           </h1>
           <p className="text-lg text-gray-500 mb-4">{post.description}</p>
-          <time className="text-gray-400 text-sm" dateTime={post.date}>
-            {formatDate(post.date)}
-          </time>
+          <p className="text-gray-400 text-sm">
+            <time dateTime={post.date}>{formatDate(post.date)}</time>
+            {post.updated && (
+              <>
+                {" · Actualizado el "}
+                <time dateTime={post.updated}>{formatDate(post.updated)}</time>
+              </>
+            )}
+          </p>
         </div>
 
         {/* MDX Content */}
@@ -149,11 +156,42 @@ export default async function BlogPost({ params }: Props) {
           <WaitlistForm source={slug} />
         )}
 
-        {/* CTA post-article — registro para posts de transportistas, cotizador para el resto */}
+        {/* CTA post-article — registro para posts de transportistas, formulario
+            de embalaje para los posts de embalaje, cotizador para el resto */}
         {post.category === "Transportistas" ? (
           <div className="mt-16">
             <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para recibir pedidos?</p>
             <CarrierSignupForm theme="light" />
+          </div>
+        ) : post.cta === "embalaje" ? (
+          <div className="mt-16">
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Prefieres que lo empaquen por ti?</p>
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-gray-900">Cotiza el embalaje en 2 minutos</h2>
+              <p className="mt-2 text-gray-600">
+                Un equipo va a tu casa con los materiales y lo empaca todo. Llenas el formulario y los
+                transportistas que ofrecen embalaje te cotizan por WhatsApp.
+              </p>
+              <ol className="mt-5 grid gap-3 sm:grid-cols-3 text-sm text-gray-700">
+                {["La dirección donde hay que embalar", "Qué cosas hay que empacar", "La fecha que prefieres"].map((step, i) => (
+                  <li key={step} className="flex items-start gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+              {/* <a> y no next/link: /embalaje/cotizar lo sirve otro contenedor
+                  (services-web), y la navegación del cliente pediría un payload
+                  RSC que no existe. Mismo criterio que LandingNav. */}
+              <a
+                href="/embalaje/cotizar"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700"
+              >
+                Cotizar embalaje →
+              </a>
+            </div>
           </div>
         ) : (
           <div className="mt-16">

@@ -10,11 +10,20 @@ export interface PostMeta {
   title: string;
   description: string;
   date: string;
+  // Última revisión de contenido real (no de una coma). Va a dateModified, al
+  // sitemap y al "Actualizado el" del post. Sin él, Google ve la fecha de
+  // publicación aunque el post se haya reescrito.
+  updated?: string;
   keywords: string;
   category: string;
   readingTime: number;
   image?: string;
   waitlist?: boolean;
+  // Qué llamado cierra el post. Sin valor: el cotizador de mudanza (o el
+  // registro de transportistas, que se decide por categoría). "embalaje":
+  // el formulario de /embalaje/cotizar, para los posts de embalaje, que
+  // están repartidos en varias categorías.
+  cta?: "embalaje";
 }
 
 export interface Post extends PostMeta {
@@ -42,11 +51,13 @@ export function getAllPosts(): PostMeta[] {
       title: data.title ?? slug,
       description: data.description ?? "",
       date: data.date ?? "",
+      updated: data.updated,
       keywords: data.keywords ?? "",
       category: data.category ?? "Consejos",
       readingTime: calcReadingTime(content),
       image: data.image,
       waitlist: data.waitlist ?? false,
+      cta: data.cta === "embalaje" ? "embalaje" : undefined,
     } as PostMeta;
   });
 
@@ -67,11 +78,13 @@ export function getPost(slug: string): Post | null {
     title: data.title ?? slug,
     description: data.description ?? "",
     date: data.date ?? "",
+    updated: data.updated,
     keywords: data.keywords ?? "",
     category: data.category ?? "Consejos",
     readingTime: calcReadingTime(content),
     image: data.image,
     waitlist: data.waitlist ?? false,
+    cta: data.cta === "embalaje" ? "embalaje" : undefined,
     content,
   };
 }
