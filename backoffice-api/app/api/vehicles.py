@@ -2,7 +2,7 @@ from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required, superadmin_required
-from ..models import Vehicle, CarrierCompany, ROLE_CARRIER
+from ..models import Vehicle, CarrierCompany, ROLE_CARRIER, MOVING_SERVICE_CODE
 from .. import db
 
 
@@ -39,8 +39,13 @@ def list_vehicles(company_id):
 def create_vehicle(company_id):
     if not _can_access_company(company_id):
         return jsonify({'message': 'forbidden'}), 403
-    if db.session.get(CarrierCompany, company_id) is None:
+    company = db.session.get(CarrierCompany, company_id)
+    if company is None:
         return jsonify({'message': 'carrier company not found'}), 404
+    # Los vehículos son de mudanzas: una empresa que solo embala o arma muebles
+    # no los usa. Editar o desactivar los que ya tenga sí se puede.
+    if not company.offers(MOVING_SERVICE_CODE):
+        return jsonify({'message': 'company does not do moves'}), 409
 
     data = request.get_json() or {}
 

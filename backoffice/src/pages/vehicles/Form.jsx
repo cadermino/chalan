@@ -52,7 +52,10 @@ export default function VehicleForm() {
       }
       navigate(`/carrier-companies/${companyId}/vehicles`)
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error al guardar')
+      const message = err.response?.data?.message
+      toast.error(message === 'company does not do moves'
+        ? 'Esta empresa no hace mudanzas: no puede tener vehículos.'
+        : message || 'Error al guardar')
     } finally {
       setLoading(false)
     }

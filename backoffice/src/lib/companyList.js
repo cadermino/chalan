@@ -15,6 +15,12 @@ export function normalize(text) {
 // Código del servicio "mudanza" en el catálogo (migración 022).
 export const MOVING_CODE = 'moving'
 
+// ¿Tiene marcada la mudanza, esté activa o no? Es lo que habilita los vehículos: una
+// empresa que solo embala o arma muebles no los usa.
+export function hasMovingService(company) {
+  return (company?.service_types || []).some((t) => t.code === MOVING_CODE)
+}
+
 // ¿La empresa hace mudanzas? Lo mismo que decide el API principal al avisar un pedido:
 // activa, con país y con el servicio "mudanza" marcado. Por eso no sale la etiqueta
 // "Mudanza" en una empresa inactiva aunque lo tenga marcado.

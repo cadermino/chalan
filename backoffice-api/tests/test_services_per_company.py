@@ -168,3 +168,23 @@ def test_dashboard_of_a_company_that_does_moves_is_unchanged(client, catalog, mo
 
     assert body['does_moves'] is True
     assert 'opportunities' in body
+
+
+# --- vehículos: solo para quien hace mudanzas -----------------------------------
+
+def test_a_company_without_moving_cannot_get_new_vehicles(client, catalog, superadmin):
+    company = make_company('Armadores SAC', 'furniture_assembly')
+
+    res = client.post(f'/api/carrier-companies/{company.id}/vehicles', json={'brand': 'Hyundai'},
+                      headers=superadmin)
+
+    assert res.status_code == 409
+
+
+def test_a_company_that_does_moves_can_add_vehicles(client, catalog, superadmin):
+    company = make_company('Mudanzas SAC', 'moving')
+
+    res = client.post(f'/api/carrier-companies/{company.id}/vehicles', json={'brand': 'Hyundai'},
+                      headers=superadmin)
+
+    assert res.status_code == 201

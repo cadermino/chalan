@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
+import { hasMovingService } from '../../lib/companyList'
 
 const SIZE_LABEL = { small: 'Pequeño', medium: 'Mediano', large: 'Grande' }
 
@@ -36,13 +37,24 @@ export default function VehiclesList() {
         <h1 className="text-2xl font-bold text-gray-900">
           Vehículos — <span className="text-teal-600">{company?.name ?? '…'}</span>
         </h1>
-        <Link
-          to={`/carrier-companies/${companyId}/vehicles/new`}
-          className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
-        >
-          + Nuevo vehículo
-        </Link>
+        {/* Se espera a tener la empresa para no mostrar el botón un instante a una que no hace mudanzas. */}
+        {company && hasMovingService(company) && (
+          <Link
+            to={`/carrier-companies/${companyId}/vehicles/new`}
+            className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          >
+            + Nuevo vehículo
+          </Link>
+        )}
       </div>
+
+      {company && !hasMovingService(company) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800">
+          Esta empresa no hace mudanzas, y los vehículos solo se usan para mudanzas. Si también las hace,
+          marca "Mudanzas y fletes" en{' '}
+          <Link to={`/carrier-companies/${companyId}/edit`} className="font-medium underline">sus servicios</Link>.
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="overflow-x-auto">

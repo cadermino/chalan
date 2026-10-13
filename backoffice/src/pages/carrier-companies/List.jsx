@@ -4,7 +4,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import {
-  filterCompanies, hasActiveFilters, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
+  filterCompanies, hasActiveFilters, hasMovingService, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
   serializeListState, serviceOptions, sortCompanies,
 } from '../../lib/companyList'
 
@@ -315,9 +315,12 @@ export default function CarrierCompaniesList() {
                       <Link to={`/carrier-companies/${c.id}/edit`} className="text-teal-600 hover:underline">
                         Editar
                       </Link>
-                      <Link to={`/carrier-companies/${c.id}/vehicles`} className="text-indigo-600 hover:underline">
-                        Vehículos
-                      </Link>
+                      {/* Los vehículos son de mudanzas: no se ofrecen a quien solo embala o arma. */}
+                      {hasMovingService(c) && (
+                        <Link to={`/carrier-companies/${c.id}/vehicles`} className="text-indigo-600 hover:underline">
+                          Vehículos
+                        </Link>
+                      )}
                       {canCreate && (
                         <button onClick={() => toggle(c)} className="text-gray-500 hover:underline">
                           {c.active ? 'Desactivar' : 'Activar'}
