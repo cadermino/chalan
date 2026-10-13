@@ -10,7 +10,8 @@ import jwt
 import pytest
 
 from app import db
-from app.models import Order, OrderCarrierDecline, ServiceRequestCarrierDecline
+from app.models import (CarrierCompanyServiceType, Order, OrderCarrierDecline,
+                        ServiceRequestCarrierDecline, ServiceType)
 from tests.test_service_requests import (SECRET, FakeResponse, admin, carrier_token,  # noqa: F401
                                          make_carrier, make_user, materials, packing, submitted)
 
@@ -30,7 +31,17 @@ def forwarded(monkeypatch):
 
 @pytest.fixture
 def carrier(app):
-    return make_carrier(name='Mudanzas SAC')
+    # Transportista de mudanzas: desde la migración 022 tiene que tener el
+    # servicio 'moving' para ver órdenes en el backoffice.
+    carrier = make_carrier(name='Mudanzas SAC')
+    moving = ServiceType.query.filter_by(code='moving').first()
+    if moving is None:
+        moving = ServiceType(code='moving', name='Mudanzas y fletes')
+        db.session.add(moving)
+        db.session.commit()
+    db.session.add(CarrierCompanyServiceType(carrier_company_id=carrier.id, service_type_id=moving.id))
+    db.session.commit()
+    return carrier
 
 
 @pytest.fixture

@@ -3,8 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
 import PasswordInput from '../../components/PasswordInput'
 import toast from 'react-hot-toast'
-
-const ROLES = ['superadmin', 'admin', 'carrier_company', 'real_estate_agent']
+import { ROLES, roleLabel } from '../../lib/roles'
 
 export default function UserForm() {
   const { id } = useParams()
@@ -129,12 +128,12 @@ export default function UserForm() {
             onChange={(e) => setForm({ ...form, role: e.target.value })}
             className="input"
           >
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            {ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
           </select>
         </Field>
 
         {form.role === 'carrier_company' && (
-          <Field label="Empresa transportista">
+          <Field label="Empresa">
             <select
               value={form.carrier_company_id}
               onChange={(e) => setForm({ ...form, carrier_company_id: e.target.value })}
@@ -144,7 +143,11 @@ export default function UserForm() {
               {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             {!form.carrier_company_id && !isEdit && (
-              <p className="text-xs text-gray-400 mt-1">Se creará una empresa y un vehículo en blanco vinculados a este usuario.</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Se creará una empresa y un vehículo en blanco vinculados a este usuario, con
+                "Mudanzas y fletes" marcado. Si la empresa no hace mudanzas (solo embalaje o
+                armado), créala antes desde Empresas con sus servicios y elígela acá.
+              </p>
             )}
           </Field>
         )}

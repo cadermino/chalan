@@ -166,6 +166,17 @@ class CarrierCompany(db.Model):
     # Todo lo que hace la empresa: 'moving', 'packing', 'furniture_assembly'.
     service_types = db.relationship('ServiceType', secondary='carrier_company_service_types')
 
+    def offers(self, code):
+        """¿La empresa tiene marcado este servicio (activo en el catálogo)?"""
+        return any(t.code == code and t.active for t in self.service_types)
+
+    @staticmethod
+    def does_moves_by_id(company_id):
+        """¿La empresa hace mudanzas? Para cortar lo de mudanzas a una empresa
+        que solo embala o arma; no mira si está activa."""
+        company = db.session.get(CarrierCompany, company_id) if company_id else None
+        return bool(company and company.offers(MOVING_SERVICE_CODE))
+
     @staticmethod
     def doing_moves():
         """Empresas activas con el servicio "mudanza": las que reciben órdenes

@@ -251,6 +251,28 @@ function AdminDashboard({ data }) {
   )
 }
 
+// Empresa que solo embala o arma muebles: todo el dashboard de transportista es
+// de mudanzas, así que en vez de mostrarlo en cero se explica qué hace y cómo
+// le llegan los pedidos (por correo y WhatsApp, con un enlace para cotizar).
+function NoMovesDashboard({ data }) {
+  const services = data.services || []
+  return (
+    <div className="bg-white rounded-xl shadow p-6 max-w-2xl">
+      <h2 className="text-lg font-semibold text-gray-900">Tu empresa no recibe mudanzas</h2>
+      <p className="text-sm text-gray-600 mt-2">
+        {services.length
+          ? <>Estás registrado para: <strong>{services.join(', ')}</strong>. </>
+          : 'Todavía no tienes servicios asignados. '}
+        Cuando llega una solicitud de tus servicios te avisamos por correo y WhatsApp, con un
+        enlace para ver los detalles y enviar tu cotización.
+      </p>
+      <p className="text-sm text-gray-500 mt-3">
+        ¿Falta algún servicio o también haces mudanzas? Escríbele al equipo de Chalán para que lo actualice.
+      </p>
+    </div>
+  )
+}
+
 function CarrierDashboard({ data }) {
   const { opportunities: op, performance, upcoming, rating } = data
   const p = performance.current
@@ -357,7 +379,11 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className={`transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}>
-          {data.role === 'carrier' ? <CarrierDashboard data={data} /> : <AdminDashboard data={data} />}
+          {data.role !== 'carrier'
+            ? <AdminDashboard data={data} />
+            : data.does_moves === false
+              ? <NoMovesDashboard data={data} />
+              : <CarrierDashboard data={data} />}
         </div>
       )}
     </div>

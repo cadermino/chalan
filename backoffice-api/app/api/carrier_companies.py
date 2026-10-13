@@ -48,7 +48,12 @@ def _users_by_company(company_ids):
 
 
 def _company_dict(company):
-    return {**company.to_dict(), 'service_type_ids': sorted(s.id for s in company.service_types)}
+    # Los códigos van además de los ids: el menú de la empresa decide qué mostrar
+    # según lo que hace (sin mudanza no hay "Órdenes" ni "Vehículos").
+    active_types = sorted((s for s in company.service_types if s.active), key=lambda s: s.id)
+    return {**company.to_dict(),
+            'service_type_ids': sorted(s.id for s in company.service_types),
+            'service_types': [s.to_dict() for s in active_types]}
 
 
 def _service_types_from(ids):

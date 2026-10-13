@@ -102,3 +102,69 @@ def test_service_types_say_which_ones_are_requestable(client, catalog, superadmi
 
     requestable = {t['code']: t['requestable'] for t in res.get_json()['service_types']}
     assert requestable == {'moving': False, 'packing': True, 'furniture_assembly': False}
+
+
+# --- lo que ve una empresa según lo que hace -----------------------------------
+
+def company_user(company, suffix):
+    return make_user('carrier_company', carrier_company_id=company.id, suffix=suffix)
+
+
+def test_company_detail_lists_its_service_codes(client, catalog):
+    company = make_company('Armadores SAC', 'furniture_assembly', 'packing')
+    headers = company_user(company, 'detalle')
+
+    res = client.get(f'/api/carrier-companies/{company.id}', headers=headers)
+
+    assert res.status_code == 200
+    codes = [t['code'] for t in res.get_json()['carrier_company']['service_types']]
+    assert codes == ['packing', 'furniture_assembly']
+
+
+def test_a_company_without_moving_cannot_see_moving_orders(client, catalog):
+    company = make_company('Armadores SAC', 'furniture_assembly')
+    headers = company_user(company, 'armador')
+    order = Order(order_status_id=1)
+    db.session.add(order)
+    db.session.commit()
+
+    assert client.get('/api/orders/pending', headers=headers).status_code == 403
+    assert client.get('/api/orders/my-orders', headers=headers).status_code == 403
+    assert client.get(f'/api/orders/{order.id}', headers=headers).status_code == 403
+
+
+def test_a_company_that_does_moves_still_sees_its_orders(client, catalog):
+    company = make_company('Mudanzas SAC', 'moving')
+    headers = company_user(company, 'mudanzas')
+
+    assert client.get('/api/orders/pending', headers=headers).status_code == 200
+    assert client.get('/api/orders/my-orders', headers=headers).status_code == 200
+
+
+def test_dashboard_of_a_company_without_moving_says_what_it_does(client, catalog):
+    company = make_company('Armadores SAC', 'furniture_assembly')
+    headers = company_user(company, 'dash')
+
+    body = client.get('/api/dashboard', headers=headers).get_json()
+
+    assert body['role'] == 'carrier'
+    assert body['does_moves'] is False
+    assert body['services'] == ['Armado y desarmado de muebles']
+    assert 'opportunities' not in body
+
+
+def test_dashboard_of_a_company_that_does_moves_is_unchanged(client, catalog, monkeypatch):
+    # Dos cosas del dashboard de mudanzas no corren en SQLite: el rendimiento usa
+    # percentile_cont (Postgres) y las reseñas leen `reviews`, tabla del API
+    # principal sin modelo acá. Lo que se prueba es que siga saliendo completo.
+    monkeypatch.setattr('app.api.dashboard._carrier_performance', lambda *args: {})
+    db.session.execute(db.text(
+        'CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, carrier_company_id INTEGER, rating INTEGER)'))
+    db.session.commit()
+    company = make_company('Mudanzas SAC', 'moving')
+    headers = company_user(company, 'dash-mov')
+
+    body = client.get('/api/dashboard', headers=headers).get_json()
+
+    assert body['does_moves'] is True
+    assert 'opportunities' in body

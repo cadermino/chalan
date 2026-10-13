@@ -1,9 +1,12 @@
 import { NavLink, Link, useNavigate, useMatch } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { roleLabel } from '../lib/roles'
+import { useCompanyServices } from '../hooks/useCompanyServices'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '🏠', roles: ['superadmin', 'admin', 'carrier_company'] },
-  { to: '/orders', label: 'Órdenes', icon: '📦', roles: ['superadmin', 'admin', 'carrier_company'] },
+  // needsMoves: solo para empresas que hacen mudanzas (admins siempre lo ven).
+  { to: '/orders', label: 'Órdenes', icon: '📦', roles: ['superadmin', 'admin', 'carrier_company'], needsMoves: true },
   { to: '/referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['real_estate_agent'] },
   { to: '/admin-referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['superadmin', 'admin'] },
   { to: '/service-requests', label: 'Embalajes', icon: '🧰', roles: ['superadmin', 'admin'] },
@@ -15,6 +18,11 @@ const navItems = [
 
 export default function Sidebar({ onClose }) {
   const { user, logout } = useAuth()
+  const { ready, doesMoves } = useCompanyServices()
+  // Mientras no se sabe qué hace la empresa no se muestra lo de mudanzas: es
+  // preferible que aparezca un instante tarde a que una empresa que solo arma
+  // muebles lo vea parpadear.
+  const showMoves = ready && doesMoves
   const navigate = useNavigate()
   const handleClose = onClose ?? (() => {})
 
@@ -29,12 +37,6 @@ export default function Sidebar({ onClose }) {
     navigate('/login')
   }
 
-  const roleLabel = {
-    superadmin: 'Super Admin',
-    admin: 'Admin',
-    carrier_company: 'Empresa',
-    real_estate_agent: 'Agente inmobiliario',
-  }
 
   return (
     <aside className="flex flex-col w-60 h-full bg-gray-900 text-white">
@@ -47,7 +49,7 @@ export default function Sidebar({ onClose }) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems
-          .filter((item) => item.roles.includes(user?.role))
+          .filter((item) => item.roles.includes(user?.role) && (!item.needsMoves || showMoves))
           .map((item) => (
             <div key={item.to}>
               <NavLink
@@ -85,7 +87,7 @@ export default function Sidebar({ onClose }) {
               )}
 
               {/* Vehicles submenu under Empresas */}
-              {item.to === '/carrier-companies' && (
+              {item.to === '/carrier-companies' && showMoves && (
                 <NavLink
                   to={
                     user?.role === 'carrier_company'
@@ -111,7 +113,7 @@ export default function Sidebar({ onClose }) {
 
       {/* User */}
       <div className="shrink-0 px-4 py-4 border-t border-gray-700">
-        <p className="text-xs text-gray-400">{roleLabel[user?.role]}</p>
+        <p className="text-xs text-gray-400">{roleLabel(user?.role)}</p>
         <p className="text-sm text-white truncate">{user?.email}</p>
         <div className="flex gap-3 mt-2">
           <Link

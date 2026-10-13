@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
+import { roleLabel } from '../../lib/roles'
 
 const ROLES = ['superadmin', 'admin', 'carrier_company']
 const roleBadge = {
@@ -69,7 +70,7 @@ export default function UsersList() {
                 <td className="px-4 py-3 text-gray-500">{u.dni || '—'}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleBadge[u.role]}`}>
-                    {u.role}
+                    {roleLabel(u.role)}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-gray-500">

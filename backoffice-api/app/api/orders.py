@@ -364,6 +364,18 @@ def _deposits_by_order(order_ids):
     return {r.order_id: {'amount': r.amount, 'status': r.status} for r in rows}
 
 
+def _carrier_without_moves(user):
+    """Respuesta 403 si es una empresa que no hace mudanzas, o None.
+
+    Las órdenes son mudanzas: una empresa que solo embala o arma muebles no las
+    recibe por aviso (get_carrier_companies) y tampoco las ve en el backoffice.
+    El menú ya no las muestra; esto cubre al que entra directo por la URL.
+    """
+    if user.role == ROLE_CARRIER and not CarrierCompany.does_moves_by_id(user.carrier_company_id):
+        return jsonify({'message': 'company does not do moves'}), 403
+    return None
+
+
 @api.route('/orders/pending', methods=['GET'])
 @login_required
 def list_pending_orders():
@@ -376,6 +388,9 @@ def list_pending_orders():
     with status_id=1 (pending/active) or no quotation at all (order_status_id=2 = sent).
     """
     user = g.current_user
+    denied = _carrier_without_moves(user)
+    if denied:
+        return denied
 
     if user.role == ROLE_CARRIER:
         company_id = user.carrier_company_id
@@ -531,6 +546,9 @@ def list_my_orders():
     user = g.current_user
     if user.role != ROLE_CARRIER:
         return jsonify({'message': 'carrier company access required'}), 403
+    denied = _carrier_without_moves(user)
+    if denied:
+        return denied
 
     # Orders where this carrier's quotation was selected (status 2) and order is in_progress (status 2)
     accepted_quotations = Quotation.query.filter_by(
@@ -767,6 +785,9 @@ def get_order(order_id):
     user = g.current_user
     if user.role not in (ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN):
         return jsonify({'message': 'forbidden'}), 403
+    denied = _carrier_without_moves(user)
+    if denied:
+        return denied
 
     company_id = user.carrier_company_id if user.role == ROLE_CARRIER else None
     is_admin = user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)

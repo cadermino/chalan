@@ -60,7 +60,7 @@ export default function App() {
           <Route
             path="orders"
             element={
-              <ProtectedRoute allowedRoles={['carrier_company', 'superadmin', 'admin']}>
+              <ProtectedRoute requiresMoves allowedRoles={['carrier_company', 'superadmin', 'admin']}>
                 <OrdersList />
               </ProtectedRoute>
             }
@@ -68,7 +68,7 @@ export default function App() {
           <Route
             path="orders/my-orders"
             element={
-              <ProtectedRoute allowedRoles={['carrier_company']}>
+              <ProtectedRoute requiresMoves allowedRoles={['carrier_company']}>
                 <MyOrders />
               </ProtectedRoute>
             }
@@ -84,7 +84,7 @@ export default function App() {
           <Route
             path="orders/:orderId"
             element={
-              <ProtectedRoute allowedRoles={['carrier_company', 'superadmin', 'admin']}>
+              <ProtectedRoute requiresMoves allowedRoles={['carrier_company', 'superadmin', 'admin']}>
                 <OrderDetail />
               </ProtectedRoute>
             }
@@ -154,9 +154,10 @@ export default function App() {
             }
           />
           <Route path="carrier-companies/:id/edit" element={<CarrierCompanyForm />} />
-          <Route path="carrier-companies/:companyId/vehicles" element={<VehiclesList />} />
-          <Route path="carrier-companies/:companyId/vehicles/new" element={<VehicleForm />} />
-          <Route path="carrier-companies/:companyId/vehicles/:vehicleId/edit" element={<VehicleForm />} />
+          {/* Los vehículos son de mudanzas: una empresa que solo embala o arma no los tiene. */}
+          <Route path="carrier-companies/:companyId/vehicles" element={<ProtectedRoute requiresMoves><VehiclesList /></ProtectedRoute>} />
+          <Route path="carrier-companies/:companyId/vehicles/new" element={<ProtectedRoute requiresMoves><VehicleForm /></ProtectedRoute>} />
+          <Route path="carrier-companies/:companyId/vehicles/:vehicleId/edit" element={<ProtectedRoute requiresMoves><VehicleForm /></ProtectedRoute>} />
 
           {/* Customers — superadmin and admin */}
           <Route

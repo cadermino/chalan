@@ -355,6 +355,16 @@ def _carrier_performance(company_id, start, end):
 
 def _carrier_dashboard(company_id):
     start, end, prev_start, days = _period_bounds()
+    company = db.session.get(CarrierCompany, company_id)
+    if not CarrierCompany.does_moves_by_id(company_id):
+        # Todo lo de abajo es de mudanzas. Para una empresa que solo embala o
+        # arma, en vez de números en cero se dice qué hace y cómo le llegan los pedidos.
+        return {
+            'role': 'carrier',
+            'days': days,
+            'does_moves': False,
+            'services': [t.name for t in company.service_types if t.active] if company else [],
+        }
     now = _now_utc()
     lima_now = _now_lima()
 
@@ -420,6 +430,7 @@ def _carrier_dashboard(company_id):
     return {
         'role': 'carrier',
         'days': days,
+        'does_moves': True,
         'opportunities': opportunities,
         'performance': {
             'current': _carrier_performance(company_id, start, end),
