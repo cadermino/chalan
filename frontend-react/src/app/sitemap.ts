@@ -16,7 +16,8 @@ const LAST_MODIFIED: Record<string, string> = {
   '/mudanzas-huancayo': '2026-07-22',
   '/fletes-peru': '2026-07-22',
   '/como-funciona': '2026-07-22',
-  '/embalaje-profesional': '2026-07-02',
+  '/embalaje-profesional': '2026-10-13',
+  '/armado-de-muebles': '2026-10-13',
   '/transportistas': '2026-08-06',
 };
 
@@ -112,6 +113,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/embalaje-profesional`,
       lastModified: LAST_MODIFIED['/embalaje-profesional'],
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/armado-de-muebles`,
+      lastModified: LAST_MODIFIED['/armado-de-muebles'],
       changeFrequency: 'monthly',
       priority: 0.8,
     },

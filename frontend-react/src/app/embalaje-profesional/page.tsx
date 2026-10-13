@@ -471,6 +471,13 @@ export default function EmbalajeProfesional() {
             >
               * Precio final según cantidad de objetos y materiales utilizados. Cotización sin compromiso.
             </p>
+            <p style={{ marginTop: 16, fontSize: 15, lineHeight: 1.6, color: 'var(--ink-soft)' }}>
+              ¿También hay que desarmar roperos, camas o muebles de cocina?{' '}
+              <Link href="/armado-de-muebles" style={{ color: 'var(--ink)', textDecoration: 'underline' }}>
+                Armado y desarmado de muebles
+              </Link>
+              .
+            </p>
           </div>
         </section>
 

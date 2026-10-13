@@ -530,6 +530,22 @@
   .chalan-landing .fleet-row.head { display: none; }
   .chalan-landing .col-hide { display: none; }
 }
+/* Variante de tabla de precios (armado de muebles): nivel con lo que incluye
+   debajo y el precio a la derecha. La descripción no se oculta en celular,
+   como col-hide, porque es la que dice qué entra en cada precio. */
+.chalan-landing .fleet-row.prices { grid-template-columns: 60px 1fr 170px; }
+.chalan-landing .fleet-row.prices .includes {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.chalan-landing .fleet-row.prices .price-from { text-align: right; }
+@media (max-width: 900px) {
+  .chalan-landing .fleet-row.prices { grid-template-columns: 28px 1fr auto; }
+}
 .chalan-landing .fleet-row .idx { font-family: var(--mono); font-size: 12px; color: var(--mute); }
 .chalan-landing .fleet-row .name {
   font-family: var(--serif);
