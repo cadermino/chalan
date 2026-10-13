@@ -1,7 +1,10 @@
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation,
+  createOrderViaApi, registerAndReturn, seedQuotation, cleanupSeededCarriers,
 } = require('./helpers');
+
+// Borra la empresa de prueba que dejó seedQuotation, aunque el test falle.
+test.afterEach(() => cleanupSeededCarriers());
 
 test.describe('Order Step Three - Quotations', () => {
   test('should require registration, then list a quotation and open the payment modal', async ({ page }) => {

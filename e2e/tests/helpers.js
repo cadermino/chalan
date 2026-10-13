@@ -182,10 +182,16 @@ async function registerAndReturn(page) {
   await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
 }
 
+// Empresas que creó seedQuotation en este proceso, para borrarlas al terminar
+// cada test. Sin esto cada corrida dejaba otra "E2E Test Carrier" en la base
+// local: llegaron a ser 160.
+const seededCarrierIds = [];
+
 /**
  * Seeds a carrier company + vehicle + quotation directly in Postgres so
  * step-three has a real quote to select, without going through the real
  * create_quotation endpoint (which sends live email/WhatsApp notifications).
+ * The company is deleted by cleanupSeededCarriers() (call it in afterEach).
  */
 function seedQuotation(orderId) {
   const sql = `
@@ -209,7 +215,34 @@ function seedQuotation(orderId) {
     `VALUES (450, ${orderId}, ${carrierId});"`,
   );
 
+  seededCarrierIds.push(Number(carrierId));
   return carrierId;
+}
+
+/**
+ * Borra las empresas que creó seedQuotation, con todo lo que cuelga de ellas
+ * (cotizaciones, vehículos, reseñas, rechazos, avisos), en una transacción.
+ * Las órdenes y clientes del test quedan: solo se limpia lo que creó el seed.
+ * Pensado para test.afterEach, que corre aunque el test falle.
+ */
+function cleanupSeededCarriers() {
+  if (!seededCarrierIds.length) return;
+  const ids = seededCarrierIds.splice(0).join(',');
+  const sql = [
+    'BEGIN',
+    `DELETE FROM service_request_quotations WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM service_request_notifications WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM service_request_carrier_declines WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM order_carrier_declines WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM reviews WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM quotations WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM vehicles WHERE carrier_company_id IN (${ids})`,
+    `DELETE FROM carrier_company WHERE id IN (${ids})`,
+    'COMMIT',
+  ].join('; ');
+  execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -v ON_ERROR_STOP=1 -qc "${sql};"`,
+  );
 }
 
 /**
@@ -478,6 +511,7 @@ module.exports = {
   createOrderViaApi,
   registerAndReturn,
   seedQuotation,
+  cleanupSeededCarriers,
   getPayments,
   getOrderStatusId,
   getQuotationId,

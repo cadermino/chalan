@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { execSync } = require('child_process');
-const { mockGooglePlaces, selectMockAddress, seedQuotation } = require('./helpers');
+const { mockGooglePlaces, selectMockAddress, seedQuotation, cleanupSeededCarriers } = require('./helpers');
 
 const FROM_ADDRESS = {
   formattedAddress: 'Av. Javier Prado Este 4600, Santiago de Surco, Lima, Perú',
@@ -52,6 +52,9 @@ async function seedBasementOrder(page) {
 
   return { orderId, token };
 }
+
+// Borra la empresa de prueba que dejó seedQuotation, aunque el test falle.
+test.afterEach(() => cleanupSeededCarriers());
 
 test.describe('Basement floors', () => {
   test.beforeEach(async ({ page }) => {

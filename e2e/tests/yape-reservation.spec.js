@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation, getPayments, getOrderStatusId,
+  createOrderViaApi, registerAndReturn, seedQuotation, cleanupSeededCarriers, getPayments, getOrderStatusId,
   getQuotationId, ORDER_STATUS, uniqueOperationNumber, confirmReservationAsAdmin,
 } = require('./helpers');
 
@@ -25,6 +25,9 @@ async function openPaymentModal(page) {
   await expect(page.locator('text=Confirma tu mudanza')).toBeVisible({ timeout: 15000 });
   return { orderId, carrierId };
 }
+
+// Borra la empresa de prueba que dejó seedQuotation, aunque el test falle.
+test.afterEach(() => cleanupSeededCarriers());
 
 test.describe('Yape reservation required to book', () => {
   test('should ask for the reservation and not book without an operation number', async ({ page }) => {

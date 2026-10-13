@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation, getPayments, uniqueOperationNumber,
+  createOrderViaApi, registerAndReturn, seedQuotation, cleanupSeededCarriers, getPayments, uniqueOperationNumber,
 } = require('./helpers');
 
 // seedQuotation inserta una cotización de 450 y .env.dev tiene
@@ -16,6 +16,9 @@ const EXPECTED_TOTAL = Math.round(RAW_QUOTATION * (1 + PLATFORM_FEE) * 100) / 10
 // así que agendar exige yapear la reserva e informar su número de operación.
 // El flujo de la reserva (verificación del admin, número repetido, página del
 // transportista) está en yape-reservation.spec.js.
+// Borra la empresa de prueba que dejó seedQuotation, aunque el test falle.
+test.afterEach(() => cleanupSeededCarriers());
+
 test.describe('Checkout via the Step-three payment modal', () => {
   test('should book with the Yape reservation and cash for the rest', async ({ page }) => {
     // The modal lives on step-three; step-one/step-two UI is covered by
