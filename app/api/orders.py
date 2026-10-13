@@ -7,6 +7,8 @@ from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, R
 from ..models import Payment as PaymentModel
 from ..models import Quotations as QuotationsModel
 from ..models import CarrierCompanySchema, QuotationsSchema
+from ..models import CarrierCompany as CarrierCompanyModel
+from ..models import CarrierCompanyServiceType, ServiceType, MOVING_SERVICE_CODE
 from . import api
 from .decorators import (token_required, carrier_company_token_required,
                          authenticated_customer, is_internal_request)
@@ -608,10 +610,23 @@ def send_email_to_carrier_companies(order_id, order_data):
     return emails_sent
 
 def get_carrier_companies():
-    carrier_companies = CarrierCompanyEntity.get({
-        'country_id': int(os.getenv('COUNTRY_ID')),
-        'active': 1
-    })
+    """Empresas a las que se avisa una orden de mudanza: activas, del país y con
+    el servicio "mudanza" marcado. Antes bastaba con activa y del país, y una
+    empresa que solo embala o solo arma muebles recibía todas las mudanzas.
+    """
+    carrier_companies = (
+        CarrierCompanyModel.query
+        .join(CarrierCompanyServiceType,
+              CarrierCompanyServiceType.carrier_company_id == CarrierCompanyModel.id)
+        .join(ServiceType, ServiceType.id == CarrierCompanyServiceType.service_type_id)
+        .filter(
+            CarrierCompanyModel.country_id == int(os.getenv('COUNTRY_ID')),
+            CarrierCompanyModel.active == 1,
+            ServiceType.code == MOVING_SERVICE_CODE,
+            ServiceType.active == 1,
+        )
+        .all()
+    )
     return CarrierCompanySchema(many=True).dump(carrier_companies)
 
 

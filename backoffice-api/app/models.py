@@ -44,6 +44,10 @@ ROLE_CARRIER = 'carrier_company'
 ROLE_REAL_ESTATE = 'real_estate_agent'
 ALL_ROLES = (ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE)
 
+# Código del tipo "mudanza" en lu_service_types (migración 022). Las órdenes de
+# mudanza tienen su propio flujo; este tipo solo dice qué empresas las reciben.
+MOVING_SERVICE_CODE = 'moving'
+
 
 class AdminUser(db.Model):
     __tablename__ = 'admin_users'
@@ -159,8 +163,23 @@ class CarrierCompany(db.Model):
 
     vehicles = db.relationship('Vehicle', backref='carrier_company', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='carrier_company', lazy='dynamic')
-    # Servicios sueltos (no mudanza) que la empresa ofrece, p. ej. 'packing'.
+    # Todo lo que hace la empresa: 'moving', 'packing', 'furniture_assembly'.
     service_types = db.relationship('ServiceType', secondary='carrier_company_service_types')
+
+    @staticmethod
+    def doing_moves():
+        """Empresas activas con el servicio "mudanza": las que reciben órdenes
+        de mudanza. Mismo criterio que get_carrier_companies() del API principal
+        (que además filtra por país)."""
+        return (
+            CarrierCompany.query
+            .join(CarrierCompanyServiceType,
+                  CarrierCompanyServiceType.carrier_company_id == CarrierCompany.id)
+            .join(ServiceType, ServiceType.id == CarrierCompanyServiceType.service_type_id)
+            .filter(CarrierCompany.active == 1,
+                    ServiceType.code == MOVING_SERVICE_CODE,
+                    ServiceType.active == 1)
+        )
 
     def to_dict(self):
         return {
@@ -466,7 +485,11 @@ class ReferredOrder(db.Model):
 
 
 class ServiceType(db.Model):
-    """Espejo de `lu_service_types`: servicios que se piden fuera de una mudanza."""
+    """Espejo de `lu_service_types`: lo que hace cada empresa, mudanza incluida.
+
+    `requestable` marca los que se piden con el formulario de solicitudes; la
+    mudanza no, porque se pide por el flujo de órdenes.
+    """
     __tablename__ = 'lu_service_types'
     __table_args__ = {'extend_existing': True}
 
@@ -474,9 +497,11 @@ class ServiceType(db.Model):
     code = db.Column(db.String(30), nullable=False)
     name = db.Column(db.String(60), nullable=False)
     active = db.Column(db.SmallInteger, nullable=False, server_default='1')
+    requestable = db.Column(db.SmallInteger, nullable=False, server_default='0')
 
     def to_dict(self):
-        return {'id': self.id, 'code': self.code, 'name': self.name}
+        return {'id': self.id, 'code': self.code, 'name': self.name,
+                'requestable': bool(self.requestable)}
 
 
 class ServiceMaterial(db.Model):

@@ -3,7 +3,7 @@ from flask import request, jsonify, g
 from . import api
 from .decorators import login_required, admin_required
 from ..models import (AdminUser, CarrierCompany, CarrierCompanyServiceType, ServiceType,
-                      ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN)
+                      ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, MOVING_SERVICE_CODE)
 from .. import db
 
 
@@ -52,7 +52,7 @@ def _company_dict(company):
 
 
 def _service_types_from(ids):
-    """Servicios sueltos (no mudanza) que ofrece la empresa. Devuelve (tipos, error).
+    """Servicios que ofrece la empresa, mudanza incluida. Devuelve (tipos, error).
 
     Solo un admin los marca: Chalán decide quién embala bien, no la propia empresa.
     """
@@ -65,7 +65,7 @@ def _service_types_from(ids):
 
 
 def _service_types_by_company(company_ids):
-    """Servicios sueltos (no mudanza) que ofrece cada empresa, en una sola consulta.
+    """Servicios que ofrece cada empresa (mudanza incluida), en una sola consulta.
 
     La lista los muestra en una columna; pedirlos empresa por empresa seria una
     consulta por fila. Solo los tipos activos: uno dado de baja ya no se ofrece.
@@ -146,6 +146,11 @@ def create_carrier_company():
         if error:
             return jsonify({'message': error}), 400
         company.service_types = types
+    else:
+        # Sin servicios explícitos, mudanza: es lo que hace una empresa salvo
+        # que el admin diga otra cosa, y una empresa sin ella no recibe órdenes.
+        moving = ServiceType.query.filter_by(code=MOVING_SERVICE_CODE, active=1).first()
+        company.service_types = [moving] if moving else []
     db.session.add(company)
     db.session.commit()
     return jsonify({'carrier_company': _company_dict(company)}), 201

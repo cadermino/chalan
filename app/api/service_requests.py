@@ -38,10 +38,14 @@ def _message(text, status):
 
 
 def _get_service_type(code):
-    """Active service type of the catalog that this code knows how to validate."""
+    """Active, requestable service type that this code knows how to validate.
+
+    The catalog also lists what a company does (moving among them), and not all
+    of that is asked for through a request form: `requestable` says which is.
+    """
     if code not in SERVICE_TYPES:
         return None
-    return ServiceType.query.filter_by(code=code, active=1).first()
+    return ServiceType.query.filter_by(code=code, active=1, requestable=1).first()
 
 
 def _find_request(public_id, for_update=False):

@@ -23,7 +23,15 @@ export default function CarrierCompanyForm() {
 
   useEffect(() => {
     if (isAdmin) {
-      client.get('/api/service-types').then(({ data }) => setServiceTypes(data.service_types))
+      client.get('/api/service-types').then(({ data }) => {
+        setServiceTypes(data.service_types)
+        // Una empresa nueva arranca con "mudanza" marcada: es lo que hace casi
+        // toda empresa, y una sin ella no recibe ninguna orden de mudanza.
+        if (!isEdit) {
+          const moving = data.service_types.filter((t) => t.code === 'moving').map((t) => t.id)
+          setForm((f) => (f.service_type_ids.length ? f : { ...f, service_type_ids: moving }))
+        }
+      })
     }
     if (isEdit) {
       client.get(`/api/carrier-companies/${id}`).then(({ data }) => {
@@ -126,7 +134,7 @@ export default function CarrierCompanyForm() {
                 ))}
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                Las mudanzas llegan a todas las empresas activas. Esto marca quién recibe las solicitudes de estos otros servicios.
+                Marca todo lo que hace la empresa. Solo las que tienen la mudanza marcada reciben órdenes de mudanza; los demás servicios, sus solicitudes.
               </p>
             </Field>
           )}

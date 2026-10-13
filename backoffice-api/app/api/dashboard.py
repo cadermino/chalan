@@ -167,7 +167,8 @@ def _supply(start, end):
     )
 
     return {
-        'active_carriers': CarrierCompany.query.filter_by(active=1).count(),
+        # Las que reciben mudanzas: una que solo embala no cotiza órdenes.
+        'active_carriers': CarrierCompany.doing_moves().count(),
         'quoting_carriers': db.session.query(
             db.func.count(db.distinct(Quotation.carrier_company_id))
         ).filter(Quotation.created_date >= start, Quotation.created_date < end).scalar(),

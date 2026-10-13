@@ -213,7 +213,7 @@ Admins can generate quotation links per carrier company from any order detail pa
 ### Flow
 1. Admin opens an order detail (`/orders/:id`) in the backoffice
 2. The page calls `GET /backoffice-api/api/orders/:id/quotation-links` (admin/superadmin only)
-3. The API returns all active carrier companies with a signed JWT token per company
+3. The API returns the active carrier companies that offer moving (see Services per Company) with a signed JWT token per company
 4. The frontend builds the URL as `{window.location.origin}/quotation/{token}` — domain is relative to the current environment
 5. Admin copies the link and sends it to the carrier company manually
 
@@ -229,6 +229,15 @@ JWT signed with `SECRET_KEY`, payload: `{ carrier_company_id, order_id, exp (10 
 Migrations live in `migrations/versions/` and follow sequential numbering (`001_`, `002_`, etc.). They run inside the `flask` container. The backoffice-api does NOT have its own migrations — all schema changes go through the main API's Alembic setup since both apps share the same database.
 
 When writing migrations for tables that may already exist (e.g., created manually or by another process), use raw SQL with `IF NOT EXISTS` instead of `op.create_table()` to avoid `DuplicateTable` errors.
+
+## Services per Company
+
+What a carrier company does lives in `carrier_company_service_types` ↔ `lu_service_types` (migration 022): `moving` (Mudanzas y fletes), `packing` (Embalaje), `furniture_assembly` (Armado y desarmado de muebles). Admins tick them in the backoffice company form/list; companies cannot change their own.
+
+- **Moving is a capability, not a request flow.** Moving orders keep their own tables and flow; the `moving` type only decides who gets them. New-order notifications (`get_carrier_companies()` in `app/api/orders.py`), quotation links and the dashboard's carrier count only include active companies with `moving`. Before 022 every active company with a country got every move.
+- **New companies are born with `moving`** (`create_blank_company_and_vehicle` for sign-ups; admin create when no `service_type_ids` is sent; the admin form pre-ticks it). A company without it receives no moving orders and nothing warns.
+- **`requestable`** marks types asked for through the service-request form (services-web, backoffice "new request"). Only `packing` today. The main API also requires the code in `SERVICE_TYPES` (`app/api/service_request/types.py`). `moving` is never requestable; `furniture_assembly` becomes requestable when its form ships.
+- `furniture_assembly` is not `lu_services.assembly`/`disassembly`: those are extras inside a moving order.
 
 ## Carrier Declines
 

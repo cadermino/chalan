@@ -74,7 +74,9 @@ def storage(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def catalog(app):
-    packing = ServiceType(code='packing', name='Embalaje')
+    # Embalaje se pide con el formulario (requestable); limpieza está en el
+    # catálogo pero ni se pide ni hay código que la valide.
+    packing = ServiceType(code='packing', name='Embalaje', requestable=1)
     cleaning = ServiceType(code='cleaning', name='Limpieza')
     db.session.add_all([packing, cleaning])
     db.session.commit()
@@ -168,6 +170,29 @@ def test_create_with_full_address_returns_public_id(client):
 def test_create_with_unknown_service_type_is_rejected(client):
     # 'cleaning' is in the catalog but nothing knows how to validate it yet.
     response = client.post('/api/v1/service-requests', json={'service_type': 'cleaning', 'address': ADDRESS})
+
+    assert response.status_code == 400
+
+
+def test_moving_is_in_the_catalog_but_cannot_be_requested(client):
+    # Desde la migración 022 la mudanza es un servicio más de las empresas, pero
+    # se pide por el flujo de órdenes, nunca con el formulario de solicitudes.
+    db.session.add(ServiceType(code='moving', name='Mudanzas y fletes'))
+    db.session.commit()
+
+    response = client.post('/api/v1/service-requests', json={'service_type': 'moving', 'address': ADDRESS})
+
+    assert response.status_code == 400
+    assert client.get('/api/v1/service-types/moving/materials').status_code == 404
+
+
+def test_a_type_with_a_validator_is_not_requestable_until_it_is_enabled(client, catalog):
+    # Que exista el código no basta: hasta que el catálogo lo marque como
+    # requestable, el formulario público no lo acepta.
+    catalog.requestable = 0
+    db.session.commit()
+
+    response = client.post('/api/v1/service-requests', json={'service_type': 'packing', 'address': ADDRESS})
 
     assert response.status_code == 400
 

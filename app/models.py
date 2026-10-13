@@ -247,13 +247,23 @@ class OrderImage(db.Model):
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
+# Codigo del tipo de servicio "mudanza" en lu_service_types. Las ordenes de
+# mudanza tienen su propio flujo; este tipo solo dice que empresas las reciben.
+MOVING_SERVICE_CODE = 'moving'
+
 class ServiceType(db.Model):
-	"""Catalogo de servicios que se piden fuera de una mudanza ('packing', ...)."""
+	"""Catalogo de lo que hace cada empresa: 'moving', 'packing', 'furniture_assembly'.
+
+	Solo los `requestable` se piden con el formulario de solicitudes (y ademas
+	tienen que estar en SERVICE_TYPES). La mudanza esta en el catalogo como
+	capacidad de una empresa, pero se pide por el flujo de ordenes.
+	"""
 	__tablename__ = 'lu_service_types'
 	id = db.Column(db.Integer, primary_key=True)
 	code = db.Column(db.String(30), nullable=False, unique=True)
 	name = db.Column(db.String(60), nullable=False)
 	active = db.Column(db.SmallInteger, nullable=False, server_default='1')
+	requestable = db.Column(db.SmallInteger, nullable=False, server_default='0')
 
 class ServiceMaterial(db.Model):
 	"""Material que se puede marcar en un item (carton, film, ...), por tipo de servicio."""
@@ -329,7 +339,7 @@ class ServiceRequestMedia(db.Model):
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 class CarrierCompanyServiceType(db.Model):
-	"""Que servicios suelto ofrece cada transportista; lo marca un admin."""
+	"""Que servicios ofrece cada empresa (mudanza incluida); lo marca un admin."""
 	__tablename__ = 'carrier_company_service_types'
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), primary_key=True)
 	service_type_id = db.Column(db.Integer, db.ForeignKey('lu_service_types.id', ondelete='CASCADE'), primary_key=True)

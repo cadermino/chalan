@@ -8,7 +8,8 @@ from app.api.order import Order as OrderEntity
 from app.api.order.steps.addresses import Addresses as AddressesStep
 from app.api.orders import send_email_to_carrier_companies
 from app.api.order.order_status import OrderStatus
-from app.models import LuServices, Order, OrdersServices, Payment, PaymentType, Quotations
+from app.models import (CarrierCompanyServiceType, LuServices, Order, OrdersServices, Payment,
+                        PaymentType, Quotations, ServiceType)
 
 
 ORIGIN = {
@@ -106,7 +107,36 @@ def _make_belongings_complete(order_id):
     db.session.commit()
 
 
+def _offers_moving(company):
+    # Desde la migración 022 una empresa recibe mudanzas solo si tiene el
+    # servicio 'moving' marcado; antes bastaba con estar activa y en el país.
+    moving = ServiceType.query.filter_by(code='moving').first()
+    if moving is None:
+        moving = ServiceType(code='moving', name='Mudanzas y fletes')
+        db.session.add(moving)
+        db.session.commit()
+    db.session.add(CarrierCompanyServiceType(carrier_company_id=company.id, service_type_id=moving.id))
+    db.session.commit()
+
+
 def test_request_quotation_notifies_active_carrier_in_same_country(client, customer, carrier_company, monkeypatch):
+    monkeypatch.setenv('COUNTRY_ID', '2')
+    carrier_company.country_id = 2
+    carrier_company.email = 'carrier@example.com'
+    db.session.commit()
+    _offers_moving(carrier_company)
+
+    order_id = _create_order(client, customer)
+    _make_belongings_complete(order_id)
+
+    emails_sent = send_email_to_carrier_companies(order_id, {'requestQuotationFromCarrierCompany': True})
+
+    assert emails_sent == [carrier_company.id]
+
+
+def test_active_carrier_without_the_moving_service_is_not_notified(client, customer, carrier_company, monkeypatch):
+    # Una empresa que solo embala o solo arma muebles, activa y en el país, no
+    # recibe órdenes de mudanza.
     monkeypatch.setenv('COUNTRY_ID', '2')
     carrier_company.country_id = 2
     carrier_company.email = 'carrier@example.com'
@@ -117,7 +147,7 @@ def test_request_quotation_notifies_active_carrier_in_same_country(client, custo
 
     emails_sent = send_email_to_carrier_companies(order_id, {'requestQuotationFromCarrierCompany': True})
 
-    assert emails_sent == [carrier_company.id]
+    assert emails_sent == []
 
 
 def test_carrier_with_no_country_id_is_never_notified(client, customer, carrier_company, monkeypatch):
@@ -127,6 +157,7 @@ def test_carrier_with_no_country_id_is_never_notified(client, customer, carrier_
     monkeypatch.setenv('COUNTRY_ID', '2')
     carrier_company.country_id = None  # simulates the pre-fix self-registration bug
     db.session.commit()
+    _offers_moving(carrier_company)  # so the missing country is the only reason it is left out
 
     order_id = _create_order(client, customer)
     _make_belongings_complete(order_id)

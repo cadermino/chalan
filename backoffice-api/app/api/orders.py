@@ -1139,7 +1139,7 @@ def get_quotation_links(order_id):
     if order is None:
         return jsonify({'message': 'order not found'}), 404
 
-    companies = CarrierCompany.query.filter_by(active=1).order_by(CarrierCompany.name).all()
+    companies = CarrierCompany.doing_moves().order_by(CarrierCompany.name).all()
 
     result = []
     for company in companies:

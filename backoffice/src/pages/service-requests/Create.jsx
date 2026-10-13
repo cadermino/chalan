@@ -58,8 +58,11 @@ export default function ServiceRequestCreate() {
 
   useEffect(() => {
     client.get('/api/service-types').then(({ data }) => {
-      setServiceTypes(data.service_types)
-      if (data.service_types.length === 1) setServiceCode(data.service_types[0].code)
+      // Solo los que se piden con este formulario: la mudanza está en el catálogo
+      // como servicio de las empresas, pero se pide por el flujo de órdenes.
+      const requestable = data.service_types.filter((t) => t.requestable)
+      setServiceTypes(requestable)
+      if (requestable.length === 1) setServiceCode(requestable[0].code)
     })
   }, [])
 

@@ -1,6 +1,6 @@
 import os
 
-from .models import CarrierCompany, Vehicle
+from .models import CarrierCompany, ServiceType, Vehicle, MOVING_SERVICE_CODE
 from . import db
 
 
@@ -36,6 +36,12 @@ def create_blank_company_and_vehicle(email='', phone='', person_name=''):
         address='', active=0,
         country_id=int(country_id) if country_id else None,
     )
+    # Nace con "mudanza": quien se registra desde la landing de transportistas
+    # viene a recibir mudanzas. Sin esto, con el filtro de la migración 022, las
+    # empresas nuevas no recibirían ninguna orden y nada lo avisaría.
+    moving = ServiceType.query.filter_by(code=MOVING_SERVICE_CODE, active=1).first()
+    if moving is not None:
+        company.service_types = [moving]
     db.session.add(company)
     db.session.flush()  # get company.id before the outer commit
     vehicle = Vehicle(carrier_company_id=company.id, active=0)

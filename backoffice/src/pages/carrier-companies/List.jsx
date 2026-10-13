@@ -4,7 +4,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import {
-  filterCompanies, hasActiveFilters, isPendingApproval, offersMoves, parseListState,
+  filterCompanies, hasActiveFilters, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
   serializeListState, serviceOptions, sortCompanies,
 } from '../../lib/companyList'
 
@@ -272,7 +272,7 @@ export default function CarrierCompaniesList() {
                             {t.name}
                           </label>
                         ))}
-                        <p className="text-xs text-gray-400">La mudanza la reciben todas las empresas activas con país.</p>
+                        <p className="text-xs text-gray-400">Las órdenes de mudanza solo llegan a empresas activas, con país y con la mudanza marcada.</p>
                         <button type="button" onClick={() => setEditingId(null)} className="text-xs text-teal-600 hover:underline">
                           Listo
                         </button>
@@ -282,7 +282,7 @@ export default function CarrierCompaniesList() {
                         {offersMoves(c) && (
                           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">Mudanza</span>
                         )}
-                        {(c.service_types || []).map((t) => (
+                        {(c.service_types || []).filter((t) => t.code !== MOVING_CODE).map((t) => (
                           <span key={t.id} className="rounded-full bg-teal-50 px-2 py-0.5 text-xs text-teal-800">{t.name}</span>
                         ))}
                         {!offersMoves(c) && !(c.service_types || []).length && <span className="text-gray-400">—</span>}

@@ -12,10 +12,17 @@ export function normalize(text) {
     .trim()
 }
 
+// Código del servicio "mudanza" en el catálogo (migración 022).
+export const MOVING_CODE = 'moving'
+
 // ¿La empresa hace mudanzas? Lo mismo que decide el API principal al avisar un pedido:
-// activa y con país. Por eso no sale una etiqueta "Mudanza" en una empresa inactiva.
+// activa, con país y con el servicio "mudanza" marcado. Por eso no sale la etiqueta
+// "Mudanza" en una empresa inactiva aunque lo tenga marcado.
 export function offersMoves(company) {
-  return Boolean(company.active && company.country_id)
+  return Boolean(
+    company.active && company.country_id
+    && (company.service_types || []).some((t) => t.code === MOVING_CODE),
+  )
 }
 
 // Todo lo que se puede buscar de una empresa, ya normalizado. El usuario cuenta: una
@@ -90,7 +97,10 @@ export function hasService(company, code) {
 // ofrece de verdad (uno que nadie hace solo daría una lista vacía).
 export function serviceOptions(companies) {
   const types = new Map()
-  companies.forEach((c) => (c.service_types || []).forEach((t) => types.set(t.code, t.name)))
+  // La mudanza ya va primero como MOVES (con su regla de activa y con país).
+  companies.forEach((c) => (c.service_types || [])
+    .filter((t) => t.code !== MOVING_CODE)
+    .forEach((t) => types.set(t.code, t.name)))
   return [
     { code: MOVES, name: 'Mudanza' },
     ...[...types.entries()]
