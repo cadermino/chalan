@@ -15,6 +15,8 @@ CARD = {
     'passengers': 2, 'serial_number': 'KN2DAM881NK005822', 'registry_entry': '50077971',
     'gross_weight_tons': '3.490', 'net_weight_tons': '2.390', 'payload_tons': '1.100',
     'vehicle_length_m': '5.70', 'vehicle_width_m': '1.93', 'vehicle_height_m': '2.80',
+    # Inscrito como furgón, pero hoy con barandas: lo que ve el cliente es esto.
+    'cargo_cover': 'abierta',
 }
 
 
@@ -37,6 +39,8 @@ def test_card_fields_are_saved_and_returned(client, company, superadmin):  # noq
     assert vehicle['gross_weight_tons'] == 3.49
     assert vehicle['vehicle_length_m'] == 5.7
     assert vehicle['manufacture_year'] == 1992
+    assert vehicle['body_type'] == 'furgon'
+    assert vehicle['cargo_cover'] == 'abierta'
     assert vehicle['box_length_m'] is None
 
 
@@ -46,6 +50,7 @@ def test_card_fields_are_saved_and_returned(client, company, superadmin):  # noq
     ('payload_tons', '0'),
     ('payload_tons', 'dos'),
     ('body_type', 'camion'),
+    ('cargo_cover', 'refrigerada'),
     ('manufacture_year', '92'),
     ('passengers', '1.5'),
     ('color', 'x' * 31),

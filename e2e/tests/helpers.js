@@ -206,8 +206,8 @@ function seedQuotation(orderId) {
   execSync(
     `docker exec chalan-db-1 psql -U chalan_user -d chalan -c "` +
     `INSERT INTO vehicles (carrier_company_id, size, weight, brand, model, active, ` +
-    `body_type, manufacture_year, payload_tons) ` +
-    `VALUES (${carrierId}, 'medium', '1000', 'Hyundai', 'H100', 1, 'furgon', 2018, 1.1);"`,
+    `body_type, cargo_cover, manufacture_year, payload_tons) ` +
+    `VALUES (${carrierId}, 'medium', '1000', 'Hyundai', 'H100', 1, 'furgon', 'abierta', 2018, 1.1);"`,
   );
 
   execSync(

@@ -21,12 +21,15 @@ def list_all_vehicles():
     return jsonify({'vehicles': result}), 200
 
 
-# Carrocería, tal como la nombra la tarjeta SUNARP. Lo que importa en una
-# mudanza es si la carga va cerrada (furgón) o al aire (baranda, plataforma).
+# Carrocería, tal como la inscribió SUNARP. No dice cómo está el camión hoy:
+# un furgón inscrito puede tener barandas. Para eso está CARGO_COVERS.
 BODY_TYPES = ('furgon', 'baranda', 'plataforma', 'pick_up', 'otro')
 
+# Cómo viaja la carga, visto en fotos del camión. Es lo que ve el cliente.
+CARGO_COVERS = ('cerrada', 'toldo', 'abierta')
+
 TEXT_LIMITS = {'category': 10, 'body_type': 20, 'color': 30,
-               'serial_number': 30, 'registry_entry': 20}
+               'serial_number': 30, 'registry_entry': 20, 'cargo_cover': 10}
 
 # Topes generosos, pero que atajan a quien escribe kg en un campo de toneladas
 # (1100 en vez de 1.100) o cm en uno de metros.
@@ -39,7 +42,7 @@ def _blank(value):
 
 
 def _parse_card_fields(data):
-    """Valida los datos de la tarjeta que vengan en `data`.
+    """Valida los datos de la tarjeta (y cargo_cover) que vengan en `data`.
 
     Devuelve (valores, error). Solo incluye las llaves presentes, para que un
     PUT parcial no borre lo demás; un valor vacío las deja en NULL.
@@ -61,6 +64,8 @@ def _parse_card_fields(data):
         values['category'] = values['category'].upper()
     if values.get('body_type') and values['body_type'] not in BODY_TYPES:
         return None, 'invalid body_type'
+    if values.get('cargo_cover') and values['cargo_cover'] not in CARGO_COVERS:
+        return None, 'invalid cargo_cover'
 
     int_ranges = {'manufacture_year': (1950, date.today().year + 1), 'passengers': (0, 20)}
     for field, (low, high) in int_ranges.items():

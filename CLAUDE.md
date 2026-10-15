@@ -255,6 +255,7 @@ Migration 023 added the "Datos del Vehículo" block of the Peruvian Tarjeta de I
 
 - **Weights are in tons with three decimals**, exactly as the card prints them (`gross_weight_tons`, `net_weight_tons`, `payload_tons`). Caps (60 t, 25 m) reject kg or cm typed into the wrong field.
 - `vehicle_*_m` are the outside dimensions from the card; `box_*_m` are the cargo box, given by the carrier. Don't mix them.
-- `body_type` is one of `furgon`, `baranda`, `plataforma`, `pick_up`, `otro`.
+- `body_type` is one of `furgon`, `baranda`, `plataforma`, `pick_up`, `otro`: what the vehicle was **registered** as. It is not shown to customers, because trucks get rebodied (the first one filled in is a registered furgón with open slatted sides).
+- `cargo_cover` (migration 024) is what customers see: `cerrada`, `toldo` or `abierta`, set from photos of the truck, not from the card. No cold chain value on purpose.
 - `category`, `serial_number`, `registry_entry` are for checking the vehicle against SUNARP, not shown to customers.
-- The old free-text `weight`, `width`, `height`, `length` columns hold mixed units and meanings in production ("2TN", "3.4", "172CM", "6.15"), so nothing was migrated from them. The quotation card (Vue `Step-three.vue`) shows `payload_tons` and falls back to the raw `weight` text; the backoffice form shows the old values as a reference. Drop them once every active vehicle has card data.
+- The old free-text `weight`, `width`, `height`, `length` columns hold mixed units and meanings in production ("2TN", "3.4", "172CM", "6.15"), so nothing was migrated from them. The quotation card (Vue `Step-three.vue`) shows `cargo_cover`, year and `payload_tons` (in kg), and falls back to the raw `weight` text; the backoffice form shows the old values as a reference. Drop them once every active vehicle has card data.

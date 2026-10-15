@@ -23,7 +23,10 @@ test.describe('Order Step Three - Quotations', () => {
     await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
     // Los datos de la tarjeta SUNARP: la carga útil va en toneladas en la base
     // y el cliente la ve en kg; el weight viejo ("1000") ya no se muestra.
-    await expect(page.locator('text=Furgón (carga cerrada)')).toBeVisible();
+    // El vehículo está inscrito como furgón pero tiene barandas: el cliente ve
+    // cargo_cover, nunca la carrocería de la tarjeta.
+    await expect(page.locator('li', { hasText: /^\s*Carga:/ })).toContainText('Abierta (sin techo)');
+    await expect(page.locator('text=Furgón')).toHaveCount(0);
     await expect(page.locator('li', { hasText: 'Capacidad de carga' })).toContainText('1,100 kg');
     await expect(page.locator('li', { hasText: 'Año' })).toContainText('2018');
 

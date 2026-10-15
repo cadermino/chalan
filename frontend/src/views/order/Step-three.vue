@@ -72,8 +72,8 @@
                       <li><span>Modelo:</span>
                         <span class="font-bold"> {{ quotation.model }}</span>
                       </li>
-                      <li v-if="bodyTypeLabel(quotation.body_type)"><span>Carrocería:</span>
-                        <span class="font-bold"> {{ bodyTypeLabel(quotation.body_type) }}</span>
+                      <li v-if="cargoCoverLabel(quotation.cargo_cover)"><span>Carga:</span>
+                        <span class="font-bold"> {{ cargoCoverLabel(quotation.cargo_cover) }}</span>
                       </li>
                       <li v-if="quotation.manufacture_year"><span>Año:</span>
                         <span class="font-bold"> {{ quotation.manufacture_year }}</span>
@@ -235,13 +235,14 @@ export default {
     countryData: Object,
   },
   methods: {
-    bodyTypeLabel(bodyType) {
+    // Cómo viaja la carga según fotos del camión. No la carrocería de la
+    // tarjeta SUNARP: un furgón inscrito puede tener barandas hoy.
+    cargoCoverLabel(cargoCover) {
       return {
-        furgon: 'Furgón (carga cerrada)',
-        baranda: 'Baranda (carga abierta)',
-        plataforma: 'Plataforma (carga abierta)',
-        pick_up: 'Pick-up',
-      }[bodyType];
+        cerrada: 'Cerrada (protegida de la lluvia)',
+        toldo: 'Con toldo de lona',
+        abierta: 'Abierta (sin techo)',
+      }[cargoCover];
     },
     payloadLabel(quotation) {
       if (quotation.payload_tons) {

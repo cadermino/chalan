@@ -3,13 +3,14 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
 
-// Datos de la tarjeta de identificación vehicular (SUNARP). Todos opcionales.
+// Datos de la tarjeta de identificación vehicular (SUNARP) y de la caja de
+// carga. Todos opcionales.
 const CARD_FIELDS = [
   'category', 'body_type', 'manufacture_year', 'color', 'passengers',
   'serial_number', 'registry_entry',
   'gross_weight_tons', 'net_weight_tons', 'payload_tons',
   'vehicle_length_m', 'vehicle_width_m', 'vehicle_height_m',
-  'box_length_m', 'box_width_m', 'box_height_m',
+  'cargo_cover', 'box_length_m', 'box_width_m', 'box_height_m',
 ]
 
 const EMPTY = {
@@ -25,6 +26,14 @@ const BODY_TYPES = [
   ['plataforma', 'Plataforma'],
   ['pick_up', 'Pick-up'],
   ['otro', 'Otro'],
+]
+
+// Cómo viaja la carga: es lo que ve el cliente. Sale de fotos del camión, no
+// de la carrocería de la tarjeta (un furgón inscrito puede tener barandas).
+const CARGO_COVERS = [
+  ['cerrada', 'Cerrada: caja rígida con techo y puertas'],
+  ['toldo', 'Toldo: lona sobre barandas'],
+  ['abierta', 'Abierta: barandas o plataforma, sin techo'],
 ]
 
 // Campos viejos de texto libre, reemplazados por los de la tarjeta. Solo se
@@ -158,7 +167,7 @@ export default function VehicleForm() {
             </div>
           )}
 
-          <Field label="Carrocería">
+          <Field label="Carrocería" hint="La de la tarjeta, aunque el camión haya cambiado">
             <select value={form.body_type} onChange={set('body_type')} className="input">
               <option value="">—</option>
               {BODY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -210,8 +219,15 @@ export default function VehicleForm() {
 
           <div className="col-span-2 pt-2">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Caja de carga (opcional)</p>
-            <p className="text-xs text-gray-500 mt-1">Medidas por dentro de la caja. No están en la tarjeta: mídelas o pídeselas al transportista.</p>
+            <p className="text-xs text-gray-500 mt-1">No está en la tarjeta: míralo en fotos del camión o pregúntaselo al transportista. Las medidas van por dentro de la caja.</p>
           </div>
+
+          <Field label="Cómo viaja la carga" hint="Es lo que ve el cliente en la cotización" span={2}>
+            <select value={form.cargo_cover} onChange={set('cargo_cover')} className="input">
+              <option value="">—</option>
+              {CARGO_COVERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
 
           <Field label="Largo de la caja (m)">
             <input type="number" min="0.01" max="25" step="0.01" value={form.box_length_m} onChange={set('box_length_m')} className="input" placeholder="ej. 3.20" />

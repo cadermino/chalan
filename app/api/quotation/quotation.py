@@ -77,7 +77,9 @@ class Quotation:
                 # payload_tons cuando el vehículo ya tiene los datos de la tarjeta.
                 'weight': vehicle.weight,
                 'payload_tons': float(vehicle.payload_tons) if vehicle.payload_tons is not None else None,
-                'body_type': vehicle.body_type,
+                # cargo_cover y no body_type: la carrocería de la tarjeta no
+                # dice si hoy la carga va cerrada (migración 024).
+                'cargo_cover': vehicle.cargo_cover,
                 'manufacture_year': vehicle.manufacture_year,
                 'brand': vehicle.brand,
                 'model': vehicle.model,

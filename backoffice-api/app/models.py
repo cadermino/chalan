@@ -243,6 +243,9 @@ class Vehicle(db.Model):
     passengers = db.Column(db.SmallInteger)
     serial_number = db.Column(db.String(30))
     registry_entry = db.Column(db.String(20))
+    # Cómo viaja la carga (cerrada, toldo, abierta), según fotos del camión y
+    # no la tarjeta: un furgón inscrito puede tener barandas hoy (migración 024).
+    cargo_cover = db.Column(db.String(10))
     gross_weight_tons = db.Column(db.Numeric(6, 3))
     net_weight_tons = db.Column(db.Numeric(6, 3))
     payload_tons = db.Column(db.Numeric(6, 3))
@@ -253,7 +256,8 @@ class Vehicle(db.Model):
     box_width_m = db.Column(db.Numeric(5, 2))
     box_height_m = db.Column(db.Numeric(5, 2))
 
-    CARD_TEXT_FIELDS = ('category', 'body_type', 'color', 'serial_number', 'registry_entry')
+    CARD_TEXT_FIELDS = ('category', 'body_type', 'color', 'serial_number', 'registry_entry',
+                        'cargo_cover')
     CARD_INT_FIELDS = ('manufacture_year', 'passengers')
     CARD_DECIMAL_FIELDS = ('gross_weight_tons', 'net_weight_tons', 'payload_tons',
                            'vehicle_length_m', 'vehicle_width_m', 'vehicle_height_m',

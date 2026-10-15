@@ -230,6 +230,8 @@ class Vehicle(db.Model):
 	passengers = db.Column(db.SmallInteger)
 	serial_number = db.Column(db.String(30))
 	registry_entry = db.Column(db.String(20))
+	# Cómo viaja la carga según fotos del camión, no la tarjeta (migración 024).
+	cargo_cover = db.Column(db.String(10))
 	gross_weight_tons = db.Column(db.Numeric(6, 3))
 	net_weight_tons = db.Column(db.Numeric(6, 3))
 	payload_tons = db.Column(db.Numeric(6, 3))
