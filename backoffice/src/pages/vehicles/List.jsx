@@ -3,11 +3,16 @@ import { Link, useParams } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
 import { hasMovingService } from '../../lib/companyList'
+import { useAuth } from '../../contexts/AuthContext'
+import DeleteVehicleButton from '../../components/DeleteVehicleButton'
 
 const SIZE_LABEL = { small: 'Pequeño', medium: 'Mediano', large: 'Grande' }
 
 export default function VehiclesList() {
   const { companyId } = useParams()
+  const { user } = useAuth()
+  // Los transportistas solo desactivan; eliminar es de admin (ver delete_vehicle).
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [vehicles, setVehicles] = useState([])
   const [company, setCompany] = useState(null)
 
@@ -91,6 +96,7 @@ export default function VehiclesList() {
                     <button onClick={() => toggle(v)} className="text-gray-500 hover:underline">
                       {v.active ? 'Desactivar' : 'Activar'}
                     </button>
+                    {isAdmin && <DeleteVehicleButton vehicle={v} onDeleted={load} />}
                   </div>
                 </td>
               </tr>

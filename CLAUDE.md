@@ -249,6 +249,15 @@ A carrier can say "I can't do this one" with a reason, instead of just not answe
 - **Endpoints**: main API `POST|DELETE /api/v1/order/:id/decline` (carrier link token, or internal token + `carrier_company_id`) and `POST|DELETE /api/v1/service-requests/:id/decline` (internal only). Backoffice-api forwards from `POST|DELETE /api/orders/:id/decline` (carrier role) and `/api/public/service-requests/:token/decline`.
 - **UI**: Vue `quotation.vue` and backoffice `components/DeclinePanel.jsx` (order detail, service request carrier view). The carrier's order list hides declined orders unless `?declined=1`. Admins see who declined in `orders/Quotations.jsx` and the service request detail. No email is sent.
 
+## Deleting Vehicles
+
+Admins and superadmins can delete a vehicle from either vehicle list (`components/DeleteVehicleButton.jsx`, two-click confirm); carriers can only deactivate. `DELETE /backoffice-api/api/carrier-companies/:id/vehicles/:vid` hard-deletes, but answers 409 when:
+
+- a quotation points to it through `quotations.vehicle_id` (rarely set, but it has a foreign key), or
+- it is the last vehicle of a company that has quotations.
+
+Quotations don't store which vehicle goes: the main API shows `carrier_company.vehicles[0]` (active or not) in the customer's quotation list (`app/api/quotation/quotation.py`) and the order detail (`app/api/order/order.py`). A company left with no vehicles has its quotations silently dropped from the customer's list, even a selected one.
+
 ## Vehicle Data (SUNARP card)
 
 Migration 023 added the "Datos del Vehículo" block of the Peruvian Tarjeta de Identificación Vehicular to `vehicles`, all nullable and edited from the backoffice vehicle form (`backoffice/src/pages/vehicles/Form.jsx`), validated in `backoffice-api/app/api/vehicles.py` (`_parse_card_fields`).

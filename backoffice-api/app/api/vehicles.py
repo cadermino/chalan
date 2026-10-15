@@ -5,7 +5,7 @@ from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required, superadmin_required
-from ..models import Vehicle, CarrierCompany, ROLE_CARRIER, MOVING_SERVICE_CODE
+from ..models import Vehicle, CarrierCompany, Quotation, ROLE_CARRIER, MOVING_SERVICE_CODE
 from .. import db
 
 
@@ -202,13 +202,28 @@ def update_vehicle(company_id, vehicle_id):
 
 
 @api.route('/carrier-companies/<int:company_id>/vehicles/<int:vehicle_id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_vehicle(company_id, vehicle_id):
-    if not _can_access_company(company_id):
-        return jsonify({'message': 'forbidden'}), 403
+    """Borra el vehículo, solo si nada lo necesita; si no, hay que desactivarlo.
+
+    Las cotizaciones no guardan qué vehículo va: el API principal muestra el
+    primero de la empresa (vehicles[0], activo o no). Sin ninguno, las
+    cotizaciones de la empresa desaparecen de la lista del cliente, aunque ya
+    haya elegido una. Por eso no se borra el último vehículo de una empresa
+    que tiene cotizaciones, ni uno al que una cotización apunte por vehicle_id.
+    Los transportistas solo desactivan (PUT active).
+    """
     vehicle = Vehicle.query.filter_by(id=vehicle_id, carrier_company_id=company_id).first()
     if vehicle is None:
         return jsonify({'message': 'vehicle not found'}), 404
-    vehicle.active = 0
+
+    if Quotation.query.filter_by(vehicle_id=vehicle.id).first() is not None:
+        return jsonify({'message': 'vehicle has quotations'}), 409
+    others = Vehicle.query.filter(Vehicle.carrier_company_id == company_id,
+                                  Vehicle.id != vehicle.id).count()
+    if others == 0 and Quotation.query.filter_by(carrier_company_id=company_id).first() is not None:
+        return jsonify({'message': 'last vehicle of a company with quotations'}), 409
+
+    db.session.delete(vehicle)
     db.session.commit()
-    return jsonify({'message': 'vehicle deactivated'}), 200
+    return jsonify({'message': 'vehicle deleted'}), 200

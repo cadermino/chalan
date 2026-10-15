@@ -445,6 +445,9 @@ class Quotation(db.Model):
     amount = db.Column(db.Integer, nullable=False)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
+    # Casi siempre NULL (1 de 198 en prod), pero tiene llave foránea: impide
+    # borrar ese vehículo. Ver delete_vehicle.
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=True)
     selected = db.Column(db.SmallInteger, server_default='0')
     quotation_status_id = db.Column(db.Integer, server_default='1', nullable=False)
     created_date = db.Column(db.DateTime())

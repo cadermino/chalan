@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
+import DeleteVehicleButton from '../../components/DeleteVehicleButton'
 
 const SIZE_LABEL = { small: 'Pequeño', medium: 'Mediano', large: 'Grande' }
 
@@ -77,6 +78,7 @@ export default function VehiclesAdminList() {
                       <button onClick={() => toggle(v)} className="text-gray-500 hover:underline">
                         {v.active ? 'Desactivar' : 'Activar'}
                       </button>
+                      <DeleteVehicleButton vehicle={v} onDeleted={load} />
                     </div>
                   </td>
                 </tr>

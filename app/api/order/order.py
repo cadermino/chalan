@@ -92,8 +92,9 @@ class Order:
         selected_quotation = order.quotations.filter_by(quotation_status_id = QuotationStatus.Selected()).first()
         if selected_quotation is not None:
             quotation_data = QuotationsSchema().dump(selected_quotation)
-            vehicle = selected_quotation.carrier_company.vehicles[0]
-            vehicle_data = VehicleSchema().dump(vehicle)
+            # Una empresa puede quedarse sin vehículos; la orden se ve igual.
+            vehicles = selected_quotation.carrier_company.vehicles
+            vehicle_data = VehicleSchema().dump(vehicles[0]) if vehicles else {}
             order_data['selected_quotation_id'] = quotation_data['id']
             order_data['amount'] = quotation_data['amount']
             order_data['vehicle'] = vehicle_data
