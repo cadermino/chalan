@@ -73,7 +73,12 @@ class Quotation:
                 'order_id': quotation.order_id,
                 'carrier_company_id': carrier_company.id,
                 'size': vehicle.size,
+                # weight es el campo viejo de texto libre; el cliente ve
+                # payload_tons cuando el vehículo ya tiene los datos de la tarjeta.
                 'weight': vehicle.weight,
+                'payload_tons': float(vehicle.payload_tons) if vehicle.payload_tons is not None else None,
+                'body_type': vehicle.body_type,
+                'manufacture_year': vehicle.manufacture_year,
                 'brand': vehicle.brand,
                 'model': vehicle.model,
                 'picture': vehicle.picture

@@ -21,6 +21,11 @@ test.describe('Order Step Three - Quotations', () => {
     // Reload so the quotationsList fetch picks up the just-seeded quote.
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
+    // Los datos de la tarjeta SUNARP: la carga útil va en toneladas en la base
+    // y el cliente la ve en kg; el weight viejo ("1000") ya no se muestra.
+    await expect(page.locator('text=Furgón (carga cerrada)')).toBeVisible();
+    await expect(page.locator('li', { hasText: 'Capacidad de carga' })).toContainText('1,100 kg');
+    await expect(page.locator('li', { hasText: 'Año' })).toContainText('2018');
 
     // Clicking "Elegir" opens the cash-checkout modal in place, no
     // navigation - Step-three.vue's selectQuotation() opens the modal and

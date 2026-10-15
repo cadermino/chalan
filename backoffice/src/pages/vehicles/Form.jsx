@@ -3,12 +3,35 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
 
+// Datos de la tarjeta de identificación vehicular (SUNARP). Todos opcionales.
+const CARD_FIELDS = [
+  'category', 'body_type', 'manufacture_year', 'color', 'passengers',
+  'serial_number', 'registry_entry',
+  'gross_weight_tons', 'net_weight_tons', 'payload_tons',
+  'vehicle_length_m', 'vehicle_width_m', 'vehicle_height_m',
+  'box_length_m', 'box_width_m', 'box_height_m',
+]
+
 const EMPTY = {
   brand: '', model: '', plates: '', size: 'medium', description: '',
-  picture: '', weight: '', width: '', height: '', length: '',
-  base_address: '', charge_per_kilometer: 0, charge_per_floor: 0,
+  picture: '', base_address: '', charge_per_kilometer: 0, charge_per_floor: 0,
   driver_fee: 0, loader_fee: 0, loaders_quantity: 1, active: true,
+  ...Object.fromEntries(CARD_FIELDS.map((f) => [f, ''])),
 }
+
+const BODY_TYPES = [
+  ['furgon', 'Furgón'],
+  ['baranda', 'Baranda'],
+  ['plataforma', 'Plataforma'],
+  ['pick_up', 'Pick-up'],
+  ['otro', 'Otro'],
+]
+
+// Campos viejos de texto libre, reemplazados por los de la tarjeta. Solo se
+// muestran, para copiarlos a mano, y se borran cuando ya nadie los tenga.
+const LEGACY_FIELDS = [['weight', 'Peso'], ['width', 'Ancho'], ['height', 'Alto'], ['length', 'Largo']]
+
+const MAX_YEAR = new Date().getFullYear() + 1
 
 export default function VehicleForm() {
   const { companyId, vehicleId } = useParams()
@@ -21,7 +44,14 @@ export default function VehicleForm() {
     if (isEdit) {
       client.get(`/api/carrier-companies/${companyId}/vehicles/${vehicleId}`).then(({ data }) => {
         const v = data.vehicle
-        setForm({ ...v, active: Boolean(v.active) })
+        // Con los decimales de la tarjeta (3.490, 5.70), para cotejarla a simple vista.
+        const card = Object.fromEntries(CARD_FIELDS.map((f) => {
+          if (v[f] == null) return [f, '']
+          if (f.endsWith('_tons')) return [f, Number(v[f]).toFixed(3)]
+          if (f.endsWith('_m')) return [f, Number(v[f]).toFixed(2)]
+          return [f, v[f]]
+        }))
+        setForm({ ...v, ...card, active: Boolean(v.active) })
       })
     }
   }, [vehicleId])
@@ -62,6 +92,9 @@ export default function VehicleForm() {
   }
 
   const back = `/carrier-companies/${companyId}/vehicles`
+  const legacy = LEGACY_FIELDS
+    .map(([key, label]) => [label, form[key]])
+    .filter(([, value]) => value && String(value).trim())
 
   return (
     <div className="max-w-2xl">
@@ -113,12 +146,82 @@ export default function VehicleForm() {
             <input type="number" min="0" value={form.loaders_quantity} onChange={set('loaders_quantity')} className="input" />
           </Field>
 
-          <p className="col-span-2 text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Dimensiones (opcional)</p>
+          <div className="col-span-2 pt-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tarjeta de identificación vehicular (opcional)</p>
+            <p className="text-xs text-gray-500 mt-1">Copia los datos tal cual aparecen en la tarjeta SUNARP, en "Datos del Vehículo".</p>
+          </div>
 
-          <Field label="Peso"><input value={form.weight} onChange={set('weight')} className="input" placeholder="ej. 3.5 ton" /></Field>
-          <Field label="Ancho"><input value={form.width} onChange={set('width')} className="input" placeholder="ej. 2.4 m" /></Field>
-          <Field label="Alto"><input value={form.height} onChange={set('height')} className="input" placeholder="ej. 2.2 m" /></Field>
-          <Field label="Largo"><input value={form.length} onChange={set('length')} className="input" placeholder="ej. 5.5 m" /></Field>
+          {legacy.length > 0 && (
+            <div className="col-span-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+              Datos anteriores, en texto libre: {legacy.map(([label, value]) => `${label}: ${value}`).join(' · ')}.
+              Reemplázalos con los de la tarjeta.
+            </div>
+          )}
+
+          <Field label="Carrocería">
+            <select value={form.body_type} onChange={set('body_type')} className="input">
+              <option value="">—</option>
+              {BODY_TYPES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
+          <Field label="Categoría">
+            <select value={form.category} onChange={set('category')} className="input">
+              <option value="">—</option>
+              <option value="N1">N1</option>
+              <option value="N2">N2</option>
+              <option value="N3">N3</option>
+            </select>
+          </Field>
+          <Field label="Año de fabricación">
+            <input type="number" min="1950" max={MAX_YEAR} step="1" value={form.manufacture_year} onChange={set('manufacture_year')} className="input" placeholder="ej. 1992" />
+          </Field>
+          <Field label="Color">
+            <input value={form.color} onChange={set('color')} maxLength={30} className="input" placeholder="ej. Blanco" />
+          </Field>
+          <Field label="Pasajeros">
+            <input type="number" min="0" max="20" step="1" value={form.passengers} onChange={set('passengers')} className="input" />
+          </Field>
+          <Field label="Partida registral">
+            <input value={form.registry_entry} onChange={set('registry_entry')} maxLength={20} className="input" />
+          </Field>
+          <Field label="N° de serie / VIN" span={2}>
+            <input value={form.serial_number} onChange={set('serial_number')} maxLength={30} className="input" />
+          </Field>
+
+          <Field label="Peso bruto (t)" hint="P. Bruto">
+            <input type="number" min="0.001" max="60" step="0.001" value={form.gross_weight_tons} onChange={set('gross_weight_tons')} className="input" placeholder="ej. 3.490" />
+          </Field>
+          <Field label="Peso neto (t)" hint="P. Neto">
+            <input type="number" min="0.001" max="60" step="0.001" value={form.net_weight_tons} onChange={set('net_weight_tons')} className="input" placeholder="ej. 2.390" />
+          </Field>
+          <Field label="Carga útil (t)" hint="Lo que puede cargar: es lo que ve el cliente. 1.100 t = 1,100 kg" span={2}>
+            <input type="number" min="0.001" max="60" step="0.001" value={form.payload_tons} onChange={set('payload_tons')} className="input" placeholder="ej. 1.100" />
+          </Field>
+
+          <Field label="Longitud del vehículo (m)">
+            <input type="number" min="0.01" max="25" step="0.01" value={form.vehicle_length_m} onChange={set('vehicle_length_m')} className="input" placeholder="ej. 5.70" />
+          </Field>
+          <Field label="Ancho del vehículo (m)">
+            <input type="number" min="0.01" max="25" step="0.01" value={form.vehicle_width_m} onChange={set('vehicle_width_m')} className="input" placeholder="ej. 1.93" />
+          </Field>
+          <Field label="Altura del vehículo (m)">
+            <input type="number" min="0.01" max="25" step="0.01" value={form.vehicle_height_m} onChange={set('vehicle_height_m')} className="input" placeholder="ej. 2.80" />
+          </Field>
+
+          <div className="col-span-2 pt-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Caja de carga (opcional)</p>
+            <p className="text-xs text-gray-500 mt-1">Medidas por dentro de la caja. No están en la tarjeta: mídelas o pídeselas al transportista.</p>
+          </div>
+
+          <Field label="Largo de la caja (m)">
+            <input type="number" min="0.01" max="25" step="0.01" value={form.box_length_m} onChange={set('box_length_m')} className="input" placeholder="ej. 3.20" />
+          </Field>
+          <Field label="Ancho de la caja (m)">
+            <input type="number" min="0.01" max="25" step="0.01" value={form.box_width_m} onChange={set('box_width_m')} className="input" placeholder="ej. 1.80" />
+          </Field>
+          <Field label="Alto de la caja (m)">
+            <input type="number" min="0.01" max="25" step="0.01" value={form.box_height_m} onChange={set('box_height_m')} className="input" placeholder="ej. 1.90" />
+          </Field>
 
           <Field label="URL foto">
             <input value={form.picture} onChange={set('picture')} className="input" placeholder="https://..." />
@@ -146,11 +249,12 @@ export default function VehicleForm() {
   )
 }
 
-function Field({ label, children, span = 1 }) {
+function Field({ label, hint, children, span = 1 }) {
   return (
     <div className={span === 2 ? 'col-span-2' : ''}>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       {children}
+      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   )
 }

@@ -221,6 +221,24 @@ class Vehicle(db.Model):
 	plates = db.Column(db.String(45))
 	base_address = db.Column(db.String(200))
 	active = db.Column(db.Integer, server_default='0')
+	# Datos de la tarjeta de identificación vehicular (migración 023); los
+	# pesos en toneladas, como la tarjeta. Se editan desde backoffice-api.
+	category = db.Column(db.String(10))
+	body_type = db.Column(db.String(20))
+	manufacture_year = db.Column(db.SmallInteger)
+	color = db.Column(db.String(30))
+	passengers = db.Column(db.SmallInteger)
+	serial_number = db.Column(db.String(30))
+	registry_entry = db.Column(db.String(20))
+	gross_weight_tons = db.Column(db.Numeric(6, 3))
+	net_weight_tons = db.Column(db.Numeric(6, 3))
+	payload_tons = db.Column(db.Numeric(6, 3))
+	vehicle_length_m = db.Column(db.Numeric(5, 2))
+	vehicle_width_m = db.Column(db.Numeric(5, 2))
+	vehicle_height_m = db.Column(db.Numeric(5, 2))
+	box_length_m = db.Column(db.Numeric(5, 2))
+	box_width_m = db.Column(db.Numeric(5, 2))
+	box_height_m = db.Column(db.Numeric(5, 2))
 
 class Review(db.Model):
 	__tablename__ = 'reviews'

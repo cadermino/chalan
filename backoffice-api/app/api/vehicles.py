@@ -1,3 +1,6 @@
+from datetime import date
+from decimal import Decimal, InvalidOperation
+
 from flask import request, jsonify, g
 
 from . import api
@@ -16,6 +19,82 @@ def list_all_vehicles():
         d['company_name'] = v.carrier_company.name if v.carrier_company else ''
         result.append(d)
     return jsonify({'vehicles': result}), 200
+
+
+# Carrocería, tal como la nombra la tarjeta SUNARP. Lo que importa en una
+# mudanza es si la carga va cerrada (furgón) o al aire (baranda, plataforma).
+BODY_TYPES = ('furgon', 'baranda', 'plataforma', 'pick_up', 'otro')
+
+TEXT_LIMITS = {'category': 10, 'body_type': 20, 'color': 30,
+               'serial_number': 30, 'registry_entry': 20}
+
+# Topes generosos, pero que atajan a quien escribe kg en un campo de toneladas
+# (1100 en vez de 1.100) o cm en uno de metros.
+MAX_TONS = Decimal('60')
+MAX_METERS = Decimal('25')
+
+
+def _blank(value):
+    return value is None or (isinstance(value, str) and not value.strip())
+
+
+def _parse_card_fields(data):
+    """Valida los datos de la tarjeta que vengan en `data`.
+
+    Devuelve (valores, error). Solo incluye las llaves presentes, para que un
+    PUT parcial no borre lo demás; un valor vacío las deja en NULL.
+    """
+    values = {}
+
+    for field, limit in TEXT_LIMITS.items():
+        if field not in data:
+            continue
+        value = data[field]
+        if _blank(value):
+            values[field] = None
+            continue
+        value = str(value).strip()
+        if len(value) > limit:
+            return None, f'{field} is too long (max {limit})'
+        values[field] = value
+    if values.get('category'):
+        values['category'] = values['category'].upper()
+    if values.get('body_type') and values['body_type'] not in BODY_TYPES:
+        return None, 'invalid body_type'
+
+    int_ranges = {'manufacture_year': (1950, date.today().year + 1), 'passengers': (0, 20)}
+    for field, (low, high) in int_ranges.items():
+        if field not in data:
+            continue
+        value = data[field]
+        if _blank(value):
+            values[field] = None
+            continue
+        try:
+            number = int(str(value).strip())
+        except ValueError:
+            return None, f'{field} must be a whole number'
+        if not low <= number <= high:
+            return None, f'{field} must be between {low} and {high}'
+        values[field] = number
+
+    for field in Vehicle.CARD_DECIMAL_FIELDS:
+        if field not in data:
+            continue
+        value = data[field]
+        if _blank(value):
+            values[field] = None
+            continue
+        try:
+            number = Decimal(str(value).strip())
+        except InvalidOperation:
+            return None, f'{field} must be a number'
+        high = MAX_TONS if field.endswith('_tons') else MAX_METERS
+        if not number.is_finite() or not 0 < number <= high:
+            return None, f'{field} must be greater than 0 and at most {high}'
+        values[field] = number
+
+    return values, None
 
 
 def _can_access_company(company_id):
@@ -48,8 +127,12 @@ def create_vehicle(company_id):
         return jsonify({'message': 'company does not do moves'}), 409
 
     data = request.get_json() or {}
+    card, error = _parse_card_fields(data)
+    if error:
+        return jsonify({'message': error}), 400
 
     vehicle = Vehicle(
+        **card,
         carrier_company_id=company_id,
         brand=data.get('brand'),
         model=data.get('model'),
@@ -95,6 +178,11 @@ def update_vehicle(company_id, vehicle_id):
         return jsonify({'message': 'vehicle not found'}), 404
 
     data = request.get_json() or {}
+    card, error = _parse_card_fields(data)
+    if error:
+        return jsonify({'message': error}), 400
+    for field, value in card.items():
+        setattr(vehicle, field, value)
     for field in ('brand', 'model', 'plates', 'size', 'description', 'picture',
                   'weight', 'width', 'height', 'length', 'base_address',
                   'charge_per_kilometer', 'charge_per_floor', 'driver_fee',

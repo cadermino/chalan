@@ -248,3 +248,13 @@ A carrier can say "I can't do this one" with a reason, instead of just not answe
 - **Rules**: only while the order is pending / the request is open; a selected quotation cannot be declined (409). Declining withdraws the carrier's live quotation (cancelled for orders, deleted for service requests). Quoting afterwards, or `DELETE`, removes the decline.
 - **Endpoints**: main API `POST|DELETE /api/v1/order/:id/decline` (carrier link token, or internal token + `carrier_company_id`) and `POST|DELETE /api/v1/service-requests/:id/decline` (internal only). Backoffice-api forwards from `POST|DELETE /api/orders/:id/decline` (carrier role) and `/api/public/service-requests/:token/decline`.
 - **UI**: Vue `quotation.vue` and backoffice `components/DeclinePanel.jsx` (order detail, service request carrier view). The carrier's order list hides declined orders unless `?declined=1`. Admins see who declined in `orders/Quotations.jsx` and the service request detail. No email is sent.
+
+## Vehicle Data (SUNARP card)
+
+Migration 023 added the "Datos del Vehículo" block of the Peruvian Tarjeta de Identificación Vehicular to `vehicles`, all nullable and edited from the backoffice vehicle form (`backoffice/src/pages/vehicles/Form.jsx`), validated in `backoffice-api/app/api/vehicles.py` (`_parse_card_fields`).
+
+- **Weights are in tons with three decimals**, exactly as the card prints them (`gross_weight_tons`, `net_weight_tons`, `payload_tons`). Caps (60 t, 25 m) reject kg or cm typed into the wrong field.
+- `vehicle_*_m` are the outside dimensions from the card; `box_*_m` are the cargo box, given by the carrier. Don't mix them.
+- `body_type` is one of `furgon`, `baranda`, `plataforma`, `pick_up`, `otro`.
+- `category`, `serial_number`, `registry_entry` are for checking the vehicle against SUNARP, not shown to customers.
+- The old free-text `weight`, `width`, `height`, `length` columns hold mixed units and meanings in production ("2TN", "3.4", "172CM", "6.15"), so nothing was migrated from them. The quotation card (Vue `Step-three.vue`) shows `payload_tons` and falls back to the raw `weight` text; the backoffice form shows the old values as a reference. Drop them once every active vehicle has card data.

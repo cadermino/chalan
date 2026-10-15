@@ -72,8 +72,14 @@
                       <li><span>Modelo:</span>
                         <span class="font-bold"> {{ quotation.model }}</span>
                       </li>
-                      <li><span>Peso de carga:</span>
-                        <span class="font-bold"> {{ quotation.weight }} kg</span>
+                      <li v-if="bodyTypeLabel(quotation.body_type)"><span>Carrocería:</span>
+                        <span class="font-bold"> {{ bodyTypeLabel(quotation.body_type) }}</span>
+                      </li>
+                      <li v-if="quotation.manufacture_year"><span>Año:</span>
+                        <span class="font-bold"> {{ quotation.manufacture_year }}</span>
+                      </li>
+                      <li v-if="payloadLabel(quotation)"><span>Capacidad de carga:</span>
+                        <span class="font-bold"> {{ payloadLabel(quotation) }}</span>
                       </li>
                       <li class="mt-3">
                         {{ quotation.description }}
@@ -229,6 +235,22 @@ export default {
     countryData: Object,
   },
   methods: {
+    bodyTypeLabel(bodyType) {
+      return {
+        furgon: 'Furgón (carga cerrada)',
+        baranda: 'Baranda (carga abierta)',
+        plataforma: 'Plataforma (carga abierta)',
+        pick_up: 'Pick-up',
+      }[bodyType];
+    },
+    payloadLabel(quotation) {
+      if (quotation.payload_tons) {
+        return `${Math.round(quotation.payload_tons * 1000).toLocaleString('es-PE')} kg`;
+      }
+      // Vehículos que aún no tienen los datos de la tarjeta: weight es texto
+      // libre ("2TN", "3.4"), así que va tal cual, sin inventarle unidad.
+      return quotation.weight;
+    },
     ...mapMutations([
       'setOrder',
       'setViewsMessages',

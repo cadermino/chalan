@@ -232,9 +232,40 @@ class Vehicle(db.Model):
     loader_fee = db.Column(db.Integer, nullable=False, server_default='0')
     loaders_quantity = db.Column(db.Integer, nullable=False, server_default='0')
     active = db.Column(db.Integer, server_default='0')
+    # Datos de la tarjeta de identificación vehicular (migración 023). Los
+    # pesos van en toneladas, como los imprime la tarjeta. weight, width,
+    # height y length son los campos viejos de texto libre, que se borran
+    # cuando todos los vehículos activos tengan estos.
+    category = db.Column(db.String(10))
+    body_type = db.Column(db.String(20))
+    manufacture_year = db.Column(db.SmallInteger)
+    color = db.Column(db.String(30))
+    passengers = db.Column(db.SmallInteger)
+    serial_number = db.Column(db.String(30))
+    registry_entry = db.Column(db.String(20))
+    gross_weight_tons = db.Column(db.Numeric(6, 3))
+    net_weight_tons = db.Column(db.Numeric(6, 3))
+    payload_tons = db.Column(db.Numeric(6, 3))
+    vehicle_length_m = db.Column(db.Numeric(5, 2))
+    vehicle_width_m = db.Column(db.Numeric(5, 2))
+    vehicle_height_m = db.Column(db.Numeric(5, 2))
+    box_length_m = db.Column(db.Numeric(5, 2))
+    box_width_m = db.Column(db.Numeric(5, 2))
+    box_height_m = db.Column(db.Numeric(5, 2))
+
+    CARD_TEXT_FIELDS = ('category', 'body_type', 'color', 'serial_number', 'registry_entry')
+    CARD_INT_FIELDS = ('manufacture_year', 'passengers')
+    CARD_DECIMAL_FIELDS = ('gross_weight_tons', 'net_weight_tons', 'payload_tons',
+                           'vehicle_length_m', 'vehicle_width_m', 'vehicle_height_m',
+                           'box_length_m', 'box_width_m', 'box_height_m')
 
     def to_dict(self):
+        card = {f: getattr(self, f) for f in self.CARD_TEXT_FIELDS + self.CARD_INT_FIELDS}
+        for f in self.CARD_DECIMAL_FIELDS:
+            value = getattr(self, f)
+            card[f] = float(value) if value is not None else None
         return {
+            **card,
             'id': self.id,
             'carrier_company_id': self.carrier_company_id,
             'brand': self.brand,
