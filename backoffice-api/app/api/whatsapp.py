@@ -24,15 +24,31 @@ def _normalize_phone(phone):
     return None
 
 
+def _sender_for(to_e164):
+    """The number this contact last wrote to, or TWILIO_WHATSAPP_FROM if none.
+
+    WhatsApp's 24h window belongs to a pair of numbers: a reply from any other
+    sender fails with 63016 even seconds after the contact wrote. Each app reads
+    TWILIO_WHATSAPP_FROM from its own env file, so the setting alone can drift.
+    """
+    last_inbound = (
+        WhatsappMessage.query
+        .filter(WhatsappMessage.direction == 'inbound',
+                WhatsappMessage.channel == 'whatsapp',
+                WhatsappMessage.from_number.in_([to_e164, to_e164.lstrip('+')]))
+        .order_by(WhatsappMessage.created_at.desc())
+        .first()
+    )
+    sender = last_inbound.to_number if last_inbound else os.getenv('TWILIO_WHATSAPP_FROM', '')
+    return sender if sender.startswith('whatsapp:') else 'whatsapp:' + sender
+
+
 def _send_freeform(to_e164, body, sent_by_admin_id=None):
     from twilio.rest import Client
-    from twilio.base.exceptions import TwilioRestException
 
     account_sid = os.getenv('TWILIO_ACCOUNT_SID')
     auth_token = os.getenv('TWILIO_AUTH_TOKEN')
-    whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
-    if not whatsapp_from.startswith('whatsapp:'):
-        whatsapp_from = 'whatsapp:' + whatsapp_from
+    whatsapp_from = _sender_for(to_e164)
 
     base_url = os.getenv('TWILIO_WEBHOOK_BASE_URL', '').rstrip('/')
     status_callback = f"{base_url}/api/v1/whatsapp/status" if base_url else None
@@ -202,9 +218,7 @@ def send_template():
     try:
         account_sid = os.getenv('TWILIO_ACCOUNT_SID')
         auth_token = os.getenv('TWILIO_AUTH_TOKEN')
-        whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
-        if not whatsapp_from.startswith('whatsapp:'):
-            whatsapp_from = 'whatsapp:' + whatsapp_from
+        whatsapp_from = _sender_for(to_e164)
 
         client = Client(account_sid, auth_token)
         twilio_msg = client.messages.create(
