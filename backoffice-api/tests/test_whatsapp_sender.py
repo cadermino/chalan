@@ -26,6 +26,10 @@ def twilio(monkeypatch):
     with patch('twilio.rest.Client') as client_cls:
         create = client_cls.return_value.messages.create
         create.return_value = MagicMock(sid='SM123')
+        client_cls.return_value.content.v1.contents.return_value.fetch.return_value.types = {
+            'twilio/text': {'body': 'Tienes una nueva cotización en Chalán: {{1}}'},
+        }
+        monkeypatch.setattr('app.api.whatsapp._template_texts', {})
         yield create
 
 
@@ -63,3 +67,13 @@ def test_without_a_conversation_it_falls_back_to_the_setting(client, admin, twil
 
     assert res.status_code == 200
     assert twilio.call_args.kwargs['from_'] == 'whatsapp:+15550000000'
+
+
+def test_the_chat_shows_the_template_as_it_was_sent(client, admin, twilio):  # noqa: F811
+    client.post('/api/whatsapp/send-template',
+                json={'to': CONTACT, 'template': 'cliente', 'variables': {'1': 'https://chalan.pe/x'}},
+                headers=admin)
+
+    sent = WhatsappMessage.query.filter_by(direction='outbound').one()
+    assert sent.body == ('[Plantilla: Mensaje a cliente]\n\n'
+                         'Tienes una nueva cotización en Chalán: https://chalan.pe/x')

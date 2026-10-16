@@ -24,6 +24,33 @@ def _normalize_phone(phone):
     return None
 
 
+_template_texts = {}
+
+
+def _render_template(client, content_sid, content_variables):
+    """The template's text with its variables filled in, for the chat.
+
+    Same as render_template in the main API, which sends the automatic ones.
+    """
+    if content_sid not in _template_texts:
+        try:
+            types = client.content.v1.contents(content_sid).fetch().types or {}
+        except Exception as e:
+            print(f'[WhatsApp] No se pudo leer el texto de {content_sid}: {e}', flush=True)
+            return None
+        parts = []
+        for content in types.values():
+            if content.get('body'):
+                parts.append(content['body'])
+                parts += [a['url'] for a in content.get('actions') or [] if a.get('url')]
+                break
+        _template_texts[content_sid] = '\n'.join(parts)
+    text = _template_texts[content_sid]
+    for key, value in (content_variables or {}).items():
+        text = text.replace('{{%s}}' % key, str(value))
+    return text or None
+
+
 def _sender_for(to_e164):
     """The number this contact last wrote to, or TWILIO_WHATSAPP_FROM if none.
 
@@ -227,13 +254,15 @@ def send_template():
             content_sid=content_sid,
             content_variables=_json.dumps(variables),
         )
+        label = f'[Plantilla: {tpl["label"]}]'
+        text = _render_template(client, content_sid, variables)
 
         msg = WhatsappMessage(
             message_sid=twilio_msg.sid,
             direction='outbound',
             from_number=whatsapp_from.replace('whatsapp:', ''),
             to_number=to_e164,
-            body=f'[Plantilla: {tpl["label"]}]',
+            body=f'{label}\n\n{text}' if text else label,
             sent_by_admin_id=g.current_user.id,
             status='queued',
             created_at=datetime.now(timezone.utc),

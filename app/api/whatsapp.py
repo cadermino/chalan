@@ -19,6 +19,39 @@ def normalize_phone(phone):
     return None
 
 
+_template_texts = {}
+
+
+def render_template(client, content_sid, content_variables):
+    """The template's text with its variables filled in, for the backoffice chat.
+
+    Twilio sends the text Meta approved, so the message row only had the label.
+    The text is cached per SID: approved templates don't change. None when
+    Twilio can't say, and the row keeps just the label.
+    """
+    if content_sid not in _template_texts:
+        try:
+            types = client.content.v1.contents(content_sid).fetch().types or {}
+        except Exception as e:
+            print(f'[WhatsApp] No se pudo leer el texto de {content_sid}: {e}', flush=True)
+            return None
+        parts = []
+        for content in types.values():
+            if content.get('body'):
+                parts.append(content['body'])
+                parts += [a['url'] for a in content.get('actions') or [] if a.get('url')]
+                break
+        _template_texts[content_sid] = '\n'.join(parts)
+    text = _template_texts[content_sid]
+    for key, value in (content_variables or {}).items():
+        text = text.replace('{{%s}}' % key, str(value))
+    return text or None
+
+
+def with_template_text(body_label, text):
+    return f'{body_label}\n\n{text}' if text else body_label
+
+
 def validate_twilio_signature(req):
     auth_token = os.getenv('TWILIO_AUTH_TOKEN')
     if not auth_token:
@@ -194,13 +227,14 @@ def _send_async(app, to_e164, content_sid, content_variables, body_label, custom
                 kwargs['status_callback'] = status_callback
 
             twilio_msg = client.messages.create(**kwargs)
+            text = render_template(client, content_sid, content_variables)
 
             msg = WhatsappMessage(
                 message_sid=twilio_msg.sid,
                 direction='outbound',
                 from_number=whatsapp_from.replace('whatsapp:', ''),
                 to_number=to_e164,
-                body=body_label,
+                body=with_template_text(body_label, text),
                 customer_id=customer_id,
                 status='queued',
                 created_at=datetime.now(timezone.utc),
