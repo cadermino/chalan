@@ -99,7 +99,7 @@ docker-compose -f docker-compose.prod.yml up --build       # Mexico
 make deploy-peru                                           # Peru (see below)
 ```
 
-Peru deploys go through `make deploy-peru` (plan only: `make deploy-peru-plan`, undo: `make deploy-peru-rollback`). It deploys `origin/master`, runs the API tests locally, triggers the DB backup workflow when there is a migration, and runs `deploy/peru.sh` on the server: builds only the changed services one at a time (`nginx` last; the 924 MB host cannot build in parallel), migrates before restarting `backoffice-api`, health-checks every route and rolls back on failure. Never use a combined `up --build` on the Peru host.
+Peru deploys go through `make deploy-peru` (plan only: `make deploy-peru-plan`, undo: `make deploy-peru-rollback`). It deploys `origin/master`, runs the API tests locally, triggers the DB backup workflow when there is a migration, and runs `deploy/peru.sh` on the server: builds only the changed services one at a time (`nginx` last; the 924 MB host cannot build in parallel), migrates before restarting `backoffice-api`, health-checks every route and rolls back on failure. If there is less than 3 GB free, it empties the Docker build cache itself before building; the `chalan-prev/*` rollback images stay. It only stops if that is still not enough. Never use a combined `up --build` on the Peru host.
 
 ## Key Technical Details
 

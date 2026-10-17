@@ -82,6 +82,7 @@ cd "$REPO_DIR"
 
 if docker info >/dev/null 2>&1; then DOCKER=(docker); else DOCKER=(sudo docker); fi
 compose() { "${DOCKER[@]}" compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
+free_disk_gb() { echo $(( $(df -Pk / | awk 'NR == 2 { print $4 }') / 1024 / 1024 )); }
 
 exec 9>"$LOCK_FILE"
 flock -n 9 || die "ya hay un deploy corriendo (lock en $LOCK_FILE)"
@@ -172,11 +173,26 @@ for f in "$ENV_FILE" .env.backoffice.prod; do
   [ -f "$f" ] || die "falta $f en $REPO_DIR"
 done
 
-avail_kb=$(df -Pk / | awk 'NR == 2 { print $4 }')
-avail_gb=$((avail_kb / 1024 / 1024))
+avail_gb=$(free_disk_gb)
 log "  Disco libre: ${avail_gb} GB (mínimo ${MIN_FREE_DISK_GB})"
 if [ "$avail_gb" -lt "$MIN_FREE_DISK_GB" ]; then
-  block "poco disco. Liberar con: sudo docker builder prune -f && sudo docker image prune -f"
+  # Lo que se puede borrar sin perder nada es la caché de builds (los builds
+  # siguientes solo tardan más) y las imágenes sin nombre. Las chalan-prev/* son
+  # el rollback y se quedan. El --dry-run no borra: solo avisa, así el plan sale
+  # entero y peru-local.sh sigue; si sin caché tampoco alcanza, se corta acá,
+  # antes de construir nada.
+  if [ "$DRY_RUN" -eq 1 ]; then
+    log "  Poco disco: el deploy va a vaciar la caché de builds de Docker antes de construir"
+  else
+    log "  Poco disco: vaciando la caché de builds de Docker"
+    "${DOCKER[@]}" builder prune -f >/dev/null
+    "${DOCKER[@]}" image prune -f >/dev/null
+    avail_gb=$(free_disk_gb)
+    log "  Disco libre: ${avail_gb} GB"
+    if [ "$avail_gb" -lt "$MIN_FREE_DISK_GB" ]; then
+      block "poco disco aun sin la caché de builds. Ver qué ocupa: sudo docker system df && sudo du -xsh /var/lib/docker /var/log"
+    fi
+  fi
 fi
 free -h | sed 's/^/  /'
 SWAP_ON=0
@@ -273,7 +289,7 @@ for svc in "${TO_DEPLOY[@]}"; do
   log "Build $svc"
   compose build "$svc" || abort_before_restart "falló el build de $svc"
   BUILT+=("$svc")
-  log "  Disco libre: $(( $(df -Pk / | awk 'NR == 2 { print $4 }') / 1024 / 1024 )) GB"
+  log "  Disco libre: $(free_disk_gb) GB"
 done
 
 if [ "$MIGRATE" -eq 1 ]; then
