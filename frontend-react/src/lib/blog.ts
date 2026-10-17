@@ -5,6 +5,14 @@ import matter from "gray-matter";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "blog");
 
+const POST_CTAS = ["embalaje", "pintura", "microcemento", "porcelanato"] as const;
+export type PostCta = (typeof POST_CTAS)[number];
+
+// Un valor que no se conoce cae al cotizador de mudanza en vez de romper el post.
+function parseCta(value: unknown): PostCta | undefined {
+  return POST_CTAS.find((cta) => cta === value);
+}
+
 export interface PostMeta {
   slug: string;
   title: string;
@@ -22,8 +30,9 @@ export interface PostMeta {
   // Qué llamado cierra el post. Sin valor: el cotizador de mudanza (o el
   // registro de transportistas, que se decide por categoría). "embalaje":
   // el formulario de /embalaje/cotizar, para los posts de embalaje, que
-  // están repartidos en varias categorías.
-  cta?: "embalaje";
+  // están repartidos en varias categorías. Los servicios a domicilio sin
+  // formulario (pintura, microcemento, porcelanato) cierran con su WhatsApp.
+  cta?: PostCta;
 }
 
 export interface Post extends PostMeta {
@@ -57,7 +66,7 @@ export function getAllPosts(): PostMeta[] {
       readingTime: calcReadingTime(content),
       image: data.image,
       waitlist: data.waitlist ?? false,
-      cta: data.cta === "embalaje" ? "embalaje" : undefined,
+      cta: parseCta(data.cta),
     } as PostMeta;
   });
 
@@ -84,7 +93,7 @@ export function getPost(slug: string): Post | null {
     readingTime: calcReadingTime(content),
     image: data.image,
     waitlist: data.waitlist ?? false,
-    cta: data.cta === "embalaje" ? "embalaje" : undefined,
+    cta: parseCta(data.cta),
     content,
   };
 }

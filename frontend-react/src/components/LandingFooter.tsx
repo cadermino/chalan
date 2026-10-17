@@ -27,6 +27,9 @@ export function LandingFooter() {
                 <li><Link href="/fletes-peru">Fletes en Perú</Link></li>
                 <li><Link href="/embalaje-profesional">Embalaje profesional</Link></li>
                 <li><Link href="/armado-de-muebles">Armado y desarmado de muebles</Link></li>
+                <li><Link href="/pintores-a-domicilio">Pintores a domicilio</Link></li>
+                <li><Link href="/microcemento">Aplicación de microcemento</Link></li>
+                <li><Link href="/instalacion-de-porcelanato">Instalación de porcelanato</Link></li>
                 <li><Link href="/order/step-one">Cotizar</Link></li>
               </ul>
             </div>

@@ -18,6 +18,9 @@ const LAST_MODIFIED: Record<string, string> = {
   '/como-funciona': '2026-07-22',
   '/embalaje-profesional': '2026-10-13',
   '/armado-de-muebles': '2026-10-13',
+  '/pintores-a-domicilio': '2026-10-16',
+  '/microcemento': '2026-10-16',
+  '/instalacion-de-porcelanato': '2026-10-16',
   '/transportistas': '2026-08-06',
 };
 
@@ -119,6 +122,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/armado-de-muebles`,
       lastModified: LAST_MODIFIED['/armado-de-muebles'],
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/pintores-a-domicilio`,
+      lastModified: LAST_MODIFIED['/pintores-a-domicilio'],
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/microcemento`,
+      lastModified: LAST_MODIFIED['/microcemento'],
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/instalacion-de-porcelanato`,
+      lastModified: LAST_MODIFIED['/instalacion-de-porcelanato'],
       changeFrequency: 'monthly',
       priority: 0.8,
     },

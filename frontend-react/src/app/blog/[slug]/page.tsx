@@ -10,6 +10,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { QuoteWidget } from "@/components/QuoteWidget";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { CarrierSignupForm } from "@/components/CarrierSignupForm";
+import { HOME_SERVICES, whatsappUrl } from "@/lib/homeServices";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -157,7 +158,8 @@ export default async function BlogPost({ params }: Props) {
         )}
 
         {/* CTA post-article — registro para posts de transportistas, formulario
-            de embalaje para los posts de embalaje, cotizador para el resto */}
+            de embalaje para los posts de embalaje, WhatsApp para los servicios a
+            domicilio sin formulario, cotizador para el resto */}
         {post.category === "Transportistas" ? (
           <div className="mt-16">
             <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para recibir pedidos?</p>
@@ -191,6 +193,29 @@ export default async function BlogPost({ params }: Props) {
               >
                 Cotizar embalaje →
               </a>
+            </div>
+          </div>
+        ) : post.cta ? (
+          <div className="mt-16">
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
+              {HOME_SERVICES[post.cta].blogCta.eyebrow}
+            </p>
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-gray-900">{HOME_SERVICES[post.cta].blogCta.title}</h2>
+              <p className="mt-2 text-gray-600">{HOME_SERVICES[post.cta].blogCta.body}</p>
+              <div className="mt-6 flex flex-wrap items-center gap-4">
+                <a
+                  href={whatsappUrl(HOME_SERVICES[post.cta].whatsappText)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700"
+                >
+                  Cotizar por WhatsApp →
+                </a>
+                <Link href={HOME_SERVICES[post.cta].path} className="text-indigo-600 font-medium hover:underline">
+                  Ver precios de {HOME_SERVICES[post.cta].name.toLowerCase()}
+                </Link>
+              </div>
             </div>
           </div>
         ) : (
