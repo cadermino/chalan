@@ -19,16 +19,13 @@ interface Message {
   created_at: string
 }
 
-const PHANTOM_MESSAGES: Record<string, string> = {
-  '/embalaje-profesional': '¡Hola! 👋 ¿Tienes dudas sobre el servicio de embalaje? Cuéntanos qué necesitas embalar y te cotizamos.',
-}
-const DEFAULT_PHANTOM = '¡Hola! 👋 ¿Tienes dudas sobre tu mudanza o flete? Escríbenos y te ayudamos.'
+const PHANTOM_MESSAGE = '¡Hola! 👋 ¿Tienes dudas sobre tu mudanza o flete? Escríbenos y te ayudamos.'
 
-function getPhantomMessage(pathname: string): Message {
+function getPhantomMessage(): Message {
   return {
     id: '__phantom__',
     role: 'agent',
-    body: PHANTOM_MESSAGES[pathname] ?? DEFAULT_PHANTOM,
+    body: PHANTOM_MESSAGE,
     created_at: new Date().toISOString(),
   }
 }
@@ -79,7 +76,7 @@ function formatTime(iso: string): string {
 export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
   const pathname = usePathname()
   // El agente cotiza mudanzas: no aparece en otros servicios (y sus posts) ni en transportistas.
-  const hidden = pathname === '/transportistas' || hiddenPaths.includes(pathname)
+  const hidden = hiddenPaths.includes(pathname)
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [body, setBody] = useState('')
@@ -97,8 +94,7 @@ export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
     const sid = getOrCreateSession()
     setSessionId(sid)
     setMessages(loadHistory(sid))
-    const NO_AUTOOPEN = ['/', '/embalaje-profesional']
-    if (hidden || NO_AUTOOPEN.includes(pathname) || window.innerWidth < 640) return
+    if (hidden || pathname === '/' || window.innerWidth < 640) return
     const t = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY)
     return () => clearTimeout(t)
   }, [pathname, hidden])
@@ -198,8 +194,8 @@ export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
     }
   }
 
-  // La landing de transportistas ya tiene su propio CTA de registro, y los otros servicios cotizan por
-  // su WhatsApp: el widget de cotización de mudanzas no aplica ahí.
+  // Transportistas tiene su propio CTA de registro y los otros servicios su formulario o su WhatsApp:
+  // el widget de cotización de mudanzas no aplica ahí.
   if (hidden) return null
 
   return (
@@ -247,7 +243,7 @@ export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-gray-50">
-            {(messages.length === 0 ? [getPhantomMessage(pathname)] : messages).map((m) => {
+            {(messages.length === 0 ? [getPhantomMessage()] : messages).map((m) => {
               const isUser = m.role === 'user'
               return (
                 <div key={m.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>

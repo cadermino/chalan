@@ -57,13 +57,14 @@ export const metadata: Metadata = {
   },
 };
 
-// Donde no va el agente de mudanzas: las landings de otros servicios y los
-// posts de esos servicios (los que cierran con su WhatsApp, `cta` distinto de
-// embalaje). Se calcula en el servidor porque el blog se lee del disco.
+// Donde no va el agente de mudanzas: las landings de otros servicios, sus posts
+// (los que cierran con el llamado de un servicio: `cta`), y lo de transportistas,
+// que no son clientes. Se calcula en el servidor porque el blog se lee del disco.
 const chatHiddenPaths = [
   ...NON_MOVING_PATHS,
+  "/transportistas",
   ...getAllPosts()
-    .filter((post) => post.cta && post.cta !== "embalaje")
+    .filter((post) => post.cta || post.category === "Transportistas")
     .map((post) => `/blog/${post.slug}`),
 ];
 

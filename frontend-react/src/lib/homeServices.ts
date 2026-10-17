@@ -46,7 +46,9 @@ export const HOME_SERVICES: Record<
 }
 
 // Landings de servicios que no son mudanza. El agente de cotización del chat
-// (ChatWidget) cotiza mudanzas y fletes, así que ahí no se muestra; tampoco en
-// los posts que cierran con el WhatsApp de estos servicios (ver layout.tsx).
-// Embalaje sí lo lleva: el agente atiende sus consultas.
-export const NON_MOVING_PATHS = ['/armado-de-muebles', ...Object.values(HOME_SERVICES).map((s) => s.path)]
+// (ChatWidget) cotiza mudanzas y fletes, así que ahí no se muestra (ver layout.tsx).
+export const NON_MOVING_PATHS = [
+  '/embalaje-profesional',
+  '/armado-de-muebles',
+  ...Object.values(HOME_SERVICES).map((s) => s.path),
+]
