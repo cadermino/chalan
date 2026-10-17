@@ -785,3 +785,23 @@ def test_list_flags_requests_with_a_yapeo_to_verify(client, admin, submitted, pa
     db.session.commit()
     [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
     assert row['reservation_to_verify'] is False
+
+
+def test_the_chosen_carrier_sees_the_customer_whatsapp_only_once_the_job_is_confirmed(client, submitted, packing):
+    winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
+    chosen = make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    make_quotation(submitted, loser, 280)
+    db.session.add(ServiceRequestPayment(service_request_id=submitted.id, service_request_quotation_id=chosen.id,
+                                         amount=30, reference='1234'))
+    db.session.commit()
+
+    pending = public_get(client, submitted, winner).get_json()['service_request']
+    assert (pending['quotation_state'], pending['customer_contact']) == ('selected_pending', None)
+
+    ServiceRequestPayment.query.one().status = 'paid'
+    db.session.commit()
+    confirmed = public_get(client, submitted, winner).get_json()['service_request']
+    assert (confirmed['quotation_state'], confirmed['customer_contact']) == (
+        'selected_mine', {'whatsapp': '+51987654321'})
+    other = public_get(client, submitted, loser).get_json()['service_request']
+    assert other['customer_contact'] is None

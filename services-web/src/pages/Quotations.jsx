@@ -39,7 +39,7 @@ function QuotationCard({ quotation, lowest, canChoose, onChoose }) {
 }
 
 // Cómo quedó la elegida: esperando que Chalán encuentre el yapeo, o agendada.
-function SelectedStatus({ selected, reservation, date, onCorrect }) {
+function SelectedStatus({ selected, reservation, contact, date, onCorrect }) {
   if (reservation?.status === 'pending') {
     return (
       <div role="status" className="mt-6 rounded-lg border border-line bg-paper2 p-4 text-sm">
@@ -64,8 +64,20 @@ function SelectedStatus({ selected, reservation, date, onCorrect }) {
         {reservation?.status === 'paid'
           ? `Ya yapeaste ${money(reservation.amount)}. El día del servicio le pagas ${money(selected.on_site_amount)} a ${selected.carrier_name}.`
           : `Le pagas ${money(selected.total_amount)} a ${selected.carrier_name} el día del servicio.`}
-        {' '}Te escribimos por WhatsApp para coordinar la hora.
+        {contact?.phone
+          ? ` Coordina la hora directo con ${contact.name}.`
+          : ' Te escribimos por WhatsApp para coordinar la hora.'}
       </p>
+      {contact?.phone && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <p className="text-inkStrong">WhatsApp de {contact.name}: <span className="font-semibold">{contact.phone}</span></p>
+          {contact.whatsapp_url && (
+            <a className="btn-primary" href={contact.whatsapp_url} target="_blank" rel="noopener noreferrer">
+              Escribirle por WhatsApp
+            </a>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -176,6 +188,7 @@ export default function Quotations() {
         <SelectedStatus
           selected={selected}
           reservation={reservation}
+          contact={data.carrier_contact}
           date={date}
           onCorrect={() => setModal({ quotation: selected, correcting: true })}
         />

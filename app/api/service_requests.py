@@ -11,10 +11,10 @@ from .carrier_declines import (decline_service_request, decline_to_dict, parse_d
 from .operation_numbers import clean_operation_number, is_valid_operation_number, operation_number_in_use
 from .order.order import yape_reservation_required
 from .service_request.notifications import (
-    notify_customer_choice, notify_job_confirmed, notify_new_quotation, notify_service_request,
+    contact_details, notify_customer_choice, notify_job_confirmed, notify_new_quotation, notify_service_request,
 )
 from .service_request.quotations import (
-    QuotationError, live_reservation, parse_amount, parse_note, platform_fee_rate,
+    QuotationError, confirmed_quotation, live_reservation, parse_amount, parse_note, platform_fee_rate,
     record_reservation, resolve_reservation, save_quotation, select_quotation, split_total,
 )
 from .service_request.types import SERVICE_TYPES
@@ -222,6 +222,17 @@ def _customer_reservation(service_request):
     return {'status': latest.status, 'amount': float(latest.amount), 'reference': latest.reference}
 
 
+def _carrier_contact(service_request):
+    """El contacto del transportista elegido, solo con el trabajo en firme: antes
+    de eso el cliente y el transportista no se ven los datos."""
+    quotation = confirmed_quotation(service_request)
+    if quotation is None or quotation.carrier_company is None:
+        return None
+    contact = contact_details(service_request, quotation.carrier_company)
+    return {'name': quotation.carrier_company.name, 'phone': contact['carrier_phone'],
+            'whatsapp_url': contact['carrier_whatsapp_url']}
+
+
 def _requires_reservation(quotation):
     _, reservation, _ = split_total(quotation, platform_fee_rate())
     return yape_reservation_required() and reservation > 0
@@ -249,6 +260,7 @@ def get_customer_quotations(public_id):
         # front: así la página y el chequeo de /choose no pueden desalinearse.
         'reservation_required': yape_reservation_required(),
         'reservation': _customer_reservation(service_request),
+        'carrier_contact': _carrier_contact(service_request),
         'quotations': [_customer_quotation(q, rate) for q in quotations],
     }), 200
 
@@ -297,6 +309,7 @@ def choose_service_request_quotation(public_id):
         current_app.logger.error(f'Choice notification error: {e}')
     body = _customer_quotation(quotation, quotation.platform_fee_rate)
     body['reservation'] = _customer_reservation(service_request)
+    body['carrier_contact'] = _carrier_contact(service_request)
     return jsonify(body), 200
 
 

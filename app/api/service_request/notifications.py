@@ -223,6 +223,26 @@ def _carrier_url(service_request, carrier):
     return f'{_site_url()}/backoffice/carrier-view/{token}'
 
 
+def _whatsapp_url(phone):
+    e164 = normalize_phone(phone)
+    return 'https://wa.me/' + e164.lstrip('+') if e164 else None
+
+
+def contact_details(service_request, carrier):
+    """Los datos de las dos partes, como _contact_details de las mudanzas: después
+    de confirmar, Chalán no hace de intermediario. El enlace de WhatsApp solo se
+    arma si el teléfono se puede normalizar; si no, queda el número a secas."""
+    street = ', '.join(filter(None, [service_request.street, service_request.interior]))
+    return {
+        'customer_phone': service_request.whatsapp or None,
+        'customer_whatsapp_url': _whatsapp_url(service_request.whatsapp),
+        'customer_address': street or None,
+        'customer_map_url': service_request.map_url,
+        'carrier_phone': (carrier.phone or None) if carrier else None,
+        'carrier_whatsapp_url': _whatsapp_url(carrier.phone) if carrier else None,
+    }
+
+
 def _choice_facts(service_request, quotation):
     carrier = quotation.carrier_company
     return dict(
@@ -277,6 +297,11 @@ def notify_job_confirmed(service_request, quotation, tell_customer):
     encontró su yapeo. Se le avisa al transportista elegido y, si el cliente no
     está mirando su página (confirmación del admin), también a él."""
     facts = _choice_facts(service_request, quotation)
+    # Con la reserva pagada el cliente le paga al transportista su precio; sin
+    # reserva le paga el total (y la comisión se le cobra al transportista aparte).
+    paid = any(p.status == 'paid' and p.service_request_quotation_id == quotation.id
+               for p in service_request.payments)
+    on_site = facts['amount'] if paid else facts['total']
     carrier = quotation.carrier_company
     if carrier is not None:
         url = _carrier_url(service_request, carrier)
@@ -288,7 +313,9 @@ def notify_job_confirmed(service_request, quotation, tell_customer):
                     'email/service_request_chosen_carrier',
                     bcc=[],
                     request_url=url,
+                    on_site=on_site,
                     **facts,
+                    **contact_details(service_request, carrier),
                 )
         except Exception as e:
             print(f'[ServiceRequest] error sending choice email to carrier={carrier.id}: {e}', flush=True)

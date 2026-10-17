@@ -1201,6 +1201,7 @@ def test_without_reservation_choosing_confirms_the_job_and_tells_admin_and_carri
     assert (admin['total'], admin['amount'], admin['whatsapp']) == ('S/ 110.00', 'S/ 100.00', '+51987654321')
     assert (to_carrier['to'], to_carrier['template']) == ('embala@example.com', 'email/service_request_chosen_carrier')
     assert to_carrier['request_url'].startswith('https://chalan.pe/backoffice/carrier-view/')
+    assert to_carrier['on_site'] == 'S/ 110.00'
     assert [m['phone'] for m in sent['whatsapp']] == ['999000111', carrier.phone]
     assert ServiceRequestPayment.query.count() == 0
 
@@ -1338,7 +1339,13 @@ def test_the_admin_confirms_the_yapeo_and_carrier_and_customer_are_told(client, 
     assert response.get_json() == {'id': payment_id, 'status': 'paid'}
     payment = db.session.get(ServiceRequestPayment, payment_id)
     assert (payment.confirmed_by_admin_id, payment.paid_at is not None) == (7, True)
-    assert [e['template'] for e in sent['email']] == ['email/service_request_chosen_carrier']
+    [to_carrier] = sent['email']
+    assert to_carrier['template'] == 'email/service_request_chosen_carrier'
+    assert (to_carrier['customer_phone'], to_carrier['customer_whatsapp_url']) == (
+        '+51987654321', 'https://wa.me/51987654321')
+    assert to_carrier['customer_address'] == 'Av. Javier Prado Este 123, San Isidro, Dpto 402'
+    assert to_carrier['customer_map_url'] == 'https://maps.google.com/?cid=1'
+    assert to_carrier['on_site'] == 'S/ 100.00'
     assert [m['phone'] for m in sent['whatsapp']] == [carrier.phone, '+51987654321']
     assert sent['whatsapp'][1]['variables']['2'].endswith(f'/cotizaciones/{service_request.public_id}')
     assert resolve(client, service_request.id, payment_id, 'paid').status_code == 409
@@ -1379,3 +1386,30 @@ def test_an_admin_switching_the_selection_cancels_the_pending_reservation(client
     select(client, service_request.id, other_id)
 
     assert ServiceRequestPayment.query.one().status == 'cancelled'
+
+
+def test_the_customer_sees_the_carrier_contact_only_once_the_job_is_confirmed(client, yape):
+    service_request, carrier, quotation_id = submitted_with_quote(client)
+
+    chosen = choose(client, service_request.public_id, quotation_id, operation_number='1234').get_json()
+    assert chosen['carrier_contact'] is None
+    assert customer_quotations(client, service_request.public_id).get_json()['carrier_contact'] is None
+
+    resolve(client, service_request.id, ServiceRequestPayment.query.one().id, 'paid')
+
+    assert customer_quotations(client, service_request.public_id).get_json()['carrier_contact'] == {
+        'name': 'Embala SAC', 'phone': '999111222', 'whatsapp_url': 'https://wa.me/51999111222'}
+
+
+def test_without_reservation_the_customer_gets_the_carrier_contact_right_away(client):
+    service_request, _, quotation_id = submitted_with_quote(client)
+
+    body = choose(client, service_request.public_id, quotation_id).get_json()
+
+    assert body['carrier_contact']['phone'] == '999111222'
+
+
+def test_no_contact_is_shown_before_choosing(client):
+    service_request, _, _ = submitted_with_quote(client)
+
+    assert customer_quotations(client, service_request.public_id).get_json()['carrier_contact'] is None

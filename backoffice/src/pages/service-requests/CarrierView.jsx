@@ -157,13 +157,41 @@ function QuotationForm({ token, request, onSaved }) {
 
 // Lo que ve el transportista cuando ya no puede cotizar.
 function Outcome({ state, request }) {
+  if (state === 'selected_pending') {
+    return (
+      <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+        <h2 className="text-lg font-semibold">El cliente eligió tu cotización</h2>
+        <p className="mt-1 text-sm">
+          Está confirmando el pago de la reserva. Cuando quede en firme te avisamos y aquí verás su contacto.
+        </p>
+      </section>
+    )
+  }
   if (state === 'selected_mine') {
+    const whatsapp = request.customer_contact?.whatsapp
+    const digits = (whatsapp || '').replace(/\D/g, '')
     return (
       <section className="rounded-xl border border-green-200 bg-green-50 p-5 text-green-900">
         <h2 className="text-lg font-semibold">¡Te eligieron!</h2>
         <p className="mt-1 text-sm">
-          Tu cotización de {formatMoney(request.my_quotation?.amount)} fue la elegida. Chalán te contactará para coordinar.
+          Tu cotización de {formatMoney(request.my_quotation?.amount)} fue la elegida.
+          {whatsapp
+            ? ' Coordina el día y la hora directo con el cliente. El día del servicio te paga ese monto.'
+            : ' Chalán te contactará para coordinar.'}
         </p>
+        {whatsapp && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p className="text-sm">WhatsApp del cliente: <span className="font-semibold">{whatsapp}</span></p>
+            <a
+              href={`https://wa.me/${digits}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            >
+              Escribirle por WhatsApp
+            </a>
+          </div>
+        )}
       </section>
     )
   }
@@ -230,7 +258,7 @@ export default function ServiceRequestCarrierView() {
                 onConflict={load}
               />
             )}
-            {(quotationState === 'selected_mine' || quotationState === 'selected_other') && (
+            {['selected_mine', 'selected_pending', 'selected_other'].includes(quotationState) && (
               <Outcome state={quotationState} request={request} />
             )}
           </>

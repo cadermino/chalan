@@ -211,3 +211,17 @@ def resolve_reservation(service_request_id, payment_id, status, admin_user_id):
             _unfreeze(quotation)
     db.session.commit()
     return payment
+
+
+def confirmed_quotation(service_request):
+    """La elegida si el trabajo está en firme: su reserva ya se confirmó, o no
+    tiene (el cliente eligió sin reserva, o la eligió un admin). Desde ahí el
+    cliente y el transportista ven el contacto del otro y coordinan directo,
+    igual que una mudanza agendada."""
+    selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
+    if selected is None:
+        return None
+    reservation = live_reservation(service_request, selected.id)
+    if reservation is not None and reservation.status != 'paid':
+        return None
+    return selected

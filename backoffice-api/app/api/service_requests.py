@@ -91,13 +91,19 @@ def _customer_quotations_path(service_request):
 
 
 def _quotation_state(service_request, carrier_company_id):
-    """Que puede hacer este transportista con la solicitud."""
+    """Que puede hacer este transportista con la solicitud. `selected_pending`: el
+    cliente eligio la suya pero Chalan todavia no encuentra el yapeo de la reserva;
+    recien con `selected_mine` el trabajo esta en firme y ve el contacto del cliente."""
     if service_request.status == 'cancelled':
         return 'cancelled'
     selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
     if selected is None:
         return 'open'
-    return 'selected_mine' if selected.carrier_company_id == carrier_company_id else 'selected_other'
+    if selected.carrier_company_id != carrier_company_id:
+        return 'selected_other'
+    pending = any(p.status == 'pending' and p.service_request_quotation_id == selected.id
+                  for p in service_request.payments)
+    return 'selected_pending' if pending else 'selected_mine'
 
 
 def _resolve_carrier_link(token):
@@ -332,14 +338,16 @@ def get_service_request_for_carrier(token):
     my_decline = ServiceRequestCarrierDecline.query.filter_by(
         service_request_id=service_request.id, carrier_company_id=carrier_company_id).first()
 
-    # to_dict() no incluye el WhatsApp del cliente a proposito: el transportista
-    # responde a Chalan, no al cliente. Tampoco se expone ninguna cotizacion ajena:
-    # solo la suya y un estado.
+    # to_dict() no incluye el WhatsApp del cliente a proposito: solo lo ve el
+    # transportista elegido y con el trabajo en firme (como una mudanza agendada).
+    # Tampoco se expone ninguna cotizacion ajena: solo la suya y un estado.
+    state = _quotation_state(service_request, carrier_company_id)
     return jsonify({'service_request': {
         **service_request.to_dict(),
         'materials_summary': _materials_summary(service_request),
         'carrier_company_name': carrier.name if carrier else None,
-        'quotation_state': _quotation_state(service_request, carrier_company_id),
+        'quotation_state': state,
+        'customer_contact': {'whatsapp': service_request.whatsapp} if state == 'selected_mine' else None,
         'my_quotation': None if mine is None else {
             'amount': _money(mine.amount),
             'note': mine.note,
