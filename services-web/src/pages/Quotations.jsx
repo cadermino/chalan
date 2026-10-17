@@ -2,22 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { chooseQuotation, getQuotations } from '../api'
 import { track } from '../analytics'
+import ConfirmModal, { money } from '../components/ConfirmModal'
 import { COPY, SERVICE, whatsappUrl, workLabel } from '../config'
 import { formatDateLabel } from '../dates'
-
-const money = (value) =>
-  `S/ ${Number(value).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 function itemLabel(item) {
   const extras = [item.work && workLabel(item.work), item.pack && 'embalado'].filter(Boolean)
   return `${item.quantity} × ${item.description}${extras.length ? ` — ${extras.join(' · ')}` : ''}`
 }
 
-function QuotationCard({ quotation, lowest, canChoose, confirming, busy, onAsk, onChoose }) {
+function QuotationCard({ quotation, lowest, canChoose, onChoose }) {
   return (
-    <li
-      className={`rounded-xl border p-4 ${quotation.selected ? 'border-accent bg-accentSoft' : 'border-line bg-paper2'}`}
-    >
+    <li className={`rounded-xl border p-4 ${quotation.selected ? 'border-accent bg-accentSoft' : 'border-line bg-paper2'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold text-inkStrong">
@@ -33,28 +29,44 @@ function QuotationCard({ quotation, lowest, canChoose, confirming, busy, onAsk, 
         </div>
         <p className="shrink-0 text-xl font-semibold text-inkStrong">{money(quotation.total_amount)}</p>
       </div>
-
-      {canChoose && !confirming && (
-        <button type="button" className="btn-secondary mt-3 w-full" disabled={busy} onClick={() => onAsk()}>
+      {canChoose && (
+        <button type="button" className="btn-secondary mt-3 w-full" onClick={onChoose}>
           Elegir esta
         </button>
       )}
-      {canChoose && confirming && (
-        <div className="mt-3 rounded-lg border border-line bg-paper p-3">
-          <p className="text-sm text-inkStrong">
-            ¿Eliges a {quotation.carrier_name} por {money(quotation.total_amount)}? Después ya no se puede cambiar desde aquí.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" className="btn-primary flex-1" disabled={busy} onClick={onChoose}>
-              {busy ? 'Eligiendo…' : 'Sí, elegir'}
-            </button>
-            <button type="button" className="btn-secondary" disabled={busy} onClick={() => onAsk(null)}>
-              No
-            </button>
-          </div>
-        </div>
-      )}
     </li>
+  )
+}
+
+// Cómo quedó la elegida: esperando que Chalán encuentre el yapeo, o agendada.
+function SelectedStatus({ selected, reservation, date, onCorrect }) {
+  if (reservation?.status === 'pending') {
+    return (
+      <div role="status" className="mt-6 rounded-lg border border-line bg-paper2 p-4 text-sm">
+        <p className="font-semibold text-inkStrong">Estamos verificando tu yapeo</p>
+        <p className="mt-1 text-inkSoft">
+          Elegiste a {selected.carrier_name}. Recibimos tu número de operación {reservation.reference} por{' '}
+          {money(reservation.amount)}. Cuando lo confirmemos te avisamos por WhatsApp y {selected.carrier_name} recibe
+          el pedido.
+        </p>
+        <button type="button" className="mt-2 text-sm text-accent underline" onClick={onCorrect}>
+          ¿Te equivocaste de número? Corrígelo
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div role="status" className="mt-6 rounded-lg border border-accent bg-accentSoft p-4 text-sm">
+      <p className="font-semibold text-inkStrong">
+        ¡Listo! Tu servicio con {selected.carrier_name} quedó agendado{date ? ` para el ${date}` : ''}.
+      </p>
+      <p className="mt-1 text-inkSoft">
+        {reservation?.status === 'paid'
+          ? `Ya yapeaste ${money(reservation.amount)}. El día del servicio le pagas ${money(selected.on_site_amount)} a ${selected.carrier_name}.`
+          : `Le pagas ${money(selected.total_amount)} a ${selected.carrier_name} el día del servicio.`}
+        {' '}Te escribimos por WhatsApp para coordinar la hora.
+      </p>
+    </div>
   )
 }
 
@@ -62,8 +74,8 @@ export default function Quotations() {
   const { publicId } = useParams()
   const [data, setData] = useState(null)
   const [loadError, setLoadError] = useState('')
-  const [confirmingId, setConfirmingId] = useState(null)
-  const [busy, setBusy] = useState(false)
+  // { quotation, correcting } mientras el modal está abierto.
+  const [modal, setModal] = useState(null)
   const [error, setError] = useState('')
 
   const load = useCallback(() => {
@@ -84,26 +96,30 @@ export default function Quotations() {
     })
   }, [load])
 
-  const choose = async (quotation) => {
-    setBusy(true)
-    setError('')
+  // Lo llama el modal; si falla por el número, el modal muestra el error y sigue abierto.
+  const confirm = async (operationNumber) => {
     try {
-      await chooseQuotation(publicId, quotation.id)
-      track('service_quotation_chosen', { service: SERVICE })
-      setConfirmingId(null)
-      await load()
+      await chooseQuotation(publicId, modal.quotation.id, operationNumber)
     } catch (err) {
-      if (err?.response?.status === 409) {
-        // Otra ya quedó elegida (la eligió Chalán, o la solicitud se canceló): se muestra cómo quedó.
-        setError('Esta solicitud ya no se puede elegir desde aquí. Mira cómo quedó o escríbenos.')
-        setConfirmingId(null)
-        await load()
-      } else {
-        setError(err?.response ? 'No pudimos elegirla. Inténtalo de nuevo.' : 'No hay conexión. Revisa tu internet e inténtalo de nuevo.')
-      }
-    } finally {
-      setBusy(false)
+      const reason = err?.response?.data?.message
+      if (err?.response?.status !== 409 || reason === 'operation_number_already_used') throw err
+      // Ya hay otra elegida (la eligió Chalán) o la solicitud se canceló: se muestra cómo quedó.
+      setModal(null)
+      setError('Esta solicitud ya no se puede elegir desde aquí. Mira cómo quedó o escríbenos.')
+      await load()
+      return
     }
+    if (!modal.correcting) {
+      track('service_quotation_chosen', {
+        service: SERVICE,
+        payment_method: operationNumber ? 'yape_reservation' : 'cash',
+        value: modal.quotation.total_amount,
+        currency: 'PEN',
+      })
+    }
+    setModal(null)
+    setError('')
+    await load()
   }
 
   if (loadError === 'not_found') {
@@ -127,12 +143,13 @@ export default function Quotations() {
   }
   if (!data) return <p className="py-16 text-center text-inkSoft">Cargando…</p>
 
-  const { quotations } = data
+  const { quotations, reservation } = data
   const selected = quotations.find((q) => q.selected)
   const cancelled = data.status === 'cancelled'
   const canChoose = !selected && !cancelled
   const lowestTotal = quotations.length > 1 ? Math.min(...quotations.map((q) => q.total_amount)) : null
-  const where = [data.neighborhood, data.preferred_date && formatDateLabel(data.preferred_date)].filter(Boolean).join(' · ')
+  const date = data.preferred_date && formatDateLabel(data.preferred_date)
+  const summary = [data.service_type.name, data.neighborhood, date].filter(Boolean).join(' · ')
   const whatsappText = selected
     ? `Hola, elegí a ${selected.carrier_name} para mi solicitud de ${data.service_type.name.toLowerCase()}`
     : COPY.whatsappSent
@@ -140,9 +157,7 @@ export default function Quotations() {
   return (
     <>
       <h1 className="text-2xl font-semibold text-inkStrong">Tus cotizaciones</h1>
-      <p className="mt-1 text-inkSoft">
-        {data.service_type.name}{where ? ` · ${where}` : ''}
-      </p>
+      <p className="mt-1 text-inkSoft">{summary}</p>
 
       <details className="mt-4 rounded-lg border border-line p-3 text-sm">
         <summary className="cursor-pointer text-inkSoft">{COPY.itemsSummary} ({data.items.length})</summary>
@@ -157,12 +172,22 @@ export default function Quotations() {
         </div>
       )}
 
-      {selected && (
-        <div role="status" className="mt-6 rounded-lg border border-accent bg-accentSoft p-4 text-sm">
-          <p className="font-semibold text-inkStrong">
-            Elegiste a {selected.carrier_name} por {money(selected.total_amount)}.
+      {selected && !cancelled && (
+        <SelectedStatus
+          selected={selected}
+          reservation={reservation}
+          date={date}
+          onCorrect={() => setModal({ quotation: selected, correcting: true })}
+        />
+      )}
+
+      {canChoose && reservation?.status === 'cancelled' && (
+        <div role="alert" className="mt-6 rounded-lg border border-danger p-4 text-sm">
+          <p className="font-semibold text-inkStrong">No encontramos tu yapeo</p>
+          <p className="mt-1 text-inkSoft">
+            No llegó el yapeo de {money(reservation.amount)} con la operación {reservation.reference}. Vuelve a elegir y
+            revisa el número, o escríbenos.
           </p>
-          <p className="mt-1 text-inkSoft">Te escribimos por WhatsApp para coordinar el día y la hora.</p>
         </div>
       )}
 
@@ -187,10 +212,7 @@ export default function Quotations() {
                 quotation={q}
                 lowest={q.total_amount === lowestTotal}
                 canChoose={canChoose}
-                confirming={confirmingId === q.id}
-                busy={busy}
-                onAsk={(id = q.id) => { setError(''); setConfirmingId(id) }}
-                onChoose={() => choose(q)}
+                onChoose={() => { setError(''); setModal({ quotation: q, correcting: false }) }}
               />
             ))}
           </ul>
@@ -205,6 +227,17 @@ export default function Quotations() {
           ¿Dudas? Escríbenos por WhatsApp
         </a>
       </p>
+
+      {modal && (
+        <ConfirmModal
+          quotation={modal.quotation}
+          summary={summary}
+          reservationRequired={data.reservation_required}
+          correcting={modal.correcting}
+          onConfirm={confirm}
+          onClose={() => setModal(null)}
+        />
+      )}
     </>
   )
 }

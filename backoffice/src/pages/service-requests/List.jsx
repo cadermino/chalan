@@ -86,6 +86,9 @@ export default function ServiceRequestsList() {
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <Link to={`/service-requests/${r.id}`} className="font-medium text-teal-600 hover:underline">#{r.id}</Link>
+                    {r.reservation_to_verify && (
+                      <span className="ml-2 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Yapeo por verificar</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{r.service_type?.name}</td>
                   <td className="px-4 py-3 text-gray-700">{shortDay(r.preferred_date)}</td>

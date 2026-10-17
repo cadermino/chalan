@@ -335,6 +335,8 @@ class ServiceRequest(db.Model):
 		cascade='all, delete-orphan')
 	quotations = db.relationship('ServiceRequestQuotation', backref='service_request',
 		order_by='ServiceRequestQuotation.amount', cascade='all, delete-orphan')
+	payments = db.relationship('ServiceRequestPayment', backref='service_request',
+		order_by='ServiceRequestPayment.id', cascade='all, delete-orphan')
 
 class ServiceRequestItem(db.Model):
 	__tablename__ = 'service_request_items'
@@ -417,6 +419,21 @@ class OrderCarrierDecline(db.Model):
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
 	reason = db.Column(db.String(30), nullable=False)
 	note = db.Column(db.String(500))
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+class ServiceRequestPayment(db.Model):
+	"""La reserva que el cliente le yapea a Chalán al elegir una cotización
+	(migración 026). pending hasta que un admin encuentra el yapeo."""
+	__tablename__ = 'service_request_payments'
+	id = db.Column(db.Integer, primary_key=True)
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
+	service_request_quotation_id = db.Column(db.Integer, db.ForeignKey('service_request_quotations.id', ondelete='CASCADE'), nullable=False)
+	amount = db.Column(db.Numeric(10, 2), nullable=False)
+	status = db.Column(db.String(20), nullable=False, server_default='pending')  # pending | paid | cancelled
+	reference = db.Column(db.String(100))
+	paid_at = db.Column(db.DateTime())
+	confirmed_by_admin_id = db.Column(db.Integer)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 

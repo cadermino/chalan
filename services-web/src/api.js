@@ -38,8 +38,14 @@ export const submitRequest = (publicId, payload) =>
 export const getQuotations = (publicId) =>
   client.get(`/service-requests/${publicId}/quotations`).then((res) => res.data)
 
-export const chooseQuotation = (publicId, quotationId) =>
-  client.post(`/service-requests/${publicId}/choose`, { quotation_id: quotationId }).then((res) => res.data)
+// El número de operación solo viaja cuando el servidor pide la reserva con Yape.
+export const chooseQuotation = (publicId, quotationId, operationNumber) =>
+  client
+    .post(`/service-requests/${publicId}/choose`, {
+      quotation_id: quotationId,
+      ...(operationNumber ? { operation_number: operationNumber } : {}),
+    })
+    .then((res) => res.data)
 
 export const presignMedia = (publicId, file) =>
   client.post(`/service-requests/${publicId}/media/presign`, file).then((res) => res.data)

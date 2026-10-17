@@ -13,8 +13,8 @@ from .orders import _internal_headers
 from .. import db
 from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestCarrierDecline, ServiceRequestItem, ServiceRequestMedia,
-                      ServiceRequestNotification, ServiceRequestQuotation, ServiceMaterial,
-                      ServiceType, _iso, _money)
+                      ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
+                      ServiceMaterial, ServiceType, _iso, _money)
 
 STATUSES = ('draft', 'submitted', 'cancelled')
 TOKEN_PURPOSE = 'service_request'
@@ -204,6 +204,10 @@ def list_service_requests():
     items = _counts(ServiceRequestItem, ids)
     media = _counts(ServiceRequestMedia, ids)
     notified = _counts(ServiceRequestNotification, ids)
+    to_verify = set()
+    if ids:
+        to_verify = {row[0] for row in db.session.query(ServiceRequestPayment.service_request_id).filter(
+            ServiceRequestPayment.service_request_id.in_(ids), ServiceRequestPayment.status == 'pending')}
     quotations = {}
     if ids:
         for request_id, count, lowest in (
@@ -225,6 +229,8 @@ def list_service_requests():
             'notified_count': notified.get(r.id, 0),
             'quotations_count': quotations.get(r.id, (0, None))[0],
             'min_amount': quotations.get(r.id, (0, None))[1],
+            # Un yapeo de reserva esperando que alguien lo busque en Yape.
+            'reservation_to_verify': r.id in to_verify,
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),
         }
@@ -262,6 +268,7 @@ def get_service_request(service_request_id):
             for q in sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
         ],
         'declines': [d.to_dict() for d in declines],
+        'payments': [p.to_dict() for p in service_request.payments],
         'customer_quotations_path': _customer_quotations_path(service_request),
         'links': [
             {
@@ -426,4 +433,28 @@ def select_service_request_quotation(service_request_id, quotation_id):
         return jsonify({'message': 'could not reach the quotation service'}), 502
     if res.status_code not in (200, 400, 404, 409):
         return jsonify({'message': 'failed to select the quotation'}), 502
+    return jsonify(res.json()), res.status_code
+
+
+@api.route('/service-requests/<int:service_request_id>/payments/<int:payment_id>', methods=['POST'])
+@admin_required
+def resolve_service_request_payment(service_request_id, payment_id):
+    """El admin encontró el yapeo de la reserva (paid) o no (cancelled). La lógica
+    y los avisos al transportista y al cliente viven en el API principal; acá
+    solo se controla el rol y se reenvía con el id de quien lo resolvió."""
+    status = (request.get_json(silent=True) or {}).get('status')
+    if status not in ('paid', 'cancelled'):
+        return jsonify({'message': 'status must be paid or cancelled'}), 400
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/service-requests/{service_request_id}/payments/{payment_id}',
+            json={'status': status, 'admin_user_id': g.current_user.id},
+            headers=_internal_headers(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the payment service'}), 502
+    if res.status_code not in (200, 400, 404, 409):
+        return jsonify({'message': 'failed to update the payment'}), 502
     return jsonify(res.json()), res.status_code

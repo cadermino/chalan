@@ -8,7 +8,8 @@ from app.api.order import Order as OrderEntity
 from app.api.order.steps.addresses import Addresses as AddressesStep
 from app.api.orders import send_email_to_carrier_companies
 from app.api.order.order_status import OrderStatus
-from app.models import (CarrierCompanyServiceType, LuServices, Order, OrdersServices, Payment,
+from app.models import (ServiceRequest, ServiceRequestPayment, ServiceRequestQuotation,
+                        CarrierCompanyServiceType, LuServices, Order, OrdersServices, Payment,
                         PaymentType, Quotations, ServiceType)
 
 
@@ -555,6 +556,28 @@ def test_checkout_rejects_reused_operation_number(client, customer, carrier_comp
     Payment.query.filter_by(order_id=first, concept='reservation').one().status = 'cancelled'
     db.session.commit()
     assert _checkout(client, customer, second, '12345678').status_code == 200
+
+
+def test_checkout_rejects_a_number_already_used_by_a_service_request(client, customer, carrier_company, monkeypatch):
+    _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+    service_type = ServiceType(code='packing', name='Embalaje', requestable=1)
+    db.session.add(service_type)
+    db.session.commit()
+    service_request = ServiceRequest(public_id='c' * 32, service_type_id=service_type.id, status='submitted')
+    db.session.add(service_request)
+    db.session.commit()
+    quotation = ServiceRequestQuotation(service_request_id=service_request.id,
+                                        carrier_company_id=carrier_company.id, amount=50)
+    db.session.add(quotation)
+    db.session.commit()
+    db.session.add(ServiceRequestPayment(service_request_id=service_request.id,
+                                         service_request_quotation_id=quotation.id, amount=5, reference='12345678'))
+    db.session.commit()
+
+    res = _checkout(client, customer, order_id, '12345678')
+
+    assert (res.status_code, res.get_json()['message']) == (409, 'operation_number_already_used')
 
 
 def test_checkout_retry_updates_pending_reference(client, customer, carrier_company, monkeypatch):

@@ -8,12 +8,14 @@ from . import api
 from .decorators import is_internal_request
 from .carrier_declines import (decline_service_request, decline_to_dict, parse_decline,
                                undo_service_request_decline)
+from .operation_numbers import clean_operation_number, is_valid_operation_number, operation_number_in_use
+from .order.order import yape_reservation_required
 from .service_request.notifications import (
-    notify_customer_choice, notify_new_quotation, notify_service_request,
+    notify_customer_choice, notify_job_confirmed, notify_new_quotation, notify_service_request,
 )
 from .service_request.quotations import (
-    QuotationError, parse_amount, parse_note, platform_fee_rate, save_quotation,
-    select_quotation, total_with_fee,
+    QuotationError, live_reservation, parse_amount, parse_note, platform_fee_rate,
+    record_reservation, resolve_reservation, save_quotation, select_quotation, split_total,
 )
 from .service_request.types import SERVICE_TYPES
 from .service_request.validation import (
@@ -22,7 +24,8 @@ from .service_request.validation import (
 )
 from .whatsapp import normalize_phone
 from .. import db
-from ..models import ServiceMaterial, ServiceRequest, ServiceRequestItem, ServiceRequestMedia, ServiceType
+from ..models import (ServiceMaterial, ServiceRequest, ServiceRequestItem, ServiceRequestMedia,
+                      ServiceRequestQuotation, ServiceType)
 from ..storage import get_storage
 
 
@@ -189,18 +192,39 @@ def get_service_request(public_id):
 
 
 def _customer_quotation(quotation, rate):
-    """Lo que ve el cliente: el total con la comisión (el congelado si ya la
-    eligieron), nunca el precio del transportista ni su teléfono."""
-    selected = quotation.status == 'selected'
-    total = quotation.total_amount if selected and quotation.total_amount is not None \
-        else total_with_fee(quotation.amount, rate)
+    """Lo que ve el cliente: el total (el congelado si ya la eligieron) y cómo se
+    reparte entre la reserva y lo que paga en el lugar. Nunca el teléfono."""
+    total, reservation, on_site = split_total(quotation, rate)
     return {
         'id': quotation.id,
         'carrier_name': quotation.carrier_company.name if quotation.carrier_company else None,
         'total_amount': float(total),
+        'reservation_amount': float(reservation),
+        'on_site_amount': float(on_site),
         'note': quotation.note,
-        'selected': selected,
+        'selected': quotation.status == 'selected',
     }
+
+
+def _customer_reservation(service_request):
+    """La reserva que importa en la página: la de la elegida, o la última
+    cancelada si ya no hay elegida (no se encontró el yapeo y puede reintentar)."""
+    if not service_request.payments:
+        return None
+    selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
+    latest = service_request.payments[-1]
+    if selected is not None:
+        latest = live_reservation(service_request, selected.id)
+    elif latest.status != 'cancelled':
+        latest = None
+    if latest is None:
+        return None
+    return {'status': latest.status, 'amount': float(latest.amount), 'reference': latest.reference}
+
+
+def _requires_reservation(quotation):
+    _, reservation, _ = split_total(quotation, platform_fee_rate())
+    return yape_reservation_required() and reservation > 0
 
 
 @api.route('/service-requests/<public_id>/quotations', methods=['GET'])
@@ -221,14 +245,24 @@ def get_customer_quotations(public_id):
             {'description': item.description, 'quantity': item.quantity, 'work': item.work, 'pack': item.pack}
             for item in service_request.items
         ],
+        # Lo decide el servidor (YAPE_RESERVATION_REQUIRED), no una variable del
+        # front: así la página y el chequeo de /choose no pueden desalinearse.
+        'reservation_required': yape_reservation_required(),
+        'reservation': _customer_reservation(service_request),
         'quotations': [_customer_quotation(q, rate) for q in quotations],
     }), 200
 
 
 @api.route('/service-requests/<public_id>/choose', methods=['POST'])
 def choose_service_request_quotation(public_id):
-    """El cliente elige una cotización desde su página. Elegir la misma otra vez
-    no hace nada; elegir otra cuando ya hay una elegida es 409."""
+    """El cliente elige una cotización desde su página (el modal de confirmar).
+
+    Con YAPE_RESERVATION_REQUIRED tiene que informar el número de operación del
+    yapeo de la reserva: la cotización queda elegida, pero el transportista se
+    entera recién cuando un admin encuentra el yapeo. Sin la variable, elegir la
+    deja en firme y se avisa al transportista. Elegir la misma otra vez no hace
+    nada (o corrige el número si la reserva sigue por verificar); elegir otra
+    cuando ya hay una elegida es 409."""
     data = request.get_json(silent=True) or {}
     quotation_id = data.get('quotation_id')
     if isinstance(quotation_id, bool) or not isinstance(quotation_id, int):
@@ -236,16 +270,60 @@ def choose_service_request_quotation(public_id):
     service_request = _find_request(public_id)
     if service_request is None or service_request.status == 'draft':
         return _message('service request not found', 404)
+    target = next((q for q in service_request.quotations if q.id == quotation_id), None)
+    if target is None:
+        return _message('quotation not found', 404)
 
-    already = next((q for q in service_request.quotations
-                    if q.id == quotation_id and q.status == 'selected'), None)
+    requires = _requires_reservation(target)
+    number = clean_operation_number(data.get('operation_number'))
+    if requires:
+        if not is_valid_operation_number(number):
+            return _message('invalid_operation_number', 400)
+        if operation_number_in_use(number, service_request_id=service_request.id):
+            return _message('operation_number_already_used', 409)
+
+    was_selected = target.status == 'selected'
     quotation = select_quotation(service_request.id, quotation_id, None, replace=False)
-    if already is None:
-        try:
+    try:
+        if requires:
+            reservation, created = record_reservation(service_request, quotation, number)
+            if created:
+                notify_customer_choice(service_request, quotation, reservation)
+        elif not was_selected:
             notify_customer_choice(service_request, quotation)
-        except Exception as e:
-            current_app.logger.error(f'Choice notification error: {e}')
-    return jsonify(_customer_quotation(quotation, quotation.platform_fee_rate)), 200
+            notify_job_confirmed(service_request, quotation, tell_customer=False)
+    except Exception as e:
+        # record_reservation ya hizo commit antes de avisar; lo que falla acá es un aviso.
+        current_app.logger.error(f'Choice notification error: {e}')
+    body = _customer_quotation(quotation, quotation.platform_fee_rate)
+    body['reservation'] = _customer_reservation(service_request)
+    return jsonify(body), 200
+
+
+@api.route('/service-requests/<int:service_request_id>/payments/<int:payment_id>', methods=['POST'])
+def resolve_service_request_payment(service_request_id, payment_id):
+    """El admin encontró el yapeo de la reserva (paid) o no (cancelled). Interno:
+    el backoffice-api revisa el rol. Confirmarla es lo que pone el trabajo en
+    firme y le avisa al transportista y al cliente."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    data = request.get_json(silent=True) or {}
+    status = data.get('status')
+    if status not in ('paid', 'cancelled'):
+        raise InvalidRequest('status must be paid or cancelled')
+    admin_user_id = data.get('admin_user_id')
+    if admin_user_id is not None and (isinstance(admin_user_id, bool) or not isinstance(admin_user_id, int)):
+        raise InvalidRequest('admin_user_id must be an id')
+
+    payment = resolve_reservation(service_request_id, payment_id, status, admin_user_id)
+    if status == 'paid':
+        quotation = db.session.get(ServiceRequestQuotation, payment.service_request_quotation_id)
+        if quotation is not None and quotation.status == 'selected':
+            try:
+                notify_job_confirmed(payment.service_request, quotation, tell_customer=True)
+            except Exception as e:
+                current_app.logger.error(f'Confirmation notification error: {e}')
+    return jsonify({'id': payment.id, 'status': payment.status}), 200
 
 
 @api.route('/service-requests/<public_id>', methods=['PATCH'])

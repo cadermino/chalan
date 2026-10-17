@@ -244,9 +244,19 @@ What a carrier company does lives in `carrier_company_service_types` ↔ `lu_ser
 
 Packing and furniture assembly customers have no account, so they see and pick quotations on a page keyed by the request's `public_id` (32 random hex chars, the same credential the form uses; no expiring token): `<form_path>/cotizaciones/<public_id>` in services-web (`pages/Quotations.jsx`), e.g. `/armado/cotizar/cotizaciones/…`. `form_path` lives in `SERVICE_TYPES`, mirrored by `FORM_PATHS` in `backoffice-api/app/api/service_requests.py`.
 
-- **API** (main, public): `GET /api/v1/service-requests/<public_id>/quotations` (404 for a draft) shows each carrier's name, note and `total_amount` with `PLATFORM_FEE` (the frozen one once selected). Never the carrier's raw `amount` or phone. `POST /api/v1/service-requests/<public_id>/choose` `{quotation_id}` selects with `selected_by_admin_id = NULL`. Choosing the same one again does nothing; choosing another once one is selected is 409 (`select_quotation(..., replace=False)`). Admins can still change it from the backoffice.
-- **Notifications**: the first quotation of a request (not later ones, not updates) WhatsApps the customer the page link with `TWILIO_TEMPLATE_SERVICE_CUSTOMER` (`{1}` service name, `{2}` URL). It is skipped while unset. A customer choice emails the admin (`service_request_chosen_admin`) and the chosen carrier (`service_request_chosen_carrier`). There is no WhatsApp for it, and Chalán still coordinates contact details.
-- **Backoffice**: the request detail has "Copiar link del cliente" (`customer_quotations_path`) and tags a quotation "Elegida por el cliente" (`selected_by_customer`).
+- **API** (main, public): `GET /api/v1/service-requests/<public_id>/quotations` (404 for a draft) shows each carrier's name and note, plus `total_amount` with `PLATFORM_FEE` (the frozen one once selected) split into `reservation_amount` (Chalán's share) and `on_site_amount` (the carrier's price). It never shows the carrier's phone. `POST /api/v1/service-requests/<public_id>/choose` `{quotation_id, operation_number}` selects with `selected_by_admin_id = NULL`. Choosing the same one again does nothing, or corrects a pending number. Choosing another once one is selected is 409 (`select_quotation(..., replace=False)`). Admins can still change it from the backoffice, which cancels the pending reservation of the old one.
+- **Payment, like a move's `PaymentConfirmationModal.vue`** (services-web `components/ConfirmModal.jsx`): with `YAPE_RESERVATION_REQUIRED=true` (the same switch as moves, and the page reads it from the API), choosing means yaping the reservation and reporting the operation number. That creates a `pending` row in `service_request_payments` (migration 026). It is a separate table from `payments`, whose `quotation_id` points to moving quotations. The carrier is **not** told until an admin confirms the yapeo in the request detail (backoffice-api `POST /api/service-requests/:id/payments/:pid` `{status: paid|cancelled}` → main API internal route). `paid` tells the carrier (email + WhatsApp) and the customer (WhatsApp). `cancelled` ("No llegó") frees a customer-made selection so they can choose again. Without the switch, choosing confirms at once and the total is paid in cash to the carrier. `app/api/operation_numbers.py` keeps an operation number from being reused across moves **and** service requests.
+- **WhatsApp templates** (each skipped while its variable is unset):
+
+  | Variable | Sent | Variables |
+  |----------|------|-----------|
+  | `TWILIO_TEMPLATE_SERVICE_CUSTOMER` | to the customer, on the first quotation | `{1}` service, `{2}` page URL |
+  | `TWILIO_TEMPLATE_SERVICE_CHOSEN_ADMIN` | to the admin, when the customer chooses | `{1}` carrier, `{2}` backoffice URL |
+  | `TWILIO_TEMPLATE_SERVICE_CHOSEN_CARRIER` | to the carrier, when the job is confirmed | `{1}` service, `{2}` carrier link |
+  | `TWILIO_TEMPLATE_SERVICE_CONFIRMED_CUSTOMER` | to the customer, when an admin confirms the yapeo | `{1}` service, `{2}` page URL |
+
+  Emails: `service_request_chosen_admin` (with the yapeo to verify) and `service_request_chosen_carrier`.
+- **Backoffice**: the request detail has "Copiar link del cliente" (`customer_quotations_path`), tags a quotation "Elegida por el cliente" (`selected_by_customer`), and lists the reservations with "Confirmar yapeo" / "No llegó". The list flags "Yapeo por verificar".
 
 ## Carrier Declines
 

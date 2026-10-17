@@ -91,9 +91,17 @@
                     {% if whatsapp %}WhatsApp del cliente: <strong>{{whatsapp}}</strong>{% endif %}
                   </td>
                 </tr>
+                {% if reservation %}
+                <tr>
+                  <td class="bodycopy" style="padding: 0 0 15px 0;">
+                    Dice que yapeó la reserva de <strong>{{reservation}}</strong>, operación <strong>{{operation_number}}</strong>.
+                    Búscala en Yape y confírmala en el backoffice: hasta entonces el transportista no se entera.
+                  </td>
+                </tr>
+                {% endif %}
                 <tr>
                   <td class="bodycopy">
-                    La eligió desde su página de cotizaciones. Coordina con el cliente y el transportista:<br/>
+                    La eligió desde su página de cotizaciones. {% if reservation %}Verifica el yapeo aquí:{% else %}Coordina con el cliente y el transportista:{% endif %}<br/>
                     <a href="{{admin_url}}">{{admin_url}}</a>
                   </td>
                 </tr>

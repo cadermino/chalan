@@ -6,9 +6,10 @@ import pytest
 from app import db
 from app.api.decorators import generate_internal_token
 from app.api.service_request.validation import LIMA
-from app.models import (CarrierCompany, CarrierCompanyServiceType, ServiceMaterial,
+from app.models import (CarrierCompany, CarrierCompanyServiceType, Payment, PaymentType, ServiceMaterial,
                         ServiceRequest, ServiceRequestMedia, ServiceRequestNotification,
-                        ServiceRequestCarrierDecline, ServiceRequestQuotation, ServiceType)
+                        ServiceRequestCarrierDecline, ServiceRequestPayment, ServiceRequestQuotation,
+                        ServiceType)
 
 ADDRESS = {
     'street': 'Av. Javier Prado Este 123, San Isidro',
@@ -62,6 +63,8 @@ def sent(monkeypatch):
     monkeypatch.setenv('COUNTRY_ID', '2')
     monkeypatch.delenv('NOTIFY_EMAIL', raising=False)
     monkeypatch.delenv('NOTIFY_WHATSAPP_PHONE', raising=False)
+    # Sin reserva salvo en los tests que la piden: no depender del .env del host.
+    monkeypatch.delenv('YAPE_RESERVATION_REQUIRED', raising=False)
     return calls
 
 
@@ -1100,8 +1103,30 @@ def customer_quotations(client, public_id):
     return client.get(f'/api/v1/service-requests/{public_id}/quotations')
 
 
-def choose(client, public_id, quotation_id):
-    return client.post(f'/api/v1/service-requests/{public_id}/choose', json={'quotation_id': quotation_id})
+def choose(client, public_id, quotation_id, operation_number=None):
+    body = {'quotation_id': quotation_id}
+    if operation_number is not None:
+        body['operation_number'] = operation_number
+    return client.post(f'/api/v1/service-requests/{public_id}/choose', json=body)
+
+
+def resolve(client, request_id, payment_id, status, internal=True):
+    return client.post(f'/api/v1/service-requests/{request_id}/payments/{payment_id}',
+                       json={'status': status, 'admin_user_id': 7},
+                       headers=internal_headers() if internal else {})
+
+
+def submitted_with_quote(client, amount=100, carrier_name='Embala SAC'):
+    request_id = make_submitted(client)
+    service_request = db.session.get(ServiceRequest, request_id)
+    carrier = make_carrier(carrier_name)
+    quotation_id = quote(client, request_id, carrier.id, amount=amount).get_json()['id']
+    return service_request, carrier, quotation_id
+
+
+@pytest.fixture
+def yape(monkeypatch):
+    monkeypatch.setenv('YAPE_RESERVATION_REQUIRED', 'true')
 
 
 def test_the_customer_page_of_a_draft_or_an_unknown_request_is_404(client):
@@ -1111,7 +1136,7 @@ def test_the_customer_page_of_a_draft_or_an_unknown_request_is_404(client):
     assert customer_quotations(client, 'f' * 32).status_code == 404
 
 
-def test_the_customer_sees_totals_with_the_fee_cheapest_first_and_no_carrier_price(client):
+def test_the_customer_sees_totals_split_into_reservation_and_on_site_cheapest_first(client):
     request_id = make_submitted(client)
     public_id = db.session.get(ServiceRequest, request_id).public_id
     quote(client, request_id, make_carrier('Cara SAC').id, amount=200, note='Con materiales')
@@ -1122,22 +1147,21 @@ def test_the_customer_sees_totals_with_the_fee_cheapest_first_and_no_carrier_pri
     assert body['service_type'] == {'code': 'packing', 'name': 'Embalaje'}
     assert (body['status'], body['neighborhood'], body['preferred_date']) == ('submitted', 'San Isidro', TOMORROW)
     assert body['items'] == [{'description': 'Sofá', 'quantity': 1, 'work': None, 'pack': None}]
-    assert [(q['carrier_name'], q['total_amount'], q['note'], q['selected']) for q in body['quotations']] == [
-        ('Barata SAC', 110.0, None, False), ('Cara SAC', 220.0, 'Con materiales', False)]
-    assert 'amount' not in body['quotations'][0]
+    assert (body['reservation_required'], body['reservation']) == (False, None)
+    assert [(q['carrier_name'], q['total_amount'], q['reservation_amount'], q['on_site_amount'], q['note'])
+            for q in body['quotations']] == [
+        ('Barata SAC', 110.0, 10.0, 100.0, None), ('Cara SAC', 220.0, 20.0, 200.0, 'Con materiales')]
     assert 'whatsapp' not in body
 
 
 def test_a_selected_quotation_keeps_its_frozen_total_when_the_fee_changes(client, monkeypatch):
-    request_id = make_submitted(client)
-    public_id = db.session.get(ServiceRequest, request_id).public_id
-    quotation_id = quote(client, request_id, make_carrier().id, amount=100).get_json()['id']
-    select(client, request_id, quotation_id)
+    service_request, _, quotation_id = submitted_with_quote(client)
+    select(client, service_request.id, quotation_id)
     monkeypatch.setenv('PLATFORM_FEE', '0.2')
 
-    [shown] = customer_quotations(client, public_id).get_json()['quotations']
+    [shown] = customer_quotations(client, service_request.public_id).get_json()['quotations']
 
-    assert (shown['total_amount'], shown['selected']) == (110.0, True)
+    assert (shown['total_amount'], shown['reservation_amount'], shown['selected']) == (110.0, 10.0, True)
 
 
 def test_only_the_first_quotation_whatsapps_the_customer_their_page(client, sent, monkeypatch):
@@ -1156,38 +1180,40 @@ def test_only_the_first_quotation_whatsapps_the_customer_their_page(client, sent
         {'1': 'embalaje', '2': f'https://chalan.pe/embalaje/cotizar/cotizaciones/{public_id}'}]
 
 
-def test_the_customer_chooses_a_quotation_and_admin_and_carrier_are_emailed(client, sent, monkeypatch):
+def test_without_reservation_choosing_confirms_the_job_and_tells_admin_and_carrier(client, sent, monkeypatch):
     monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
-    request_id = make_submitted(client)
-    public_id = db.session.get(ServiceRequest, request_id).public_id
-    carrier = make_carrier('Embala SAC')
-    quotation_id = quote(client, request_id, carrier.id, amount=100).get_json()['id']
+    monkeypatch.setenv('NOTIFY_WHATSAPP_PHONE', '999000111')
+    service_request, carrier, quotation_id = submitted_with_quote(client)
     sent['email'].clear()
+    sent['whatsapp'].clear()
 
-    response = choose(client, public_id, quotation_id)
+    response = choose(client, service_request.public_id, quotation_id)
 
     assert response.status_code == 200
-    assert response.get_json() == {'id': quotation_id, 'carrier_name': 'Embala SAC',
-                                   'total_amount': 110.0, 'note': None, 'selected': True}
+    body = response.get_json()
+    assert (body['carrier_name'], body['total_amount'], body['selected'], body['reservation']) == (
+        'Embala SAC', 110.0, True, None)
     saved = db.session.get(ServiceRequestQuotation, quotation_id)
     assert (saved.status, saved.selected_by_admin_id, float(saved.total_amount)) == ('selected', None, 110.0)
     admin, to_carrier = sent['email']
-    assert (admin['to'], admin['template']) == ('admin@example.com', 'email/service_request_chosen_admin')
+    assert (admin['to'], admin['template'], admin['reservation']) == (
+        'admin@example.com', 'email/service_request_chosen_admin', None)
     assert (admin['total'], admin['amount'], admin['whatsapp']) == ('S/ 110.00', 'S/ 100.00', '+51987654321')
     assert (to_carrier['to'], to_carrier['template']) == ('embala@example.com', 'email/service_request_chosen_carrier')
     assert to_carrier['request_url'].startswith('https://chalan.pe/backoffice/carrier-view/')
+    assert [m['phone'] for m in sent['whatsapp']] == ['999000111', carrier.phone]
+    assert ServiceRequestPayment.query.count() == 0
 
 
-def test_choosing_the_same_quotation_again_does_not_email_again(client, sent, monkeypatch):
+def test_choosing_the_same_quotation_again_does_not_notify_again(client, sent, monkeypatch):
     monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
-    request_id = make_submitted(client)
-    public_id = db.session.get(ServiceRequest, request_id).public_id
-    quotation_id = quote(client, request_id, make_carrier().id).get_json()['id']
-    choose(client, public_id, quotation_id)
+    service_request, _, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id)
     sent['email'].clear()
+    sent['whatsapp'].clear()
 
-    assert choose(client, public_id, quotation_id).status_code == 200
-    assert sent['email'] == []
+    assert choose(client, service_request.public_id, quotation_id).status_code == 200
+    assert (sent['email'], sent['whatsapp']) == ([], [])
 
 
 def test_the_customer_cannot_switch_to_another_quotation(client):
@@ -1215,12 +1241,141 @@ def test_choose_needs_a_quotation_id(client, body):
 
 
 def test_the_customer_cannot_choose_on_a_draft_another_request_or_a_cancelled_one(client):
-    request_id = make_submitted(client)
-    service_request = db.session.get(ServiceRequest, request_id)
-    quotation_id = quote(client, request_id, make_carrier().id).get_json()['id']
+    service_request, _, quotation_id = submitted_with_quote(client)
     other_public_id = create_draft(client)
 
     assert choose(client, other_public_id, quotation_id).status_code == 404
     service_request.status = 'cancelled'
     db.session.commit()
     assert choose(client, service_request.public_id, quotation_id).status_code == 409
+
+
+# --- Yape reservation ---------------------------------------------------------------
+
+@pytest.mark.parametrize('number', [None, '', '12', 'abc', '1' * 21])
+def test_with_reservation_choosing_needs_a_valid_operation_number(client, yape, number):
+    service_request, _, quotation_id = submitted_with_quote(client)
+
+    response = choose(client, service_request.public_id, quotation_id, operation_number=number)
+
+    assert (response.status_code, response.get_json()['message']) == (400, 'invalid_operation_number')
+    assert db.session.get(ServiceRequestQuotation, quotation_id).status == 'active'
+
+
+def test_with_reservation_the_admin_is_told_to_verify_and_the_carrier_waits(client, sent, monkeypatch, yape):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    service_request, carrier, quotation_id = submitted_with_quote(client)
+    sent['email'].clear()
+    sent['whatsapp'].clear()
+
+    response = choose(client, service_request.public_id, quotation_id, operation_number='0012 3456')
+
+    assert response.get_json()['reservation'] == {'status': 'pending', 'amount': 10.0, 'reference': '00123456'}
+    payment = ServiceRequestPayment.query.one()
+    assert (payment.service_request_quotation_id, float(payment.amount), payment.status) == (
+        quotation_id, 10.0, 'pending')
+    [admin] = sent['email']
+    assert admin['subject'].startswith('Verifica el yapeo')
+    assert (admin['reservation'], admin['operation_number']) == ('S/ 10.00', '00123456')
+    assert carrier.phone not in [m['phone'] for m in sent['whatsapp']]
+    page = customer_quotations(client, service_request.public_id).get_json()
+    assert page['reservation_required'] is True
+    assert page['reservation']['status'] == 'pending'
+
+
+def test_choosing_again_while_pending_corrects_the_number_without_notifying(client, sent, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id, operation_number='1111')
+    sent['email'].clear()
+
+    choose(client, service_request.public_id, quotation_id, operation_number='2222')
+
+    assert ServiceRequestPayment.query.one().reference == '2222'
+    assert sent['email'] == []
+
+
+def test_an_operation_number_used_by_another_request_or_a_move_is_rejected(client, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    other = ServiceRequest(public_id='b' * 32, service_type_id=service_request.service_type_id, status='submitted')
+    db.session.add(other)
+    db.session.commit()
+    other_quote = ServiceRequestQuotation(service_request_id=other.id, carrier_company_id=1, amount=50)
+    db.session.add(other_quote)
+    db.session.commit()
+    db.session.add(ServiceRequestPayment(service_request_id=other.id, service_request_quotation_id=other_quote.id,
+                                         amount=5, reference='5555'))
+    db.session.commit()
+
+    response = choose(client, service_request.public_id, quotation_id, operation_number='5555')
+
+    assert (response.status_code, response.get_json()['message']) == (409, 'operation_number_already_used')
+
+
+def test_a_move_reservation_number_cannot_be_reused_by_a_service_request(client, yape, order):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    payment_type = PaymentType(type='cash')
+    db.session.add(payment_type)
+    db.session.commit()
+    db.session.add(Payment(order_id=order.id, lu_payment_type_id=payment_type.id, amount=10,
+                           concept='reservation', status='pending', reference='7777'))
+    db.session.commit()
+
+    response = choose(client, service_request.public_id, quotation_id, operation_number='7777')
+
+    assert (response.status_code, response.get_json()['message']) == (409, 'operation_number_already_used')
+
+
+def test_the_admin_confirms_the_yapeo_and_carrier_and_customer_are_told(client, sent, monkeypatch, yape):
+    monkeypatch.setenv('TWILIO_TEMPLATE_SERVICE_CONFIRMED_CUSTOMER', 'HXC')
+    service_request, carrier, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+    payment_id = ServiceRequestPayment.query.one().id
+    sent['email'].clear()
+    sent['whatsapp'].clear()
+
+    response = resolve(client, service_request.id, payment_id, 'paid')
+
+    assert response.get_json() == {'id': payment_id, 'status': 'paid'}
+    payment = db.session.get(ServiceRequestPayment, payment_id)
+    assert (payment.confirmed_by_admin_id, payment.paid_at is not None) == (7, True)
+    assert [e['template'] for e in sent['email']] == ['email/service_request_chosen_carrier']
+    assert [m['phone'] for m in sent['whatsapp']] == [carrier.phone, '+51987654321']
+    assert sent['whatsapp'][1]['variables']['2'].endswith(f'/cotizaciones/{service_request.public_id}')
+    assert resolve(client, service_request.id, payment_id, 'paid').status_code == 409
+
+
+def test_when_the_yapeo_is_not_found_the_customer_can_choose_again(client, sent, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+    payment_id = ServiceRequestPayment.query.one().id
+    sent['email'].clear()
+
+    resolve(client, service_request.id, payment_id, 'cancelled')
+
+    quotation = db.session.get(ServiceRequestQuotation, quotation_id)
+    assert (quotation.status, quotation.total_amount) == ('active', None)
+    assert sent['email'] == []
+    page = customer_quotations(client, service_request.public_id).get_json()
+    assert page['reservation'] == {'status': 'cancelled', 'amount': 10.0, 'reference': '1234'}
+    assert choose(client, service_request.public_id, quotation_id, operation_number='1234').status_code == 200
+    assert ServiceRequestPayment.query.filter_by(status='pending').count() == 1
+
+
+def test_resolving_a_payment_needs_the_internal_token_and_a_valid_status(client, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+    payment_id = ServiceRequestPayment.query.one().id
+
+    assert resolve(client, service_request.id, payment_id, 'paid', internal=False).status_code == 403
+    assert resolve(client, service_request.id, payment_id, 'pending').status_code == 400
+    assert resolve(client, service_request.id, 999, 'paid').status_code == 404
+
+
+def test_an_admin_switching_the_selection_cancels_the_pending_reservation(client, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    other_id = quote(client, service_request.id, make_carrier('Otra SAC').id, amount=120).get_json()['id']
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+
+    select(client, service_request.id, other_id)
+
+    assert ServiceRequestPayment.query.one().status == 'cancelled'

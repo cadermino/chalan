@@ -609,6 +609,8 @@ class ServiceRequest(db.Model):
     notifications = db.relationship('ServiceRequestNotification', backref='service_request')
     quotations = db.relationship('ServiceRequestQuotation', backref='service_request',
                                  order_by='ServiceRequestQuotation.amount')
+    payments = db.relationship('ServiceRequestPayment', backref='service_request',
+                               order_by='ServiceRequestPayment.id')
 
     def to_dict(self):
         """Lo que ve el transportista: sin el WhatsApp del cliente."""
@@ -776,6 +778,35 @@ class OrderCarrierDecline(db.Model):
             'note': self.note,
             'created_date': _iso(self.created_date),
             'updated_date': _iso(self.updated_date),
+        }
+
+
+class ServiceRequestPayment(db.Model):
+    """Espejo de `service_request_payments` (026): la reserva por Yape de una
+    solicitud. La escribe el API principal, también al confirmarla."""
+    __tablename__ = 'service_request_payments'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id'), nullable=False)
+    service_request_quotation_id = db.Column(db.Integer, db.ForeignKey('service_request_quotations.id'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    status = db.Column(db.String(20), nullable=False, server_default='pending')
+    reference = db.Column(db.String(100))
+    paid_at = db.Column(db.DateTime())
+    confirmed_by_admin_id = db.Column(db.Integer)
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+    updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'quotation_id': self.service_request_quotation_id,
+            'amount': _money(self.amount),
+            'status': self.status,
+            'reference': self.reference,
+            'paid_at': _iso(self.paid_at),
+            'created_date': _iso(self.created_date),
         }
 
 

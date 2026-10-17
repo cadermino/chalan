@@ -135,6 +135,90 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
   )
 }
 
+const PAYMENT_LABEL = { pending: 'Por verificar', paid: 'Confirmada', cancelled: 'No llegó' }
+const PAYMENT_STYLE = {
+  pending: 'bg-amber-100 text-amber-800',
+  paid: 'bg-teal-100 text-teal-800',
+  cancelled: 'bg-gray-200 text-gray-600',
+}
+
+// La reserva que el cliente yapeó al elegir en su página. Yape personal no tiene
+// webhook: alguien la busca en la app y la confirma acá. Confirmarla es lo que le
+// avisa al transportista; si no llegó, el cliente puede volver a elegir.
+function Reservations({ request, busy, confirming, onAskConfirm, onResolve }) {
+  const payments = request.payments || []
+  if (payments.length === 0) return null
+  const quotationName = Object.fromEntries((request.quotations || []).map((q) => [q.id, q.carrier_company_name]))
+
+  return (
+    <section className="mt-4 rounded-xl bg-white p-5 shadow">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Reserva por Yape</h2>
+      <ul className="divide-y divide-gray-100">
+        {payments.slice().reverse().map((p) => (
+          <li key={p.id} className="py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-gray-900">
+                  N.º de operación <span className="font-semibold">{p.reference}</span>
+                  <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${PAYMENT_STYLE[p.status] || ''}`}>
+                    {PAYMENT_LABEL[p.status] || p.status}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-400">
+                  {quotationName[p.quotation_id] || 'Cotización'} · informada {formatTimestamp(p.created_date)}
+                  {p.paid_at && ` · confirmada ${formatTimestamp(p.paid_at)}`}
+                </p>
+              </div>
+              <p className="text-lg font-bold text-gray-900">{formatMoney(p.amount)}</p>
+            </div>
+            {p.status === 'pending' && !confirming && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onAskConfirm({ id: p.id, status: 'paid' })}
+                  className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+                >
+                  Confirmar yapeo
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onAskConfirm({ id: p.id, status: 'cancelled' })}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  No llegó
+                </button>
+              </div>
+            )}
+            {p.status === 'pending' && confirming?.id === p.id && (
+              <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-teal-200 bg-teal-50 p-3">
+                <p className="flex-1 text-sm text-teal-800">
+                  {confirming.status === 'paid'
+                    ? `Confirmar el yapeo de ${formatMoney(p.amount)}: se le avisa a ${quotationName[p.quotation_id] || 'el transportista'} y al cliente.`
+                    : 'Marcarlo como no llegado: la cotización se libera y el cliente puede volver a elegir.'}
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onResolve(p.id, confirming.status)}
+                  className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+                >
+                  Sí
+                </button>
+                <button type="button" disabled={busy} onClick={() => onAskConfirm(null)} className="text-sm text-gray-600 hover:underline">
+                  No
+                </button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-gray-400">Búscala en Yape por el número de operación y el monto antes de confirmarla.</p>
+    </section>
+  )
+}
+
 export default function ServiceRequestDetail() {
   const { id } = useParams()
   const [request, setRequest] = useState(null)
@@ -146,6 +230,8 @@ export default function ServiceRequestDetail() {
   // Elegir una cotización también pide un segundo clic: le dice al equipo cuál es el
   // precio del cliente, y elegir otra después reemplaza a la anterior.
   const [confirmingSelectId, setConfirmingSelectId] = useState(null)
+  // { id, status } del yapeo que se está por confirmar o rechazar.
+  const [confirmingPayment, setConfirmingPayment] = useState(null)
 
   const load = () =>
     client.get(`/api/service-requests/${id}`)
@@ -181,6 +267,20 @@ export default function ServiceRequestDetail() {
       toast.error(err.response?.status === 409
         ? 'La solicitud ya no admite elegir (¿fue cancelada?)'
         : 'No se pudo elegir la cotización')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const resolvePayment = async (paymentId, status) => {
+    setBusy(true)
+    try {
+      await client.post(`/api/service-requests/${id}/payments/${paymentId}`, { status })
+      toast.success(status === 'paid' ? 'Yapeo confirmado: avisamos al transportista y al cliente' : 'Marcado como no llegado')
+      setConfirmingPayment(null)
+      await load()
+    } catch (err) {
+      toast.error(err.response?.status === 409 ? 'Ese yapeo ya estaba resuelto' : 'No se pudo actualizar el yapeo')
     } finally {
       setBusy(false)
     }
@@ -244,6 +344,14 @@ export default function ServiceRequestDetail() {
         confirmingId={confirmingSelectId}
         onAskConfirm={setConfirmingSelectId}
         onSelect={selectQuotation}
+      />
+
+      <Reservations
+        request={request}
+        busy={busy}
+        confirming={confirmingPayment}
+        onAskConfirm={setConfirmingPayment}
+        onResolve={resolvePayment}
       />
 
       <div className="mt-4">

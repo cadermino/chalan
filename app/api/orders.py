@@ -20,6 +20,7 @@ from .order.steps.belongings_appointment_date import BelongingsAppointmentDate a
 from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
 from .carrier_declines import decline_to_dict, find_order_decline
+from .operation_numbers import clean_operation_number, is_valid_operation_number, operation_number_in_use
 
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
@@ -30,12 +31,6 @@ from .. import db
 from ..storage import get_storage
 
 CARRIER_NOTIFICATION_COOLDOWN = timedelta(minutes=15)
-
-# Largo del número de operación de Yape que aceptamos. No conocemos el formato
-# exacto del comprobante, así que el rango es ancho a propósito: sirve para
-# descartar vacíos y basura, no para validar contra Yape.
-OPERATION_NUMBER_MIN_LENGTH = 4
-OPERATION_NUMBER_MAX_LENGTH = 20
 # Perú no tiene horario de verano, así que un offset fijo alcanza y evita
 # depender de que la imagen traiga la base de zonas horarias.
 LIMA_TZ = timezone(timedelta(hours=-5))
@@ -276,11 +271,6 @@ def get_order(order_id):
         'order': order_detail,
     }), 200
 
-def _clean_operation_number(raw):
-    """Solo los dígitos del número de operación, o '' si no vino nada usable."""
-    return ''.join(ch for ch in str(raw or '') if ch.isdigit())
-
-
 def _ops_recipient():
     return os.getenv('OPS_MAIL') if os.getenv('FLASK_ENV') == 'prod' else os.getenv('ADMIN_MAIL')
 
@@ -408,20 +398,14 @@ def generate_checkout_cash(order_id):
     # llamar al endpoint directo para agendar sin pagar.
     breakdown = OrderEntity.reservation_breakdown(quotation)
     requires_reservation = yape_reservation_required() and breakdown['reservation_amount'] > 0
-    operation_number = _clean_operation_number((request.get_json(silent=True) or {}).get('operation_number'))
-    valid_number = OPERATION_NUMBER_MIN_LENGTH <= len(operation_number) <= OPERATION_NUMBER_MAX_LENGTH
+    operation_number = clean_operation_number((request.get_json(silent=True) or {}).get('operation_number'))
+    valid_number = is_valid_operation_number(operation_number)
     if requires_reservation:
         if not valid_number:
             return jsonify({'message': 'invalid_operation_number'}), 400
-        # Un mismo yapeo no puede agendar dos órdenes. Las reservas canceladas
-        # no cuentan: el número queda libre si esa orden se cayó.
-        reused = PaymentModel.query.filter(
-            PaymentModel.concept == 'reservation',
-            PaymentModel.status != 'cancelled',
-            PaymentModel.reference == operation_number,
-            PaymentModel.order_id != order_id,
-        ).first()
-        if reused is not None:
+        # Un mismo yapeo no puede agendar dos órdenes, ni una orden y una
+        # solicitud de servicio.
+        if operation_number_in_use(operation_number, order_id=order_id):
             return jsonify({'message': 'operation_number_already_used'}), 409
 
     payment, created = order_entity.create_order_payments(

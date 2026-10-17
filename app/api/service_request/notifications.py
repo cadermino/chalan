@@ -218,47 +218,97 @@ def notify_new_quotation(service_request, quotation, created):
             print(f'[ServiceRequest] error sending customer WhatsApp: {e}', flush=True)
 
 
-def notify_customer_choice(service_request, quotation):
-    """El cliente eligió una cotización en su página: se le avisa al admin, que
-    coordina, y al transportista elegido. Solo por correo: por WhatsApp haría falta
-    una plantilla más para cada uno. Un aviso que falla no deshace la elección."""
-    service_name = service_request.service_type.name
+def _carrier_url(service_request, carrier):
+    token = generate_service_request_token(service_request.id, carrier.id)
+    return f'{_site_url()}/backoffice/carrier-view/{token}'
+
+
+def _choice_facts(service_request, quotation):
     carrier = quotation.carrier_company
-    carrier_name = carrier.name if carrier else 'Un transportista'
-    common = dict(
-        service_name=service_name,
-        carrier_name=carrier_name,
+    return dict(
+        service_name=service_request.service_type.name,
+        carrier_name=carrier.name if carrier else 'Un transportista',
         total=_money(quotation.total_amount),
         amount=_money(quotation.amount),
         neighborhood=service_request.neighborhood,
         preferred_date=_date_label(service_request),
     )
 
+
+def notify_customer_choice(service_request, quotation, reservation=None):
+    """El cliente eligió una cotización en su página: se le avisa al admin, que
+    coordina. Con `reservation` el aviso es también para verificar el yapeo; el
+    transportista se entera recién cuando el admin lo confirma
+    (notify_job_confirmed). Un aviso que falla no deshace la elección."""
+    facts = _choice_facts(service_request, quotation)
+    admin_url = f'{_site_url()}/backoffice/service-requests/{service_request.id}'
     try:
         notify_email = os.getenv('NOTIFY_EMAIL')
         if notify_email:
+            subject = (f'Verifica el yapeo: el cliente eligió a {facts["carrier_name"]} (#{service_request.id})'
+                       if reservation else f'El cliente eligió a {facts["carrier_name"]} (#{service_request.id})')
             send_email(
                 notify_email,
-                f'El cliente eligió a {carrier_name} (#{service_request.id})',
+                subject,
                 'email/service_request_chosen_admin',
                 bcc=[],
                 whatsapp=service_request.whatsapp,
-                admin_url=f'{_site_url()}/backoffice/service-requests/{service_request.id}',
-                **common,
+                admin_url=admin_url,
+                reservation=_money(reservation.amount) if reservation else None,
+                operation_number=reservation.reference if reservation else None,
+                **facts,
             )
     except Exception as e:
         print(f'[ServiceRequest] error sending choice email to admin: {e}', flush=True)
 
     try:
-        if carrier and carrier.email:
-            token = generate_service_request_token(service_request.id, carrier.id)
-            send_email(
-                carrier.email,
-                f'Te eligieron para una solicitud de {service_name.lower()} Chalán',
-                'email/service_request_chosen_carrier',
-                bcc=[],
-                request_url=f'{_site_url()}/backoffice/carrier-view/{token}',
-                **common,
-            )
+        send_whatsapp(
+            os.getenv('NOTIFY_WHATSAPP_PHONE'),
+            os.getenv('TWILIO_TEMPLATE_SERVICE_CHOSEN_ADMIN'),
+            {'1': facts['carrier_name'], '2': admin_url},
+            body_label='[Plantilla: Cliente eligió cotización de servicio]',
+        )
     except Exception as e:
-        print(f'[ServiceRequest] error sending choice email to carrier={quotation.carrier_company_id}: {e}', flush=True)
+        print(f'[ServiceRequest] error sending choice WhatsApp to admin: {e}', flush=True)
+
+
+def notify_job_confirmed(service_request, quotation, tell_customer):
+    """El trabajo quedó en firme: el cliente eligió sin reserva, o el admin
+    encontró su yapeo. Se le avisa al transportista elegido y, si el cliente no
+    está mirando su página (confirmación del admin), también a él."""
+    facts = _choice_facts(service_request, quotation)
+    carrier = quotation.carrier_company
+    if carrier is not None:
+        url = _carrier_url(service_request, carrier)
+        try:
+            if carrier.email:
+                send_email(
+                    carrier.email,
+                    f'Te eligieron para una solicitud de {facts["service_name"].lower()} Chalán',
+                    'email/service_request_chosen_carrier',
+                    bcc=[],
+                    request_url=url,
+                    **facts,
+                )
+        except Exception as e:
+            print(f'[ServiceRequest] error sending choice email to carrier={carrier.id}: {e}', flush=True)
+        try:
+            send_whatsapp(
+                carrier.phone,
+                os.getenv('TWILIO_TEMPLATE_SERVICE_CHOSEN_CARRIER'),
+                {'1': facts['service_name'].lower(), '2': url},
+                body_label='[Plantilla: Te eligieron para un servicio]',
+            )
+        except Exception as e:
+            print(f'[ServiceRequest] error sending choice WhatsApp to carrier={carrier.id}: {e}', flush=True)
+
+    if tell_customer:
+        try:
+            send_whatsapp(
+                service_request.whatsapp,
+                os.getenv('TWILIO_TEMPLATE_SERVICE_CONFIRMED_CUSTOMER'),
+                {'1': facts['service_name'].lower(), '2': customer_quotations_url(service_request)},
+                body_label='[Plantilla: Servicio confirmado para el cliente]',
+            )
+        except Exception as e:
+            print(f'[ServiceRequest] error sending confirmation WhatsApp to customer: {e}', flush=True)

@@ -7,7 +7,7 @@ import requests as requests_lib
 from app import db
 from app.models import (AdminUser, CarrierCompany, CarrierCompanyServiceType, ServiceMaterial,
                         ServiceRequest, ServiceRequestItem, ServiceRequestNotification,
-                        ServiceRequestQuotation, ServiceType)
+                        ServiceRequestPayment, ServiceRequestQuotation, ServiceType)
 
 SECRET = 'test-secret-key-at-least-32-bytes-long'
 
@@ -728,3 +728,60 @@ def test_a_draft_has_no_customer_link(client, admin, submitted):
     data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
 
     assert data['customer_quotations_path'] is None
+
+
+def test_detail_lists_the_yape_reservations(client, admin, submitted, packing):
+    quotation = make_quotation(submitted, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
+    db.session.add(ServiceRequestPayment(service_request_id=submitted.id, service_request_quotation_id=quotation.id,
+                                         amount=10, reference='12345678'))
+    db.session.commit()
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    [payment] = data['payments']
+    assert (payment['quotation_id'], payment['amount'], payment['status'], payment['reference']) == (
+        quotation.id, 10.0, 'pending', '12345678')
+
+
+def test_resolving_a_reservation_proxies_with_the_admin_id(client, admin, submitted, monkeypatch):
+    seen = {}
+
+    def fake_post(url, json, headers, timeout):
+        seen.update(url=url, json=json, headers=headers)
+        return FakeResponse(200, {'id': 3, 'status': 'paid'})
+    monkeypatch.setattr('app.api.service_requests.requests.post', fake_post)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+
+    res = client.post(f'/api/service-requests/{submitted.id}/payments/3', json={'status': 'paid'}, headers=admin)
+
+    assert (res.status_code, res.get_json()) == (200, {'id': 3, 'status': 'paid'})
+    assert seen['url'] == f'http://flask-api:8001/api/v1/service-requests/{submitted.id}/payments/3'
+    admin_id = AdminUser.query.filter_by(role='admin').first().id
+    assert seen['json'] == {'status': 'paid', 'admin_user_id': admin_id}
+    token = seen['headers']['Authorization'].split()[1]
+    assert jwt.decode(token, SECRET, algorithms=['HS256'])['scope'] == 'internal'
+
+
+def test_resolving_a_reservation_rejects_other_statuses_and_carriers(client, admin, submitted):
+    carrier = make_carrier()
+    carrier_headers = make_user('carrier_company', carrier_company_id=carrier.id)
+
+    assert client.post(f'/api/service-requests/{submitted.id}/payments/3', json={'status': 'pending'},
+                       headers=admin).status_code == 400
+    assert client.post(f'/api/service-requests/{submitted.id}/payments/3', json={'status': 'paid'},
+                       headers=carrier_headers).status_code == 403
+
+
+def test_list_flags_requests_with_a_yapeo_to_verify(client, admin, submitted, packing):
+    quotation = make_quotation(submitted, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
+    db.session.add(ServiceRequestPayment(service_request_id=submitted.id, service_request_quotation_id=quotation.id,
+                                         amount=10, reference='1234'))
+    db.session.commit()
+
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+    assert row['reservation_to_verify'] is True
+
+    ServiceRequestPayment.query.one().status = 'paid'
+    db.session.commit()
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+    assert row['reservation_to_verify'] is False

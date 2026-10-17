@@ -4,7 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from ... import db
 from ...models import (CarrierCompany, ServiceRequest, ServiceRequestCarrierDecline,
-                       ServiceRequestQuotation)
+                       ServiceRequestPayment, ServiceRequestQuotation)
 from .validation import InvalidRequest
 
 MAX_AMOUNT = Decimal('100000')
@@ -137,6 +137,11 @@ def select_quotation(service_request_id, quotation_id, admin_user_id, replace=Tr
     for other in service_request.quotations:
         if other.status == 'selected':
             _unfreeze(other)
+    # Una reserva por verificar de otra cotización deja de valer: el admin
+    # cambió la elegida. Una ya pagada no se toca (esa plata hay que verla aparte).
+    for payment in service_request.payments:
+        if payment.status == 'pending' and payment.service_request_quotation_id != quotation.id:
+            payment.status = 'cancelled'
     quotation.status = 'selected'
     quotation.platform_fee_rate = rate.quantize(Decimal('0.0001'))
     quotation.total_amount = total_with_fee(quotation.amount, rate)
@@ -144,3 +149,65 @@ def select_quotation(service_request_id, quotation_id, admin_user_id, replace=Tr
     quotation.selected_by_admin_id = admin_user_id
     db.session.commit()
     return quotation
+
+
+def split_total(quotation, rate):
+    """(total, reserva, en el lugar): el total para el cliente, lo que le yapea a
+    Chalán para agendar (la comisión) y lo que le paga al transportista el día
+    del servicio (su precio tal cual). Una elegida usa su total congelado."""
+    if quotation.status == 'selected' and quotation.total_amount is not None:
+        total = Decimal(quotation.total_amount)
+    else:
+        total = total_with_fee(quotation.amount, rate)
+    on_site = Decimal(quotation.amount)
+    return total, total - on_site, on_site
+
+
+def live_reservation(service_request, quotation_id):
+    """La reserva por verificar o ya pagada de esa cotización, o None."""
+    return next((p for p in reversed(service_request.payments)
+                 if p.service_request_quotation_id == quotation_id and p.status != 'cancelled'), None)
+
+
+def record_reservation(service_request, quotation, reference):
+    """Guarda la reserva que el cliente dice haber yapeado. Devuelve (reserva, creada).
+
+    Si ya había una por verificar para esta cotización, el cliente está
+    corrigiendo el número. Una ya confirmada por un admin no se reescribe: quedó
+    verificada contra ese número."""
+    reservation = live_reservation(service_request, quotation.id)
+    if reservation is not None:
+        if reservation.status == 'pending' and reservation.reference != reference:
+            reservation.reference = reference
+            db.session.commit()
+        return reservation, False
+    _, amount, _ = split_total(quotation, quotation.platform_fee_rate)
+    reservation = ServiceRequestPayment(
+        service_request_id=service_request.id, service_request_quotation_id=quotation.id,
+        amount=amount, reference=reference)
+    db.session.add(reservation)
+    db.session.commit()
+    return reservation, True
+
+
+def resolve_reservation(service_request_id, payment_id, status, admin_user_id):
+    """El admin dice si encontró el yapeo (paid) o no (cancelled). Solo desde
+    pending. Si no llegó y la cotización la había elegido el cliente, se libera
+    la elección para que pueda volver a elegir (y a yapear)."""
+    service_request = _lock_request(service_request_id)
+    payment = next((p for p in service_request.payments if p.id == payment_id), None)
+    if payment is None:
+        raise QuotationError('payment not found', 404)
+    if payment.status != 'pending':
+        raise QuotationError('payment is not pending', 409)
+    if status == 'paid':
+        payment.status = 'paid'
+        payment.paid_at = datetime.utcnow()
+        payment.confirmed_by_admin_id = admin_user_id
+    else:
+        payment.status = 'cancelled'
+        quotation = db.session.get(ServiceRequestQuotation, payment.service_request_quotation_id)
+        if quotation is not None and quotation.status == 'selected' and quotation.selected_by_admin_id is None:
+            _unfreeze(quotation)
+    db.session.commit()
+    return payment
