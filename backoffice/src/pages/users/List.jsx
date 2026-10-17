@@ -49,6 +49,7 @@ export default function UsersList() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
             <tr>
+              <th className="px-4 py-3 text-left">ID</th>
               <th className="px-4 py-3 text-left">Nombre</th>
               <th className="px-4 py-3 text-left">Email</th>
               <th className="px-4 py-3 text-left">DNI</th>
@@ -61,6 +62,7 @@ export default function UsersList() {
           <tbody className="divide-y divide-gray-100">
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-xs text-gray-400">{u.id}</td>
                 <td className="px-4 py-3 font-medium text-gray-900">
                   {u.first_name || u.last_name
                     ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim()
@@ -98,7 +100,7 @@ export default function UsersList() {
               </tr>
             ))}
             {users.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Sin usuarios</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Sin usuarios</td></tr>
             )}
           </tbody>
         </table>
