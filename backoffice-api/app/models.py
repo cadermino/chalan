@@ -644,6 +644,9 @@ class ServiceRequestItem(db.Model):
     description = db.Column(db.String(200), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, server_default='1')
     position = db.Column(db.Integer, nullable=False, server_default='0')
+    # Solo armado de muebles: assemble | disassemble | both, y si también se embala.
+    work = db.Column(db.String(20))
+    pack = db.Column(db.Boolean)
 
     materials = db.relationship('ServiceMaterial', secondary=service_request_item_materials,
                                 order_by='ServiceMaterial.position')
@@ -653,6 +656,8 @@ class ServiceRequestItem(db.Model):
             'id': self.id,
             'description': self.description,
             'quantity': self.quantity,
+            'work': self.work,
+            'pack': self.pack,
             'materials': [m.to_dict() for m in self.materials],
         }
 

@@ -4,15 +4,18 @@ import { SERVICE } from '../config'
 import storage from '../storage'
 import { track } from '../analytics'
 
-const STORAGE_KEY = 'chalan_packing_request'
+// Uno por servicio: un borrador de embalaje no se retoma en el armado.
+const STORAGE_KEY = `chalan_${SERVICE}_request`
 
-const EMPTY_ADDRESS = {
+export const EMPTY_ADDRESS = {
   street: '', interior: '', neighborhood: '', city: '', state: '', country: '', map_url: '',
 }
 const EMPTY_DRAFT = {
   publicId: null,
   address: EMPTY_ADDRESS,
   items: [],
+  // Solo armado: dónde se arman los muebles que se desarman en la dirección.
+  destination: null,
   media: [],
   preferredDate: '',
   whatsapp: '',
@@ -22,15 +25,25 @@ const EMPTY_DRAFT = {
 let itemSeq = 0
 export function newItem(fields = {}) {
   itemSeq += 1
-  return { key: `item-${itemSeq}`, description: '', quantity: 1, materials: [], ...fields }
+  return { key: `item-${itemSeq}`, description: '', quantity: 1, materials: [], work: null, pack: false, ...fields }
 }
 
+// El servidor manda null en los campos vacíos; los inputs quieren ''.
+const toForm = (address) => ({ ...EMPTY_ADDRESS, ...Object.fromEntries(
+  Object.entries(address || {}).map(([k, v]) => [k, v || ''])) })
+
+const addressPayload = (address) => ({
+  street: address.street, interior: address.interior, neighborhood: address.neighborhood,
+  city: address.city, state: address.state, country: address.country, map_url: address.map_url,
+})
+
 function fromServer(data) {
+  const destination = data.details?.destination
   return {
     publicId: data.public_id,
-    address: { ...EMPTY_ADDRESS, ...Object.fromEntries(
-      Object.entries(data.address || {}).map(([k, v]) => [k, v || ''])) },
-    items: (data.items || []).map((item) => newItem(item)),
+    address: toForm(data.address),
+    items: (data.items || []).map((item) => newItem({ ...item, pack: Boolean(item.pack) })),
+    destination: destination ? toForm(destination) : null,
     media: data.media || [],
     preferredDate: data.preferred_date || '',
     // El servidor guarda +51987654321; el campo muestra solo los 9 dígitos.
@@ -73,8 +86,7 @@ export function RequestProvider({ children }) {
   const patch = useCallback((fields) => setDraft((current) => ({ ...current, ...fields })), [])
 
   const saveAddress = useCallback(async (address, website = '') => {
-    const payload = { street: address.street, interior: address.interior, neighborhood: address.neighborhood,
-      city: address.city, state: address.state, country: address.country, map_url: address.map_url }
+    const payload = addressPayload(address)
     if (draft.publicId) {
       await updateRequest(draft.publicId, { address: payload })
       patch({ address })
@@ -86,11 +98,17 @@ export function RequestProvider({ children }) {
     patch({ publicId, address })
   }, [draft.publicId, patch])
 
-  const saveItems = useCallback(async (items) => {
-    await updateRequest(draft.publicId, {
-      items: items.map(({ description, quantity, materials }) => ({ description, quantity, materials })),
-    })
-    patch({ items })
+  // `destination` solo lo manda el armado: null la borra, undefined no la toca.
+  const saveItems = useCallback(async (items, destination) => {
+    const body = {
+      items: items.map(({ description, quantity, materials, work, pack }) => (
+        SERVICE === 'packing' ? { description, quantity, materials } : { description, quantity, materials, work, pack })),
+    }
+    if (destination !== undefined) {
+      body.details = destination ? { destination: addressPayload(destination) } : {}
+    }
+    await updateRequest(draft.publicId, body)
+    patch(destination === undefined ? { items } : { items, destination })
   }, [draft.publicId, patch])
 
   const submit = useCallback(async ({ whatsapp, preferredDate }) => {

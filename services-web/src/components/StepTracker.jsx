@@ -1,4 +1,6 @@
-const STEPS = ['Dirección', 'Qué embalamos', 'Fecha y contacto']
+import { COPY } from '../config'
+
+const STEPS = COPY.steps
 
 export default function StepTracker({ current }) {
   return (

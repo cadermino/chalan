@@ -83,8 +83,9 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 })
 
-// Por ahora se cotiza por WhatsApp. Cuando exista /armado/cotizar en
-// services-web (como /embalaje/cotizar), el CTA principal pasa al formulario.
+// El formulario vive en otro contenedor (services-web): se enlaza con <a>, no con next/link.
+const FORM_URL = '/armado/cotizar'
+
 const WHATSAPP_URL =
   'https://wa.me/51972643007?text=Hola%2C%20quiero%20cotizar%20el%20armado%20o%20desarmado%20de%20muebles'
 
@@ -113,7 +114,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Cuéntanos qué muebles son',
-    body: 'Escríbenos por WhatsApp qué hay que armar o desarmar, la tienda o modelo si lo tienes, y el distrito.',
+    body: 'Lista qué hay que armar o desarmar, con la tienda o modelo si lo tienes, y súbele fotos o un video. Si prefieres, escríbenos por WhatsApp.',
     icon: Chat,
   },
   {
@@ -148,13 +149,14 @@ const FAQ: { q: string; a: string; render?: ReactNode }[] = [
   },
   {
     q: 'Me voy a mudar, ¿cómo funciona?',
-    a: 'Desarmamos tus muebles en tu casa actual y, cuando ya estén en el nuevo departamento, los armamos ahí. Son dos cotizaciones: el desarmado y el armado, que cuesta lo mismo que armar un mueble nuevo. El traslado lo puedes cotizar con Chalán.',
+    a: 'Desarmamos tus muebles en tu casa actual y, cuando ya estén en el nuevo departamento, los armamos ahí. En el formulario marca "Desarmar y armar" y pon las dos direcciones: el armador te cotiza el desarmado y el armado, que cuesta lo mismo que armar un mueble nuevo. Si quieres que también los embale, márcalo ahí mismo. El traslado lo puedes cotizar con Chalán.',
     render: (
       <>
         Desarmamos tus muebles en tu casa actual y, cuando ya estén en el nuevo departamento,
-        los armamos ahí. Son dos cotizaciones: el desarmado y el armado, que cuesta lo mismo que
-        armar un mueble nuevo. El traslado lo puedes{' '}
-        <Link href="/cotizar-mudanza">cotizar con Chalán</Link>, y si también necesitas empacar,
+        los armamos ahí. En el formulario marca &ldquo;Desarmar y armar&rdquo; y pon las dos
+        direcciones: el armador te cotiza el desarmado y el armado, que cuesta lo mismo que armar un
+        mueble nuevo. Si quieres que también los embale, márcalo ahí mismo. El traslado lo puedes{' '}
+        <Link href="/cotizar-mudanza">cotizar con Chalán</Link>, y para empacar toda la casa
         tenemos <Link href="/embalaje-profesional">embalaje a domicilio</Link>.
       </>
     ),
@@ -289,7 +291,7 @@ export default function ArmadoDeMuebles() {
           { label: 'Preguntas', href: '#faq' },
           { label: 'Blog', href: '/blog' },
         ]}
-        cta={{ label: 'Cotizar por WhatsApp', href: WHATSAPP_URL, external: true, plain: true }}
+        cta={{ label: 'Cotizar en 2 minutos', href: FORM_URL, plain: true }}
       />
       <main id="main-content" className={`chalan-landing ${fontVars}`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -355,19 +357,27 @@ export default function ArmadoDeMuebles() {
                       Cotiza ahora
                     </div>
                     <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--ink)' }}>
-                      Cuéntanos qué muebles hay que armar o desarmar y en qué distrito. Te
-                      confirmamos el precio por WhatsApp.
+                      Cuéntanos qué muebles hay que armar o desarmar, con fotos si las tienes, y
+                      si también hay que embalarlos. Te confirmamos el precio por WhatsApp.
                     </p>
                   </div>
+                  <a
+                    href={FORM_URL}
+                    className="btn btn-primary"
+                    style={{ justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 }}
+                  >
+                    Cotizar en 2 minutos
+                    <Arrow className="arrow" />
+                  </a>
                   <Link
                     href={WHATSAPP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-primary"
-                    style={{ justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 }}
+                    className="btn btn-ghost"
+                    style={{ justifyContent: 'center', gap: 10, padding: '12px 20px', fontSize: 14 }}
                   >
                     <WhatsAppIcon />
-                    Cotizar por WhatsApp
+                    Prefiero escribir por WhatsApp
                   </Link>
                   <p
                     style={{
@@ -560,23 +570,26 @@ export default function ArmadoDeMuebles() {
                 </div>
                 <h2 className="h-section" style={{ maxWidth: '16ch' }}>
                   Tus muebles, firmes.<br />
-                  <em>Cotiza por WhatsApp.</em>
+                  <em>Cotiza en 2 minutos.</em>
                 </h2>
                 <p className="lede" style={{ marginTop: 24 }}>
                   Cuéntanos qué muebles son y dónde. Te confirmamos el precio y agendamos.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <a href={FORM_URL} className="btn btn-primary" style={{ gap: 10 }}>
+                  Cotizar en 2 minutos
+                  <Arrow className="arrow" />
+                </a>
                 <Link
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary"
+                  className="btn btn-ghost"
                   style={{ gap: 10 }}
                 >
                   <WhatsAppIcon />
-                  Cotizar por WhatsApp
-                  <Arrow className="arrow" />
+                  Escribir por WhatsApp
                 </Link>
               </div>
             </div>

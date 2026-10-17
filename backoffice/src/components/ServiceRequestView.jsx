@@ -56,6 +56,34 @@ function Thumb({ media }) {
   return <img src={media.url} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" />
 }
 
+const WORK_LABELS = { assemble: 'Armar', disassemble: 'Desarmar', both: 'Desarmar y armar' }
+
+function MaterialChips({ materials, empty }) {
+  if (materials.length === 0) return <span className="text-gray-400">{empty}</span>
+  return (
+    <div className="flex flex-wrap gap-1">
+      {materials.map((m) => (
+        <span key={m.code} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">{m.name}</span>
+      ))}
+    </div>
+  )
+}
+
+function AddressBlock({ address }) {
+  const line = [address.street, address.interior].filter(Boolean).join(' · ')
+  return (
+    <>
+      <p className="font-medium text-gray-900">{line || '—'}</p>
+      {address.neighborhood && <p className="text-sm text-gray-500">{address.neighborhood}</p>}
+      {address.map_url && (
+        <a href={address.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-teal-600 hover:underline">
+          Ver en Google Maps
+        </a>
+      )}
+    </>
+  )
+}
+
 function Section({ title, children }) {
   return (
     <section className="bg-white rounded-xl shadow p-5">
@@ -69,7 +97,10 @@ function Section({ title, children }) {
 // del link y el detalle del admin, para que ambos vean exactamente lo mismo.
 export default function ServiceRequestView({ request }) {
   const [opened, setOpened] = useState(null)
-  const address = [request.street, request.interior].filter(Boolean).join(' · ')
+  // Armado de muebles: cada mueble dice qué hacer y si se embala, y los que se
+  // desarman y arman van a una segunda dirección.
+  const isAssembly = request.service_type?.code === 'furniture_assembly'
+  const destination = request.details?.destination
 
   return (
     <div className="space-y-4">
@@ -82,18 +113,19 @@ export default function ServiceRequestView({ request }) {
         </p>
       </div>
 
-      <Section title="Dirección">
-        <p className="font-medium text-gray-900">{address || '—'}</p>
-        {request.neighborhood && <p className="text-sm text-gray-500">{request.neighborhood}</p>}
-        {request.map_url && (
-          <a href={request.map_url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm text-teal-600 hover:underline">
-            Ver en Google Maps
-          </a>
-        )}
+      <Section title={destination ? 'Dirección (dónde se desarman)' : 'Dirección'}>
+        <AddressBlock address={request} />
       </Section>
 
+      {destination && (
+        <Section title="Destino (dónde se arman)">
+          <AddressBlock address={destination} />
+          <p className="mt-2 text-xs text-gray-400">El traslado de los muebles no está incluido.</p>
+        </Section>
+      )}
+
       {request.materials_summary?.length > 0 && (
-        <Section title="Materiales a llevar">
+        <Section title={isAssembly ? 'Materiales para embalar' : 'Materiales a llevar'}>
           <ul className="flex flex-wrap gap-2">
             {request.materials_summary.map((m) => (
               <li key={m.code} className="rounded-full bg-teal-50 px-3 py-1 text-sm text-teal-800">
@@ -105,14 +137,15 @@ export default function ServiceRequestView({ request }) {
         </Section>
       )}
 
-      <Section title={`Qué hay que embalar (${request.items.length})`}>
+      <Section title={`${isAssembly ? 'Muebles' : 'Qué hay que embalar'} (${request.items.length})`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-gray-400">
               <tr>
                 <th className="py-2 pr-3">Cant.</th>
-                <th className="py-2 pr-3">Cosa</th>
-                <th className="py-2">Materiales</th>
+                <th className="py-2 pr-3">{isAssembly ? 'Mueble' : 'Cosa'}</th>
+                {isAssembly && <th className="py-2 pr-3">Trabajo</th>}
+                <th className="py-2">{isAssembly ? 'Embalaje' : 'Materiales'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -120,16 +153,13 @@ export default function ServiceRequestView({ request }) {
                 <tr key={item.id}>
                   <td className="py-2 pr-3 align-top text-gray-500">{item.quantity}</td>
                   <td className="py-2 pr-3 align-top font-medium text-gray-900">{item.description}</td>
+                  {isAssembly && (
+                    <td className="py-2 pr-3 align-top text-gray-900">{WORK_LABELS[item.work] || item.work || '—'}</td>
+                  )}
                   <td className="py-2 align-top">
-                    {item.materials.length === 0
-                      ? <span className="text-gray-400">a recomendar</span>
-                      : (
-                        <div className="flex flex-wrap gap-1">
-                          {item.materials.map((m) => (
-                            <span key={m.code} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">{m.name}</span>
-                          ))}
-                        </div>
-                      )}
+                    {isAssembly && !item.pack
+                      ? <span className="text-gray-400">no</span>
+                      : <MaterialChips materials={item.materials} empty="a recomendar" />}
                   </td>
                 </tr>
               ))}

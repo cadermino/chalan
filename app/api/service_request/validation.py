@@ -51,25 +51,27 @@ def today_lima():
     return now_lima().date()
 
 
-def validate_address(address):
+def validate_address(address, name='address'):
     """Requires street, country and map_url: map_url is the proof that the user
     picked a Google Places suggestion instead of typing free text, which is what
-    carrier pricing needs. Same rule as the move flow; do not relax it."""
+    carrier pricing needs. Same rule as the move flow; do not relax it.
+
+    `name` is what the errors call it (a second address lives in details)."""
     if not isinstance(address, dict):
-        raise InvalidRequest('address is required')
+        raise InvalidRequest(f'{name} is required')
     cleaned = {}
     for field, (max_length, required) in ADDRESS_FIELDS.items():
         value = address.get(field)
         if value is not None and not isinstance(value, str):
-            raise InvalidRequest(f'address.{field} must be a string')
+            raise InvalidRequest(f'{name}.{field} must be a string')
         value = (value or '').strip()
         if not value:
             if required:
-                raise InvalidRequest(f'address.{field} is required')
+                raise InvalidRequest(f'{name}.{field} is required')
             cleaned[field] = None
             continue
         if len(value) > max_length:
-            raise InvalidRequest(f'address.{field} is too long (max {max_length})')
+            raise InvalidRequest(f'{name}.{field} is too long (max {max_length})')
         cleaned[field] = value
     return cleaned
 
@@ -93,12 +95,16 @@ def validate_preferred_date(value, allow_today=False):
     return parsed
 
 
-def validate_items(items, service_type_id):
-    """Returns [{'description', 'quantity', 'materials': [ServiceMaterial]}].
+def validate_items(items, materials_service_type_id, validate_item=None):
+    """Returns [{'description', 'quantity', 'materials': [ServiceMaterial], ...}].
 
     Materials come from the catalog by code: they must exist, be active and
-    belong to the request's service type. An empty list is valid and means
-    "let the carrier recommend".
+    belong to `materials_service_type_id` (the request's own service, or the
+    one whose catalog it borrows). An empty list is valid and means "let the
+    carrier recommend".
+
+    `validate_item(item, index)` adds the service's own fields. An item it
+    marks as not packed (`pack` False) keeps no materials.
     """
     if not isinstance(items, list):
         raise InvalidRequest('items must be a list')
@@ -107,7 +113,7 @@ def validate_items(items, service_type_id):
 
     catalog = {
         m.code: m for m in ServiceMaterial.query.filter_by(
-            service_type_id=service_type_id, active=1)
+            service_type_id=materials_service_type_id, active=1)
     }
     cleaned = []
     for index, item in enumerate(items):
@@ -130,7 +136,10 @@ def validate_items(items, service_type_id):
             if code not in catalog:
                 raise InvalidRequest(f'unknown material: {code}')
             materials.append(catalog[code])
-        cleaned.append({'description': description, 'quantity': quantity, 'materials': materials})
+        extra = validate_item(item, index) if validate_item else {}
+        if extra.get('pack') is False:
+            materials = []
+        cleaned.append({'description': description, 'quantity': quantity, 'materials': materials, **extra})
     return cleaned
 
 

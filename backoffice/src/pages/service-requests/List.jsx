@@ -32,7 +32,7 @@ export default function ServiceRequestsList() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Embalajes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Solicitudes</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-400">{loading ? '' : `${rows.length} solicitudes`}</span>
           <Link

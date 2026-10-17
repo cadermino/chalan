@@ -20,6 +20,9 @@ STATUSES = ('draft', 'submitted', 'cancelled')
 TOKEN_PURPOSE = 'service_request'
 TOKEN_TTL = timedelta(days=10)
 LIST_LIMIT = 200
+# El armador embala con los materiales de embalaje: mismo catálogo. Espejo de
+# `materials_from` en app/api/service_request/types.py, que es quien valida.
+MATERIALS_FROM = {'furniture_assembly': 'packing'}
 
 
 def _generate_token(service_request_id, carrier_company_id):
@@ -124,6 +127,8 @@ def list_service_materials(code):
     service_type = ServiceType.query.filter_by(code=code, active=1).first()
     if service_type is None:
         return jsonify({'message': 'service type not found'}), 404
+    if code in MATERIALS_FROM:
+        service_type = ServiceType.query.filter_by(code=MATERIALS_FROM[code]).first() or service_type
     materials = (
         ServiceMaterial.query.filter_by(service_type_id=service_type.id, active=1)
         .order_by(ServiceMaterial.position, ServiceMaterial.id).all()

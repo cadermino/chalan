@@ -363,6 +363,25 @@ def test_service_materials_are_listed_in_order_and_skip_inactive(client, admin, 
     assert [m['code'] for m in res.get_json()['materials']] == ['cardboard_sheet', 'stretch_film']
 
 
+def test_assembly_borrows_the_packing_materials(client, admin, materials):
+    db.session.add(ServiceType(code='furniture_assembly', name='Armado y desarmado de muebles'))
+    db.session.commit()
+
+    res = client.get('/api/service-types/furniture_assembly/materials', headers=admin)
+
+    assert [m['code'] for m in res.get_json()['materials']] == ['cardboard_sheet', 'stretch_film']
+
+
+def test_an_assembly_piece_shows_its_work_and_packing(client, admin, submitted):
+    submitted.items[0].work, submitted.items[0].pack = 'both', True
+    db.session.commit()
+
+    res = client.get(f'/api/service-requests/{submitted.id}', headers=admin)
+
+    item = res.get_json()['service_request']['items'][0]
+    assert (item['work'], item['pack']) == ('both', True)
+
+
 def test_service_materials_of_an_unknown_service_is_404(client, admin):
     assert client.get('/api/service-types/nope/materials', headers=admin).status_code == 404
 

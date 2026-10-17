@@ -48,6 +48,26 @@ def _get_service_type(code):
     return ServiceType.query.filter_by(code=code, active=1, requestable=1).first()
 
 
+def _materials_type(service_type):
+    """The service whose materials catalog this one uses: its own, or the one
+    named by `materials_from` (assembly packs with packing's materials)."""
+    code = SERVICE_TYPES[service_type.code].get('materials_from')
+    if code is None:
+        return service_type
+    return ServiceType.query.filter_by(code=code).first() or service_type
+
+
+def _validate_items(items, service_type):
+    return validate_items(items, _materials_type(service_type).id,
+                          SERVICE_TYPES[service_type.code].get('validate_item'))
+
+
+def _check_submit(service_request, service_type):
+    check = SERVICE_TYPES[service_type.code].get('check_submit')
+    if check is not None:
+        check(service_request)
+
+
 def _find_request(public_id, for_update=False):
     query = ServiceRequest.query.filter_by(public_id=public_id)
     if for_update:
@@ -82,6 +102,8 @@ def _serialize(service_request):
             {
                 'description': item.description,
                 'quantity': item.quantity,
+                'work': item.work,
+                'pack': item.pack,
                 'materials': [m.code for m in item.materials],
             }
             for item in service_request.items
@@ -105,6 +127,8 @@ def _set_items(service_request, items):
             description=item['description'],
             quantity=item['quantity'],
             position=position,
+            work=item.get('work'),
+            pack=item.get('pack'),
             materials=item['materials'],
         )
         for position, item in enumerate(items)
@@ -117,7 +141,7 @@ def list_service_materials(code):
     if service_type is None:
         return _message('service type not found', 404)
     materials = (
-        ServiceMaterial.query.filter_by(service_type_id=service_type.id, active=1)
+        ServiceMaterial.query.filter_by(service_type_id=_materials_type(service_type).id, active=1)
         .order_by(ServiceMaterial.position, ServiceMaterial.id).all()
     )
     return jsonify([
@@ -173,7 +197,7 @@ def update_service_request(public_id):
     # Validate everything before writing anything: a PATCH is all or nothing.
     address = validate_address(data['address']) if 'address' in data else None
     preferred_date = validate_preferred_date(data['preferred_date']) if 'preferred_date' in data else None
-    items = validate_items(data['items'], service_request.service_type_id) if 'items' in data else None
+    items = _validate_items(data['items'], service_request.service_type) if 'items' in data else None
     details = None
     if 'details' in data:
         details = SERVICE_TYPES[service_request.service_type.code]['validate_details'](data['details'])
@@ -305,6 +329,7 @@ def submit_service_request(public_id):
     address = validate_address(_address_dict(service_request))
     if not service_request.items:
         raise InvalidRequest('at least one item is required')
+    _check_submit(service_request, service_request.service_type)
     # Revalidated even if saved: a draft kept for days can hold a date that has
     # since passed.
     preferred_date = validate_preferred_date(
@@ -329,6 +354,15 @@ def submit_service_request(public_id):
     return jsonify(_serialize(service_request)), 200
 
 
+def _check_manual_address(address, name):
+    """Typed by an admin, not picked from Google Places: the district is written
+    by hand and the map link pasted, so both are checked here."""
+    if not address['neighborhood']:
+        raise InvalidRequest(f'{name}.neighborhood is required')
+    if not address['map_url'].startswith(('http://', 'https://')):
+        raise InvalidRequest(f'{name}.map_url must be a link')
+
+
 @api.route('/service-requests/manual', methods=['POST'])
 def create_manual_service_request():
     """Una solicitud que un admin anota a mano: el cliente la describió por
@@ -348,13 +382,13 @@ def create_manual_service_request():
     if service_type is None:
         raise InvalidRequest('unknown service_type')
     address = validate_address(data.get('address'))
-    if not address['neighborhood']:
-        raise InvalidRequest('address.neighborhood is required')
-    if not address['map_url'].startswith(('http://', 'https://')):
-        raise InvalidRequest('address.map_url must be a link')
-    items = validate_items(data.get('items'), service_type.id)
+    _check_manual_address(address, 'address')
+    items = _validate_items(data.get('items'), service_type)
     if not items:
         raise InvalidRequest('at least one item is required')
+    details = SERVICE_TYPES[service_type.code]['validate_details'](data.get('details'))
+    if details.get('destination'):
+        _check_manual_address(details['destination'], 'details.destination')
     preferred_date = validate_preferred_date(data.get('preferred_date'), allow_today=True)
     whatsapp = normalize_phone(data.get('whatsapp'))
     if whatsapp is None:
@@ -369,10 +403,11 @@ def create_manual_service_request():
         whatsapp=whatsapp,
         preferred_date=preferred_date,
         submitted_at=datetime.utcnow(),
-        details={},
+        details=details,
     )
     _set_address(service_request, address)
     _set_items(service_request, items)
+    _check_submit(service_request, service_type)
     db.session.add(service_request)
     db.session.commit()
 

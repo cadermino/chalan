@@ -236,7 +236,8 @@ What a carrier company does lives in `carrier_company_service_types` ↔ `lu_ser
 
 - **Moving is a capability, not a request flow.** Moving orders keep their own tables and flow; the `moving` type only decides who gets them. New-order notifications (`get_carrier_companies()` in `app/api/orders.py`), quotation links and the dashboard's carrier count only include active companies with `moving`. Before 022 every active company with a country got every move.
 - **New companies are born with `moving`** (`create_blank_company_and_vehicle` for sign-ups; admin create when no `service_type_ids` is sent; the admin form pre-ticks it). A company without it receives no moving orders and nothing warns.
-- **`requestable`** marks types asked for through the service-request form (services-web, backoffice "new request"). Only `packing` today. The main API also requires the code in `SERVICE_TYPES` (`app/api/service_request/types.py`). `moving` is never requestable; `furniture_assembly` becomes requestable when its form ships.
+- **`requestable`** marks types asked for through the service-request form (services-web, backoffice "new request"): `packing` (`/embalaje/cotizar`) and `furniture_assembly` (`/armado/cotizar`, migration 025). The main API also requires the code in `SERVICE_TYPES` (`app/api/service_request/types.py`), which holds each service's own rules. `moving` is never requestable.
+- **Furniture assembly requests**: each item has `work` (`assemble`, `disassemble`, `both`) and `pack`; packed items take materials from the **packing** catalog (`materials_from`). A `both` item needs `details.destination` (same Google Places rule as the address), checked on submit. One request, quoted by the assembler. services-web picks the service from the URL (`services-web/src/config.js`).
 - `furniture_assembly` is not `lu_services.assembly`/`disassembly`: those are extras inside a moving order.
 
 ## Carrier Declines

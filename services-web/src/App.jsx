@@ -3,11 +3,15 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 import { useRequest } from './context/RequestContext'
 import { pageView } from './analytics'
-import { BASE_PATH, PATHS } from './config'
-import AddressStep from './pages/packing/AddressStep'
-import ItemsStep from './pages/packing/ItemsStep'
-import ContactStep from './pages/packing/ContactStep'
-import Sent from './pages/packing/Sent'
+import { BASE_PATH, PATHS, SERVICE } from './config'
+import AddressStep from './pages/AddressStep'
+import PackingItemsStep from './pages/packing/ItemsStep'
+import FurnitureItemsStep from './pages/furniture/ItemsStep'
+import ContactStep from './pages/ContactStep'
+import Sent from './pages/Sent'
+
+// Lo único que cambia de un servicio a otro es la lista; el resto se comparte.
+const ItemsStep = SERVICE === 'furniture_assembly' ? FurnitureItemsStep : PackingItemsStep
 
 // Equivalente a `requiresPreviousComplete` del router del flujo de mudanza: no se
 // salta un paso cuyo anterior no está hecho (p. ej. al abrir el link a medias).

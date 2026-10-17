@@ -48,6 +48,7 @@ HEALTH_PATHS=(
   "/api/v1/service-types/packing/materials"   # flask-api
   "/backoffice-api/api/service-types"         # backoffice-api (401 esperado)
   "/embalaje/cotizar"                         # services-web
+  "/armado/cotizar"                           # services-web, por la ruta nueva de nginx
 )
 
 DRY_RUN=0

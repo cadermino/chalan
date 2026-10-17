@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { track } from '../../analytics'
-import { SERVICE, whatsappUrl } from '../../config'
+import { track } from '../analytics'
+import { COPY, SERVICE, whatsappUrl } from '../config'
 
 export default function Sent() {
   useEffect(() => {
@@ -16,11 +16,11 @@ export default function Sent() {
       </div>
       <h1 className="mt-5 text-2xl font-semibold text-inkStrong">¡Recibimos tu solicitud!</h1>
       <p className="mx-auto mt-2 max-w-sm text-inkSoft">
-        Te escribiremos por WhatsApp con las cotizaciones de los transportistas.
+        Te escribiremos por WhatsApp con las cotizaciones de {COPY.quotesFrom}.
       </p>
       <a
         className="btn-primary mt-8"
-        href={whatsappUrl('Hola, acabo de enviar una solicitud de embalaje')}
+        href={whatsappUrl(COPY.whatsappSent)}
         target="_blank"
         rel="noopener noreferrer"
       >

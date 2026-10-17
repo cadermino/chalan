@@ -195,7 +195,7 @@ export default function App() {
             }
           />
 
-          {/* Service requests (embalaje, ...) — admin and superadmin */}
+          {/* Service requests (embalaje, armado de muebles) — admin and superadmin */}
           <Route
             path="service-requests"
             element={

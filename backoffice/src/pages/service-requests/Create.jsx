@@ -16,18 +16,29 @@ function addDays(isoDate, days) {
 }
 
 let itemSeq = 0
-const newItem = () => ({ key: `item-${++itemSeq}`, description: '', quantity: 1, materials: [] })
+const newItem = () => ({ key: `item-${++itemSeq}`, description: '', quantity: 1, materials: [], work: '', pack: false })
+
+const WORKS = [
+  { code: 'assemble', label: 'Armar' },
+  { code: 'disassemble', label: 'Desarmar' },
+  { code: 'both', label: 'Desarmar y armar' },
+]
+const EMPTY_DESTINATION = { street: '', interior: '', neighborhood: '', city: 'Lima', mapUrl: '' }
 
 // El API principal responde en inglés, pensado para quien programa; acá se avisa
 // qué falta con las palabras del formulario.
 function friendlyError(message) {
   if (!message) return 'Error al crear la solicitud'
+  if (message.includes('destination.map_url')) return 'Falta el link de Google Maps del destino (tiene que empezar con https://).'
+  if (message.includes('destination.neighborhood')) return 'Falta el distrito del destino.'
+  if (message.includes('destination')) return 'Falta la dirección de destino: algún mueble se desarma y se arma en otro lado.'
+  if (message.includes('.work')) return 'Elige qué hacer con cada mueble.'
   if (message.includes('map_url')) return 'Falta el link de Google Maps de la dirección (tiene que empezar con https://).'
   if (message.includes('neighborhood')) return 'Falta el distrito.'
   if (message.includes('address.street')) return 'Falta la dirección.'
   if (message.includes('whatsapp')) return 'El WhatsApp del cliente no es válido.'
   if (message.includes('preferred_date')) return `La fecha tiene que ser desde hoy y hasta dentro de ${MAX_ADVANCE_DAYS} días.`
-  if (message.includes('at least one item') || message.includes('items')) return 'Agrega al menos una cosa para embalar, con su descripción.'
+  if (message.includes('at least one item') || message.includes('items')) return 'Agrega al menos una cosa a la lista, con su descripción.'
   return message
 }
 
@@ -53,6 +64,7 @@ export default function ServiceRequestCreate() {
     preferredDate: '', notifyCarriers: true,
   })
   const [items, setItems] = useState([newItem()])
+  const [destination, setDestination] = useState(EMPTY_DESTINATION)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -72,6 +84,12 @@ export default function ServiceRequestCreate() {
     client.get(`/api/service-types/${serviceCode}/materials`).then(({ data }) => setMaterials(data.materials))
   }, [serviceCode])
 
+  // Armado de muebles: qué hacer con cada mueble, si se embala (con los
+  // materiales de embalaje) y, si alguno se arma en otro lado, el destino.
+  const isAssembly = serviceCode === 'furniture_assembly'
+  const needsDestination = isAssembly && items.some((i) => i.work === 'both')
+  const setDest = (key) => (e) => setDestination((d) => ({ ...d, [key]: e.target.value }))
+
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }))
   const updateItem = (key, fields) => setItems((list) => list.map((i) => (i.key === key ? { ...i, ...fields } : i)))
   const toggleMaterial = (item, code) => updateItem(item.key, {
@@ -83,7 +101,8 @@ export default function ServiceRequestCreate() {
     setError(null)
     const filled = items.filter((i) => i.description.trim())
     if (!serviceCode) return setError('Elige el servicio.')
-    if (filled.length === 0) return setError('Agrega al menos una cosa para embalar, con su descripción.')
+    if (filled.length === 0) return setError('Agrega al menos una cosa a la lista, con su descripción.')
+    if (isAssembly && filled.some((i) => !i.work)) return setError('Elige qué hacer con cada mueble.')
 
     setSaving(true)
     try {
@@ -99,7 +118,21 @@ export default function ServiceRequestCreate() {
           country: 'PE',
           map_url: form.mapUrl,
         },
-        items: filled.map(({ description, quantity, materials: codes }) => ({ description, quantity, materials: codes })),
+        items: filled.map(({ description, quantity, materials: codes, work, pack }) => (isAssembly
+          ? { description, quantity, materials: pack ? codes : [], work, pack }
+          : { description, quantity, materials: codes })),
+        ...(needsDestination && {
+          details: {
+            destination: {
+              street: destination.street,
+              interior: destination.interior,
+              neighborhood: destination.neighborhood,
+              city: destination.city,
+              country: 'PE',
+              map_url: destination.mapUrl,
+            },
+          },
+        }),
         notify_carriers: form.notifyCarriers,
       })
       toast.success(data.notified_carrier_ids.length
@@ -115,7 +148,7 @@ export default function ServiceRequestCreate() {
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Embalajes</Link>
+        <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Solicitudes</Link>
         <h1 className="text-2xl font-bold text-gray-900">Nueva solicitud</h1>
       </div>
       <p className="text-sm text-gray-500 mb-4">
@@ -171,8 +204,14 @@ export default function ServiceRequestCreate() {
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Qué hay que embalar</h2>
-          <p className="text-xs text-gray-400 mb-3">Sin materiales marcados significa "que el transportista recomiende".</p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">
+            {isAssembly ? 'Muebles' : 'Qué hay que embalar'}
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            {isAssembly
+              ? 'Si se embala sin materiales marcados, el armador recomienda.'
+              : 'Sin materiales marcados significa "que el transportista recomiende".'}
+          </p>
           <ul className="space-y-3">
             {items.map((item, index) => (
               <li key={item.key} className="rounded-lg border border-gray-200 p-3">
@@ -196,7 +235,26 @@ export default function ServiceRequestCreate() {
                     ×
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
+                {isAssembly && (
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
+                    <select
+                      aria-label="Qué hacer" value={item.work}
+                      onChange={(e) => updateItem(item.key, { work: e.target.value })}
+                      className="input !w-48"
+                    >
+                      <option value="">Qué hacer…</option>
+                      {WORKS.map((w) => <option key={w.code} value={w.code}>{w.label}</option>)}
+                    </select>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox" checked={item.pack} className="w-4 h-4 accent-teal-600"
+                        onChange={(e) => updateItem(item.key, { pack: e.target.checked, materials: [] })}
+                      />
+                      También embalarlo
+                    </label>
+                  </div>
+                )}
+                <div className={`flex flex-wrap gap-2 mt-2 ${isAssembly && !item.pack ? 'hidden' : ''}`}>
                   {materials.map((m) => {
                     const checked = item.materials.includes(m.code)
                     return (
@@ -223,6 +281,33 @@ export default function ServiceRequestCreate() {
             + Agregar otra cosa
           </button>
         </div>
+
+        {needsDestination && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Destino (dónde se arman)</h2>
+            <p className="text-xs text-gray-400 mb-3">Algún mueble se desarma en la dirección de arriba y se arma acá.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Dirección *" span={2}>
+                <input required maxLength={200} value={destination.street} onChange={setDest('street')} className="input" />
+              </Field>
+              <Field label="Distrito *">
+                <input required maxLength={100} value={destination.neighborhood} onChange={setDest('neighborhood')} className="input" />
+              </Field>
+              <Field label="Ciudad">
+                <input maxLength={100} value={destination.city} onChange={setDest('city')} className="input" />
+              </Field>
+              <Field label="Dpto, interior o referencia" span={2}>
+                <input maxLength={100} value={destination.interior} onChange={setDest('interior')} className="input" />
+              </Field>
+              <Field label="Link de Google Maps *" span={2}>
+                <input
+                  required type="url" maxLength={400} placeholder="https://maps.app.goo.gl/…"
+                  value={destination.mapUrl} onChange={setDest('mapUrl')} className="input"
+                />
+              </Field>
+            </div>
+          </div>
+        )}
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={form.notifyCarriers} onChange={set('notifyCarriers')} className="w-4 h-4 accent-teal-600" />

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { COPY } from './config'
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
@@ -68,7 +69,8 @@ export function friendlyError(err, fallback) {
     return 'Elige una fecha válida: desde mañana y hasta dentro de 90 días.'
   }
   if (message.includes('whatsapp')) return 'Revisa tu número de WhatsApp.'
-  if (message.includes('item')) return 'Agrega al menos una cosa para embalar.'
+  if (message.includes('destination')) return 'Revisa la dirección de destino: elígela de la lista de sugerencias.'
+  if (message.includes('item')) return COPY.emptyItems
   if (message.includes('address')) return 'Revisa la dirección: elígela de la lista de sugerencias.'
   return fallback
 }

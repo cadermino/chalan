@@ -205,7 +205,7 @@ export default function ServiceRequestDetail() {
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link to="/service-requests" className="text-sm text-teal-600 hover:underline">← Embalajes</Link>
+        <Link to="/service-requests" className="text-sm text-teal-600 hover:underline">← Solicitudes</Link>
         <h1 className="text-2xl font-bold text-gray-900">Solicitud #{request.id}</h1>
         <span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs font-medium text-gray-700">
           {STATUS_LABEL[request.status] || request.status}
