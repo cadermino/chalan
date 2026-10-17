@@ -4,6 +4,8 @@ import Script from "next/script";
 import { Suspense } from "react";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { ChatWidget } from "@/components/ChatWidget";
+import { getAllPosts } from "@/lib/blog";
+import { NON_MOVING_PATHS } from "@/lib/homeServices";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
@@ -55,6 +57,16 @@ export const metadata: Metadata = {
   },
 };
 
+// Donde no va el agente de mudanzas: las landings de otros servicios y los
+// posts de esos servicios (los que cierran con su WhatsApp, `cta` distinto de
+// embalaje). Se calcula en el servidor porque el blog se lee del disco.
+const chatHiddenPaths = [
+  ...NON_MOVING_PATHS,
+  ...getAllPosts()
+    .filter((post) => post.cta && post.cta !== "embalaje")
+    .map((post) => `/blog/${post.slug}`),
+];
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -74,7 +86,7 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         {children}
-        <ChatWidget />
+        <ChatWidget hiddenPaths={chatHiddenPaths} />
         {process.env.NODE_ENV === "production" && (
           <Script
             id="inspectlet"

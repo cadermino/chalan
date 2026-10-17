@@ -76,8 +76,10 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ChatWidget() {
+export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
   const pathname = usePathname()
+  // El agente cotiza mudanzas: no aparece en otros servicios (y sus posts) ni en transportistas.
+  const hidden = pathname === '/transportistas' || hiddenPaths.includes(pathname)
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [body, setBody] = useState('')
@@ -96,10 +98,10 @@ export function ChatWidget() {
     setSessionId(sid)
     setMessages(loadHistory(sid))
     const NO_AUTOOPEN = ['/', '/embalaje-profesional']
-    if (NO_AUTOOPEN.includes(pathname) || window.innerWidth < 640) return
+    if (hidden || NO_AUTOOPEN.includes(pathname) || window.innerWidth < 640) return
     const t = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY)
     return () => clearTimeout(t)
-  }, [pathname])
+  }, [pathname, hidden])
 
   // Persist visible history so the conversation survives reloads.
   useEffect(() => {
@@ -196,8 +198,9 @@ export function ChatWidget() {
     }
   }
 
-  // La landing de transportistas ya tiene su propio CTA de registro; el widget de cotización no aplica ahí.
-  if (pathname === '/transportistas') return null
+  // La landing de transportistas ya tiene su propio CTA de registro, y los otros servicios cotizan por
+  // su WhatsApp: el widget de cotización de mudanzas no aplica ahí.
+  if (hidden) return null
 
   return (
     <>
