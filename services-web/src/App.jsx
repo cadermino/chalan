@@ -9,6 +9,7 @@ import PackingItemsStep from './pages/packing/ItemsStep'
 import FurnitureItemsStep from './pages/furniture/ItemsStep'
 import ContactStep from './pages/ContactStep'
 import Sent from './pages/Sent'
+import Quotations from './pages/Quotations'
 
 // Lo único que cambia de un servicio a otro es la lista; el resto se comparte.
 const ItemsStep = SERVICE === 'furniture_assembly' ? FurnitureItemsStep : PackingItemsStep
@@ -39,6 +40,7 @@ export default function App() {
         <Route path={PATHS.items} element={<RequireStep needs="address"><ItemsStep /></RequireStep>} />
         <Route path={PATHS.contact} element={<RequireStep needs="items"><ContactStep /></RequireStep>} />
         <Route path={PATHS.sent} element={<Sent />} />
+        <Route path={`${PATHS.quotations}/:publicId`} element={<Quotations />} />
         <Route path="*" element={<Navigate to={PATHS.address} replace />} />
       </Route>
     </Routes>

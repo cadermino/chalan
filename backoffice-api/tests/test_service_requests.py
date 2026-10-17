@@ -705,3 +705,26 @@ def test_a_company_user_still_sees_only_their_own_company_with_its_services(clie
     rows = client.get('/api/carrier-companies', headers=headers).get_json()['carrier_companies']
 
     assert [(c['name'], [t['code'] for t in c['service_types']]) for c in rows] == [('Propia SAC', ['packing'])]
+
+
+def test_detail_has_the_customer_link_and_who_chose(client, admin, submitted, packing):
+    carrier = make_carrier(packing)
+    by_customer = make_quotation(submitted, carrier, 100, status='selected', total=110, rate=0.1)
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert data['customer_quotations_path'] == f'/embalaje/cotizar/cotizaciones/{"a" * 32}'
+    assert data['quotations'][0]['selected_by_customer'] is True
+    by_customer.selected_by_admin_id = 7
+    db.session.commit()
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+    assert data['quotations'][0]['selected_by_customer'] is False
+
+
+def test_a_draft_has_no_customer_link(client, admin, submitted):
+    submitted.status = 'draft'
+    db.session.commit()
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert data['customer_quotations_path'] is None

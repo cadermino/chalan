@@ -53,6 +53,8 @@ export const PATHS = {
   items: `${BASE_PATH}/${FLOW.itemsSlug}`,
   contact: `${BASE_PATH}/fecha-y-contacto`,
   sent: `${BASE_PATH}/enviado`,
+  // + /<public_id>: el link que le llega al cliente por WhatsApp.
+  quotations: `${BASE_PATH}/cotizaciones`,
 }
 export const PLACES_API_KEY = import.meta.env.VITE_PLACES_API_KEY
 

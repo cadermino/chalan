@@ -117,15 +117,21 @@ def _unfreeze(quotation):
     quotation.selected_by_admin_id = None
 
 
-def select_quotation(service_request_id, quotation_id, admin_user_id):
-    """El admin elige una cotizacion. Congela la comision y el total de ese momento:
-    si PLATFORM_FEE cambia despues, lo acordado con el cliente no se mueve."""
+def select_quotation(service_request_id, quotation_id, admin_user_id, replace=True):
+    """Elige una cotizacion: el admin (admin_user_id) o el cliente (None). Congela la
+    comision y el total de ese momento: si PLATFORM_FEE cambia despues, lo acordado
+    con el cliente no se mueve.
+
+    El admin puede cambiar la elegida; el cliente no (replace=False): una vez
+    elegida ya se le avisó al transportista, y cambiarla es cosa de hablarlo."""
     service_request = _lock_request(service_request_id)
     quotation = next((q for q in service_request.quotations if q.id == quotation_id), None)
     if quotation is None:
         raise QuotationError('quotation not found', 404)
     if quotation.status == 'selected':
         return quotation  # idempotente: no cambia selected_at
+    if not replace and any(q.status == 'selected' for q in service_request.quotations):
+        raise QuotationError('another quotation was already selected', 409)
 
     rate = platform_fee_rate()
     for other in service_request.quotations:

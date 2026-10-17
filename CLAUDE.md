@@ -240,6 +240,14 @@ What a carrier company does lives in `carrier_company_service_types` ↔ `lu_ser
 - **Furniture assembly requests**: each item has `work` (`assemble`, `disassemble`, `both`) and `pack`; packed items take materials from the **packing** catalog (`materials_from`). A `both` item needs `details.destination` (same Google Places rule as the address), checked on submit. One request, quoted by the assembler. services-web picks the service from the URL (`services-web/src/config.js`).
 - `furniture_assembly` is not `lu_services.assembly`/`disassembly`: those are extras inside a moving order.
 
+## Customer Quotations Page (service requests)
+
+Packing and furniture assembly customers have no account, so they see and pick quotations on a page keyed by the request's `public_id` (32 random hex chars, the same credential the form uses; no expiring token): `<form_path>/cotizaciones/<public_id>` in services-web (`pages/Quotations.jsx`), e.g. `/armado/cotizar/cotizaciones/…`. `form_path` lives in `SERVICE_TYPES`, mirrored by `FORM_PATHS` in `backoffice-api/app/api/service_requests.py`.
+
+- **API** (main, public): `GET /api/v1/service-requests/<public_id>/quotations` (404 for a draft) shows each carrier's name, note and `total_amount` with `PLATFORM_FEE` (the frozen one once selected). Never the carrier's raw `amount` or phone. `POST /api/v1/service-requests/<public_id>/choose` `{quotation_id}` selects with `selected_by_admin_id = NULL`. Choosing the same one again does nothing; choosing another once one is selected is 409 (`select_quotation(..., replace=False)`). Admins can still change it from the backoffice.
+- **Notifications**: the first quotation of a request (not later ones, not updates) WhatsApps the customer the page link with `TWILIO_TEMPLATE_SERVICE_CUSTOMER` (`{1}` service name, `{2}` URL). It is skipped while unset. A customer choice emails the admin (`service_request_chosen_admin`) and the chosen carrier (`service_request_chosen_carrier`). There is no WhatsApp for it, and Chalán still coordinates contact details.
+- **Backoffice**: the request detail has "Copiar link del cliente" (`customer_quotations_path`) and tags a quotation "Elegida por el cliente" (`selected_by_customer`).
+
 ## Carrier Declines
 
 A carrier can say "I can't do this one" with a reason, instead of just not answering.

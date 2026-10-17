@@ -1,8 +1,12 @@
 import { useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { track } from '../analytics'
-import { COPY, SERVICE, whatsappUrl } from '../config'
+import { COPY, PATHS, SERVICE, whatsappUrl } from '../config'
 
 export default function Sent() {
+  // Llega desde el último paso; al recargar se pierde y queda solo WhatsApp.
+  const publicId = useLocation().state?.publicId
+
   useEffect(() => {
     track('service_request_step_view', { service: SERVICE, step: 'sent' })
   }, [])
@@ -16,16 +20,23 @@ export default function Sent() {
       </div>
       <h1 className="mt-5 text-2xl font-semibold text-inkStrong">¡Recibimos tu solicitud!</h1>
       <p className="mx-auto mt-2 max-w-sm text-inkSoft">
-        Te escribiremos por WhatsApp con las cotizaciones de {COPY.quotesFrom}.
+        Te avisamos por WhatsApp cuando llegue la primera cotización de {COPY.quotesFrom}. Las comparas y eliges en tu página de cotizaciones.
       </p>
-      <a
-        className="btn-primary mt-8"
-        href={whatsappUrl(COPY.whatsappSent)}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Escríbenos por WhatsApp
-      </a>
+      {publicId && (
+        <Link className="btn-primary mt-8" to={`${PATHS.quotations}/${publicId}`}>
+          Ver mis cotizaciones
+        </Link>
+      )}
+      <p className="mt-4">
+        <a
+          className={publicId ? 'btn-secondary' : 'btn-primary mt-4'}
+          href={whatsappUrl(COPY.whatsappSent)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Escríbenos por WhatsApp
+        </a>
+      </p>
       <p className="mt-6">
         <a href="https://chalan.pe" className="text-sm text-inkSoft underline">Volver a Chalán</a>
       </p>

@@ -8,9 +8,12 @@ from . import api
 from .decorators import is_internal_request
 from .carrier_declines import (decline_service_request, decline_to_dict, parse_decline,
                                undo_service_request_decline)
-from .service_request.notifications import notify_new_quotation, notify_service_request
+from .service_request.notifications import (
+    notify_customer_choice, notify_new_quotation, notify_service_request,
+)
 from .service_request.quotations import (
-    QuotationError, parse_amount, parse_note, save_quotation, select_quotation,
+    QuotationError, parse_amount, parse_note, platform_fee_rate, save_quotation,
+    select_quotation, total_with_fee,
 )
 from .service_request.types import SERVICE_TYPES
 from .service_request.validation import (
@@ -183,6 +186,66 @@ def get_service_request(public_id):
     if service_request is None:
         return _message('service request not found', 404)
     return jsonify(_serialize(service_request)), 200
+
+
+def _customer_quotation(quotation, rate):
+    """Lo que ve el cliente: el total con la comisión (el congelado si ya la
+    eligieron), nunca el precio del transportista ni su teléfono."""
+    selected = quotation.status == 'selected'
+    total = quotation.total_amount if selected and quotation.total_amount is not None \
+        else total_with_fee(quotation.amount, rate)
+    return {
+        'id': quotation.id,
+        'carrier_name': quotation.carrier_company.name if quotation.carrier_company else None,
+        'total_amount': float(total),
+        'note': quotation.note,
+        'selected': selected,
+    }
+
+
+@api.route('/service-requests/<public_id>/quotations', methods=['GET'])
+def get_customer_quotations(public_id):
+    """La página de cotizaciones del cliente. Un borrador da 404: el link recién
+    existe cuando la solicitud se envió."""
+    service_request = _find_request(public_id)
+    if service_request is None or service_request.status == 'draft':
+        return _message('service request not found', 404)
+    rate = platform_fee_rate()
+    quotations = sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
+    return jsonify({
+        'service_type': {'code': service_request.service_type.code, 'name': service_request.service_type.name},
+        'status': service_request.status,
+        'neighborhood': service_request.neighborhood,
+        'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
+        'items': [
+            {'description': item.description, 'quantity': item.quantity, 'work': item.work, 'pack': item.pack}
+            for item in service_request.items
+        ],
+        'quotations': [_customer_quotation(q, rate) for q in quotations],
+    }), 200
+
+
+@api.route('/service-requests/<public_id>/choose', methods=['POST'])
+def choose_service_request_quotation(public_id):
+    """El cliente elige una cotización desde su página. Elegir la misma otra vez
+    no hace nada; elegir otra cuando ya hay una elegida es 409."""
+    data = request.get_json(silent=True) or {}
+    quotation_id = data.get('quotation_id')
+    if isinstance(quotation_id, bool) or not isinstance(quotation_id, int):
+        raise InvalidRequest('quotation_id is required')
+    service_request = _find_request(public_id)
+    if service_request is None or service_request.status == 'draft':
+        return _message('service request not found', 404)
+
+    already = next((q for q in service_request.quotations
+                    if q.id == quotation_id and q.status == 'selected'), None)
+    quotation = select_quotation(service_request.id, quotation_id, None, replace=False)
+    if already is None:
+        try:
+            notify_customer_choice(service_request, quotation)
+        except Exception as e:
+            current_app.logger.error(f'Choice notification error: {e}')
+    return jsonify(_customer_quotation(quotation, quotation.platform_fee_rate)), 200
 
 
 @api.route('/service-requests/<public_id>', methods=['PATCH'])

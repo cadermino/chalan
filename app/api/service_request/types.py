@@ -65,9 +65,12 @@ def check_furniture_submit(service_request):
 # - materials_from (optional): another service's materials catalog. Assembly
 #   uses packing's, because the assembler packs with the same materials.
 # - check_submit (optional): rules across items and details, before sending.
+# `form_path` es donde vive el formulario en services-web; la página de
+# cotizaciones del cliente cuelga de ahí (`<form_path>/cotizaciones/<public_id>`).
 SERVICE_TYPES = {
-    'packing': {'validate_details': validate_packing_details},
+    'packing': {'validate_details': validate_packing_details, 'form_path': '/embalaje/cotizar'},
     'furniture_assembly': {
+        'form_path': '/armado/cotizar',
         'validate_details': validate_furniture_details,
         'validate_item': validate_furniture_item,
         'materials_from': 'packing',

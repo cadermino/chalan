@@ -23,6 +23,9 @@ LIST_LIMIT = 200
 # El armador embala con los materiales de embalaje: mismo catálogo. Espejo de
 # `materials_from` en app/api/service_request/types.py, que es quien valida.
 MATERIALS_FROM = {'furniture_assembly': 'packing'}
+# Dónde vive cada formulario en services-web; la página de cotizaciones del
+# cliente es <ruta>/cotizaciones/<public_id>. Espejo de `form_path` en ese mismo archivo.
+FORM_PATHS = {'packing': '/embalaje/cotizar', 'furniture_assembly': '/armado/cotizar'}
 
 
 def _generate_token(service_request_id, carrier_company_id):
@@ -77,6 +80,14 @@ def _quotation_for_admin(quotation, current_rate):
         data['total_amount'] = _money(_total_with_fee(quotation.amount, current_rate))
         data['platform_fee_rate'] = float(current_rate)
     return data
+
+
+def _customer_quotations_path(service_request):
+    """La página donde el cliente ve y elige; None mientras sea borrador (da 404)."""
+    form_path = FORM_PATHS.get(service_request.service_type.code if service_request.service_type else None)
+    if form_path is None or service_request.status == 'draft':
+        return None
+    return f'{form_path}/cotizaciones/{service_request.public_id}'
 
 
 def _quotation_state(service_request, carrier_company_id):
@@ -251,6 +262,7 @@ def get_service_request(service_request_id):
             for q in sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
         ],
         'declines': [d.to_dict() for d in declines],
+        'customer_quotations_path': _customer_quotations_path(service_request),
         'links': [
             {
                 'id': c.id,

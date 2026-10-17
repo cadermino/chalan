@@ -10,6 +10,7 @@ from ...models import (CarrierCompany, CarrierCompanyServiceType,
 from ..email import send_email
 from ..whatsapp import normalize_phone, send_whatsapp
 from .quotations import platform_fee_rate, total_with_fee
+from .types import SERVICE_TYPES
 
 TOKEN_PURPOSE = 'service_request'
 TOKEN_TTL = timedelta(days=10)
@@ -34,6 +35,13 @@ def generate_service_request_token(service_request_id, carrier_company_id):
 
 def _site_url():
     return os.getenv('SITE_URL', '').rstrip('/')
+
+
+def customer_quotations_url(service_request):
+    """La página donde el cliente ve y elige las cotizaciones. El public_id es la
+    credencial, igual que en el formulario: no hay cuenta ni token que venza."""
+    form_path = SERVICE_TYPES[service_request.service_type.code]['form_path']
+    return f'{_site_url()}{form_path}/cotizaciones/{service_request.public_id}'
 
 
 def _pending_carriers(service_request):
@@ -195,3 +203,62 @@ def notify_new_quotation(service_request, quotation, created):
             )
         except Exception as e:
             print(f'[ServiceRequest] error sending quotation WhatsApp: {e}', flush=True)
+
+    # Al cliente solo con la primera: con cinco transportistas serían cinco
+    # mensajes. Las siguientes las ve al volver a abrir la página.
+    if created and len(service_request.quotations) == 1:
+        try:
+            send_whatsapp(
+                service_request.whatsapp,
+                os.getenv('TWILIO_TEMPLATE_SERVICE_CUSTOMER'),
+                {'1': service_name.lower(), '2': customer_quotations_url(service_request)},
+                body_label='[Plantilla: Cotizaciones de servicio para el cliente]',
+            )
+        except Exception as e:
+            print(f'[ServiceRequest] error sending customer WhatsApp: {e}', flush=True)
+
+
+def notify_customer_choice(service_request, quotation):
+    """El cliente eligió una cotización en su página: se le avisa al admin, que
+    coordina, y al transportista elegido. Solo por correo: por WhatsApp haría falta
+    una plantilla más para cada uno. Un aviso que falla no deshace la elección."""
+    service_name = service_request.service_type.name
+    carrier = quotation.carrier_company
+    carrier_name = carrier.name if carrier else 'Un transportista'
+    common = dict(
+        service_name=service_name,
+        carrier_name=carrier_name,
+        total=_money(quotation.total_amount),
+        amount=_money(quotation.amount),
+        neighborhood=service_request.neighborhood,
+        preferred_date=_date_label(service_request),
+    )
+
+    try:
+        notify_email = os.getenv('NOTIFY_EMAIL')
+        if notify_email:
+            send_email(
+                notify_email,
+                f'El cliente eligió a {carrier_name} (#{service_request.id})',
+                'email/service_request_chosen_admin',
+                bcc=[],
+                whatsapp=service_request.whatsapp,
+                admin_url=f'{_site_url()}/backoffice/service-requests/{service_request.id}',
+                **common,
+            )
+    except Exception as e:
+        print(f'[ServiceRequest] error sending choice email to admin: {e}', flush=True)
+
+    try:
+        if carrier and carrier.email:
+            token = generate_service_request_token(service_request.id, carrier.id)
+            send_email(
+                carrier.email,
+                f'Te eligieron para una solicitud de {service_name.lower()} Chalán',
+                'email/service_request_chosen_carrier',
+                bcc=[],
+                request_url=f'{_site_url()}/backoffice/carrier-view/{token}',
+                **common,
+            )
+    except Exception as e:
+        print(f'[ServiceRequest] error sending choice email to carrier={quotation.carrier_company_id}: {e}', flush=True)

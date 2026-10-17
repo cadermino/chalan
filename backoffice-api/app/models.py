@@ -746,6 +746,8 @@ class ServiceRequestQuotation(db.Model):
             'status': self.status,
             'platform_fee_rate': float(self.platform_fee_rate) if self.platform_fee_rate is not None else None,
             'selected_at': _iso(self.selected_at),
+            # Sin admin la eligió el cliente desde su página de cotizaciones.
+            'selected_by_customer': self.status == 'selected' and self.selected_by_admin_id is None,
             'created_date': _iso(self.created_date),
             'updated_date': _iso(self.updated_date),
         }

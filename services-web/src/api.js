@@ -35,6 +35,12 @@ export const updateRequest = (publicId, payload) =>
 export const submitRequest = (publicId, payload) =>
   client.post(`/service-requests/${publicId}/submit`, payload).then((res) => res.data)
 
+export const getQuotations = (publicId) =>
+  client.get(`/service-requests/${publicId}/quotations`).then((res) => res.data)
+
+export const chooseQuotation = (publicId, quotationId) =>
+  client.post(`/service-requests/${publicId}/choose`, { quotation_id: quotationId }).then((res) => res.data)
+
 export const presignMedia = (publicId, file) =>
   client.post(`/service-requests/${publicId}/media/presign`, file).then((res) => res.data)
 

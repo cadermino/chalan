@@ -67,8 +67,8 @@ export default function ContactStep() {
 
     setSending(true)
     try {
-      await submit({ whatsapp: draft.whatsapp, preferredDate: draft.preferredDate })
-      navigate(PATHS.sent, { replace: true })
+      const publicId = await submit({ whatsapp: draft.whatsapp, preferredDate: draft.preferredDate })
+      navigate(PATHS.sent, { replace: true, state: { publicId } })
     } catch (err) {
       setSubmitError(friendlyError(err, 'No pudimos enviar tu solicitud. Inténtalo de nuevo.'))
       setSending(false)

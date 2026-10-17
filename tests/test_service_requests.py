@@ -1092,3 +1092,135 @@ def test_quoting_after_declining_clears_the_decline_and_undo_deletes_it(client):
     decline(client, request_id, carrier.id)
     assert decline(client, request_id, carrier.id, method='delete').status_code == 200
     assert ServiceRequestCarrierDecline.query.count() == 0
+
+
+# --- customer quotations page ---------------------------------------------------------
+
+def customer_quotations(client, public_id):
+    return client.get(f'/api/v1/service-requests/{public_id}/quotations')
+
+
+def choose(client, public_id, quotation_id):
+    return client.post(f'/api/v1/service-requests/{public_id}/choose', json={'quotation_id': quotation_id})
+
+
+def test_the_customer_page_of_a_draft_or_an_unknown_request_is_404(client):
+    public_id = create_draft(client)
+
+    assert customer_quotations(client, public_id).status_code == 404
+    assert customer_quotations(client, 'f' * 32).status_code == 404
+
+
+def test_the_customer_sees_totals_with_the_fee_cheapest_first_and_no_carrier_price(client):
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    quote(client, request_id, make_carrier('Cara SAC').id, amount=200, note='Con materiales')
+    quote(client, request_id, make_carrier('Barata SAC').id, amount=100)
+
+    body = customer_quotations(client, public_id).get_json()
+
+    assert body['service_type'] == {'code': 'packing', 'name': 'Embalaje'}
+    assert (body['status'], body['neighborhood'], body['preferred_date']) == ('submitted', 'San Isidro', TOMORROW)
+    assert body['items'] == [{'description': 'Sofá', 'quantity': 1, 'work': None, 'pack': None}]
+    assert [(q['carrier_name'], q['total_amount'], q['note'], q['selected']) for q in body['quotations']] == [
+        ('Barata SAC', 110.0, None, False), ('Cara SAC', 220.0, 'Con materiales', False)]
+    assert 'amount' not in body['quotations'][0]
+    assert 'whatsapp' not in body
+
+
+def test_a_selected_quotation_keeps_its_frozen_total_when_the_fee_changes(client, monkeypatch):
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    quotation_id = quote(client, request_id, make_carrier().id, amount=100).get_json()['id']
+    select(client, request_id, quotation_id)
+    monkeypatch.setenv('PLATFORM_FEE', '0.2')
+
+    [shown] = customer_quotations(client, public_id).get_json()['quotations']
+
+    assert (shown['total_amount'], shown['selected']) == (110.0, True)
+
+
+def test_only_the_first_quotation_whatsapps_the_customer_their_page(client, sent, monkeypatch):
+    monkeypatch.setenv('TWILIO_TEMPLATE_SERVICE_CUSTOMER', 'HX123')
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    first, second = make_carrier('Uno SAC'), make_carrier('Dos SAC')
+    sent['whatsapp'].clear()
+
+    quote(client, request_id, first.id, amount=100)
+    quote(client, request_id, first.id, amount=90)
+    quote(client, request_id, second.id, amount=120)
+
+    to_customer = [m for m in sent['whatsapp'] if m['phone'] == '+51987654321']
+    assert [m['variables'] for m in to_customer] == [
+        {'1': 'embalaje', '2': f'https://chalan.pe/embalaje/cotizar/cotizaciones/{public_id}'}]
+
+
+def test_the_customer_chooses_a_quotation_and_admin_and_carrier_are_emailed(client, sent, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    carrier = make_carrier('Embala SAC')
+    quotation_id = quote(client, request_id, carrier.id, amount=100).get_json()['id']
+    sent['email'].clear()
+
+    response = choose(client, public_id, quotation_id)
+
+    assert response.status_code == 200
+    assert response.get_json() == {'id': quotation_id, 'carrier_name': 'Embala SAC',
+                                   'total_amount': 110.0, 'note': None, 'selected': True}
+    saved = db.session.get(ServiceRequestQuotation, quotation_id)
+    assert (saved.status, saved.selected_by_admin_id, float(saved.total_amount)) == ('selected', None, 110.0)
+    admin, to_carrier = sent['email']
+    assert (admin['to'], admin['template']) == ('admin@example.com', 'email/service_request_chosen_admin')
+    assert (admin['total'], admin['amount'], admin['whatsapp']) == ('S/ 110.00', 'S/ 100.00', '+51987654321')
+    assert (to_carrier['to'], to_carrier['template']) == ('embala@example.com', 'email/service_request_chosen_carrier')
+    assert to_carrier['request_url'].startswith('https://chalan.pe/backoffice/carrier-view/')
+
+
+def test_choosing_the_same_quotation_again_does_not_email_again(client, sent, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'admin@example.com')
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    quotation_id = quote(client, request_id, make_carrier().id).get_json()['id']
+    choose(client, public_id, quotation_id)
+    sent['email'].clear()
+
+    assert choose(client, public_id, quotation_id).status_code == 200
+    assert sent['email'] == []
+
+
+def test_the_customer_cannot_switch_to_another_quotation(client):
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    first = quote(client, request_id, make_carrier('Uno SAC').id).get_json()['id']
+    second = quote(client, request_id, make_carrier('Dos SAC').id).get_json()['id']
+    select(client, request_id, first)
+
+    response = choose(client, public_id, second)
+
+    assert (response.status_code, response.get_json()['message']) == (409, 'another quotation was already selected')
+    assert db.session.get(ServiceRequestQuotation, first).status == 'selected'
+    assert db.session.get(ServiceRequestQuotation, second).status == 'active'
+
+
+@pytest.mark.parametrize('body', [{}, {'quotation_id': '1'}, {'quotation_id': True}])
+def test_choose_needs_a_quotation_id(client, body):
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+
+    response = client.post(f'/api/v1/service-requests/{public_id}/choose', json=body)
+
+    assert response.status_code == 400
+
+
+def test_the_customer_cannot_choose_on_a_draft_another_request_or_a_cancelled_one(client):
+    request_id = make_submitted(client)
+    service_request = db.session.get(ServiceRequest, request_id)
+    quotation_id = quote(client, request_id, make_carrier().id).get_json()['id']
+    other_public_id = create_draft(client)
+
+    assert choose(client, other_public_id, quotation_id).status_code == 404
+    service_request.status = 'cancelled'
+    db.session.commit()
+    assert choose(client, service_request.public_id, quotation_id).status_code == 409

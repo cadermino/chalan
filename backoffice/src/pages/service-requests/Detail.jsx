@@ -63,7 +63,11 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900">
                           {q.carrier_company_name}
-                          {isSelected && <span className="ml-2 rounded-full bg-teal-600 px-2 py-0.5 text-xs text-white">Elegida</span>}
+                          {isSelected && (
+                            <span className="ml-2 rounded-full bg-teal-600 px-2 py-0.5 text-xs text-white">
+                              {q.selected_by_customer ? 'Elegida por el cliente' : 'Elegida'}
+                            </span>
+                          )}
                           {!isSelected && q.amount === lowest && (
                             <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Más barata</span>
                           )}
@@ -224,6 +228,12 @@ export default function ServiceRequestDetail() {
             </p>
           )
           : <p className="text-sm text-gray-400">Aún no dejó su WhatsApp (no terminó el formulario).</p>}
+        {request.customer_quotations_path && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p className="text-sm text-gray-600">Su página para ver y elegir las cotizaciones.</p>
+            <CopyButton text={`${window.location.origin}${request.customer_quotations_path}`} label="Copiar link del cliente" />
+          </div>
+        )}
       </div>
 
       <ServiceRequestView request={request} />

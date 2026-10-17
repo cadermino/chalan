@@ -111,15 +111,19 @@ export function RequestProvider({ children }) {
     patch(destination === undefined ? { items } : { items, destination })
   }, [draft.publicId, patch])
 
+  // Devuelve el public_id: el borrador se vacía, pero la pantalla de enviado
+  // lo necesita para el link a las cotizaciones.
   const submit = useCallback(async ({ whatsapp, preferredDate }) => {
-    await submitRequest(draft.publicId, {
+    const { publicId } = draft
+    await submitRequest(publicId, {
       whatsapp,
       preferred_date: preferredDate,
     })
     storage.remove(STORAGE_KEY)
     track('service_request_submitted', { service: SERVICE, items: draft.items.length, media: draft.media.length })
     setDraft(EMPTY_DRAFT)
-  }, [draft.publicId, draft.items.length, draft.media.length])
+    return publicId
+  }, [draft])
 
   const value = useMemo(() => ({
     draft,
