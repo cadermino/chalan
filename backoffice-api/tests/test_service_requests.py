@@ -118,7 +118,8 @@ def test_list_filters_by_status_and_counts_related_rows(client, admin, submitted
     assert len(everything) == 2
     assert [r['id'] for r in only_submitted] == [submitted.id]
     row = only_submitted[0]
-    assert (row['items_count'], row['media_count'], row['notified_count']) == (2, 0, 1)
+    assert (row['items_count'], row['notified_count'], row['whatsapp']) == (2, 1, '+51987654321')
+    assert 'media_count' not in row
     assert row['preferred_date'] == '2026-10-20'
     assert row['neighborhood'] == 'San Isidro'
 
@@ -772,36 +773,61 @@ def test_resolving_a_reservation_rejects_other_statuses_and_carriers(client, adm
                        headers=carrier_headers).status_code == 403
 
 
-def test_list_flags_requests_with_a_yapeo_to_verify(client, admin, submitted, packing):
+def test_list_shows_the_deposit_like_orders(client, admin, submitted, packing):
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+    assert row['deposit'] is None
+
     quotation = make_quotation(submitted, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+    assert row['deposit'] == {'status': 'none', 'amount': None}
+
     db.session.add(ServiceRequestPayment(service_request_id=submitted.id, service_request_quotation_id=quotation.id,
                                          amount=10, reference='1234'))
     db.session.commit()
-
     [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
-    assert row['reservation_to_verify'] is True
+    assert row['deposit'] == {'status': 'pending', 'amount': 10.0}
 
     ServiceRequestPayment.query.one().status = 'paid'
     db.session.commit()
     [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
-    assert row['reservation_to_verify'] is False
+    assert row['deposit'] == {'status': 'paid', 'amount': 10.0}
 
 
-def test_the_chosen_carrier_sees_the_customer_whatsapp_only_once_the_job_is_confirmed(client, submitted, packing):
-    winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
-    chosen = make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
-    make_quotation(submitted, loser, 280)
-    db.session.add(ServiceRequestPayment(service_request_id=submitted.id, service_request_quotation_id=chosen.id,
-                                         amount=30, reference='1234'))
+def test_bulk_cancel_skips_cancelled_assigned_and_missing_requests(client, admin, submitted, packing):
+    assigned = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='submitted')
+    done = ServiceRequest(public_id='e' * 32, service_type_id=packing.id, status='cancelled')
+    draft = ServiceRequest(public_id='f' * 32, service_type_id=packing.id, status='draft')
+    db.session.add_all([assigned, done, draft])
     db.session.commit()
+    make_quotation(assigned, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
 
-    pending = public_get(client, submitted, winner).get_json()['service_request']
-    assert (pending['quotation_state'], pending['customer_contact']) == ('selected_pending', None)
+    res = client.post('/api/service-requests/bulk-cancel', headers=admin,
+                      json={'service_request_ids': [submitted.id, assigned.id, done.id, draft.id, 999]})
 
-    ServiceRequestPayment.query.one().status = 'paid'
-    db.session.commit()
-    confirmed = public_get(client, submitted, winner).get_json()['service_request']
-    assert (confirmed['quotation_state'], confirmed['customer_contact']) == (
-        'selected_mine', {'whatsapp': '+51987654321'})
-    other = public_get(client, submitted, loser).get_json()['service_request']
-    assert other['customer_contact'] is None
+    assert res.status_code == 200
+    assert res.get_json() == {
+        'cancelled': [submitted.id, draft.id],
+        'skipped': [
+            {'id': assigned.id, 'reason': 'tiene una cotización elegida'},
+            {'id': done.id, 'reason': 'ya estaba cancelada'},
+            {'id': 999, 'reason': 'no existe'},
+        ],
+    }
+    assert (db.session.get(ServiceRequest, submitted.id).status, db.session.get(ServiceRequest, assigned.id).status) == (
+        'cancelled', 'submitted')
+
+
+@pytest.mark.parametrize('body', [{}, {'service_request_ids': []}, {'service_request_ids': ['1']},
+                                  {'service_request_ids': [True]}])
+def test_bulk_cancel_rejects_bad_ids(client, admin, body):
+    assert client.post('/api/service-requests/bulk-cancel', headers=admin, json=body).status_code == 400
+
+
+def test_bulk_cancel_requires_an_admin_role(client, submitted):
+    carrier = make_carrier()
+    headers = make_user('carrier_company', carrier_company_id=carrier.id)
+
+    res = client.post('/api/service-requests/bulk-cancel', headers=headers, json={'service_request_ids': [submitted.id]})
+
+    assert res.status_code == 403
+    assert db.session.get(ServiceRequest, submitted.id).status == 'submitted'

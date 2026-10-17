@@ -3,24 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
-
-const STATUS_ICON_PATHS = {
-  list: ['M8 6h13M8 12h13M8 18h13', 'M3 6h.01M3 12h.01M3 18h.01'],
-  clock: ['M12 7v5l3 2', { circle: [12, 12, 9] }],
-  truck: ['M1 4h14v12H1z', 'M15 9h4l3 3v4h-7z', { circle: [5.5, 18.5, 2] }, { circle: [18.5, 18.5, 2] }],
-  check: ['m8 12 3 3 5-6', { circle: [12, 12, 9] }],
-  cross: ['m15 9-6 6M9 9l6 6', { circle: [12, 12, 9] }],
-}
-
-function StatusIcon({ icon, size = 16 }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {STATUS_ICON_PATHS[icon].map((p, i) => (typeof p === 'string'
-        ? <path key={i} d={p} />
-        : <circle key={i} cx={p.circle[0]} cy={p.circle[1]} r={p.circle[2]} />))}
-    </svg>
-  )
-}
+import StatusIcon from '../../components/StatusIcon'
 
 // Cada estado tiene su color e ícono, y son los mismos en el botón de filtro
 // y en la columna Estado: por eso la columna puede mostrar solo el ícono, el

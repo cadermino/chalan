@@ -257,7 +257,7 @@ Packing and furniture assembly customers have no account, so they see and pick q
   | `TWILIO_TEMPLATE_SERVICE_CONFIRMED_CUSTOMER` | to the customer, when an admin confirms the yapeo | `{1}` service, `{2}` page URL |
 
   Emails: `service_request_chosen_admin` (with the yapeo to verify) and `service_request_chosen_carrier`.
-- **Backoffice**: the request detail has "Copiar link del cliente" (`customer_quotations_path`), tags a quotation "Elegida por el cliente" (`selected_by_customer`), and lists the reservations with "Confirmar yapeo" / "No llegó". The list flags "Yapeo por verificar".
+- **Backoffice**: the request detail has "Copiar link del cliente" (`customer_quotations_path`), tags a quotation "Elegida por el cliente" (`selected_by_customer`), and lists the reservations with "Confirmar yapeo" / "No llegó". The list (`pages/service-requests/List.jsx`) mirrors the orders list: status filters with icons, the customer's WhatsApp, an Adelanto column (`deposit`), and bulk cancel (`POST /api/service-requests/bulk-cancel`, admin; it skips requests with a selected quotation).
 
 ## Carrier Declines
 

@@ -12,7 +12,7 @@ from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from .. import db
 from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
-                      ServiceRequestCarrierDecline, ServiceRequestItem, ServiceRequestMedia,
+                      ServiceRequestCarrierDecline, ServiceRequestItem,
                       ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
                       ServiceMaterial, ServiceType, _iso, _money)
 
@@ -180,6 +180,28 @@ def create_service_request():
     return jsonify(res.json()), res.status_code
 
 
+def _deposits(request_ids):
+    """Cómo va la reserva que el cliente le yapea a Chalán, por solicitud, como la
+    columna Adelanto de las órdenes. Sin entrada si no hay cotización elegida;
+    'none' si se eligió sin reserva (sin YAPE_RESERVATION_REQUIRED, o la eligió un
+    admin). Dos consultas para toda la lista, no dos por fila."""
+    if not request_ids:
+        return {}
+    selected = dict(
+        db.session.query(ServiceRequestQuotation.service_request_id, ServiceRequestQuotation.id)
+        .filter(ServiceRequestQuotation.service_request_id.in_(request_ids),
+                ServiceRequestQuotation.status == 'selected').all())
+    deposits = {request_id: {'status': 'none', 'amount': None} for request_id in selected}
+    live = (ServiceRequestPayment.query
+            .filter(ServiceRequestPayment.service_request_id.in_(list(selected)),
+                    ServiceRequestPayment.status != 'cancelled')
+            .order_by(ServiceRequestPayment.id).all()) if selected else []
+    for payment in live:
+        if selected.get(payment.service_request_id) == payment.service_request_quotation_id:
+            deposits[payment.service_request_id] = {'status': payment.status, 'amount': _money(payment.amount)}
+    return deposits
+
+
 def _counts(model, request_ids):
     """Cantidad de filas de `model` por solicitud, en una sola consulta."""
     if not request_ids:
@@ -208,12 +230,8 @@ def list_service_requests():
 
     ids = [r.id for r in rows]
     items = _counts(ServiceRequestItem, ids)
-    media = _counts(ServiceRequestMedia, ids)
     notified = _counts(ServiceRequestNotification, ids)
-    to_verify = set()
-    if ids:
-        to_verify = {row[0] for row in db.session.query(ServiceRequestPayment.service_request_id).filter(
-            ServiceRequestPayment.service_request_id.in_(ids), ServiceRequestPayment.status == 'pending')}
+    deposits = _deposits(ids)
     quotations = {}
     if ids:
         for request_id, count, lowest in (
@@ -230,13 +248,12 @@ def list_service_requests():
             'status': r.status,
             'preferred_date': r.preferred_date.isoformat() if r.preferred_date else None,
             'neighborhood': r.neighborhood,
+            'whatsapp': r.whatsapp,
             'items_count': items.get(r.id, 0),
-            'media_count': media.get(r.id, 0),
             'notified_count': notified.get(r.id, 0),
             'quotations_count': quotations.get(r.id, (0, None))[0],
             'min_amount': quotations.get(r.id, (0, None))[1],
-            # Un yapeo de reserva esperando que alguien lo busque en Yape.
-            'reservation_to_verify': r.id in to_verify,
+            'deposit': deposits.get(r.id),
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),
         }
@@ -325,6 +342,41 @@ def update_service_request(service_request_id):
     service_request.status = 'cancelled'
     db.session.commit()
     return jsonify({'service_request': service_request.to_dict_full()}), 200
+
+
+@api.route('/service-requests/bulk-cancel', methods=['POST'])
+@admin_required
+def bulk_cancel_service_requests():
+    """Cancela varias solicitudes de una vez desde la lista, como las órdenes.
+
+    Solo las que no tienen una cotización elegida: una elegida ya tiene
+    transportista y quizá una reserva yapeada, y eso se resuelve de a una desde
+    el detalle. Las que no califican vuelven en `skipped` con el motivo en vez
+    de hacer fallar el lote entero. Mismo permiso que cancelar una (admin)."""
+    raw_ids = (request.get_json(silent=True) or {}).get('service_request_ids')
+    if not isinstance(raw_ids, list) or not raw_ids:
+        return jsonify({'message': 'service_request_ids must be a non-empty list'}), 400
+    if any(isinstance(i, bool) or not isinstance(i, int) for i in raw_ids):
+        return jsonify({'message': 'service_request_ids must be integers'}), 400
+    ids = list(dict.fromkeys(raw_ids))
+    if len(ids) > LIST_LIMIT:
+        return jsonify({'message': f'at most {LIST_LIMIT} requests at a time'}), 400
+
+    found = {r.id: r for r in ServiceRequest.query.filter(ServiceRequest.id.in_(ids)).all()}
+    cancelled, skipped = [], []
+    for request_id in ids:
+        service_request = found.get(request_id)
+        if service_request is None:
+            skipped.append({'id': request_id, 'reason': 'no existe'})
+        elif service_request.status == 'cancelled':
+            skipped.append({'id': request_id, 'reason': 'ya estaba cancelada'})
+        elif any(q.status == 'selected' for q in service_request.quotations):
+            skipped.append({'id': request_id, 'reason': 'tiene una cotización elegida'})
+        else:
+            service_request.status = 'cancelled'
+            cancelled.append(request_id)
+    db.session.commit()
+    return jsonify({'cancelled': cancelled, 'skipped': skipped}), 200
 
 
 @api.route('/public/service-requests/<token>', methods=['GET'])
