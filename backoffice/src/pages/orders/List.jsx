@@ -535,7 +535,11 @@ export default function OrdersList() {
       <div className={`bg-white rounded-xl shadow overflow-hidden transition-opacity ${
         isPlaceholderData ? 'opacity-60' : ''
       }`}>
-        <div className="overflow-x-auto">
+        {/* `relative` hace que los sr-only (position: absolute) de las celdas
+            queden recortados por este scroll. Sin él se escapaban al documento
+            y en el celular la página medía el ancho de la tabla: se podía
+            alejar el zoom y arrastrar todo de costado. */}
+        <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>

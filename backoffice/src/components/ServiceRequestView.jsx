@@ -138,7 +138,7 @@ export default function ServiceRequestView({ request }) {
       )}
 
       <Section title={`${isAssembly ? 'Muebles' : 'Qué hay que embalar'} (${request.items.length})`}>
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-gray-400">
               <tr>

@@ -39,7 +39,9 @@ export default function Layout() {
           <span className="text-teal-400 font-bold text-lg">Chalán</span>
         </header>
 
-        <main className="flex-1 p-4 sm:p-8 overflow-auto">
+        {/* relative: un elemento absoluto que se escape de su tabla queda dentro del
+            main en vez de ensanchar el documento (y habilitar el zoom en el celular). */}
+        <main className="relative flex-1 p-4 sm:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>
