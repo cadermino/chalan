@@ -4,7 +4,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import {
-  filterCompanies, hasActiveFilters, hasMovingService, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
+  DEFAULT_LIST_STATE, filterCompanies, hasActiveFilters, hasMovingService, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
   serializeListState, serviceOptions, sortCompanies,
 } from '../../lib/companyList'
 
@@ -110,7 +110,7 @@ export default function CarrierCompaniesList() {
     update(state.sort === key ? { dir: state.dir === 'asc' ? 'desc' : 'asc' } : { sort: key, dir: 'asc' })
 
   const filtering = hasActiveFilters({ ...state, service })
-  const clearAll = () => update({ q: '', status: 'all', service: '', pending: false })
+  const clearAll = () => update({ q: '', status: DEFAULT_LIST_STATE.status, service: '', pending: false })
   const columns = canCreate ? 8 : 7
 
   return (
@@ -144,7 +144,7 @@ export default function CarrierCompaniesList() {
               </button>
             )}
             <span className="text-sm text-gray-400 whitespace-nowrap" aria-live="polite">
-              {filtering ? `${visible.length} de ${companies.length}` : `${companies.length} empresas`}
+              {visible.length === companies.length ? `${companies.length} empresas` : `${visible.length} de ${companies.length}`}
             </span>
           </div>
 
@@ -194,7 +194,9 @@ export default function CarrierCompaniesList() {
               <button
                 type="button"
                 aria-pressed={state.pending}
-                onClick={() => update({ pending: !state.pending })}
+                // Al activarlo pasa a "Todas": una empresa que espera aprobación suele
+                // estar inactiva, y con el "Activas" por defecto el filtro saldría vacío.
+                onClick={() => update(state.pending ? { pending: false } : { pending: true, status: 'all' })}
                 title="Empresas con una cuenta registrada desde la landing que todavía no fue aprobada"
                 className={`rounded-full border px-3 py-1 text-sm ${
                   state.pending
@@ -336,7 +338,7 @@ export default function CarrierCompaniesList() {
                 <td colSpan={columns} className="px-4 py-8 text-center text-gray-400">
                   {filtering
                     ? (state.q.trim() ? `Ninguna empresa coincide con «${state.q.trim()}» y los filtros elegidos` : 'Ninguna empresa coincide con los filtros elegidos')
-                    : 'Sin empresas'}
+                    : companies.length > 0 ? 'No hay empresas activas' : 'Sin empresas'}
                 </td>
               </tr>
             )}

@@ -86,8 +86,9 @@ export const STATUS_FILTERS = ['all', 'active', 'inactive']
 // catálogo sino una condición de la empresa (activa y con país).
 export const MOVES = 'moves'
 
-// Las más nuevas primero: son las que suelen necesitar algo (aprobarlas, cargar sus servicios).
-export const DEFAULT_LIST_STATE = { q: '', sort: 'id', dir: 'desc', status: 'all', service: '', pending: false }
+// Las activas, y las más nuevas primero: son las que suelen necesitar algo (cargar sus
+// servicios, sus vehículos). Las inactivas quedan a un clic en "Todas" o "Inactivas".
+export const DEFAULT_LIST_STATE = { q: '', sort: 'id', dir: 'desc', status: 'active', service: '', pending: false }
 
 // Una cuenta que se registró desde la landing queda inactiva hasta que un admin la aprueba;
 // la empresa con alguna cuenta así está esperando aprobación.
@@ -138,7 +139,7 @@ export function parseListState(params) {
     q: params.get('q') || '',
     sort: SORT_KEYS.includes(sort) ? sort : DEFAULT_LIST_STATE.sort,
     dir: dir === 'asc' || dir === 'desc' ? dir : DEFAULT_LIST_STATE.dir,
-    status: STATUS_FILTERS.includes(status) ? status : 'all',
+    status: STATUS_FILTERS.includes(status) ? status : DEFAULT_LIST_STATE.status,
     service: params.get('service') || '',
     pending: params.get('pending') === '1',
   }
@@ -158,7 +159,7 @@ export function serializeListState(state) {
   return params
 }
 
-// ¿Hay algo filtrando (sin contar el orden)?
+// ¿Hay algo filtrando más allá de la vista por defecto (sin contar el orden)?
 export function hasActiveFilters(state) {
-  return Boolean(state.q.trim()) || state.status !== 'all' || Boolean(state.service) || state.pending
+  return Boolean(state.q.trim()) || state.status !== DEFAULT_LIST_STATE.status || Boolean(state.service) || state.pending
 }
