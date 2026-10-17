@@ -1,12 +1,27 @@
 import { PLACES_API_KEY } from './config'
 
 let loading = null
+let authFailed = false
+const authFailureListeners = new Set()
+
+// Google rechaza la key recién cuando se usa (al escribir en el campo), mucho
+// después de que el script cargó y la promesa se resolvió. Sin este aviso el
+// campo queda deshabilitado por Google y la pantalla no ofrece WhatsApp.
+export function onMapsAuthFailure(callback) {
+  if (authFailed) {
+    callback()
+    return () => {}
+  }
+  authFailureListeners.add(callback)
+  return () => authFailureListeners.delete(callback)
+}
 
 // Carga el script de Google Maps una sola vez (mismo patrón que
 // frontend/src/components/SearchBoxPlacesApiGoogle.vue). La promesa se rechaza si
 // el script no baja o si Google rechaza la key (gm_authFailure), para que la
 // pantalla ofrezca WhatsApp en vez de dejar al cliente frente a un campo muerto.
 export function loadGoogleMaps() {
+  if (authFailed) return Promise.reject(new Error('Google rechazó la API key'))
   if (window.google?.maps?.places) return Promise.resolve(window.google)
   if (loading) return loading
 
@@ -15,7 +30,11 @@ export function loadGoogleMaps() {
       reject(new Error('VITE_PLACES_API_KEY no está configurada'))
       return
     }
-    window.gm_authFailure = () => reject(new Error('Google rechazó la API key'))
+    window.gm_authFailure = () => {
+      authFailed = true
+      reject(new Error('Google rechazó la API key'))
+      authFailureListeners.forEach((callback) => callback())
+    }
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${PLACES_API_KEY}&libraries=places&language=es&region=PE`
     script.async = true

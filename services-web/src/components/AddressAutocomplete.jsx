@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { addressFromPlace, loadGoogleMaps } from '../maps'
+import { addressFromPlace, loadGoogleMaps, onMapsAuthFailure } from '../maps'
 
 // Input con sugerencias de Google Places. El valor lo controla el padre; cuando
 // el usuario elige una sugerencia se avisa con los campos ya mapeados, y cuando
@@ -13,6 +13,9 @@ export default function AddressAutocomplete({ id, value, disabled, invalid, onTe
   useEffect(() => {
     let cancelled = false
     let listener = null
+    const stopAuthWatch = onMapsAuthFailure(() => {
+      if (!cancelled) handlers.current.onMapsError(new Error('Google rechazó la API key'))
+    })
     loadGoogleMaps()
       .then((google) => {
         if (cancelled || !inputRef.current) return
@@ -32,6 +35,7 @@ export default function AddressAutocomplete({ id, value, disabled, invalid, onTe
       })
     return () => {
       cancelled = true
+      stopAuthWatch()
       if (listener) listener.remove()
       // El desplegable de Google cuelga de <body>; sin esto quedaría uno por cada montaje.
       document.querySelectorAll('.pac-container').forEach((node) => node.remove())
