@@ -86,7 +86,8 @@ export const STATUS_FILTERS = ['all', 'active', 'inactive']
 // catálogo sino una condición de la empresa (activa y con país).
 export const MOVES = 'moves'
 
-export const DEFAULT_LIST_STATE = { q: '', sort: 'name', dir: 'asc', status: 'all', service: '', pending: false }
+// Las más nuevas primero: son las que suelen necesitar algo (aprobarlas, cargar sus servicios).
+export const DEFAULT_LIST_STATE = { q: '', sort: 'id', dir: 'desc', status: 'all', service: '', pending: false }
 
 // Una cuenta que se registró desde la landing queda inactiva hasta que un admin la aprueba;
 // la empresa con alguna cuenta así está esperando aprobación.
@@ -136,7 +137,7 @@ export function parseListState(params) {
   return {
     q: params.get('q') || '',
     sort: SORT_KEYS.includes(sort) ? sort : DEFAULT_LIST_STATE.sort,
-    dir: dir === 'desc' ? 'desc' : 'asc',
+    dir: dir === 'asc' || dir === 'desc' ? dir : DEFAULT_LIST_STATE.dir,
     status: STATUS_FILTERS.includes(status) ? status : 'all',
     service: params.get('service') || '',
     pending: params.get('pending') === '1',
