@@ -12,7 +12,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "googleapis": "^144.0.0",
     "gray-matter": "^4.0.3",
-    "next": "^15.5.22",
+    "next": "^15.5.25",
     "next-mdx-remote": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
