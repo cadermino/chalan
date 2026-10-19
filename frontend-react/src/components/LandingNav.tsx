@@ -3,15 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Inter_Tight } from 'next/font/google'
+import { interTight } from '@/lib/fonts'
 import '../app/landing.css'
-
-const interTight = Inter_Tight({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-inter-tight',
-  display: 'swap',
-})
 
 function Arrow({ className }: { className?: string }) {
   return (

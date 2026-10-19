@@ -176,6 +176,9 @@ The `frontend-react/` site was redesigned with a new landing page and shared com
 - `frontend-react/src/components/QuoteWidget.tsx` — interactive quote estimator widget
 - `frontend-react/src/app/landing.css` — landing-specific styles (Inter Tight font, custom layout)
 
+### Fonts
+The site's fonts (Instrument Serif, Inter Tight, JetBrains Mono, Outfit) are served from the repo with `next/font/local`: the `.woff2` files (latin subset, OFL) live in `frontend-react/src/fonts/` and are declared once in `src/lib/fonts.ts`, which every page imports. They used to come from `next/font/google`, which downloads at build time and made Peru deploys fail now and then (`Cannot read properties of null (reading '1')`). To change a font, drop its latin `.woff2` from Google Fonts into `src/fonts/` and edit `fonts.ts`.
+
 ### QuoteWidget
 Client-side widget (`'use client'`) that estimates a move price based on:
 - Move size: small (room/packages), medium (1–2 bedroom apt), large (family home)

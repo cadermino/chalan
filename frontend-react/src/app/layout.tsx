@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { outfit } from "@/lib/fonts";
 import Script from "next/script";
 import { Suspense } from "react";
 import { ReferralCapture } from "@/components/ReferralCapture";
@@ -9,13 +9,6 @@ import { NON_MOVING_PATHS } from "@/lib/homeServices";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  display: "swap",
-  variable: "--font-outfit",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://chalan.pe"),

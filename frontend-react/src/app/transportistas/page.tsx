@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google'
+import { instrumentSerif, interTight, jetbrainsMono } from '@/lib/fonts'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { CarrierSignupForm } from '@/components/CarrierSignupForm'
@@ -20,25 +20,6 @@ export const metadata: Metadata = {
   },
 }
 
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: ['400'],
-  style: ['normal', 'italic'],
-  variable: '--font-instrument-serif',
-  display: 'swap',
-})
-const interTight = Inter_Tight({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-inter-tight',
-  display: 'swap',
-})
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
-})
 
 const jsonLdOrg = {
   '@context': 'https://schema.org',
