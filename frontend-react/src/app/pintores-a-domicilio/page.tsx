@@ -14,7 +14,7 @@ const PRICES: ServicePrice[] = [
     id: '01',
     name: 'Paredes interiores',
     includes: 'Con empastado, sellado y dos manos de pintura',
-    from: 14.9,
+    from: 8,
   },
   {
     id: '02',
