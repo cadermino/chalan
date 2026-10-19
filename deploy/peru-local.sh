@@ -9,9 +9,12 @@
 #   - Corre los tests de los dos APIs en los contenedores locales, si tu copia
 #     local es exactamente origin/master (si no, probaría otro código).
 #   - Si el plan trae una migración, dispara el backup de la base (workflow
-#     db-backup.yml) y espera a que termine bien.
+#     db-backup.yml) y espera a que termine bien. Si el deploy falla o se cancela
+#     y lo repites, reutiliza ese backup (mismo commit destino, mismo punto de
+#     partida del servidor, menos de BACKUP_MAX_AGE_H horas) en vez de hacer otro.
 #
-# Opciones propias: --yes (no pregunta), --skip-tests, --skip-backup.
+# Opciones propias: --yes (no pregunta), --skip-tests, --skip-backup,
+# --new-backup (fuerza un backup nuevo aunque haya uno reutilizable).
 # Las demás (--dry-run, --services "...", --all, --rollback) pasan a deploy/peru.sh.
 #
 # Escrito para el bash 3.2 de macOS: sin arrays asociativos ni ${var,,}.
@@ -22,10 +25,13 @@ REMOTE_DIR=${CHALAN_PERU_DIR:-/home/ubuntu/chalan}
 REMOTE_SCRIPT=/tmp/chalan-deploy.sh
 BRANCH=master
 LOCAL_COMPOSE=docker-compose.local.yml
+BACKUP_MARKER=.cache/deploy-backup   # ignorado por git (.cache/)
+BACKUP_MAX_AGE_H=${CHALAN_BACKUP_MAX_AGE_H:-12}
 
 YES=0
 SKIP_TESTS=0
 SKIP_BACKUP=0
+NEW_BACKUP=0
 DRY_RUN=0
 ROLLBACK=0
 PASS=()
@@ -34,6 +40,7 @@ while [ $# -gt 0 ]; do
     --yes|-y) YES=1 ;;
     --skip-tests) SKIP_TESTS=1 ;;
     --skip-backup) SKIP_BACKUP=1 ;;
+    --new-backup) NEW_BACKUP=1 ;;
     --dry-run) DRY_RUN=1; PASS+=("$1") ;;
     --rollback) ROLLBACK=1; PASS+=("$1") ;;
     --services) PASS+=("$1" "${2:?--services necesita una lista}"); shift ;;
@@ -120,19 +127,36 @@ if [ "$SKIP_TESTS" -eq 0 ]; then
 fi
 
 if [ "$MIGRATE" = "1" ] && [ "$SKIP_BACKUP" -eq 0 ]; then
-  say "Hay migración: backup de la base antes"
-  STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-  gh workflow run db-backup.yml --ref "$BRANCH"
-  RUN_ID=""
-  for _ in $(seq 1 20); do
-    sleep 3
-    RUN_ID=$(gh run list --workflow=db-backup.yml --event=workflow_dispatch --limit 1 \
-      --json databaseId,createdAt --jq ".[] | select(.createdAt >= \"$STARTED\") | .databaseId")
-    [ -n "$RUN_ID" ] && break
-  done
-  [ -n "$RUN_ID" ] || die "no encontré la corrida del backup; revisar en GitHub Actions o usar --skip-backup"
-  gh run watch "$RUN_ID" --exit-status >/dev/null || die "el backup falló (gh run view $RUN_ID); no se despliega"
-  echo "Backup OK (run $RUN_ID)"
+  # Un deploy que falla o se cancela y se repite no vuelve a hacer backup: el de
+  # antes sigue siendo el punto de restauración previo a esta migración. Vale si
+  # el destino y el punto de partida del servidor son los mismos y es reciente.
+  REUSE=""
+  if [ "$NEW_BACKUP" -eq 0 ] && [ -f "$BACKUP_MARKER" ]; then
+    read -r M_TARGET M_FROM M_RUN M_TIME < "$BACKUP_MARKER" || true
+    AGE_H=$(( ( $(date +%s) - ${M_TIME:-0} ) / 3600 ))
+    if [ "${M_TARGET:-}" = "$TARGET" ] && [ "${M_FROM:-}" = "$FROM" ] && [ "$AGE_H" -lt "$BACKUP_MAX_AGE_H" ]; then
+      REUSE=$M_RUN
+    fi
+  fi
+  if [ -n "$REUSE" ]; then
+    say "Hay migración: se reutiliza el backup del intento anterior (run $REUSE, hace $(( ( $(date +%s) - M_TIME ) / 60 )) min). Para uno nuevo: --new-backup"
+  else
+    say "Hay migración: backup de la base antes"
+    STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    gh workflow run db-backup.yml --ref "$BRANCH"
+    RUN_ID=""
+    for _ in $(seq 1 20); do
+      sleep 3
+      RUN_ID=$(gh run list --workflow=db-backup.yml --event=workflow_dispatch --limit 1 \
+        --json databaseId,createdAt --jq ".[] | select(.createdAt >= \"$STARTED\") | .databaseId")
+      [ -n "$RUN_ID" ] && break
+    done
+    [ -n "$RUN_ID" ] || die "no encontré la corrida del backup; revisar en GitHub Actions o usar --skip-backup"
+    gh run watch "$RUN_ID" --exit-status >/dev/null || die "el backup falló (gh run view $RUN_ID); no se despliega"
+    echo "Backup OK (run $RUN_ID)"
+    mkdir -p "$(dirname "$BACKUP_MARKER")"
+    echo "$TARGET $FROM $RUN_ID $(date +%s)" > "$BACKUP_MARKER"
+  fi
 fi
 
 confirm "¿Desplegar ${TARGET:0:7} en chalan.pe ($SERVICES)?" || die "cancelado"
