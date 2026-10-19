@@ -6,21 +6,17 @@ import { HOME_SERVICES } from '@/lib/homeServices'
 // Precios "desde", de mano de obra, por m² y con la comisión de Chalán incluida.
 // Referencia de Lima (octubre de 2026): instalación simple de cerámico o
 // porcelanato en tiendas de mejoramiento del hogar desde S/ 27.90 por m², y
-// precios de referencia de albañiles de S/ 28–40 (cerámico) y S/ 45–55
-// (porcelanato). Se ajustan con las cotizaciones reales. Es la parte acotada de
+// precios de referencia de albañiles de S/ 28–40 (formatos hasta 60×60) y
+// S/ 45–55 (formatos grandes). El precio "desde" de Chalán es S/ 30 por m² en
+// formato 60×60 (cerámico o porcelanato); los formatos mayores se cotizan
+// aparte. Se ajustan con las cotizaciones reales. Es la parte acotada de
 // albañilería: una landing por trabajo concreto, no una de "albañilería".
 const PRICES: ServicePrice[] = [
   {
     id: '01',
-    name: 'Cerámico en pisos',
+    name: 'Porcelanato y cerámica en pisos, formato 60×60',
     includes: 'Interiores, sobre contrapiso nivelado, con zócalo y fragua',
-    from: 32.9,
-  },
-  {
-    id: '02',
-    name: 'Porcelanato en pisos',
-    includes: 'Interiores, sobre contrapiso nivelado, con zócalo y fragua',
-    from: 49.9,
+    from: 30,
   },
 ]
 
@@ -47,12 +43,12 @@ const link = { color: 'var(--ink)', textDecoration: 'underline' }
 const FAQ: ServiceFaq[] = [
   {
     q: '¿Cuánto cuesta instalar porcelanato por m² en Lima?',
-    a: `La instalación de porcelanato en pisos, desde ${priceOf('02')} por m², y la de cerámico desde ${priceOf('01')}. Es la mano de obra; sube con formatos grandes, cortes en diagonal o si hay que nivelar. El precio final te lo confirmamos al cotizar.`,
+    a: `La instalación de porcelanato o cerámica en pisos, en formato 60×60, desde ${priceOf('01')} por m². Es la mano de obra; sube con formatos más grandes, cortes en diagonal o si hay que nivelar. El precio final te lo confirmamos al cotizar.`,
     render: (
       <>
-        La instalación de porcelanato en pisos, desde {priceOf('02')} por m², y la de cerámico desde{' '}
-        {priceOf('01')}. Es la mano de obra; sube con formatos grandes, cortes en diagonal o si hay que
-        nivelar. Lo detallamos en{' '}
+        La instalación de porcelanato o cerámica en pisos, en formato 60×60, desde {priceOf('01')} por m².
+        Es la mano de obra; sube con formatos más grandes, cortes en diagonal o si hay que nivelar. Lo
+        detallamos en{' '}
         <Link href="/blog/precio-instalacion-porcelanato-m2">el precio de instalar porcelanato por m²</Link>.
       </>
     ),
@@ -62,8 +58,8 @@ const FAQ: ServiceFaq[] = [
     a: 'No: los precios son de mano de obra. El porcelanato o la cerámica, el pegamento y la fragua los compras tú, o te decimos cuánto comprar. Conviene llevar entre 5 y 10% más de piezas por los cortes.',
   },
   {
-    q: '¿Por qué instalar porcelanato cuesta más que la cerámica?',
-    a: 'El porcelanato es más duro y pesado: se corta con disco, necesita un pegamento especial y una base muy nivelada, y las piezas grandes se pegan con doble encolado para que no queden huecas.',
+    q: '¿Por qué sube el precio con formatos grandes?',
+    a: 'Las piezas de más de 60×60 cm pesan más, se cortan con disco, necesitan un pegamento especial y una base muy nivelada, y se pegan con doble encolado para que no queden huecas. Se cotizan aparte.',
   },
   {
     q: '¿Se puede instalar sobre el piso que ya tengo?',
@@ -112,7 +108,7 @@ export default function InstalacionDePorcelanato() {
           piso anterior, rehacer el contrapiso y enchapar paredes se cotizan al ver el ambiente.
         </>
       }
-      pricesFinePrint="* Precios de referencia. El precio final te lo confirmamos al cotizar. Formatos de más de 60×60 cm, colocación en diagonal, escaleras y exteriores se cotizan aparte."
+      pricesFinePrint="* Precios de referencia, para formato 60×60. El precio final te lo confirmamos al cotizar. Formatos de más de 60×60 cm, colocación en diagonal, escaleras y exteriores se cotizan aparte."
       kpis={[
         { num: lowest.replace('S/ ', ''), label: 'Soles por m², desde' },
         { num: 'Lima', label: 'También Callao y Huancayo' },
