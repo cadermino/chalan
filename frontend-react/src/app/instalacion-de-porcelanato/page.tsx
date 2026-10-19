@@ -7,7 +7,7 @@ import { HOME_SERVICES } from '@/lib/homeServices'
 // Referencia de Lima (octubre de 2026): instalación simple de cerámico o
 // porcelanato en tiendas de mejoramiento del hogar desde S/ 27.90 por m², y
 // precios de referencia de albañiles de S/ 28–40 (formatos hasta 60×60) y
-// S/ 45–55 (formatos grandes). El precio "desde" de Chalán es S/ 30 por m² en
+// S/ 45–55 (formatos grandes). El precio "desde" de Chalán es S/ 25 por m² en
 // formato 60×60 (cerámico o porcelanato); los formatos mayores se cotizan
 // aparte. Se ajustan con las cotizaciones reales. Es la parte acotada de
 // albañilería: una landing por trabajo concreto, no una de "albañilería".
@@ -16,7 +16,7 @@ const PRICES: ServicePrice[] = [
     id: '01',
     name: 'Porcelanato y cerámica en pisos, formato 60×60',
     includes: 'Interiores, sobre contrapiso nivelado, con zócalo y fragua',
-    from: 30,
+    from: 25,
   },
 ]
 
