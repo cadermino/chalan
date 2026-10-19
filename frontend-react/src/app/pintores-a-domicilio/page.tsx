@@ -6,14 +6,14 @@ import { HOME_SERVICES } from '@/lib/homeServices'
 // Precios "desde", de mano de obra, por m² y con la comisión de Chalán incluida.
 // Se definieron con las tarifas públicas de pintura de las tiendas de
 // mejoramiento del hogar y los precios de referencia de pintores en Lima
-// (octubre de 2026): látex interior S/ 11–18, techo 15–18, exterior 17–20,
-// empastado + pintura ~27. Se ajustan con las cotizaciones reales; la página no
+// (octubre de 2026): techo 15–18, exterior 17–20. El precio de paredes
+// interiores incluye el empastado, el sellado y las dos manos. Se ajustan con las cotizaciones reales; la página no
 // nombra a ninguna tienda.
 const PRICES: ServicePrice[] = [
   {
     id: '01',
     name: 'Paredes interiores',
-    includes: 'Látex o satinado, dos manos, con resane y lijado de clavos y fisuras leves',
+    includes: 'Con empastado, sellado y dos manos de pintura',
     from: 14.9,
   },
   {
@@ -27,12 +27,6 @@ const PRICES: ServicePrice[] = [
     name: 'Exteriores y fachadas',
     includes: 'Muros exteriores, patios y fachadas de hasta 3 m de altura',
     from: 19.9,
-  },
-  {
-    id: '04',
-    name: 'Empastado y pintura',
-    includes: 'Paredes con desniveles, manchas o tarrajeo nuevo: se empastan, se lijan y se pintan',
-    from: 29.9,
   },
 ]
 
@@ -59,12 +53,11 @@ const link = { color: 'var(--ink)', textDecoration: 'underline' }
 const FAQ: ServiceFaq[] = [
   {
     q: '¿Cuánto cobra un pintor por m² en Lima?',
-    a: `Depende de la superficie. Paredes interiores desde ${priceOf('01')} por m², techos desde ${priceOf('02')}, exteriores desde ${priceOf('03')} y empastado con pintura desde ${priceOf('04')}. Es el precio de la mano de obra; el precio final te lo confirmamos al cotizar.`,
+    a: `Depende de la superficie. Paredes interiores desde ${priceOf('01')} por m², techos desde ${priceOf('02')} y exteriores desde ${priceOf('03')}. Es el precio de la mano de obra; el precio final te lo confirmamos al cotizar.`,
     render: (
       <>
         Depende de la superficie. Paredes interiores desde {priceOf('01')} por m², techos desde{' '}
-        {priceOf('02')}, exteriores desde {priceOf('03')} y empastado con pintura desde{' '}
-        {priceOf('04')}. Es el precio de la mano de obra; el precio final te lo confirmamos al
+        {priceOf('02')} y exteriores desde {priceOf('03')}. Es el precio de la mano de obra; el precio final te lo confirmamos al
         cotizar. En la guía te explicamos{' '}
         <Link href="/blog/cuanto-cuesta-pintar-un-departamento-lima">cuánto cuesta pintar un departamento</Link>{' '}
         y cómo calcular los metros.
