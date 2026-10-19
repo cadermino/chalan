@@ -4,8 +4,9 @@ import { ServiceLanding, soles, type ServiceFaq, type ServicePrice } from '@/com
 import { HOME_SERVICES } from '@/lib/homeServices'
 
 // Precios "desde", por m² y con la comisión de Chalán incluida. Referencia de
-// Lima (octubre de 2026): colocación S/ 40–50 por m² solo mano de obra, y entre
-// S/ 50 y más de S/ 120 a todo costo según capas, malla y sellador. Se ajustan
+// Lima (octubre de 2026), de un aplicador: mano de obra desde S/ 50 en
+// interiores lisos o semilisos (hasta S/ 40 en obras grandes, no menos de S/ 60
+// en fachadas) y S/ 80–100 a todo costo según la marca. Se ajustan
 // con las cotizaciones reales. Es un servicio de aplicación: no vendemos el
 // producto.
 const PRICES: ServicePrice[] = [
@@ -13,13 +14,13 @@ const PRICES: ServicePrice[] = [
     id: '01',
     name: 'Mano de obra',
     includes: 'Aplicación en pisos o paredes. El material lo compras tú, o te decimos cuál y cuánto',
-    from: 49.9,
+    from: 50,
   },
   {
     id: '02',
     name: 'A todo costo',
     includes: 'Microcemento, imprimante, malla, capas de acabado, sellador y aplicación',
-    from: 99.9,
+    from: 80,
   },
 ]
 
