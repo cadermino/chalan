@@ -21,6 +21,7 @@ const LAST_MODIFIED: Record<string, string> = {
   '/pintores-a-domicilio': '2026-10-16',
   '/microcemento': '2026-10-16',
   '/instalacion-de-porcelanato': '2026-10-16',
+  '/reparacion-de-departamentos': '2026-10-19',
   '/transportistas': '2026-08-06',
 };
 
@@ -140,6 +141,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/instalacion-de-porcelanato`,
       lastModified: LAST_MODIFIED['/instalacion-de-porcelanato'],
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/reparacion-de-departamentos`,
+      lastModified: LAST_MODIFIED['/reparacion-de-departamentos'],
       changeFrequency: 'monthly',
       priority: 0.8,
     },

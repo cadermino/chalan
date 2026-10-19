@@ -7,7 +7,8 @@ import { whatsappUrl } from '@/lib/homeServices'
 import '@/app/landing.css'
 
 // Landing de un servicio a domicilio que se cotiza por WhatsApp (pintura,
-// microcemento, porcelanato). Mismo diseño que /armado-de-muebles; cada página
+// microcemento, porcelanato, reparación de departamentos). Sin `prices` no hay
+// tabla de precios: es el caso de un servicio que se cotiza con visita técnica. Mismo diseño que /armado-de-muebles; cada página
 // trae solo su contenido. Cuando un servicio tenga formulario en services-web,
 // el CTA principal pasa a ser el formulario, como en armado.
 
@@ -53,12 +54,16 @@ export type ServiceLandingProps = {
   heroSub: string
   ctaBody: string
   whatsappText: string
-  prices: ServicePrice[]
-  priceUnit: string
-  pricesTitle: ReactNode
-  pricesHeader: string
-  pricesNote: ReactNode
-  pricesFinePrint: string
+  // Textos del botón de WhatsApp y de su recuadro; por defecto, los de cotizar con precios.
+  cta?: { eyebrow: string; label: string; note: string }
+  // Ciudades de `areaServed`; por defecto Lima, Callao y Huancayo.
+  areas?: string[]
+  prices?: ServicePrice[]
+  priceUnit?: string
+  pricesTitle?: ReactNode
+  pricesHeader?: string
+  pricesNote?: ReactNode
+  pricesFinePrint?: string
   kpis: { num: ReactNode; label: string }[]
   sections: ServiceSection[]
   steps: ServiceStep[]
@@ -134,7 +139,15 @@ export function ServiceLanding(props: ServiceLandingProps) {
   const fontVars = [instrumentSerif.variable, interTight.variable, jetbrainsMono.variable].join(' ')
   const url = `https://chalan.pe${props.path}`
   const whatsapp = whatsappUrl(props.whatsappText)
-  const lowest = soles(Math.min(...props.prices.map((p) => p.from)))
+  const prices = props.prices ?? []
+  const lowest = prices.length ? soles(Math.min(...prices.map((p) => p.from))) : ''
+  const cta = props.cta ?? {
+    eyebrow: 'Cotiza ahora',
+    label: 'Cotizar por WhatsApp',
+    note: `Desde ${lowest} ${props.priceUnit ?? ''} · Cotización sin costo`,
+  }
+  // Con tabla de precios, las secciones siguientes empiezan en 02.
+  const offset = prices.length ? 2 : 1
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -148,11 +161,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
       telephone: '+51-972-643-007',
       address: { '@type': 'PostalAddress', addressLocality: 'Lima', addressCountry: 'PE' },
     },
-    areaServed: [
-      { '@type': 'City', name: 'Lima' },
-      { '@type': 'City', name: 'Callao' },
-      { '@type': 'City', name: 'Huancayo' },
-    ],
+    areaServed: (props.areas ?? ['Lima', 'Callao', 'Huancayo']).map((name) => ({ '@type': 'City', name })),
     description: props.service.description,
     url,
   }
@@ -186,7 +195,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
     <>
       <LandingNav
         links={props.navLinks}
-        cta={{ label: 'Cotizar por WhatsApp', href: whatsapp, plain: true, external: true }}
+        cta={{ label: cta.label, href: whatsapp, plain: true, external: true }}
       />
       <main id="main-content" className={`chalan-landing ${fontVars}`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -245,11 +254,11 @@ export function ServiceLanding(props: ServiceLandingProps) {
                         marginBottom: 8,
                       }}
                     >
-                      Cotiza ahora
+                      {cta.eyebrow}
                     </div>
                     <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--ink)' }}>{props.ctaBody}</p>
                   </div>
-                  {whatsappButton('Cotizar por WhatsApp', { justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 })}
+                  {whatsappButton(cta.label, { justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 })}
                   <p
                     style={{
                       fontFamily: 'var(--mono)',
@@ -259,7 +268,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
                       textAlign: 'center',
                     }}
                   >
-                    Desde {lowest} {props.priceUnit} · Cotización sin costo
+                    {cta.note}
                   </p>
                 </div>
               </div>
@@ -277,6 +286,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
         </section>
 
         {/* ── PRICES ── */}
+        {prices.length > 0 && (
         <section className="block" id="precios">
           <div className="wrap">
             <div className="section-head">
@@ -289,7 +299,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
                 <span>{props.pricesHeader}</span>
                 <span style={{ textAlign: 'right' }}>Precio</span>
               </div>
-              {props.prices.map((p) => (
+              {prices.map((p) => (
                 <div className="fleet-row prices" key={p.id}>
                   <span className="idx">{p.id}</span>
                   <div>
@@ -321,6 +331,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
             </p>
           </div>
         </section>
+        )}
 
         {/* ── SECTIONS ── */}
         {props.sections.map((s) => (
@@ -345,7 +356,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
         <section className="block" id="como">
           <div className="wrap">
             <div className="section-head">
-              <div className="num">{String(props.sections.length + 2).padStart(2, '0')} / Proceso</div>
+              <div className="num">{String(props.sections.length + offset).padStart(2, '0')} / Proceso</div>
               <h2 className="h-section">Tres pasos.<br />Sin complicaciones.</h2>
             </div>
             <Steps steps={props.steps} />
@@ -356,7 +367,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
         <section className="block" id="faq">
           <div className="wrap">
             <div className="section-head">
-              <div className="num">{String(props.sections.length + 3).padStart(2, '0')} / Preguntas</div>
+              <div className="num">{String(props.sections.length + offset + 1).padStart(2, '0')} / Preguntas</div>
               <h2 className="h-section">Lo que suelen<br />preguntar primero.</h2>
             </div>
             <div>
@@ -386,7 +397,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
                 <p className="lede" style={{ marginTop: 24 }}>{props.final.lede}</p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                {whatsappButton('Cotizar por WhatsApp', { gap: 10 })}
+                {whatsappButton(cta.label, { gap: 10 })}
               </div>
             </div>
           </div>

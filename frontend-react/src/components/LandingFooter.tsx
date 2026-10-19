@@ -30,6 +30,7 @@ export function LandingFooter() {
                 <li><Link href="/pintores-a-domicilio">Pintores a domicilio</Link></li>
                 <li><Link href="/microcemento">Aplicación de microcemento</Link></li>
                 <li><Link href="/instalacion-de-porcelanato">Instalación de porcelanato</Link></li>
+                <li><Link href="/reparacion-de-departamentos">Reparación de departamentos</Link></li>
                 <li><Link href="/order/step-one">Cotizar</Link></li>
               </ul>
             </div>

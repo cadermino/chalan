@@ -7,7 +7,7 @@ export const WHATSAPP_NUMBER = '51972643007'
 export const whatsappUrl = (text: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 
-export type HomeServiceKey = 'pintura' | 'microcemento' | 'porcelanato'
+export type HomeServiceKey = 'pintura' | 'microcemento' | 'porcelanato' | 'departamentos'
 
 export const HOME_SERVICES: Record<
   HomeServiceKey,
@@ -41,6 +41,17 @@ export const HOME_SERVICES: Record<
       eyebrow: '¿Necesitas quien lo instale?',
       title: 'Cotiza la instalación por WhatsApp',
       body: 'Mándanos fotos del ambiente, los metros y el formato de las piezas. Te respondemos con el precio.',
+    },
+  },
+  // Se cotiza con visita técnica (sin costo), no con precio por m².
+  departamentos: {
+    path: '/reparacion-de-departamentos',
+    name: 'Reparación de departamentos en alquiler',
+    whatsappText: 'Hola, quiero agendar una visita técnica para mi departamento',
+    blogCta: {
+      eyebrow: '¿Tu departamento necesita arreglos?',
+      title: 'Agenda una visita técnica sin costo',
+      body: 'Cuéntanos el distrito y mándanos unas fotos. Vamos a verlo y te damos una cotización exacta.',
     },
   },
 }
