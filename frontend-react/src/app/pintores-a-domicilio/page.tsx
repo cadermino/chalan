@@ -6,9 +6,9 @@ import { HOME_SERVICES } from '@/lib/homeServices'
 // Precios "desde", de mano de obra, por m² y con la comisión de Chalán incluida.
 // Se definieron con las tarifas públicas de pintura de las tiendas de
 // mejoramiento del hogar y los precios de referencia de pintores en Lima
-// (octubre de 2026): techo 15–18, exterior 17–20. El precio de paredes
-// interiores incluye el empastado, el sellado y las dos manos. Se ajustan con las cotizaciones reales; la página no
-// nombra a ninguna tienda.
+// (octubre de 2026). El precio de paredes interiores, techos y exteriores
+// incluye el empastado, el sellado y las dos manos. Se ajustan con las
+// cotizaciones reales; la página no nombra a ninguna tienda.
 const PRICES: ServicePrice[] = [
   {
     id: '01',
@@ -20,13 +20,13 @@ const PRICES: ServicePrice[] = [
     id: '02',
     name: 'Techos',
     includes: 'Cielo raso de sala, dormitorios, cocina o baño',
-    from: 16.9,
+    from: 8,
   },
   {
     id: '03',
     name: 'Exteriores y fachadas',
     includes: 'Muros exteriores, patios y fachadas de hasta 3 m de altura',
-    from: 19.9,
+    from: 8,
   },
 ]
 
