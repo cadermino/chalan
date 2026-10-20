@@ -3,6 +3,7 @@ import { Link, useParams, useLocation } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import DeclinePanel from '../../components/DeclinePanel'
+import NearbyCarriers from '../../components/NearbyCarriers'
 
 function Field({ label, value }) {
   return (
@@ -603,6 +604,11 @@ export default function OrderDetail() {
             </div>
             <CopyButton url={reviewUrl} />
           </div>
+        )}
+
+        {/* Transportistas de Google Maps de la zona, para órdenes de provincia que aún buscan cotizaciones */}
+        {isAdmin && order.order_status_id === 1 && (
+          <NearbyCarriers orderId={orderId} appointmentDate={order.appointment_date} />
         )}
 
         {/* Links de cotización por empresa — solo para admins */}

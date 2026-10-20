@@ -8,6 +8,7 @@ from flask import jsonify, g, current_app, request
 
 from . import api
 from .decorators import login_required
+from .. import carrier_prospects
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
@@ -1172,6 +1173,73 @@ def get_quotation_links(order_id):
         })
 
     return jsonify({'companies': result}), 200
+
+
+@api.route('/orders/<int:order_id>/nearby-carriers', methods=['GET'])
+@login_required
+def nearby_carriers(order_id):
+    """Transportistas de Google Maps de la zona de una orden que no es de Lima.
+
+    Son contactos en frío (repo automajob-contacts), no empresas de la
+    plataforma: la pantalla los muestra con un botón de WhatsApp para que el
+    admin los invite a cotizar. Para una orden de Lima no hay nada que mostrar,
+    ahí ya hay transportistas dados de alta.
+
+    `end` elige el origen o el destino (por defecto, el primero que no sea de
+    Lima) y `need` lo que se transporta (por defecto, lo que se deduce de lo que
+    escribió el cliente; `todos` no filtra).
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+
+    details = list(order.order_details)
+    addresses = {
+        'origin': next((d for d in details if d.type == 'carry_from'), None),
+        'destination': next((d for d in details if d.type == 'deliver_to'), None),
+    }
+    locations = {end: carrier_prospects.locate(addr) for end, addr in addresses.items()}
+    ends = [
+        {
+            'end': end,
+            'department': loc['department'] if loc else None,
+            'lima': loc['lima'] if loc else None,
+            'source': loc['source'] if loc else None,
+        }
+        for end, loc in locations.items() if addresses[end] is not None
+    ]
+    outside = [e['end'] for e in ends if e['lima'] is False]
+    if not outside:
+        located = any(e['lima'] is not None for e in ends)
+        return jsonify({'applicable': False, 'reason': 'lima' if located else 'unknown', 'ends': ends}), 200
+
+    end = request.args.get('end')
+    if end not in outside:
+        end = outside[0]
+    location = locations[end]
+
+    detected = carrier_prospects.detect_needs(order.comments)
+    need = request.args.get('need')
+    if need not in carrier_prospects.NEED_LABELS and need != 'todos':
+        need = detected[0]
+
+    return jsonify({
+        'applicable': True,
+        'ends': ends,
+        'end': end,
+        'location': {'department': location['department'], 'source': location['source'],
+                     'has_coordinates': location['lat'] is not None},
+        'need': need,
+        'detected': detected,
+        'needs': [{'value': value, 'label': label} for value, label in carrier_prospects.NEEDS]
+                 + [{'value': 'todos', 'label': 'Todos'}],
+        'counts': carrier_prospects.count_by_need(location),
+        'carriers': carrier_prospects.match(location, need),
+    }), 200
 
 
 @api.route('/orders/<int:order_id>/review-link', methods=['GET'])

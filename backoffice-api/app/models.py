@@ -366,6 +366,10 @@ class OrderDetail(db.Model):
     city = db.Column(db.String(45), nullable=True)
     state = db.Column(db.String(45), nullable=True)
     zip_code = db.Column(db.String(45), nullable=True)
+    # Coordenadas del lugar que eligió el cliente en Google (migración 029).
+    # Las órdenes anteriores no las tienen.
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     has_elevator = db.Column(db.Integer, nullable=True)
     approximate_distance_from_parking = db.Column(db.Integer, nullable=True)
 
