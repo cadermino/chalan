@@ -465,6 +465,7 @@ export default {
     },
     fillAddress(data) {
       const {
+        place,
         place: {
           formatted_address: formattedAddress,
           address_components: addressComponents,
@@ -484,12 +485,29 @@ export default {
         country: {
           long_name: country,
         } = {},
+        locality: {
+          long_name: locality,
+        } = {},
+        administrative_area_level_2: {
+          long_name: province,
+        } = {},
+        administrative_area_level_1: {
+          long_name: state,
+        } = {},
       } = googleAddress;
+      // Con la ubicación el backoffice le sugiere al admin transportistas de la
+      // zona cuando la orden no es de Lima. Las columnas miden 45.
+      const location = place.geometry && place.geometry.location;
+      const coordinate = value => (typeof value === 'function' ? value.call(location) : value);
       const section = direction === 'from' ? 'orderDetailsOrigin' : 'orderDetailsDestination';
       this.setOrder({ section, field: `${direction}_street`, value: formattedAddress });
       this.setOrder({ section, field: `${direction}_zip_code`, value: postalCode });
       this.setOrder({ section, field: `${direction}_country`, value: country });
       this.setOrder({ section, field: `${direction}_map_url`, value: url });
+      this.setOrder({ section, field: `${direction}_city`, value: (locality || province || '').slice(0, 45) || null });
+      this.setOrder({ section, field: `${direction}_state`, value: (state || '').slice(0, 45) || null });
+      this.setOrder({ section, field: `${direction}_latitude`, value: location ? coordinate(location.lat) : null });
+      this.setOrder({ section, field: `${direction}_longitude`, value: location ? coordinate(location.lng) : null });
     },
     removeSelectedProduct() {
       const productFields = {

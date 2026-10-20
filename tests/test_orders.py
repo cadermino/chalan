@@ -61,6 +61,59 @@ def test_create_order_with_real_customer_id_succeeds(client, customer):
     assert res.status_code == 201
 
 
+def _details(order_id):
+    order = db.session.get(Order, order_id)
+    return (order.order_details.filter_by(type='carry_from').first(),
+            order.order_details.filter_by(type='deliver_to').first())
+
+
+def test_create_order_keeps_city_state_and_coordinates_from_google(client):
+    # El formulario manda lo que devuelve Google; con eso se ubica la orden en
+    # un mapa (backoffice: transportistas de Google Maps para provincia).
+    res = client.post('/api/v1/order', json={
+        'customer': {'customer_id': None},
+        'orderDetailsOrigin': {**ORIGIN, 'from_city': 'Arequipa', 'from_state': 'Arequipa',
+                               'from_latitude': -16.4, 'from_longitude': -71.53},
+        'orderDetailsDestination': {**DESTINATION, 'to_latitude': '-12.05', 'to_longitude': '-77.04'},
+    })
+
+    assert res.status_code == 201
+    origin, destination = _details(res.get_json()['order_id'])
+    assert (origin.city, origin.state) == ('Arequipa', 'Arequipa')
+    assert (origin.latitude, origin.longitude) == (-16.4, -71.53)
+    # Una coordenada que llega como texto numérico también vale.
+    assert (destination.latitude, destination.longitude) == (-12.05, -77.04)
+
+
+@pytest.mark.parametrize('latitude,longitude,expected', [
+    ('abc', 'xyz', (None, None)),   # no es un número
+    (-91, 10, (None, 10.0)),        # fuera de rango: solo se descarta la mala
+    (10, 181, (10.0, None)),
+    ('', None, (None, None)),       # vacío
+])
+def test_create_order_drops_coordinates_that_are_not_valid(client, latitude, longitude, expected):
+    res = client.post('/api/v1/order', json={
+        'customer': {'customer_id': None},
+        'orderDetailsOrigin': {**ORIGIN, 'from_latitude': latitude, 'from_longitude': longitude},
+        'orderDetailsDestination': DESTINATION,
+    })
+
+    assert res.status_code == 201
+    origin, _ = _details(res.get_json()['order_id'])
+    assert (origin.latitude, origin.longitude) == expected
+
+
+def test_create_order_without_coordinates_still_works(client):
+    res = client.post('/api/v1/order', json={
+        'customer': {'customer_id': None},
+        'orderDetailsOrigin': ORIGIN,
+        'orderDetailsDestination': DESTINATION,
+    })
+
+    origin, destination = _details(res.get_json()['order_id'])
+    assert origin.latitude is None and destination.longitude is None
+
+
 def test_create_order_missing_customer_key_returns_clean_400(client):
     res = client.post('/api/v1/order', json={
         'orderDetailsOrigin': ORIGIN,

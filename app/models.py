@@ -139,6 +139,10 @@ class OrderDetails(db.Model):
 	city = db.Column(db.String(45), nullable=True)
 	state = db.Column(db.String(45), nullable=True)
 	zip_code = db.Column(db.String(45), nullable=True)
+	# Lo que devuelve Google al elegir la dirección (migración 029). Sirve para
+	# ubicar la orden: ver backoffice-api/app/carrier_prospects.py.
+	latitude = db.Column(db.Float, nullable=True)
+	longitude = db.Column(db.Float, nullable=True)
 	has_elevator = db.Column(db.Integer, server_default='0')
 	approximate_distance_from_parking = db.Column(db.Integer, nullable=True)
 

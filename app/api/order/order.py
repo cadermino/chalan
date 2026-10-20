@@ -20,6 +20,24 @@ from ...models import OrderSchema, \
 
 _PAYMENT_TYPE_IDS = {}
 
+_COORDINATES = {'latitude': 90, 'longitude': 180}
+
+
+def _address_value(column, value):
+    """Valor de un campo de la dirección tal como se guarda.
+
+    Las coordenadas llegan del navegador y tienen que ser un número dentro de
+    rango, o nada: cualquier otra cosa se descarta en vez de reventar el commit
+    o dejar basura que ubique la orden en otro lado.
+    """
+    if column not in _COORDINATES:
+        return value
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if abs(number) <= _COORDINATES[column] else None
+
 
 def yape_reservation_required():
     """True si agendar exige yapear la reserva e informar su nº de operación.
@@ -67,7 +85,7 @@ class Order:
         order_details_from = OrderDetailsModel()
         for key in request['orderDetailsOrigin']:
             row = key[5:]
-            setattr(order_details_from, row, request['orderDetailsOrigin'][key])
+            setattr(order_details_from, row, _address_value(row, request['orderDetailsOrigin'][key]))
         order_details_from.type = 'carry_from'
         order_details_from.order_id = order.id
         db.session.add(order_details_from)
@@ -75,7 +93,7 @@ class Order:
         order_details_to = OrderDetailsModel()
         for key in request['orderDetailsDestination']:
             row = key[3:]
-            setattr(order_details_to, row, request['orderDetailsDestination'][key])
+            setattr(order_details_to, row, _address_value(row, request['orderDetailsDestination'][key]))
         order_details_to.type = 'deliver_to'
         order_details_to.order_id = order.id
         db.session.add(order_details_to)
@@ -170,14 +188,14 @@ class Order:
         order_details_from = order.order_details.filter_by(type = 'carry_from').first()
         for key in request['orderDetailsOrigin']:
             row = key[5:]
-            setattr(order_details_from, row, request['orderDetailsOrigin'][key])
+            setattr(order_details_from, row, _address_value(row, request['orderDetailsOrigin'][key]))
         db.session.add(order_details_from)
         db.session.commit()
 
         order_details_to = order.order_details.filter_by(type = 'deliver_to').first()
         for key in request['orderDetailsDestination']:
             row = key[3:]
-            setattr(order_details_to, row, request['orderDetailsDestination'][key])
+            setattr(order_details_to, row, _address_value(row, request['orderDetailsDestination'][key]))
         db.session.add(order_details_to)
         db.session.commit()
 
