@@ -276,6 +276,7 @@ export default function OrderDetail() {
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
   const [reviewUrl, setReviewUrl] = useState(null)
+  const [customerUrl, setCustomerUrl] = useState(null)
   const [payments, setPayments] = useState([])
   const [savingPaymentId, setSavingPaymentId] = useState(null)
   const [registeringPayments, setRegisteringPayments] = useState(false)
@@ -313,6 +314,18 @@ export default function OrderDetail() {
       }).catch(() => setReviewUrl(null))
     }
   }, [orderId, isAdmin, order?.order_status_id])
+
+  // Link con que el cliente abre sus cotizaciones sin contraseña. El API
+  // responde 409 si la orden todavía no tiene cliente: entonces no se muestra.
+  useEffect(() => {
+    if (isAdmin && order && order.order_status_id !== 4) {
+      client.get(`/api/orders/${orderId}/customer-link`).then(({ data }) => {
+        setCustomerUrl(`${window.location.origin}/acceso/${data.token}`)
+      }).catch(() => setCustomerUrl(null))
+    } else {
+      setCustomerUrl(null)
+    }
+  }, [orderId, isAdmin, order?.order_status_id, order?.customer_id])
 
   // Rechazar es para una orden que todavía espera cotizaciones y que no le
   // adjudicaron a este transportista; el API aplica la misma regla.
@@ -591,6 +604,19 @@ export default function OrderDetail() {
             onUndo={undoDecline}
             onConflict={loadOrder}
           />
+        )}
+
+        {/* Link del cliente — abre su orden sin contraseña */}
+        {isAdmin && customerUrl && (
+          <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-700">Link del cliente</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Abre sus cotizaciones sin contraseña. Mándaselo si no puede entrar o si la orden la creaste tú.
+              </p>
+            </div>
+            <CopyButton url={customerUrl} />
+          </div>
         )}
 
         {/* Link de reseña — solo para admins, orden completada */}

@@ -99,6 +99,13 @@ const routes = [
     redirect: '/login',
   },
   {
+    // Link de los avisos de cotización: abre la orden sin pedir contraseña.
+    path: '/acceso/:token',
+    name: 'order-access',
+    component: () => import(/* webpackChunkName: "order-access" */ '../views/OrderAccess.vue'),
+    props: true,
+  },
+  {
     path: '/quotation/:token',
     name: 'quotation',
     component: () => import(/* webpackChunkName: "quotation" */ '../views/carrier-company/quotation'),

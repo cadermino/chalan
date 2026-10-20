@@ -2,8 +2,10 @@ import os
 from flask import current_app, jsonify, request
 from datetime import date
 from . import auth
-from ..models import Customer
+from ..models import Customer, Order
 from .. import db
+from ..api.decorators import is_internal_request
+from ..api.order_access import read_token
 from sqlalchemy import exc
 from facepy import SignedRequest
 from ..api.email import send_email
@@ -12,13 +14,18 @@ from ..api.carrier_company import CarrierCompany as CarrierCompanyEntity
 @auth.route('/register', methods=['POST'])
 def register():
     data = request.json or {}
-    if not isinstance(data, dict) or not data.get('name') or not data.get('mobile_phone') or not data.get('email') or not data.get('password'):
+    # El backoffice crea clientes sin contraseña: entran con el link de su
+    # orden (api/order_access.py). Desde el sitio sigue siendo obligatoria.
+    password_required = not is_internal_request()
+    if (not isinstance(data, dict) or not data.get('name') or not data.get('mobile_phone')
+            or not data.get('email') or (password_required and not data.get('password'))):
         return jsonify({'message' : 'provide required data'}), 400
     try:
         customer = Customer(email=data['email'].lower(),
                     name=data['name'],
-                    password=data['password'],
                     mobile_phone=data['mobile_phone'])
+        if data.get('password'):
+            customer.password = data['password']
 
         db.session.add(customer)
         db.session.commit()
@@ -68,6 +75,34 @@ def login():
     return jsonify({
         'message': 'user doesn\'t exist'
     }), 400
+
+
+@auth.route('/order-access', methods=['POST'])
+def order_access():
+    """Canjea el link de una orden por una sesión, como si hubiera hecho login."""
+    data = request.json or {}
+    token = data.get('token') if isinstance(data, dict) else None
+    if not token or not isinstance(token, str):
+        return jsonify({'message': 'provide required data'}), 400
+    ids, reason = read_token(token)
+    if ids is None:
+        return jsonify({'message': 'invalid link', 'reason': reason}), 401
+    order_id, customer_id = ids
+    order = db.session.get(Order, order_id)
+    # Si la orden cambió de dueño después de mandar el link, el link ya no vale.
+    if order is None or order.customer_id is None or order.customer_id != customer_id:
+        return jsonify({'message': 'invalid link', 'reason': 'invalid'}), 401
+    customer = db.session.get(Customer, customer_id)
+    if customer is None:
+        return jsonify({'message': 'invalid link', 'reason': 'invalid'}), 401
+    return jsonify({
+        'token': customer.generate_auth_token(expiration=86400),
+        'expiration': 86400,
+        'name': customer.name,
+        'email': customer.email,
+        'mobile_phone': customer.mobile_phone,
+        'order_id': order.id,
+    }), 200
 
 
 @auth.route('/login-facebook', methods=['POST'])

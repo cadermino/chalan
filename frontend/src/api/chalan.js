@@ -79,6 +79,14 @@ export default {
     };
     return axios(options);
   },
+  orderAccess(payload) {
+    return axios({
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      data: { token: payload.token },
+      url: `${process.env.VUE_APP_AUTH_API_URL}order-access`,
+    });
+  },
   loginGoogle(payload) {
     return axios({
       method: 'POST',

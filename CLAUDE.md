@@ -201,6 +201,16 @@ Admins can view and search all registered customers.
 - **API**: `GET /backoffice-api/api/customers?q=<search>` — searches name, email, phone; returns up to 200 results; admin/superadmin only
 - **Frontend**: `backoffice/src/pages/customers/List.jsx` — table with search form; accessible via sidebar
 - **API file**: `backoffice-api/app/api/customers.py`
+- **Create**: `POST /backoffice-api/api/customers` (superadmin, `pages/customers/Create.jsx`) creates the customer **without a password**, through the main API's `/api/auth/register` with the internal token (the public site still requires one). The customer opens their order with the order link below.
+
+## Order Access Link (no password)
+
+The customer session lasts 24 hours and there is no password reset, so a customer coming back from the "new quotation" WhatsApp another day or on another phone used to hit the login. The notice now carries `{SITE_URL}/acceso/<token>`: the order and its customer (`[order_id, customer_id]`) signed with `SECRET_KEY` by itsdangerous (salt `order-access`, short on purpose because it goes in a WhatsApp, valid 60 days).
+
+- **Main API**: `app/api/order_access.py` makes and reads it; `POST /api/auth/order-access {token}` returns the same session as the login plus `order_id`. 401 with `reason` `expired` or `invalid`; the link stops working if the order changes customer. Used by the new-quotation email and WhatsApp (`app/api/quotations.py`).
+- **Vue**: `/acceso/:token` (`views/OrderAccess.vue`) redeems it, replaces any session in that browser and opens `/order/<id>/step-three`. On failure it goes to the login with a message. nginx routes `/acceso` to Vue (`nginx.chalan-prod-peru.conf`, local conf).
+- **Backoffice**: the order detail (admins) has "Link del cliente": `GET /backoffice-api/api/orders/:id/customer-link` returns the token (409 if the order has no customer) and the page builds `{origin}/acceso/{token}`. `backoffice-api/app/order_access.py` makes the same token: change both together.
+- Customers without a password (Google, Facebook, backoffice) get a clean 400 from the password login (`Customer.verify_password`).
 
 ## Edit Order in Backoffice
 

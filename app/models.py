@@ -54,6 +54,10 @@ class Customer(db.Model):
 		self.password_hash = generate_password_hash(password)
 
 	def verify_password(self, password):
+		# Los clientes de Google, Facebook o creados desde el backoffice no tienen
+		# contraseña: entrar con una cualquiera no debe dar 500 ni dejar pasar.
+		if not self.password_hash:
+			return False
 		return check_password_hash(self.password_hash, password)
 
 	def generate_auth_token(self, expiration):

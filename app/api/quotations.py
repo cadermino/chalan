@@ -15,6 +15,7 @@ from ..models import Customer, ReferredOrder, AdminUser
 from ..models import Quotations as QuotationsModel, Order as OrderModel
 from .email import send_email
 from .whatsapp import send_whatsapp
+from .order_access import order_access_url
 from .. import db
 
 
@@ -128,7 +129,8 @@ def create_quotation():
         # Cotizar despues de haber rechazado deja sin efecto el rechazo. Se
         # confirma junto con la cotizacion (create/update hacen el commit).
         clear_order_decline(order_id, carrier_company_id)
-    customer = OrderEntity().query_orders({'id': order_id})[0].customers
+    order = OrderEntity().query_orders({'id': order_id})[0]
+    customer = order.customers
     if previous_quotation is None:
         quotation = QuotationEntity().create(data)
         message = 'quotation {id} created!'.format(id=quotation.id)
@@ -137,7 +139,9 @@ def create_quotation():
         quotation_status_id = quotation.quotation_status_id
         status_response = 201
 
-        step_three_url = f"{os.getenv('SITE_URL')}order/step-three"
+        # El link abre las cotizaciones de esta orden sin login: la sesión dura
+        # 24 horas y el cliente suele volver otro día o desde otro celular.
+        step_three_url = order_access_url(order)
         subject = 'Tienes un nueva cotización para tu mudanza Chalán'
         send_email(
             customer.email,

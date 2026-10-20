@@ -6,6 +6,7 @@ from flask import jsonify, request, g
 
 from . import api
 from .decorators import login_required
+from .orders import _internal_headers
 from ..models import Customer, ROLE_SUPERADMIN, ROLE_ADMIN
 from .. import db
 
@@ -44,15 +45,16 @@ def create_customer():
     -email check stay in one place there) rather than writing a Customer
     row directly - same reasoning as orders.create_order.
 
-    There's no self-service password-reset flow in the app yet, so whoever
-    creates this account is responsible for telling the customer their
-    password some other way (phone/WhatsApp)."""
+    The account has no password: the customer opens their order with the
+    link from "Copiar link del cliente" in the order detail (or the one in
+    the new-quotation WhatsApp), not with a login. The internal token is what
+    lets the main API register it without one."""
     user = g.current_user
     if user.role != ROLE_SUPERADMIN:
         return jsonify({'message': 'forbidden'}), 403
 
     data = request.get_json() or {}
-    for field in ('name', 'email', 'mobile_phone', 'password'):
+    for field in ('name', 'email', 'mobile_phone'):
         if not data.get(field):
             return jsonify({'message': f'{field} is required'}), 400
 
@@ -64,8 +66,8 @@ def create_customer():
                 'name': data['name'],
                 'email': data['email'],
                 'mobile_phone': data['mobile_phone'],
-                'password': data['password'],
             },
+            headers=_internal_headers(),
             timeout=10,
         )
     except requests.RequestException:

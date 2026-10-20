@@ -34,7 +34,9 @@ export default {
     if (this.isUserLogged) {
       this.$router.push(this.redirect).catch(() => {});
     }
-    if (this.redirect !== '/') {
+    // Sin pisar un aviso que ya trae la pantalla, como el de un link de
+    // acceso vencido (views/OrderAccess.vue).
+    if (this.redirect !== '/' && !this.viewsMessages[this.viewName]) {
       this.setViewsMessages({
         view: this.viewName,
         message: {
@@ -96,7 +98,7 @@ export default {
     },
   },
   computed: {
-    ...mapState(['currentOrder', 'customer', 'orderDetailsDestination', 'orderDetailsOrigin', 'services']),
+    ...mapState(['currentOrder', 'customer', 'orderDetailsDestination', 'orderDetailsOrigin', 'services', 'viewsMessages']),
     ...mapGetters(['isUserLogged']),
     redirect() {
       return this.$route.query.redirect || '/dashboard';

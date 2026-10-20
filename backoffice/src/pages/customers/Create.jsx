@@ -2,20 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'
-  let out = ''
-  for (let i = 0; i < 12; i += 1) out += chars[Math.floor(Math.random() * chars.length)]
-  return out
-}
-
 export default function CustomerCreate() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '',
     email: '',
     mobilePhone: '',
-    password: generatePassword(),
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -29,11 +21,10 @@ export default function CustomerCreate() {
         name: form.name,
         email: form.email,
         mobile_phone: form.mobilePhone,
-        password: form.password,
       })
       navigate('/customers', {
         state: {
-          message: `Cliente creado. Contraseña: ${form.password} — copiala antes de salir, no se puede volver a ver.`,
+          message: 'Cliente creado. Cuando tenga una orden, mándale el link desde el detalle de la orden ("Copiar link del cliente").',
           customerId: data.customer_id,
         },
       })
@@ -51,9 +42,10 @@ export default function CustomerCreate() {
         <h1 className="text-2xl font-bold text-gray-900">Crear cliente</h1>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-800">
-        No hay recuperación de contraseña en el sitio todavía — anotá la que
-        se genera abajo y pasásela al cliente vos mismo (llamada, WhatsApp).
+      <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 mb-4 text-xs text-teal-800">
+        El cliente no necesita contraseña: entra a su orden con el link que le
+        llega por WhatsApp con cada cotización, o con el que copias desde el
+        detalle de la orden.
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,25 +79,6 @@ export default function CustomerCreate() {
               required
               className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Contraseña</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                required
-                className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-              <button
-                type="button"
-                onClick={() => setForm(f => ({ ...f, password: generatePassword() }))}
-                className="px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50"
-              >
-                Regenerar
-              </button>
-            </div>
           </div>
         </div>
 

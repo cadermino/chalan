@@ -9,6 +9,7 @@ from flask import jsonify, g, current_app, request
 from . import api
 from .decorators import login_required
 from .. import carrier_prospects
+from ..order_access import make_token as make_order_access_token
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
@@ -1173,6 +1174,26 @@ def get_quotation_links(order_id):
         })
 
     return jsonify({'companies': result}), 200
+
+
+@api.route('/orders/<int:order_id>/customer-link', methods=['GET'])
+@login_required
+def customer_link(order_id):
+    """Token del link con que el cliente abre sus cotizaciones sin contraseña.
+
+    El frontend arma la URL con su propio dominio (`{origin}/acceso/{token}`),
+    igual que los links de cotización. Sirve para los clientes creados desde el
+    backoffice, que no tienen contraseña, y para quien no recuerda la suya.
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    if order.customer_id is None:
+        return jsonify({'message': 'la orden no tiene cliente'}), 409
+    return jsonify({'token': make_order_access_token(order)}), 200
 
 
 @api.route('/orders/<int:order_id>/nearby-carriers', methods=['GET'])
