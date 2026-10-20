@@ -61,8 +61,13 @@ def main():
             if ficha.get('placeId') and loc.get('lat') is not None and loc.get('lng') is not None:
                 coords[ficha['placeId']] = (loc['lat'], loc['lng'])
 
-    prospects, sin_departamento = [], 0
+    prospects, sin_departamento, extranjeros = [], 0, 0
     for f in filas:
+        # Un negocio peruano con celular de otro país (Tacna, Tumbes, Piura...) no
+        # sirve para el WhatsApp de la tarjeta: se deja fuera.
+        if not f['telefono_e164'].startswith('+51'):
+            extranjeros += 1
+            continue
         department = DEPARTMENT_BY_CITY.get(f['ciudad'])
         if department is None:
             sin_departamento += 1
@@ -97,7 +102,8 @@ def main():
         por_ciudad[p['city']] = por_ciudad.get(p['city'], 0) + 1
     print(f'{len(prospects)} transportistas -> {out}')
     print('por ciudad:', dict(sorted(por_ciudad.items())))
-    print('descartados al normalizar:', descartados, '| sin departamento:', sin_departamento)
+    print('descartados al normalizar:', descartados, '| sin departamento:', sin_departamento,
+          '| celular extranjero:', extranjeros)
 
 
 if __name__ == '__main__':
