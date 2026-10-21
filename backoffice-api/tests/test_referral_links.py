@@ -1,8 +1,8 @@
-"""Links de referencia de las inmobiliarias: el admin los ve y los copia, y toda
+"""Links de referencia de las inmobiliarias: se copian desde Usuarios, y toda
 inmobiliaria tiene código aunque no se haya registrado sola."""
 from app import db
 from app.models import AdminUser
-from tests.test_service_requests import admin, make_user  # noqa: F401
+from tests.test_service_requests import make_user
 
 
 def make_agent(email, code=None, **kwargs):
@@ -13,37 +13,29 @@ def make_agent(email, code=None, **kwargs):
     return agent
 
 
-def test_admins_get_every_agent_with_its_code(client, admin):
-    make_agent('con@example.com', code='AGT-AAAAA', first_name='Ana', commission_rate=0.07)
-    make_agent('sin-ordenes@example.com', code='AGT-BBBBB')
+def test_the_users_list_carries_each_agent_code(client):
+    make_agent('con@example.com', code='AGT-AAAAA')
 
-    res = client.get('/api/admin/referred-orders', headers=admin)
+    res = client.get('/api/users', headers=make_user('superadmin', suffix='s'))
 
-    assert res.status_code == 200
-    agents = {a['email']: a for a in res.get_json()['agents']}
-    assert agents['con@example.com']['referral_code'] == 'AGT-AAAAA'
-    assert agents['con@example.com']['name'] == 'Ana'
-    assert agents['con@example.com']['commission_rate'] == 0.07
-    # Sin órdenes referidas también sale: el link se manda antes de la primera.
-    assert agents['sin-ordenes@example.com']['referral_code'] == 'AGT-BBBBB'
+    agent = next(u for u in res.get_json()['users'] if u['email'] == 'con@example.com')
+    assert agent['referral_code'] == 'AGT-AAAAA'
 
 
-def test_an_agent_without_code_gets_one_when_listed(client, admin):
+def test_an_agent_without_code_gets_one_when_listed(client):
     agent = make_agent('vieja@example.com')
 
-    res = client.get('/api/admin/referred-orders', headers=admin)
+    res = client.get('/api/users', headers=make_user('superadmin', suffix='s'))
 
-    code = res.get_json()['agents'][0]['referral_code']
-    assert code and code.startswith('AGT-')
-    assert db.session.get(AdminUser, agent.id).referral_code == code
+    listed = next(u for u in res.get_json()['users'] if u['email'] == 'vieja@example.com')
+    assert listed['referral_code'].startswith('AGT-')
+    assert db.session.get(AdminUser, agent.id).referral_code == listed['referral_code']
 
 
-def test_only_admins_see_the_agents(client):
-    make_agent('a@example.com', code='AGT-CCCCC')
-    assert client.get('/api/admin/referred-orders',
-                      headers=make_user('real_estate_agent', suffix='r')).status_code == 403
-    assert client.get('/api/admin/referred-orders',
-                      headers=make_user('carrier_company', suffix='c')).status_code == 403
+def test_other_users_get_no_code(client):
+    make_user('admin', suffix='x')
+    res = client.get('/api/users', headers=make_user('superadmin', suffix='s'))
+    assert all(u['referral_code'] is None for u in res.get_json()['users'])
 
 
 def test_a_superadmin_creating_an_agent_gives_it_a_code(client):

@@ -21,6 +21,14 @@ def _ensure_referral_code(user):
 def list_users():
     users = AdminUser.query.order_by(AdminUser.created_date.desc()).all()
 
+    # Las inmobiliarias creadas aquí antes de que se generara el código no
+    # tienen uno, y sin código no hay link que copiar: se les da al listar.
+    missing = [u for u in users if u.role == ROLE_REAL_ESTATE and not u.referral_code]
+    for u in missing:
+        _ensure_referral_code(u)
+    if missing:
+        db.session.commit()
+
     # La columna "Empresa" mostraba el id pelado, que no le dice nada a nadie.
     # Se resuelven los nombres en una sola consulta en vez de una por usuario.
     company_ids = {u.carrier_company_id for u in users if u.carrier_company_id}

@@ -10,7 +10,7 @@ from . import api
 from .decorators import login_required
 from .. import carrier_prospects
 from ..order_access import make_token as make_order_access_token
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE, _generate_referral_code
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 QUOTATION_STATUS_ACTIVE = 1
@@ -1696,30 +1696,7 @@ def admin_list_referred_orders():
         })
         total_commission += ref.commission or 0
 
-    # Todas las inmobiliarias, también las que aún no refirieron nada: el admin
-    # copia de acá el link con su código para mandárselo. Las que creó un
-    # superadmin antes de que Usuarios generara el código no tienen uno; se les
-    # da aquí, porque un admin no puede editar usuarios para arreglarlo.
-    agent_rows = AdminUser.query.filter_by(role=ROLE_REAL_ESTATE).order_by(AdminUser.id).all()
-    missing = [a for a in agent_rows if not a.referral_code]
-    for a in missing:
-        a.referral_code = _generate_referral_code()
-    if missing:
-        db.session.commit()
-
-    agents = [
-        {
-            'id': a.id,
-            'name': ' '.join(filter(None, [a.first_name, a.last_name])) or None,
-            'email': a.email,
-            'referral_code': a.referral_code,
-            'commission_rate': a.commission_rate,
-            'active': a.active,
-        }
-        for a in agent_rows
-    ]
-
-    return jsonify({'orders': result, 'total_commission': total_commission, 'agents': agents}), 200
+    return jsonify({'orders': result, 'total_commission': total_commission}), 200
 
 
 @api.route('/referred-orders', methods=['POST'])

@@ -4,6 +4,8 @@ import client from '../../api/client'
 import PasswordInput from '../../components/PasswordInput'
 import toast from 'react-hot-toast'
 import { ROLES, roleLabel } from '../../lib/roles'
+import { CopyRow } from '../../components/CopyButton'
+import { referralLink } from '../../lib/referral'
 
 export default function UserForm() {
   const { id } = useParams()
@@ -23,12 +25,14 @@ export default function UserForm() {
     active: true,
   })
   const [loading, setLoading] = useState(false)
+  const [referralCode, setReferralCode] = useState(null)
 
   useEffect(() => {
     client.get('/api/carrier-companies').then(({ data }) => setCompanies(data.carrier_companies))
     if (isEdit) {
       client.get(`/api/users/${id}`).then(({ data }) => {
         const u = data.user
+        setReferralCode(u.referral_code)
         setForm({
           email: u.email,
           password: '',
@@ -166,6 +170,16 @@ export default function UserForm() {
             />
             <p className="text-xs text-gray-400 mt-1">Porcentaje que se agrega al precio de cotización y se acredita al agente.</p>
           </Field>
+        )}
+
+        {form.role === 'real_estate_agent' && referralCode && (
+          <div className="rounded-lg bg-gray-50 p-3">
+            <CopyRow
+              title="Link de referencia"
+              hint={referralLink(referralCode)}
+              text={referralLink(referralCode)}
+            />
+          </div>
         )}
 
         {isEdit && (

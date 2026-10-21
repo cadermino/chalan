@@ -4,12 +4,15 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { roleLabel } from '../../lib/roles'
+import CopyButton from '../../components/CopyButton'
+import { referralLink } from '../../lib/referral'
 
 const ROLES = ['superadmin', 'admin', 'carrier_company']
 const roleBadge = {
   superadmin: 'bg-purple-100 text-purple-800',
   admin: 'bg-blue-100 text-blue-800',
   carrier_company: 'bg-teal-100 text-teal-800',
+  real_estate_agent: 'bg-amber-100 text-amber-800',
 }
 
 export default function UsersList() {
@@ -87,7 +90,7 @@ export default function UsersList() {
                     ? <span className="text-green-600 font-medium">Activo</span>
                     : <span className="text-gray-400">Inactivo</span>}
                 </td>
-                <td className="px-4 py-3 flex gap-3">
+                <td className="px-4 py-3 flex items-center gap-3">
                   <Link to={`/users/${u.id}/edit`} className="text-teal-600 hover:underline">
                     Editar
                   </Link>
@@ -95,6 +98,9 @@ export default function UsersList() {
                     <button onClick={() => toggle(u)} className="text-gray-500 hover:underline">
                       {u.active ? 'Desactivar' : 'Activar'}
                     </button>
+                  )}
+                  {u.role === 'real_estate_agent' && u.referral_code && (
+                    <CopyButton text={referralLink(u.referral_code)} label="Copiar link de referencia" />
                   )}
                 </td>
               </tr>
