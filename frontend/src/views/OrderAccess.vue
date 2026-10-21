@@ -9,6 +9,7 @@
 <script>
 import { mapActions, mapGetters, mapMutations } from 'vuex';
 import chalan from '../api/chalan';
+import { track } from '../utils/analytics';
 
 // Link del aviso de "nueva cotización" (y del backoffice): /acceso/<token>.
 // Canjea el token por una sesión, como un login, y abre las cotizaciones de esa
@@ -35,6 +36,10 @@ export default {
       this.setCustomerData({ field: 'mobile_phone', value: data.mobile_phone });
       this.setCustomerData({ field: 'customer_name', value: data.name });
       this.setCustomerData({ field: 'picture', value: '' });
+      // Entrar por el link cuenta como login en el embudo de GA4. Sin esto,
+      // quien dejó un correo que ya tenía cuenta en el paso de contacto
+      // (contact_existing_account) quedaba como fuga aunque sí entrara.
+      track('login', { method: 'order_link', order_id: data.order_id });
       this.$router.replace({ name: 'step-three', params: { order_id: data.order_id } }).catch(() => {});
     } catch (error) {
       const reason = error.response?.data?.reason;
