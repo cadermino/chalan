@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
+import Card from '../../components/Card'
+import CopyButton from '../../components/CopyButton'
 
 const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
 const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin
@@ -10,19 +12,10 @@ export default function ReferredOrdersList() {
   const [orders, setOrders] = useState([])
   const [commissionBalance, setCommissionBalance] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
 
   const referralLink = user?.referral_code
     ? `${SITE_URL}/?ref=${user.referral_code}`
     : null
-
-  const copyLink = () => {
-    if (referralLink) {
-      navigator.clipboard.writeText(referralLink)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
 
   useEffect(() => {
     client.get('/api/referred-orders').then(({ data }) => {
@@ -38,23 +31,17 @@ export default function ReferredOrdersList() {
   return (
     <div>
       {referralLink && (
-        <div className="bg-white rounded-xl shadow p-5 mb-6">
-          <p className="text-sm font-semibold text-gray-700 mb-2">Tu link de referencia</p>
+        <Card title="Tu link de referencia" className="mb-6">
           <div className="flex items-center gap-3">
             <code className="flex-1 bg-gray-100 text-sm text-gray-800 px-3 py-2 rounded-lg truncate">
               {referralLink}
             </code>
-            <button
-              onClick={copyLink}
-              className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg shrink-0 transition-colors"
-            >
-              {copied ? 'Copiado' : 'Copiar'}
-            </button>
+            <CopyButton text={referralLink} />
           </div>
           <p className="text-xs text-gray-400 mt-2">
             Comparte este link con tus clientes. Las ordenes creadas con tu referencia aparecen aqui.
           </p>
-        </div>
+        </Card>
       )}
 
       <div className="bg-white rounded-xl shadow p-5 mb-6">

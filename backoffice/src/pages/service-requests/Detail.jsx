@@ -2,29 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import client from '../../api/client'
+import Card from '../../components/Card'
+import ClientContact from '../../components/ClientContact'
+import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
 
 const STATUS_LABEL = { draft: 'Incompleta', submitted: 'Enviada', cancelled: 'Cancelada' }
-
-function CopyButton({ text, label = 'Copiar link' }) {
-  const [copied, setCopied] = useState(false)
-  const copy = () => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-  return (
-    <button
-      type="button"
-      onClick={copy}
-      className="shrink-0 rounded-lg border border-teal-600 px-3 py-1.5 text-xs text-teal-600 hover:bg-teal-50"
-    >
-      {copied ? 'Copiado' : label}
-    </button>
-  )
-}
 
 // El link se arma con el origen actual, así sirve igual en local y en producción.
 function carrierUrl(token) {
@@ -46,10 +30,7 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
   const feePercent = Number((request.platform_fee_rate * 100).toFixed(2))
 
   return (
-    <section className="mt-4 rounded-xl bg-white p-5 shadow">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        Cotizaciones ({quotations.length})
-      </h2>
+    <Card title={`Cotizaciones (${quotations.length})`} className="mt-4">
       {quotations.length === 0
         ? <p className="text-sm text-gray-500">Aún no llegan cotizaciones.</p>
         : (
@@ -131,7 +112,7 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
             </p>
           </>
         )}
-    </section>
+    </Card>
   )
 }
 
@@ -151,8 +132,7 @@ function Reservations({ request, busy, confirming, onAskConfirm, onResolve }) {
   const quotationName = Object.fromEntries((request.quotations || []).map((q) => [q.id, q.carrier_company_name]))
 
   return (
-    <section className="mt-4 rounded-xl bg-white p-5 shadow">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Reserva por Yape</h2>
+    <Card title="Reserva por Yape" className="mt-4">
       <ul className="divide-y divide-gray-100">
         {payments.slice().reverse().map((p) => (
           <li key={p.id} className="py-3">
@@ -215,7 +195,7 @@ function Reservations({ request, busy, confirming, onAskConfirm, onResolve }) {
         ))}
       </ul>
       <p className="mt-3 text-xs text-gray-400">Búscala en Yape por el número de operación y el monto antes de confirmarla.</p>
-    </section>
+    </Card>
   )
 }
 
@@ -316,25 +296,19 @@ export default function ServiceRequestDetail() {
         </span>
       </div>
 
-      <div className="mb-4 rounded-xl bg-white p-5 shadow">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Cliente</h2>
-        {request.whatsapp
-          ? (
-            <p className="text-gray-900">
-              WhatsApp {request.whatsapp}{' · '}
-              <Link to={`/whatsapp/${encodeURIComponent(request.whatsapp)}`} className="text-teal-600 hover:underline">
-                Abrir chat
-              </Link>
-            </p>
-          )
-          : <p className="text-sm text-gray-400">Aún no dejó su WhatsApp (no terminó el formulario).</p>}
+      {/* Cliente — el mismo bloque que en el detalle de una orden */}
+      <Card title="Cliente" className="mb-4">
+        <ClientContact phone={request.whatsapp} emptyText="Aún no dejó su WhatsApp (no terminó el formulario)." />
         {request.customer_quotations_path && (
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p className="text-sm text-gray-600">Su página para ver y elegir las cotizaciones.</p>
-            <CopyButton text={`${window.location.origin}${request.customer_quotations_path}`} label="Copiar link del cliente" />
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <CopyRow
+              title="Link del cliente"
+              hint="Su página para ver y elegir las cotizaciones. No vence ni pide contraseña."
+              text={`${window.location.origin}${request.customer_quotations_path}`}
+            />
           </div>
         )}
-      </div>
+      </Card>
 
       <ServiceRequestView request={request} />
 
@@ -358,8 +332,7 @@ export default function ServiceRequestDetail() {
         <DeclinesList declines={request.declines} />
       </div>
 
-      <div className="mt-4 rounded-xl bg-white p-5 shadow">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Transportistas</h2>
+      <Card title="Transportistas" className="mt-4">
         {request.links.length === 0
           ? (
             <p className="text-sm text-gray-500">
@@ -427,7 +400,7 @@ export default function ServiceRequestDetail() {
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

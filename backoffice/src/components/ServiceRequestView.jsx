@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Card from './Card'
 
 // 'YYYY-MM-DD' -> 'sábado 20 de octubre'. Se arma desde las partes y se formatea en
 // UTC: new Date('2026-10-20') se lee como UTC y en Lima mostraría el día anterior.
@@ -84,15 +85,6 @@ function AddressBlock({ address }) {
   )
 }
 
-function Section({ title, children }) {
-  return (
-    <section className="bg-white rounded-xl shadow p-5">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">{title}</h2>
-      {children}
-    </section>
-  )
-}
-
 // Lo que necesita un transportista para cotizar. Lo comparten la página pública
 // del link y el detalle del admin, para que ambos vean exactamente lo mismo.
 export default function ServiceRequestView({ request }) {
@@ -113,19 +105,19 @@ export default function ServiceRequestView({ request }) {
         </p>
       </div>
 
-      <Section title={destination ? 'Dirección (dónde se desarman)' : 'Dirección'}>
+      <Card title={destination ? 'Dirección (dónde se desarman)' : 'Dirección'}>
         <AddressBlock address={request} />
-      </Section>
+      </Card>
 
       {destination && (
-        <Section title="Destino (dónde se arman)">
+        <Card title="Destino (dónde se arman)">
           <AddressBlock address={destination} />
           <p className="mt-2 text-xs text-gray-400">El traslado de los muebles no está incluido.</p>
-        </Section>
+        </Card>
       )}
 
       {request.materials_summary?.length > 0 && (
-        <Section title={isAssembly ? 'Materiales para embalar' : 'Materiales a llevar'}>
+        <Card title={isAssembly ? 'Materiales para embalar' : 'Materiales a llevar'}>
           <ul className="flex flex-wrap gap-2">
             {request.materials_summary.map((m) => (
               <li key={m.code} className="rounded-full bg-teal-50 px-3 py-1 text-sm text-teal-800">
@@ -134,10 +126,10 @@ export default function ServiceRequestView({ request }) {
               </li>
             ))}
           </ul>
-        </Section>
+        </Card>
       )}
 
-      <Section title={`${isAssembly ? 'Muebles' : 'Qué hay que embalar'} (${request.items.length})`}>
+      <Card title={`${isAssembly ? 'Muebles' : 'Qué hay que embalar'} (${request.items.length})`}>
         <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-gray-400">
@@ -166,9 +158,9 @@ export default function ServiceRequestView({ request }) {
             </tbody>
           </table>
         </div>
-      </Section>
+      </Card>
 
-      <Section title={`Fotos y videos (${request.media.length})`}>
+      <Card title={`Fotos y videos (${request.media.length})`}>
         {request.media.length === 0
           ? <p className="text-sm text-gray-400">El cliente no subió fotos ni videos.</p>
           : (
@@ -189,7 +181,7 @@ export default function ServiceRequestView({ request }) {
               ))}
             </ul>
           )}
-      </Section>
+      </Card>
 
       <Lightbox media={opened} onClose={() => setOpened(null)} />
     </div>

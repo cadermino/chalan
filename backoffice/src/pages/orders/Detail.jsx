@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
+import Card from '../../components/Card'
+import ClientContact from '../../components/ClientContact'
+import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
 
@@ -242,26 +245,6 @@ function AddressCard({ title, addr }) {
   )
 }
 
-function CopyButton({ url }) {
-  const [copied, setCopied] = useState(false)
-
-  function handleCopy() {
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="text-xs px-3 py-1.5 rounded-lg border border-teal-600 text-teal-600 hover:bg-teal-50 shrink-0"
-    >
-      {copied ? 'Copiado' : 'Copiar link'}
-    </button>
-  )
-}
-
 export default function OrderDetail() {
   const { orderId } = useParams()
   const { user } = useAuth()
@@ -417,16 +400,39 @@ export default function OrderDetail() {
       </div>
 
       <div className="space-y-4">
+        {/* Cliente — el mismo bloque que en el detalle de una solicitud de servicio */}
+        {isAdmin && (
+          <Card title="Cliente">
+            <ClientContact name={order.customer_name} phone={order.customer_phone || order.lead_phone} />
+            {(customerUrl || reviewUrl) && (
+              <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+                {customerUrl && (
+                  <CopyRow
+                    title="Link del cliente"
+                    hint="Abre sus cotizaciones sin contraseña. Mándaselo si no puede entrar o si la orden la creaste tú."
+                    text={customerUrl}
+                  />
+                )}
+                {reviewUrl && (
+                  <CopyRow
+                    title="Link de reseña"
+                    hint="Para que califique el servicio."
+                    text={reviewUrl}
+                  />
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+
         {/* Summary */}
         <div className="bg-white rounded-xl shadow p-5 grid grid-cols-2 gap-4">
-          {isAdmin && <Field label="Cliente" value={order.customer_name} />}
           <Field
             label="Fecha de mudanza"
             value={order.appointment_date ? new Date(order.appointment_date).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Lima' }) : null}
           />
           <Field label="Presupuesto aproximado" value={order.approximate_budget ? `S/ ${order.approximate_budget}` : null} />
           <Field label="Pertenencias" value={order.comments} />
-          {isAdmin && <Field label="Teléfono cliente" value={order.customer_phone || order.lead_phone} />}
           {isAdmin && <Field label="Monto total" value={order.total_amount ? `S/ ${order.total_amount}` : null} />}
         </div>
 
@@ -606,50 +612,26 @@ export default function OrderDetail() {
           />
         )}
 
-        {/* Link del cliente — abre su orden sin contraseña */}
-        {isAdmin && customerUrl && (
-          <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Link del cliente</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Abre sus cotizaciones sin contraseña. Mándaselo si no puede entrar o si la orden la creaste tú.
-              </p>
-            </div>
-            <CopyButton url={customerUrl} />
-          </div>
-        )}
-
-        {/* Link de reseña — solo para admins, orden completada */}
-        {isAdmin && reviewUrl && (
-          <div className="bg-white rounded-xl shadow p-5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Link de reseña para el cliente</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Compártelo con el cliente para que califique el servicio.
-              </p>
-            </div>
-            <CopyButton url={reviewUrl} />
-          </div>
-        )}
-
         {/* Transportistas de Google Maps de la zona, para órdenes de provincia que aún buscan cotizaciones */}
         {isAdmin && order.order_status_id === 1 && (
           <NearbyCarriers orderId={orderId} appointmentDate={order.appointment_date} />
         )}
 
-        {/* Links de cotización por empresa — solo para admins */}
+        {/* Link de cotización por empresa — solo para admins */}
         {isAdmin && companies.length > 0 && (
-          <div className="bg-white rounded-xl shadow p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Links de cotización por empresa</p>
-            <div className="space-y-2">
+          <Card title="Transportistas">
+            <ul className="divide-y divide-gray-100">
               {companies.map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
-                  <span className="text-sm text-gray-700 truncate">{c.name}</span>
-                  <CopyButton url={c.quotation_url} />
-                </div>
+                <li key={c.id} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-900">{c.name}</p>
+                    <p className="text-xs text-gray-400">Link para que cotice</p>
+                  </div>
+                  <CopyButton text={c.quotation_url} />
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </Card>
         )}
       </div>
     </div>

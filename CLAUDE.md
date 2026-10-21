@@ -52,6 +52,7 @@ The main API (`app/`) and backoffice API (`backoffice-api/`) are **independent F
 - `backoffice/src/pages/referred-orders/List.jsx` — Referred orders view for real estate agents
 - `backoffice/src/pages/customers/List.jsx` — Customer list with search (admin/superadmin only)
 - `backoffice/src/pages/orders/Edit.jsx` — Edit order fields (superadmin only)
+- Shared by the detail pages (order, service request): `components/Card.jsx` (card with the one title style), `components/CopyButton.jsx` (the only copy button, plus `CopyRow`: title + hint + button) and `components/ClientContact.jsx` (name · WhatsApp · Abrir chat). Both details open with the same "Cliente" card (contact + customer link, and the review link on a completed order) and end with "Transportistas". Use these instead of local copies
 - Role-based access: `real_estate_agent` only sees referred orders and profile; carrier/admin roles see orders, companies, vehicles; customers page is admin/superadmin only
 
 ## Build & Run Commands
