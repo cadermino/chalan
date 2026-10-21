@@ -288,7 +288,7 @@
             </button>
           </div>
           <div class="w-full text-left mt-4">Si no tienes una cuenta puedes <span
-            @click="$router.push({ name: 'register', query: $route.query }).catch(() => {})"
+            @click="$router.push({ name: signUpRoute, query: $route.query }).catch(() => {})"
             class="font-bold
               cursor-pointer
               text-blue-700
@@ -600,6 +600,11 @@ export default {
     ...mapGetters([
       'decodeToken',
     ]),
+    // A mitad de una orden no se crea una cuenta con contraseña: se piden los
+    // datos de contacto (views/order/Contact.vue).
+    signUpRoute() {
+      return /step-three/.test(this.$route.query.redirect || '') ? 'order-contact' : 'register';
+    },
   },
 };
 </script>

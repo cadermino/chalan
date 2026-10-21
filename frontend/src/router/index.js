@@ -76,6 +76,12 @@ const routes = [
     },
   },
   {
+    // Entre el paso 2 y el 3: nombre, correo y WhatsApp, sin contraseña.
+    path: '/order/contacto',
+    name: 'order-contact',
+    component: () => import(/* webpackChunkName: "order-contact" */ '../views/order/Contact.vue'),
+  },
+  {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),
@@ -209,13 +215,12 @@ router.beforeEach(async (to, from, next) => {
         }
       }
     } else {
-      // Anyone hitting this gate (step-two -> step-three) is almost always
-      // a first-time visitor: a returning customer stays logged in via
-      // localStorage and never reaches it. Default to registration instead
-      // of login to cut friction for the common case - login is still one
-      // tab away in the same component.
+      // Quien llega aquí (paso 2 -> paso 3) casi siempre es nuevo: el que
+      // vuelve sigue con sesión en localStorage. Antes era un registro con
+      // contraseña; ahora solo se piden los datos de contacto, y entrar con
+      // una cuenta sigue a un clic desde esa misma pantalla.
       next({
-        path: '/register',
+        name: 'order-contact',
         query: { redirect: to.fullPath },
       });
     }

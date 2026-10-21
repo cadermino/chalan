@@ -163,21 +163,19 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
 }
 
 /**
- * Step-three requires an authenticated customer. The step-two -> step-three
- * gate redirects straight to /register (most visitors reaching it are
- * first-timers - a returning customer stays logged in via localStorage and
- * never hits this gate), preserving ?redirect=... to land back on the
- * originating step on success.
+ * Step-three requires a customer session. The step-two -> step-three gate
+ * redirects to the contact step (/order/contacto: name, email and WhatsApp,
+ * no password), preserving ?redirect=... to land back on step-three. A new
+ * email creates the customer and opens the session right there.
  */
 async function registerAndReturn(page) {
-  await expect(page).toHaveURL(/\/register/, { timeout: 15000 });
+  await expect(page).toHaveURL(/\/order\/contacto/, { timeout: 15000 });
 
   const unique = Date.now();
+  await page.fill('#name', 'Cliente E2E');
   await page.fill('#email', `e2e-${unique}@example.com`);
   await page.fill('#mobilePhone', '987654321');
-  await page.fill('#name', 'Cliente E2E');
-  await page.fill('#password', 'Test-password-1');
-  await page.click('button:has-text("Registrame")');
+  await page.click('button:has-text("Ver mis cotizaciones")');
 
   await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
 }

@@ -87,6 +87,19 @@ export default {
       url: `${process.env.VUE_APP_AUTH_API_URL}order-access`,
     });
   },
+  orderContact(payload) {
+    return axios({
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      data: {
+        order_id: payload.orderId,
+        name: payload.name,
+        email: payload.email,
+        mobile_phone: payload.mobilePhone,
+      },
+      url: `${process.env.VUE_APP_AUTH_API_URL}order-contact`,
+    });
+  },
   loginGoogle(payload) {
     return axios({
       method: 'POST',
