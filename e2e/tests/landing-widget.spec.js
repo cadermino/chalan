@@ -57,9 +57,9 @@ test.describe('Landing QuoteWidget to order flow', () => {
     // field (regression covered here, fixed by removing it from stepOne's
     // requisites in store/steps.js).
     await page.selectOption('#address-from-floor', { index: 1 });
-    await page.fill('#from-parking-distance', '5');
+    await page.selectOption('#from-parking-distance', '20');
     await page.selectOption('#address-to-floor', { index: 1 });
-    await page.fill('#to-parking-distance', '10');
+    await page.selectOption('#to-parking-distance', '50');
 
     await page.click('button:has-text("Guardar y continuar")');
     await dismissLeadPhoneModalIfPresent(page);

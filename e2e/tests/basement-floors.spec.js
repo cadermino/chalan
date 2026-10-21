@@ -78,8 +78,8 @@ test.describe('Basement floors', () => {
 
     await page.selectOption('#address-from-floor', '-3');
     await page.selectOption('#address-to-floor', '2');
-    await page.fill('#from-parking-distance', '5');
-    await page.fill('#to-parking-distance', '5');
+    await page.selectOption('#from-parking-distance', '20');
+    await page.selectOption('#to-parking-distance', '20');
     await page.locator('#to-parking-distance').blur();
 
     const state = await page.evaluate(() => {
@@ -113,8 +113,8 @@ test.describe('Basement floors', () => {
     await selectMockAddress(page, 'address-to-street', TO_ADDRESS);
     await page.selectOption('#address-from-floor', '-2');
     await page.selectOption('#address-to-floor', '1');
-    await page.fill('#from-parking-distance', '5');
-    await page.fill('#to-parking-distance', '5');
+    await page.selectOption('#from-parking-distance', '20');
+    await page.selectOption('#to-parking-distance', '20');
     await page.locator('#to-parking-distance').blur();
 
     const [request] = await Promise.all([

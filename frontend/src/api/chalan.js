@@ -226,6 +226,9 @@ export default {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      // El paso 2 no deja seguir mientras se analiza una foto: sin tope, un
+      // análisis colgado dejaba el botón bloqueado para siempre.
+      timeout: 60000,
     });
   },
 };

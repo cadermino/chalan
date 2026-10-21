@@ -5,7 +5,7 @@ const TEST_DATA = {
   from: {
     street: 'Av. Javier Prado Este 4600, Santiago de Surco, Lima, Perú',
     floor: 3,
-    parkingDistance: 5,
+    parkingDistance: 20,
     hasElevator: '1',
     zipCode: '15023',
     country: 'Perú',
@@ -14,7 +14,7 @@ const TEST_DATA = {
   to: {
     street: 'Av. Arequipa 2450, Lince, Lima, Perú',
     floor: 2,
-    parkingDistance: 10,
+    parkingDistance: 50,
     hasElevator: '0',
     zipCode: '15046',
     country: 'Perú',

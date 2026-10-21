@@ -194,8 +194,8 @@
               </p>
               <p>
                 <span class="font-bold
-                  mr-1">Distancia del estacionamiento a la puerta: </span>
-                {{ fromAddress.approximate_distance_from_parking }} mts.
+                  mr-1">Estacionamiento: </span>
+                {{ formatParkingDistance(fromAddress.approximate_distance_from_parking) }}
               </p>
             </div>
           </div>
@@ -268,8 +268,8 @@
               </p>
               <p>
                 <span class="font-bold
-                  mr-1">Distancia del estacionamiento a la puerta: </span>
-                {{ toAddress.approximate_distance_from_parking }} mts.
+                  mr-1">Estacionamiento: </span>
+                {{ formatParkingDistance(toAddress.approximate_distance_from_parking) }}
               </p>
             </div>
           </div>
@@ -493,6 +493,7 @@ import ViewsMessages from '@/components/ViewsMessages.vue';
 import { mapMutations, mapState } from 'vuex';
 import chalan from '../../api/chalan';
 import formatFloor from '../../utils/floor';
+import { formatParkingDistance } from '../../utils/parking';
 
 export default {
   name: 'quotation',
@@ -656,6 +657,7 @@ export default {
   },
   methods: {
     formatFloor,
+    formatParkingDistance,
     ...mapMutations([
       'setFormValidationMessages',
       'setViewsMessages',

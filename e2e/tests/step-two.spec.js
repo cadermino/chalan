@@ -32,4 +32,42 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     );
     expect(comments).toContain('1 mesa de centro');
   });
+
+  test('waits for a photo being analyzed instead of saying the list is empty', async ({ page }) => {
+    // Subir una foto y apretar "Siguiente" antes de que la IA respondiera
+    // dejaba la lista vacía y el paso decía "no olvides llenar este campo"
+    // (orden 198). La respuesta se retiene hasta que el test la suelta.
+    let release;
+    const held = new Promise((resolve) => { release = resolve; });
+    await page.route('**/order/recognize-items', async (route) => {
+      await held;
+      await route.fulfill({ json: { items: ['1 refrigeradora'] } });
+    });
+
+    await createOrderViaApi(page, { upTo: 'step-one' });
+    await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
+    await page.evaluate((date) => {
+      const store = document.querySelector('#app').__vue__.$store;
+      store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: date });
+    }, TEST_DATA.stepTwo.appointmentDate);
+
+    await page.setInputFiles('input[type="file"]', {
+      name: 'cosas.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', 'base64'),
+    });
+
+    const button = page.getByRole('button', { name: 'Analizando tu foto…' });
+    await expect(button).toBeDisabled();
+    await expect(page.getByText('no olvides llenar este campo')).toHaveCount(0);
+
+    release();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page).toHaveURL(/step-three|contacto/, { timeout: 15000 });
+    const comments = await page.evaluate(
+      () => document.querySelector('#app').__vue__.$store.state.currentOrder.comments,
+    );
+    expect(comments).toContain('refrigeradora');
+  });
 });

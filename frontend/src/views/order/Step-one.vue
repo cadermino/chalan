@@ -102,13 +102,16 @@
                     text-gray-700
                     text-sm
                     font-bold mb-2" for="from-parking-distance">
-                      Distancia al estacionamiento<span class="text-red-500">*</span>
-                      <span class="font-normal text-xs"> (mts.)</span>
+                      ¿Dónde se estaciona el camión?<span class="text-red-500">*</span>
                   </label>
-                  <input :class="formValidationMessages['from_approximate_distance_from_parking']
+                  <div class="relative">
+                    <select
+                    :class="formValidationMessages['from_approximate_distance_from_parking']
                     ?'border-red-300':''"
                     class="appearance-none
-                    border rounded
+                    border
+                    bg-white
+                    rounded
                     w-full
                     py-2
                     px-3
@@ -116,19 +119,32 @@
                     leading-tight
                     focus:outline-none
                     focus:border-blue-400"
-                    @wheel="$event.target.blur()"
-                    v-model="fromParkingDistance"
                     id="from-parking-distance"
-                    type="number"
-                    min="0"
-                    placeholder="Ej. 5"
-                    >
-                    <p v-if="formValidationMessages['from_approximate_distance_from_parking']"
-                      class="text-red-500
-                      text-xs
-                      italic">
-                      {{ formValidationMessages['from_approximate_distance_from_parking'] }}.
-                    </p>
+                    v-model="fromParkingDistance">
+                      <option
+                      v-for="option in parkingOptions(fromParkingDistance)"
+                      v-bind:value="option.value"
+                      v-bind:key="option.value">
+                        {{ option.label }}
+                      </option>
+                    </select>
+                    <div class="pointer-events-none
+                        absolute
+                        inset-y-0
+                        right-0
+                        flex
+                        items-center
+                        px-2
+                        text-gray-700">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+                  <p v-if="formValidationMessages['from_approximate_distance_from_parking']"
+                    class="text-red-500
+                    text-xs
+                    italic">
+                    {{ formValidationMessages['from_approximate_distance_from_parking'] }}.
+                  </p>
                 </div>
                 <div id="from-has-elevator" class="w-full px-3 mb-4">
                   <label class="block
@@ -259,13 +275,16 @@
                     text-gray-700
                     text-sm
                     font-bold mb-2" for="to-parking-distance">
-                      Distancia al estacionamiento<span class="text-red-500">*</span>
-                      <span class="font-normal text-xs"> (mts.)</span>
+                      ¿Dónde se estaciona el camión?<span class="text-red-500">*</span>
                   </label>
-                  <input :class="formValidationMessages['to_approximate_distance_from_parking']
+                  <div class="relative">
+                    <select
+                    :class="formValidationMessages['to_approximate_distance_from_parking']
                     ?'border-red-300':''"
                     class="appearance-none
-                    border rounded
+                    border
+                    bg-white
+                    rounded
                     w-full
                     py-2
                     px-3
@@ -273,19 +292,32 @@
                     leading-tight
                     focus:outline-none
                     focus:border-blue-400"
-                    @wheel="$event.target.blur()"
-                    v-model="toParkingDistance"
                     id="to-parking-distance"
-                    type="number"
-                    min="0"
-                    placeholder="Ej. 5"
-                    >
-                    <p v-if="formValidationMessages['to_approximate_distance_from_parking']"
-                      class="text-red-500
-                      text-xs
-                      italic">
-                      {{ formValidationMessages['to_approximate_distance_from_parking'] }}.
-                    </p>
+                    v-model="toParkingDistance">
+                      <option
+                      v-for="option in parkingOptions(toParkingDistance)"
+                      v-bind:value="option.value"
+                      v-bind:key="option.value">
+                        {{ option.label }}
+                      </option>
+                    </select>
+                    <div class="pointer-events-none
+                        absolute
+                        inset-y-0
+                        right-0
+                        flex
+                        items-center
+                        px-2
+                        text-gray-700">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+                  <p v-if="formValidationMessages['to_approximate_distance_from_parking']"
+                    class="text-red-500
+                    text-xs
+                    italic">
+                    {{ formValidationMessages['to_approximate_distance_from_parking'] }}.
+                  </p>
                 </div>
                 <div id="to-has-elevator" class="w-full px-3 mb-4">
                   <label class="block
@@ -389,6 +421,7 @@ import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
 import { tagBlockedStep } from '../../utils/sessionTags';
 import steps from '../../store/steps';
+import { PARKING_OPTIONS, DEFAULT_PARKING_DISTANCE, formatParkingDistance } from '../../utils/parking';
 
 // Number('') es 0, así que vaciar el campo guardaba un cero y el paso quedaba
 // "completo" con la casilla en blanco. Vacío es null; el cero solo llega
@@ -434,6 +467,14 @@ export default {
     Modal,
   },
   mounted() {
+    // Antes de buildRequisites, para que el tramo por defecto no cuente como
+    // un cambio de dirección.
+    if (this.orderDetailsOrigin.from_approximate_distance_from_parking === null) {
+      this.fromParkingDistance = DEFAULT_PARKING_DISTANCE;
+    }
+    if (this.orderDetailsDestination.to_approximate_distance_from_parking === null) {
+      this.toParkingDistance = DEFAULT_PARKING_DISTANCE;
+    }
     this.buildRequisites();
     track('begin_order');
   },
@@ -451,6 +492,14 @@ export default {
       'setLoader',
       'setCustomerData',
     ]),
+    // Una orden de antes de los tramos puede traer otro número (35): se suma
+    // como opción para no perderlo al volver al paso 1.
+    parkingOptions(current) {
+      if (current === null || PARKING_OPTIONS.some(o => o.value === current)) {
+        return PARKING_OPTIONS;
+      }
+      return [...PARKING_OPTIONS, { value: current, label: formatParkingDistance(current) }];
+    },
     buildRequisites() {
       const {
         'step-one': {

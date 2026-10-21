@@ -177,8 +177,8 @@
               </p>
               <p>
                 <span class="font-bold
-                  mr-1">Distancia del estacionamiento a la puerta: </span>
-                {{ fromAddress.approximate_distance_from_parking }} mts.
+                  mr-1">Estacionamiento: </span>
+                {{ formatParkingDistance(fromAddress.approximate_distance_from_parking) }}
               </p>
             </div>
           </div>
@@ -251,8 +251,8 @@
               </p>
               <p>
                 <span class="font-bold
-                  mr-1">Distancia del estacionamiento a la puerta: </span>
-                {{ toAddress.approximate_distance_from_parking }} mts.
+                  mr-1">Estacionamiento: </span>
+                {{ formatParkingDistance(toAddress.approximate_distance_from_parking) }}
               </p>
             </div>
           </div>
@@ -362,6 +362,7 @@ import { mapMutations, mapState } from 'vuex';
 import { cashToCollect } from '@/utils/payments';
 import chalan from '../../api/chalan';
 import formatFloor from '../../utils/floor';
+import { formatParkingDistance } from '../../utils/parking';
 
 export default {
   name: 'carrierCompanyOrderDetails',
@@ -459,6 +460,7 @@ export default {
   },
   methods: {
     formatFloor,
+    formatParkingDistance,
     ...mapMutations([
       'setFormValidationMessages',
       'setViewsMessages',

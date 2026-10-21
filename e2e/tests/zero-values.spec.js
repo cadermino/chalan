@@ -32,8 +32,8 @@ test.describe('Step one with zeros', () => {
 
     await page.selectOption('#address-from-floor', String(floor));
     await page.selectOption('#address-to-floor', String(floor));
-    await page.fill('#from-parking-distance', String(distance));
-    await page.fill('#to-parking-distance', String(distance));
+    await page.selectOption('#from-parking-distance', String(distance));
+    await page.selectOption('#to-parking-distance', String(distance));
     await page.locator('#to-parking-distance').blur();
   }
 
@@ -58,12 +58,15 @@ test.describe('Step one with zeros', () => {
     await expect(page.getByText('no olvides llenar este campo')).toHaveCount(0);
   });
 
-  test('an empty distance still leaves the step incomplete', async ({ page }) => {
-    // El arreglo distingue el cero del vacío; no afloja la validación.
-    await fillStepOne(page, { distance: 5, floor: 3 });
-    await page.fill('#from-parking-distance', '');
-    await page.locator('#from-parking-distance').blur();
+  test('the distance starts at "En la puerta", so it never blocks the step', async ({ page }) => {
+    // Ya no es un número libre (era el campo que más frenaba el paso 1): son
+    // tramos y el primero viene elegido. Cero es "en la puerta".
+    await mockGooglePlaces(page);
+    await page.goto('/order/step-one', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#address-from-street', { timeout: 30000 });
 
-    expect(await isStepOneComplete(page)).toBe(false);
+    await expect(page.locator('#from-parking-distance')).toHaveValue('0');
+    await expect(page.locator('#to-parking-distance')).toHaveValue('0');
+    await expect(page.locator('#from-parking-distance option:checked')).toHaveText('En la puerta');
   });
 });

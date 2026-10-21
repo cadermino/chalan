@@ -284,8 +284,8 @@
             </router-link>
             <button
               ref="nextStepButton"
-              :disabled="loading"
-              :class="loading?'opacity-50 cursor-not-allowed':''"
+              :disabled="loading || analyzingPhotos"
+              :class="loading || analyzingPhotos ?'opacity-50 cursor-not-allowed':''"
               type="button"
               class="bg-green-500
               hover:bg-green-700
@@ -296,7 +296,7 @@
               focus:outline-none
               focus:border-blue-400"
               @click="nextStep">
-              Siguiente
+              {{ analyzingPhotos ? 'Analizando tu foto…' : 'Siguiente' }}
               </button>
           </div>
         </div>
@@ -374,8 +374,11 @@ export default {
     processPhotos(files) {
       files.forEach((file) => {
         const url = URL.createObjectURL(file);
-        const thumbIndex = this.photoThumbnails.length;
-        this.photoThumbnails.push({ url, file, processing: true });
+        // Por referencia y no por índice: si borra otra foto mientras esta se
+        // analiza, el índice apunta a otra y una quedaba "analizando" para
+        // siempre, con "Siguiente" bloqueado.
+        const thumb = { url, file, processing: true };
+        this.photoThumbnails.push(thumb);
 
         const payload = {
           image: file,
@@ -387,10 +390,10 @@ export default {
               this.mergeItems(response.data.items);
               this.syncComments();
             }
-            this.photoThumbnails[thumbIndex].processing = false;
+            thumb.processing = false;
           })
           .catch(() => {
-            this.photoThumbnails[thumbIndex].processing = false;
+            thumb.processing = false;
             this.setViewsMessages({
               view: this.viewName,
               message: {
@@ -473,6 +476,10 @@ export default {
       this.setOrder({ section: 'currentOrder', field: 'comments', value: comments || null });
     },
     nextStep() {
+      // Las cosas de la foto llegan cuando termina el análisis. Seguir antes
+      // dejaba la lista vacía y el paso decía "no olvides llenar este campo"
+      // a quien acababa de subir la foto (step_two_blocked por comments).
+      if (this.analyzingPhotos) return;
       this.addManualItem();
       this.syncComments();
       this.validateRequiredFields(this.viewName);
@@ -537,6 +544,9 @@ export default {
     },
   },
   computed: {
+    analyzingPhotos() {
+      return this.photoThumbnails.some(thumb => thumb.processing);
+    },
     ...mapState([
       'currentOrder',
       'customer',

@@ -216,6 +216,12 @@ function PaymentsCard({ payments, onSetStatus, savingId, onRegister, registering
   )
 }
 
+// Los tramos que elige el cliente en el paso 1 (frontend/src/utils/parking.js).
+// Las órdenes de antes traen el número que escribió.
+const PARKING_LABELS = { 0: 'En la puerta', 20: 'A menos de 20 m', 50: 'Entre 20 y 50 m', 100: 'A más de 50 m' }
+const parkingLabel = (meters) =>
+  meters === null || meters === undefined ? null : PARKING_LABELS[meters] || `${meters} m`
+
 function AddressCard({ title, addr }) {
   if (!addr) return null
   const hasFullDetails = 'country' in addr
@@ -228,7 +234,7 @@ function AddressCard({ title, addr }) {
         {hasFullDetails && <Field label="Interior / Dpto." value={addr.interior_number} />}
         {hasFullDetails && <Field label="Código postal" value={addr.zip_code} />}
         {hasFullDetails && <Field label="País" value={addr.country} />}
-        <Field label="Distancia desde parqueo" value={addr.approximate_distance_from_parking ? `${addr.approximate_distance_from_parking} m` : null} />
+        <Field label="Estacionamiento" value={parkingLabel(addr.approximate_distance_from_parking)} />
         <Field label="Tiene ascensor" value={addr.has_elevator ? 'Sí' : 'No'} />
       </div>
       {hasFullDetails && addr.map_url && (
