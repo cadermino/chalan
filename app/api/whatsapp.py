@@ -52,6 +52,16 @@ def with_template_text(body_label, text):
     return f'{body_label}\n\n{text}' if text else body_label
 
 
+def whatsapp_enabled():
+    """Solo producción manda WhatsApp de verdad.
+
+    El local y los e2e usan las mismas credenciales de Twilio, y el
+    transportista de prueba tiene un teléfono real: cada corrida le mandaba
+    decenas de avisos. Fuera de prod se escribe en el log y no sale nada.
+    """
+    return os.getenv('FLASK_ENV') == 'prod'
+
+
 def validate_twilio_signature(req):
     auth_token = os.getenv('TWILIO_AUTH_TOKEN')
     if not auth_token:
@@ -94,6 +104,9 @@ def lookup_contact(phone_e164):
 
 
 def send_whatsapp_freeform(to_e164, body, sent_by_admin_id=None):
+    if not whatsapp_enabled():
+        print(f'[WhatsApp] Skipped fuera de prod: freeform a {to_e164}', flush=True)
+        return None
     from twilio.rest import Client
     from twilio.base.exceptions import TwilioRestException
     from ..models import WhatsappMessage
@@ -168,7 +181,9 @@ def notify_inbound(msg):
             try:
                 notify_phone = normalize_phone(os.getenv('NOTIFY_WHATSAPP_PHONE'))
                 content_sid = os.getenv('TWILIO_TEMPLATE_NOTIFICACION_INBOUND')
-                if notify_phone and content_sid:
+                if notify_phone and content_sid and not whatsapp_enabled():
+                    print(f'[WhatsApp] Skipped fuera de prod: notificación inbound a {notify_phone}', flush=True)
+                elif notify_phone and content_sid:
                     whatsapp_from = os.getenv('TWILIO_WHATSAPP_FROM', '')
                     if not whatsapp_from.startswith('whatsapp:'):
                         whatsapp_from = 'whatsapp:' + whatsapp_from
@@ -257,6 +272,10 @@ def send_whatsapp(phone, content_sid, content_variables, body_label='[Plantilla]
         to_e164 = normalize_phone(phone)
         if not to_e164:
             print(f'[WhatsApp] Skipped: teléfono inválido ({phone})', flush=True)
+            return
+        if not whatsapp_enabled():
+            print(f'[WhatsApp] Skipped fuera de prod: a {to_e164} template={content_sid} '
+                  f'variables={content_variables}', flush=True)
             return
         app = current_app._get_current_object()
         thr = Thread(target=_send_async, args=[app, to_e164, content_sid, content_variables, body_label, customer_id])
