@@ -96,11 +96,7 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
                     {isSelected && (
                       <div className="mt-2 flex flex-wrap items-center gap-3">
                         <CopyButton text={customerMessage(request, q)} label="Copiar mensaje para el cliente" />
-                        {request.whatsapp && (
-                          <Link to={`/whatsapp/${encodeURIComponent(request.whatsapp)}`} className="text-sm text-teal-600 hover:underline">
-                            Abrir chat con el cliente
-                          </Link>
-                        )}
+                        {request.whatsapp && <CopyButton text={request.whatsapp} label="Copiar número" />}
                       </div>
                     )}
                   </li>
