@@ -221,6 +221,27 @@ def test_carrier_with_no_country_id_is_never_notified(client, customer, carrier_
     assert emails_sent == []
 
 
+def test_an_order_without_a_customer_notifies_nobody(client, customer, carrier_company, monkeypatch):
+    # Una orden sin dueño se edita sin sesión, así que pedir cotizaciones sobre
+    # ella dejaba a cualquiera mandarles órdenes falsas a todos los
+    # transportistas. El formulario llega al paso 3 siempre con cliente.
+    monkeypatch.setenv('COUNTRY_ID', '2')
+    carrier_company.country_id = 2
+    carrier_company.email = 'carrier@example.com'
+    db.session.commit()
+    _offers_moving(carrier_company)
+
+    order_id = _create_order(client, customer)
+    _make_belongings_complete(order_id)
+    db.session.get(Order, order_id).customer_id = None
+    db.session.commit()
+
+    emails_sent = send_email_to_carrier_companies(order_id, {'requestQuotationFromCarrierCompany': True})
+
+    assert emails_sent == []
+    assert db.session.get(Order, order_id).quotation_requested is not True
+
+
 def test_no_trigger_flag_notifies_nobody(client, customer, carrier_company, monkeypatch):
     # Completing address + belongings alone never notifies carriers — only
     # the explicit requestQuotationFromCarrierCompany flag does (Step-three.vue's

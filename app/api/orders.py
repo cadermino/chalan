@@ -553,6 +553,15 @@ def send_email_to_carrier_companies(order_id, order_data):
     if already_requested:
         return emails_sent
 
+    # Una orden sin cliente no se manda a nadie. El formulario nunca llega acá
+    # sin sesión (el paso 3 la exige), pero la ruta es pública y una orden sin
+    # dueño se edita sin token: cualquiera podía crear órdenes falsas y hacer
+    # que les llegaran a todos los transportistas, sin nadie a quien avisarle
+    # las cotizaciones.
+    if db_order is None or db_order.customer_id is None:
+        print(f'[Email] order={order_id} skipped: no customer', flush=True)
+        return emails_sent
+
     carrier_companies = get_carrier_companies()
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
