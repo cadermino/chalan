@@ -3,9 +3,9 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/Card'
 import CopyButton from '../../components/CopyButton'
+import { referralLink } from '../../lib/referral'
 
 const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
-const SITE_URL = import.meta.env.VITE_SITE_URL || window.location.origin
 
 export default function ReferredOrdersList() {
   const { user } = useAuth()
@@ -13,9 +13,7 @@ export default function ReferredOrdersList() {
   const [commissionBalance, setCommissionBalance] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  const referralLink = user?.referral_code
-    ? `${SITE_URL}/?ref=${user.referral_code}`
-    : null
+  const link = referralLink(user?.referral_code)
 
   useEffect(() => {
     client.get('/api/referred-orders').then(({ data }) => {
@@ -30,13 +28,13 @@ export default function ReferredOrdersList() {
 
   return (
     <div>
-      {referralLink && (
+      {link && (
         <Card title="Tu link de referencia" className="mb-6">
           <div className="flex items-center gap-3">
             <code className="flex-1 bg-gray-100 text-sm text-gray-800 px-3 py-2 rounded-lg truncate">
-              {referralLink}
+              {link}
             </code>
-            <CopyButton text={referralLink} />
+            <CopyButton text={link} />
           </div>
           <p className="text-xs text-gray-400 mt-2">
             Comparte este link con tus clientes. Las ordenes creadas con tu referencia aparecen aqui.

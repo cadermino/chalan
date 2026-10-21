@@ -140,8 +140,8 @@ Defined in `backoffice-api/app/models.py`:
 Real estate agents refer customers to Chalán via a referral link and earn commission.
 
 ### Flow
-1. Agent registers in backoffice with role `real_estate_agent` → auto-generates a unique `referral_code` (e.g., `AGT-X7K2`)
-2. Agent shares link: `https://chalan.pe/?ref=AGT-X7K2`
+1. Agent registers in backoffice with role `real_estate_agent` → auto-generates a unique `referral_code` (e.g., `AGT-X7K2`). A superadmin creating one, or switching a user to that role, in Usuarios also generates it (`_ensure_referral_code` in `backoffice-api/app/api/users.py`)
+2. Agent shares link: `https://chalan.pe/?ref=AGT-X7K2`. The agent sees it in their "Órdenes referidas"; admins and superadmins copy any agent's link from "Links de referencia" in theirs (`agents` in `GET /api/admin/referred-orders`, which also gives a code to an agent left without one). The URL is built by `backoffice/src/lib/referral.js`
 3. Vue `App.vue` and Next.js `ReferralCapture.tsx` capture `?ref=` param → save to `chalan_ref` cookie (30-day TTL)
 4. Customer creates order → Vue `Step-one.vue` reads cookie and sends `referral_code` in the create order payload
 5. Main API `app/api/orders.py` looks up agent by `referral_code` → creates `referred_orders` record

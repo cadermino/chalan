@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
+import CopyButton from '../../components/CopyButton'
 import StatusIcon from '../../components/StatusIcon'
 import { formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 
@@ -283,13 +284,10 @@ export default function ServiceRequestsList() {
                     <td className="whitespace-nowrap px-4 py-3">
                       {r.whatsapp
                         ? (
-                          <Link
-                            to={`/whatsapp/${encodeURIComponent(r.whatsapp)}`}
-                            title="Abrir el chat con el cliente"
-                            className="text-teal-600 hover:underline"
-                          >
-                            {r.whatsapp}
-                          </Link>
+                          <span className="flex items-center gap-2">
+                            <span className="text-gray-700">{r.whatsapp}</span>
+                            <CopyButton text={r.whatsapp} label="Copiar" />
+                          </span>
                         )
                         : <span className="text-gray-300">—</span>}
                     </td>

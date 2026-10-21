@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
+import Card from '../../components/Card'
+import CopyButton from '../../components/CopyButton'
+import { referralLink } from '../../lib/referral'
 
 const STATUS_LABEL = { 1: 'Pendiente', 2: 'En progreso', 3: 'Completado', 4: 'Cancelado' }
 const fmt = (n) => n != null ? `S/ ${Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2 })}` : '—'
@@ -8,12 +11,14 @@ const fmt = (n) => n != null ? `S/ ${Number(n).toLocaleString('es-PE', { minimum
 export default function AdminReferredOrdersList() {
   const [orders, setOrders] = useState([])
   const [totalCommission, setTotalCommission] = useState(0)
+  const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     client.get('/api/admin/referred-orders').then(({ data }) => {
       setOrders(data.orders)
       setTotalCommission(data.total_commission)
+      setAgents(data.agents || [])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -32,6 +37,31 @@ export default function AdminReferredOrdersList() {
           Suma de todas las comisiones registradas (incluye completadas y canceladas)
         </p>
       </div>
+
+      {/* El link de cada inmobiliaria, para mandárselo si lo perdió o si la
+          creaste tú (no entra al backoffice a buscarlo). */}
+      <Card title="Links de referencia" className="mb-6">
+        {agents.length === 0
+          ? <p className="text-sm text-gray-500">Aún no hay inmobiliarias. Créalas en Usuarios con el rol Inmobiliaria.</p>
+          : (
+            <ul className="divide-y divide-gray-100">
+              {agents.map((a) => (
+                <li key={a.id} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-900">
+                      {a.name || a.email}
+                      {!a.active && <span className="ml-2 text-xs font-normal text-gray-400">Inactiva</span>}
+                    </p>
+                    <p className="truncate text-xs text-gray-400">
+                      {referralLink(a.referral_code)} · comisión {Math.round((a.commission_rate || 0) * 100)}%
+                    </p>
+                  </div>
+                  <CopyButton text={referralLink(a.referral_code)} />
+                </li>
+              ))}
+            </ul>
+          )}
+      </Card>
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="relative overflow-x-auto">

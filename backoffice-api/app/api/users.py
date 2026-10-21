@@ -3,9 +3,17 @@ from sqlalchemy import exc
 
 from . import api
 from .decorators import login_required, superadmin_required
-from ..models import AdminUser, CarrierCompany, Vehicle, ALL_ROLES, ROLE_CARRIER, ROLE_REAL_ESTATE
+from ..models import AdminUser, CarrierCompany, Vehicle, ALL_ROLES, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
 from ..utils import create_blank_company_and_vehicle
 from .. import db
+
+
+def _ensure_referral_code(user):
+    """Una inmobiliaria sin código no tiene link de referencia. El registro
+    público lo genera; acá se cubre la que crea un superadmin o a la que le
+    cambian el rol."""
+    if user.role == ROLE_REAL_ESTATE and not user.referral_code:
+        user.referral_code = _generate_referral_code()
 
 
 @api.route('/users', methods=['GET'])
@@ -55,6 +63,7 @@ def create_user():
             carrier_company_id=carrier_company_id,
         )
         user.password = data['password']
+        _ensure_referral_code(user)
         db.session.add(user)
 
         # Auto-create blank company + vehicle for new carrier_company users
@@ -111,6 +120,7 @@ def update_user(user_id):
         except (TypeError, ValueError):
             return jsonify({'message': 'commission_rate must be a number'}), 400
 
+    _ensure_referral_code(user)
     db.session.commit()
     return jsonify({'user': user.to_dict()}), 200
 
