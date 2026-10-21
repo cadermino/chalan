@@ -78,6 +78,16 @@ def test_an_existing_email_gets_the_link_instead_of_a_session(client, unowned_or
     assert order_access.read_token(link_token)[0] == (order.id, customer.id)
 
 
+def test_the_typed_phone_replaces_the_one_from_step_one(client, unowned_order, customer, sent):
+    unowned_order.lead_phone = '900000000'
+    db.session.commit()
+
+    contact(client, unowned_order.id, email='nathalia@example.com', mobile_phone='911222333')
+
+    assert db.session.get(Order, unowned_order.id).lead_phone == '911222333'
+    assert db.session.get(Customer, customer.id).mobile_phone is None
+
+
 def test_an_order_that_already_has_a_customer_is_not_taken(client, order, sent):
     res = contact(client, order.id, email='otra@example.com')
 

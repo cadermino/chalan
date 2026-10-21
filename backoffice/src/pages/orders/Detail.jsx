@@ -404,6 +404,20 @@ export default function OrderDetail() {
         {isAdmin && (
           <Card title="Cliente">
             <ClientContact name={order.customer_name} phone={order.customer_phone || order.lead_phone} />
+            {/* El WhatsApp que dejó en este pedido no reemplaza el de su cuenta
+                (p. ej. un correo que ya tenía cuenta en el paso de contacto):
+                los avisos van al de la cuenta, así que se muestra aparte. */}
+            {order.customer_phone && order.lead_phone && order.lead_phone !== order.customer_phone && (
+              <div className="mt-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-gray-900">
+                  <p>WhatsApp de este pedido {order.lead_phone}</p>
+                  <CopyButton text={order.lead_phone} label="Copiar número" />
+                </div>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  Distinto al de su cuenta; los avisos de cotización van al de la cuenta.
+                </p>
+              </div>
+            )}
             {(customerUrl || reviewUrl) && (
               <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
                 {customerUrl && (

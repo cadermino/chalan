@@ -150,8 +150,10 @@ def order_contact():
     customer = Customer.query.filter_by(email=email).first()
     if customer is not None:
         order.customer_id = customer.id
-        if not order.lead_phone:
-            order.lead_phone = mobile_phone
+        # El número de la cuenta no se toca (no está probado que el correo sea
+        # suyo). El escrito queda en la orden, aunque ya hubiera uno del paso 1:
+        # es el último que dio, y el backoffice lo muestra si difiere.
+        order.lead_phone = mobile_phone
         db.session.commit()
         send_email(
             customer.email,
