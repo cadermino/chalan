@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation, cleanupSeededCarriers, getPayments, uniqueOperationNumber,
+  createOrderViaApi, fillContactAndReturn, seedQuotation, cleanupSeededCarriers, getPayments, uniqueOperationNumber,
 } = require('./helpers');
 
 // seedQuotation inserta una cotización de 450 y .env.dev tiene
@@ -24,7 +24,7 @@ test.describe('Checkout via the Step-three payment modal', () => {
     // The modal lives on step-three; step-one/step-two UI is covered by
     // their own specs, so the order is created directly via API.
     const orderId = await createOrderViaApi(page);
-    await registerAndReturn(page);
+    await fillContactAndReturn(page);
 
     seedQuotation(orderId);
 
@@ -72,7 +72,7 @@ test.describe('Checkout via the Step-three payment modal', () => {
 
   test('should not book twice when confirming the same quotation again', async ({ page }) => {
     const orderId = await createOrderViaApi(page);
-    await registerAndReturn(page);
+    await fillContactAndReturn(page);
 
     seedQuotation(orderId);
 
@@ -109,7 +109,7 @@ test.describe('Checkout via the Step-three payment modal', () => {
 
   test('should require a phone number when the customer has none', async ({ page }) => {
     const orderId = await createOrderViaApi(page);
-    await registerAndReturn(page);
+    await fillContactAndReturn(page);
 
     seedQuotation(orderId);
 

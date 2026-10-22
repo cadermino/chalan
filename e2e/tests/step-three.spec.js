@@ -1,20 +1,21 @@
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation, cleanupSeededCarriers,
+  createOrderViaApi, fillContactAndReturn, seedQuotation, cleanupSeededCarriers,
 } = require('./helpers');
 
 // Borra la empresa de prueba que dejó seedQuotation, aunque el test falle.
 test.afterEach(() => cleanupSeededCarriers());
 
 test.describe('Order Step Three - Quotations', () => {
-  test('should require registration, then list a quotation and open the payment modal', async ({ page }) => {
+  test('should ask for contact details, then list a quotation and open the payment modal', async ({ page }) => {
     // Step-three doesn't test step-one/step-two's own UI behavior (that's
     // covered by their own specs), so create the order directly via API
     // instead of driving those forms just to get here.
     const orderId = await createOrderViaApi(page);
 
-    // step-three requires auth -> router redirects to /register?redirect=...
-    await registerAndReturn(page);
+    // step-three requires a session -> the router sends to the contact step
+    // (/order/contacto?redirect=...), no password.
+    await fillContactAndReturn(page);
 
     seedQuotation(orderId);
 
@@ -64,7 +65,7 @@ test.describe('Order Step Three - Quotations', () => {
     // Se borra del store para que el campo aparezca y se tipea el "+51...",
     // que es la misma garantía sobre el input.
     const orderId = await createOrderViaApi(page);
-    await registerAndReturn(page);
+    await fillContactAndReturn(page);
 
     seedQuotation(orderId);
     await page.reload({ waitUntil: 'networkidle' });

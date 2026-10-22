@@ -168,7 +168,7 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
  * no password), preserving ?redirect=... to land back on step-three. A new
  * email creates the customer and opens the session right there.
  */
-async function registerAndReturn(page) {
+async function fillContactAndReturn(page) {
   await expect(page).toHaveURL(/\/order\/contacto/, { timeout: 15000 });
 
   const unique = Date.now();
@@ -517,7 +517,7 @@ module.exports = {
   injectAddressToStore,
   dismissLeadPhoneModalIfPresent,
   createOrderViaApi,
-  registerAndReturn,
+  fillContactAndReturn,
   seedQuotation,
   cleanupSeededCarriers,
   getPayments,

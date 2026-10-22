@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const {
-  createOrderViaApi, registerAndReturn, seedQuotation, cleanupSeededCarriers, getPayments, getOrderStatusId,
+  createOrderViaApi, fillContactAndReturn, seedQuotation, cleanupSeededCarriers, getPayments, getOrderStatusId,
   getQuotationId, ORDER_STATUS, uniqueOperationNumber, confirmReservationAsAdmin,
 } = require('./helpers');
 
@@ -16,7 +16,7 @@ const {
 /** Orden con una cotización lista, el cliente registrado y el modal abierto. */
 async function openPaymentModal(page) {
   const orderId = await createOrderViaApi(page);
-  await registerAndReturn(page);
+  await fillContactAndReturn(page);
   const carrierId = seedQuotation(orderId);
 
   await page.reload({ waitUntil: 'networkidle' });
@@ -119,7 +119,7 @@ test.describe('Yape reservation required to book', () => {
     // La página pública del transportista abre el mismo modal. Sin exigirlo
     // ahí, bastaba entrar por este camino para agendar sin pagar.
     const orderId = await createOrderViaApi(page);
-    await registerAndReturn(page);
+    await fillContactAndReturn(page);
     const carrierId = seedQuotation(orderId);
     const quotationId = getQuotationId(orderId);
 

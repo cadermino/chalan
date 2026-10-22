@@ -15,12 +15,13 @@ const TO_ADDRESS = {
   mapUrl: 'https://maps.google.com/?q=Av.+Arequipa+2450',
 };
 
-// La distancia al parqueo vale 0 cuando el vehículo entra hasta la puerta, y
-// el agente del chat manda ese 0 cuando le contestan eso. Antes el paso
-// quedaba incompleto: el cliente veía la casilla con un 0 y el botón muerto,
-// sin explicación. El piso también puede llegar en 0 por API, pero no desde
-// este formulario —el selector de Perú va de 1 a 20—, así que ese caso se
-// cubre en tests/test_orders.py.
+// La distancia al parqueo vale 0 cuando el camión se estaciona en la puerta.
+// Es el tramo que viene elegido ("En la puerta"), así que si el 0 volviera a
+// contar como vacío no avanzaría ninguna orden: antes el paso quedaba
+// incompleto, con el botón muerto y sin explicación. El piso también puede
+// llegar en 0 por API, pero no desde este formulario —el selector de Perú va
+// de sótano 3 a 20, sin planta baja—, así que ese caso se cubre en
+// tests/test_orders.py.
 test.describe('Step one with zeros', () => {
   async function fillStepOne(page, { distance, floor }) {
     await mockGooglePlaces(page);
@@ -41,17 +42,14 @@ test.describe('Step one with zeros', () => {
     () => document.querySelector('#app').__vue__.$store.state.steps['step-one'].isComplete,
   );
 
-  test('a parking distance of 0 completes the step', async ({ page }) => {
+  test('a parking distance of 0 completes the step and is not flagged on submit', async ({ page }) => {
     await fillStepOne(page, { distance: 0, floor: 3 });
 
     expect(await isStepOneComplete(page)).toBe(true);
-  });
 
-  test('a 0 is not flagged as a missing field when submitting', async ({ page }) => {
     // nextStep() valida y después avanza. Con la validación vieja el campo se
     // pintaba en rojo y salía el cartel de campos faltantes aunque el paso
     // siguiera adelante: te avisaba que faltaba algo y te dejaba pasar igual.
-    await fillStepOne(page, { distance: 0, floor: 3 });
     await page.getByRole('button', { name: 'Guardar y continuar' }).click();
 
     await expect(page.locator('#from-parking-distance')).not.toHaveClass(/border-red-300/);
