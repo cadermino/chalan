@@ -294,6 +294,7 @@ function uniqueOperationNumber() {
 }
 
 const BACKOFFICE_API = process.env.BACKOFFICE_API_URL || 'http://localhost:8002';
+const BACKOFFICE_URL = process.env.BACKOFFICE_URL || 'http://localhost:5173';
 const E2E_ADMIN = { email: 'e2e-admin@example.com', password: 'E2e-admin-pass-1' };
 
 /**
@@ -318,15 +319,93 @@ with app.app_context():
   execSync('docker exec -i chalan-backoffice-api-1 python -', { input: script });
 }
 
+/** Sesión del admin de prueba en el backoffice-api: { token, user }. */
+async function loginBackofficeAdmin(request) {
+  ensureE2eAdmin();
+  const login = await request.post(`${BACKOFFICE_API}/auth/login`, { data: E2E_ADMIN });
+  return login.json();
+}
+
+/**
+ * Abre el backoffice ya logueado como el admin de prueba: deja en localStorage
+ * lo mismo que guarda AuthContext al entrar, antes de que cargue la página.
+ */
+async function openBackofficeAsAdmin(page, path) {
+  const session = await loginBackofficeAdmin(page.request);
+  await page.addInitScript(({ token, user }) => {
+    localStorage.setItem('bo_token', token);
+    localStorage.setItem('bo_user', JSON.stringify(user));
+  }, session);
+  await page.goto(`${BACKOFFICE_URL}${path}`, { waitUntil: 'networkidle' });
+}
+
+const seededServiceRequestIds = [];
+
+function psql(sql) {
+  return execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -v ON_ERROR_STOP=1 -tAc "${sql.replace(/\n\s*/g, ' ')}"`,
+  ).toString().trim().split('\n')[0];
+}
+
+/**
+ * Un servicio de embalaje sembrado en Postgres, como si el cliente lo hubiera
+ * enviado: sin pasar por el formulario, que avisa a los transportistas.
+ * `submitted: false` deja un borrador. Con `quotation`, una empresa de prueba le
+ * cotiza 100 (`selected: true` la deja elegida por un admin, sin reserva, con el
+ * total congelado en 110). Lo borra cleanupSeededServiceRequests().
+ */
+function seedServiceRequest({ submitted = true, quotation = false, selected = false } = {}) {
+  const id = Number(psql(`
+    INSERT INTO service_requests (public_id, service_type_id, status, whatsapp, preferred_date, street,
+      neighborhood, country, map_url, details, submitted_at)
+    VALUES (md5(random()::text), (SELECT id FROM lu_service_types WHERE code = 'packing'), 'pending',
+      '+51999000111', current_date + 3, 'Av. E2E 123', 'Miraflores', 'PE', 'https://maps.google.com/?cid=1',
+      '{}', ${submitted ? 'now()' : 'NULL'})
+    RETURNING id;
+  `));
+  seededServiceRequestIds.push(id);
+  if (quotation) {
+    const carrierId = psql(`
+      INSERT INTO carrier_company (name, email, active, country_id)
+      VALUES ('E2E Embalajes', 'carlos.calderon@chalan.pe', 1, 1) RETURNING id;
+    `);
+    seededCarrierIds.push(Number(carrierId));
+    psql(selected
+      ? `INSERT INTO service_request_quotations (service_request_id, carrier_company_id, amount, status,
+           platform_fee_rate, total_amount, selected_at, selected_by_admin_id)
+         VALUES (${id}, ${carrierId}, 100, 'selected', 0.1, 110, now(), 1);`
+      : `INSERT INTO service_request_quotations (service_request_id, carrier_company_id, amount)
+         VALUES (${id}, ${carrierId}, 100);`);
+  }
+  return id;
+}
+
+function getServiceRequestStatus(id) {
+  return psql(`SELECT status FROM service_requests WHERE id = ${id};`);
+}
+
+/** Borra los servicios sembrados con sus pagos y cotizaciones, y sus empresas. */
+function cleanupSeededServiceRequests() {
+  if (seededServiceRequestIds.length) {
+    const ids = seededServiceRequestIds.splice(0).join(',');
+    psql([
+      'BEGIN',
+      `DELETE FROM service_request_payments WHERE service_request_id IN (${ids})`,
+      `DELETE FROM service_request_quotations WHERE service_request_id IN (${ids})`,
+      `DELETE FROM service_requests WHERE id IN (${ids})`,
+      'COMMIT',
+    ].join('; '));
+  }
+  cleanupSeededCarriers();
+}
+
 /**
  * Hace lo que el admin hace en el backoffice al ver el yapeo en su celular:
  * marcar la reserva como pagada. Devuelve la respuesta del API, cuyo
  * `order_confirmation` dice si la orden pasó a en progreso.
  */
 async function confirmReservationAsAdmin(request, orderId) {
-  ensureE2eAdmin();
-  const login = await request.post(`${BACKOFFICE_API}/auth/login`, { data: E2E_ADMIN });
-  const { token } = await login.json();
+  const { token } = await loginBackofficeAdmin(request);
   const headers = { Authorization: `Bearer ${token}` };
 
   const list = await request.get(`${BACKOFFICE_API}/api/orders/${orderId}/payments`, { headers });
@@ -527,6 +606,10 @@ module.exports = {
   ORDER_STATUS,
   uniqueOperationNumber,
   confirmReservationAsAdmin,
+  openBackofficeAsAdmin,
+  seedServiceRequest,
+  getServiceRequestStatus,
+  cleanupSeededServiceRequests,
   getOrderIdFromStore,
   mockGooglePlaces,
   selectMockAddress,
