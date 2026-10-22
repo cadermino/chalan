@@ -258,7 +258,7 @@ export default function ServiceRequestsList() {
                 <th className="px-4 py-3 text-left">Desde</th>
                 <th className="px-4 py-3 text-left">Adelanto</th>
                 <th className="px-4 py-3 text-center">Estado</th>
-                <th className="px-4 py-3 text-left">Enviado</th>
+                <th className="px-4 py-3 text-left">Creación</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -312,9 +312,13 @@ export default function ServiceRequestsList() {
                       ) : r.status}
                     </td>
                     <td className="px-4 py-3 text-gray-400">
-                      {r.submitted_at
-                        ? formatTimestamp(r.submitted_at)
-                        : <span title={`Creado ${formatTimestamp(r.created_date)}`}>Sin enviar</span>}
+                      {formatTimestamp(r.created_date)}
+                      {/* Un borrador: el cliente no terminó el formulario y no se le avisó a nadie. */}
+                      {!r.submitted_at && (
+                        <span className="block text-xs text-amber-600" title="El cliente no terminó el formulario: no se avisó a ningún transportista">
+                          Incompleto
+                        </span>
+                      )}
                     </td>
                   </tr>
                 )

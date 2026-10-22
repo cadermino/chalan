@@ -455,7 +455,7 @@ export default function ServiceRequestDetail() {
           {STATUS_LABEL[request.status] || request.status}
         </span>
         {isDraft(request) && (
-          <span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs font-medium text-gray-700">Sin enviar</span>
+          <span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs font-medium text-gray-700">Incompleto</span>
         )}
       </div>
 
