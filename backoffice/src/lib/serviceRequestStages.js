@@ -14,7 +14,7 @@ export const STAGES = {
     idle: 'border-blue-300 text-blue-700 hover:bg-blue-50',
   },
   quoted: {
-    label: 'Con cotizaciones', icon: 'tag', color: 'text-indigo-600', badge: 'bg-indigo-50 text-indigo-700',
+    label: 'Por elegir', icon: 'tag', color: 'text-indigo-600', badge: 'bg-indigo-50 text-indigo-700',
     active: 'bg-indigo-600 border-indigo-600 text-white',
     idle: 'border-indigo-300 text-indigo-700 hover:bg-indigo-50',
   },

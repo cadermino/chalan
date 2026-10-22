@@ -13,6 +13,7 @@ const FILTERS = ['active', 'waiting', 'quoted', 'deposit_pending', 'in_progress'
   .map((key) => ({ key, ...STAGES[key] }))
 
 const HINTS = {
+  quoted: 'Tienen cotizaciones y el cliente todavía no eligió ninguna. Las que ya tienen una elegida pasan a Adelanto pendiente o En proceso.',
   draft: 'Clientes que empezaron el formulario y no lo terminaron: aún no se avisó a ningún transportista.',
   deposit_pending: 'Tienen una cotización elegida pero el adelanto no está confirmado: verifica el yapeo o regístralo desde el detalle.',
   in_progress: 'Con el adelanto pagado. Cuando el cliente le pague el saldo al transportista, regístralo en el detalle y queda completada.',
