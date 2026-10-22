@@ -64,6 +64,13 @@
               class="px-4 pb-5 sm:px-6 sm:pb-6">
               <p>
                 <span class="font-bold
+                  mr-1">Qué lleva: </span>
+                {{ formatLoadType(orderData.load_type) }}
+                <span v-if="orderData.cargo_weight_kg">
+                  · {{ formatCargoWeight(orderData.cargo_weight_kg) }}</span>
+              </p>
+              <p>
+                <span class="font-bold
                   mr-1">Fecha de mudanza: </span>
                 {{ orderData.appointment_date |
                           moment("dddd D MMMM YYYY - h:mm A") }}
@@ -494,6 +501,7 @@ import { mapMutations, mapState } from 'vuex';
 import chalan from '../../api/chalan';
 import formatFloor from '../../utils/floor';
 import { formatParkingDistance } from '../../utils/parking';
+import { formatCargoWeight, formatLoadType } from '../../utils/loadTypes';
 
 export default {
   name: 'quotation',
@@ -658,6 +666,8 @@ export default {
   methods: {
     formatFloor,
     formatParkingDistance,
+    formatLoadType,
+    formatCargoWeight,
     ...mapMutations([
       'setFormValidationMessages',
       'setViewsMessages',

@@ -384,6 +384,31 @@
 .quote-widget .size-card.active .size-label { color: #fff; }
 .quote-widget .size-card.active .size-hint  { color: rgba(255,255,255,0.65); }
 
+/* ¿Qué vas a transportar? Chips arriba de los tamaños. */
+.quote-widget .quote-loads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.quote-widget .load-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.quote-widget .load-chip:hover { border-color: var(--line-strong); }
+.quote-widget .load-chip.active {
+  background: var(--ch-accent-soft);
+  border-color: var(--ch-accent);
+  color: #fff;
+}
+.quote-widget.quote-widget--light .load-chip.active { color: #14532d; }
+
 .quote-widget .quote-result {
   display: flex;
   align-items: baseline;

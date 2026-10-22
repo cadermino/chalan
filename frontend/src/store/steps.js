@@ -13,6 +13,8 @@ const stepOne = [
 const stepTwo = [
   'appointment_date',
   'comments',
+  // Solo cuando lo que lleva es carga: isRequired en store/index.js.
+  'cargo_weight_kg',
   'packaging',
   'cargo',
 ];

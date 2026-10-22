@@ -5,6 +5,7 @@ import steps from './steps';
 import chalan from '../api/chalan';
 import storage from '../utils/safeStorage';
 import { sessionTagsPlugin } from '../utils/sessionTags';
+import { needsCargoWeight } from '../utils/loadTypes';
 
 const isEmpty = arr => !arr.length;
 
@@ -23,6 +24,7 @@ export const fieldLabels = {
   to_has_elevator: '¿El edificio cuenta con elevador? (destino)',
   appointment_date: 'Fecha y hora de la mudanza',
   comments: 'Lista de cosas a mover',
+  cargo_weight_kg: 'Peso aproximado de la carga',
   packaging: 'Servicio de embalaje',
   cargo: 'Servicio de cargadores',
   quotation_id: 'Cotización seleccionada',
@@ -38,6 +40,11 @@ function isFilled(value) {
   return value !== null && value !== undefined && value !== '' && value !== false;
 }
 
+// El peso solo se pide cuando lo que lleva es carga.
+function isRequired(requisite, data) {
+  return requisite !== 'cargo_weight_kg' || needsCargoWeight(data.load_type);
+}
+
 function checkCompleteStep(state) {
   const allStepsData = {
     ...state.currentOrder,
@@ -47,9 +54,11 @@ function checkCompleteStep(state) {
   };
   Object.keys(state.steps).forEach((key) => {
     const requisitesValues = [];
-    state.steps[key].requisites.forEach((requisite) => {
-      requisitesValues.push(allStepsData[requisite]);
-    });
+    state.steps[key].requisites
+      .filter(requisite => isRequired(requisite, allStepsData))
+      .forEach((requisite) => {
+        requisitesValues.push(allStepsData[requisite]);
+      });
     state.steps[key].isComplete = requisitesValues
       .reduce((prev, curr) => prev && isFilled(curr), true);
     if (state.steps[key].isComplete) {
@@ -82,6 +91,8 @@ export default new Vuex.Store({
       comments: null,
       approximate_budget: null,
       loaders_quantity: null,
+      load_type: null,
+      cargo_weight_kg: null,
       quotation_id: null,
       amount: null,
       carrier_company_id: null,
@@ -146,6 +157,7 @@ export default new Vuex.Store({
       to_has_elevator: null,
       appointment_date: null,
       comments: null,
+      cargo_weight_kg: null,
       packaging: null,
       cargo: null,
       quotation_id: null,
@@ -236,6 +248,8 @@ export default new Vuex.Store({
         appointment_date: currentOrder.appointment_date,
         approximate_budget: currentOrder.approximate_budget,
         loaders_quantity: currentOrder.loaders_quantity,
+        load_type: currentOrder.load_type,
+        cargo_weight_kg: currentOrder.cargo_weight_kg,
         comments: currentOrder.comments,
         created_date: currentOrder.created_date,
         order_status_id: currentOrder.order_status_id,
@@ -348,14 +362,16 @@ export default new Vuex.Store({
         ...state.orderDetailsDestination,
         ...state.services,
       };
-      state.steps[viewName].requisites.forEach((field) => {
-        // Misma noción de "lleno" que checkCompleteStep. Con `!valor`, una
-        // distancia de 0 se marcaba en rojo como si faltara, y el paso avanzaba
-        // igual: el formulario decía que faltaba un campo y te dejaba pasar.
-        if (!isFilled(stepOneRequisites[field])) {
-          emptyFields.push(field);
-        }
-      });
+      state.steps[viewName].requisites
+        .filter(field => isRequired(field, stepOneRequisites))
+        .forEach((field) => {
+          // Misma noción de "lleno" que checkCompleteStep. Con `!valor`, una
+          // distancia de 0 se marcaba en rojo como si faltara, y el paso avanzaba
+          // igual: el formulario decía que faltaba un campo y te dejaba pasar.
+          if (!isFilled(stepOneRequisites[field])) {
+            emptyFields.push(field);
+          }
+        });
       let message = {};
       if (emptyFields.length > 0 && viewName === 'step-three') {
         message = {

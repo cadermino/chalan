@@ -13,6 +13,11 @@ from ..order_access import make_token as make_order_access_token
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
+# Qué lleva una orden y los topes de los tramos de peso de una carga. Copia de
+# app/api/order/load.py del API principal: cambiar los dos juntos.
+LOAD_TYPES = ('moving', 'items', 'cargo', 'vehicle')
+CARGO_WEIGHTS = (500, 1500, 3000, 10000, 20000)
+
 QUOTATION_STATUS_ACTIVE = 1
 QUOTATION_STATUS_SELECTED = 2
 QUOTATION_STATUS_CANCELLED = 3
@@ -897,6 +902,17 @@ def update_order(order_id):
         order.accounting_note = (data['accounting_note'] or '').strip() or None
     if 'loaders_quantity' in data:
         order.loaders_quantity = data['loaders_quantity']
+    if 'load_type' in data or 'cargo_weight_kg' in data:
+        load_type = data.get('load_type', order.load_type)
+        if load_type not in LOAD_TYPES + (None,):
+            return jsonify({'message': 'invalid load_type'}), 400
+        weight = data.get('cargo_weight_kg', order.cargo_weight_kg)
+        if load_type != 'cargo':
+            weight = None
+        elif weight is not None and weight not in CARGO_WEIGHTS:
+            return jsonify({'message': 'invalid cargo_weight_kg'}), 400
+        order.load_type = load_type
+        order.cargo_weight_kg = weight
     if 'customer_id' in data:
         # Se comprueba que exista antes de asignar. La FK lo rechazaría igual,
         # pero como IntegrityError en el commit de más abajo: un 500 opaco,

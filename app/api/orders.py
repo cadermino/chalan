@@ -16,6 +16,7 @@ from .decorators import (token_required, carrier_company_token_required,
 from .order import Order as OrderEntity
 from .order.order import yape_reservation_required
 from .order.order_status import OrderStatus
+from .order.load import needs_cargo_weight
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
 from .quotation import Quotation as QuotationEntity
@@ -499,6 +500,8 @@ def _missing_fields_for_quotation(order_id):
     ]
     details = OrderEntity(order_id).details()
     missing += [field for field in ('appointment_date', 'comments') if not details.get(field)]
+    if needs_cargo_weight(details.get('load_type')) and not details.get('cargo_weight_kg'):
+        missing.append('cargo_weight_kg')
     return missing
 
 @api.route('/order/<int:order_id>/notify-carriers', methods=['POST'])

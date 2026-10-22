@@ -47,7 +47,7 @@
                 text-sm
                 font-bold"
                 for="list-of-belongings">
-                    Lista las cosas que vamos a mover <span class="text-red-500">*</span>
+                    {{ inventoryCopy.label }} <span class="text-red-500">*</span>
               </label>
               <span v-if="formValidationMessages['comments']"
                       class="text-red-500
@@ -156,7 +156,7 @@
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
                     @blur="handleManualItemBlur"
-                    placeholder="Ej: 1 cama matrimonial"
+                    :placeholder="inventoryCopy.placeholder"
                     class="flex-1 appearance-none border
                       rounded py-1 px-2 text-sm text-gray-700
                       focus:outline-none
@@ -169,6 +169,27 @@
                     + Agregar
                   </button>
                 </div>
+              </div>
+
+              <div v-if="needsWeight" class="mb-3">
+                <label class="block text-gray-700 text-sm font-bold mb-1"
+                  for="cargo-weight">
+                  Peso aproximado de la carga <span class="text-red-500">*</span>
+                </label>
+                <select id="cargo-weight"
+                  v-model="cargoWeight"
+                  :class="formValidationMessages['cargo_weight_kg'] ? 'border-red-300' : ''"
+                  class="appearance-none border bg-white rounded w-full py-2 px-3
+                    text-gray-700 leading-tight focus:outline-none focus:border-blue-400">
+                  <option disabled :value="null">Elige un rango</option>
+                  <option v-for="option in cargoWeightOptions"
+                    :key="option.value"
+                    :value="option.value">{{ option.label }}</option>
+                </select>
+                <p v-if="formValidationMessages['cargo_weight_kg']"
+                  class="text-red-500 text-xs italic">
+                  {{ formValidationMessages['cargo_weight_kg'] }}.
+                </p>
               </div>
 
               <div class="flex
@@ -315,6 +336,9 @@ import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
 import { tagBlockedStep } from '../../utils/sessionTags';
+import {
+  CARGO_WEIGHT_OPTIONS, DEFAULT_LOAD_TYPE, INVENTORY_COPY, needsCargoWeight,
+} from '../../utils/loadTypes';
 
 Settings.defaultLocale = 'es';
 
@@ -327,6 +351,7 @@ export default {
       photoThumbnails: [],
       recognizedItems: [],
       manualItem: '',
+      cargoWeightOptions: CARGO_WEIGHT_OPTIONS,
     };
   },
   components: {
@@ -520,6 +545,8 @@ export default {
                   .startOf('day').diff(this.$moment().startOf('day'), 'days'),
                 packaging: this.services.packaging === '1',
                 cargo: this.services.cargo === '1',
+                load_type: this.currentOrder.load_type || DEFAULT_LOAD_TYPE,
+                cargo_weight_kg: this.currentOrder.cargo_weight_kg || undefined,
               });
               this.$router.push({
                 name: this.steps[this.viewName].next,
@@ -546,12 +573,27 @@ export default {
         track('step_two_blocked', {
           missing_field: missing[0],
           missing_count: missing.length,
+          load_type: this.currentOrder.load_type || DEFAULT_LOAD_TYPE,
         });
         tagBlockedStep('step_two', missing[0]);
       }
     },
   },
   computed: {
+    inventoryCopy() {
+      return INVENTORY_COPY[this.currentOrder.load_type] || INVENTORY_COPY[DEFAULT_LOAD_TYPE];
+    },
+    needsWeight() {
+      return needsCargoWeight(this.currentOrder.load_type);
+    },
+    cargoWeight: {
+      get() {
+        return this.currentOrder.cargo_weight_kg;
+      },
+      set(value) {
+        this.setOrder({ section: 'currentOrder', field: 'cargo_weight_kg', value: Number(value) });
+      },
+    },
     analyzingPhotos() {
       return this.photoThumbnails.some(thumb => thumb.processing);
     },

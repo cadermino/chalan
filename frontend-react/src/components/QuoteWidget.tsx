@@ -12,6 +12,48 @@ const SIZES = [
   { id: 'large',  label: 'Grande',  hint: 'Casa o depto familiar',        Icon: HouseIcon, base: 160, perKm: 4.6 },
 ]
 
+// ─── Qué lleva ───────────────────────────────────────────────────────────────
+// Una de cada cuatro órdenes era carga (sacos de arroz, ladrillos, una
+// camioneta) y los tamaños hablaban de habitaciones: la gente saltaba entre
+// Pequeño y Mediano sin saber cuál era el suyo. La elección pasa al formulario
+// de la orden (Vue) por localStorage, como las direcciones. Mismos valores que
+// frontend/src/utils/loadTypes.js.
+export type LoadType = 'moving' | 'items' | 'cargo' | 'vehicle'
+
+const LOADS: { id: LoadType; label: string }[] = [
+  { id: 'moving',  label: 'Mudanza' },
+  { id: 'items',   label: 'Objetos sueltos' },
+  { id: 'cargo',   label: 'Carga o materiales' },
+  { id: 'vehicle', label: 'Vehículo' },
+]
+
+// Lo que dice cada tamaño según lo que lleva. El precio sale de la misma
+// fórmula por ahora: hasta tener cotizaciones de carga para calibrarla.
+const SIZE_COPY: Partial<Record<LoadType, Record<string, { label: string; hint: string }>>> = {
+  items: {
+    small:  { label: 'Pequeño',       hint: 'Uno o dos objetos' },
+    medium: { label: 'Mediano',       hint: 'Algunos muebles' },
+    large:  { label: 'Grande',        hint: 'Muchos muebles' },
+  },
+  cargo: {
+    small:  { label: 'Camioneta',     hint: 'Hasta 1 tonelada' },
+    medium: { label: 'Camión',        hint: 'Hasta 4 toneladas' },
+    large:  { label: 'Camión grande', hint: 'Más de 4 toneladas' },
+  },
+  vehicle: {
+    small:  { label: 'Moto',          hint: 'Moto o bicicleta' },
+    medium: { label: 'Auto',          hint: 'Auto o SUV' },
+    large:  { label: 'Camioneta',     hint: 'Pick-up o van' },
+  },
+}
+
+function saveLoadType(load: LoadType) {
+  try {
+    const current = JSON.parse(localStorage.getItem('currentOrder') || 'null') || {}
+    localStorage.setItem('currentOrder', JSON.stringify({ ...current, load_type: load }))
+  } catch { /* localStorage no disponible */ }
+}
+
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
 function BoxIcon() {
@@ -146,7 +188,9 @@ function saveDestination(place: PlaceArg) {
 
 // ─── Widget ──────────────────────────────────────────────────────────────────
 
-export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
+// `load` es lo que viene marcado: las páginas de fletes abren en carga.
+export function QuoteWidget({ theme = 'dark', load = 'moving' }: { theme?: 'dark' | 'light'; load?: LoadType }) {
+  const [loadType, setLoadType] = useState<LoadType>(load)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [sizeId, setSizeId] = useState('medium')
@@ -276,7 +320,7 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
   function markInteraction(size: string = sizeId) {
     if (interactedRef.current) return
     interactedRef.current = true
-    track('quote_widget_start', { move_size: size })
+    track('quote_widget_start', { move_size: size, load_type: loadType })
   }
 
   function handleAddressFocus() {
@@ -304,12 +348,14 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
 
     track('quote_estimated', {
       move_size: sizeId,
+      load_type: loadType,
       distance_km: km ?? undefined,
       value: price,
       currency: 'PEN',
       origin_district: fromDistrict.current,
       destination_district: toDistrict.current,
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [price, km, sizeId])
 
   return (
@@ -353,6 +399,20 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
         />
       </div>
 
+      <div className="quote-loads" role="group" aria-label="¿Qué vas a transportar?">
+        {LOADS.map(l => (
+          <button
+            key={l.id}
+            type="button"
+            className={'load-chip' + (loadType === l.id ? ' active' : '')}
+            aria-pressed={loadType === l.id}
+            onClick={() => { markInteraction(); setLoadType(l.id); saveLoadType(l.id) }}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+
       <div className="quote-sizes">
         {SIZES.map(s => (
           <button
@@ -362,9 +422,10 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
             aria-pressed={sizeId === s.id}
             type="button"
           >
-            <span className="size-icon"><s.Icon /></span>
-            <span className="size-label">{s.label}</span>
-            <span className="size-hint">{s.hint}</span>
+            {/* Caja, sofá y casa son de mudanza: con carga o un vehículo confunden. */}
+            {!SIZE_COPY[loadType] && <span className="size-icon"><s.Icon /></span>}
+            <span className="size-label">{(SIZE_COPY[loadType]?.[s.id] ?? s).label}</span>
+            <span className="size-hint">{(SIZE_COPY[loadType]?.[s.id] ?? s).hint}</span>
           </button>
         ))}
       </div>
@@ -383,15 +444,21 @@ export function QuoteWidget({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
       <Link
         href="/order/step-one"
         className="quote-cta"
-        onClick={() => track('quote_cta_click', {
-          move_size: sizeId,
-          distance_km: km ?? undefined,
-          value: price ?? undefined,
-          currency: 'PEN',
-          origin_district: fromDistrict.current,
-          destination_district: toDistrict.current,
-          has_estimate: price !== null,
-        })}
+        onClick={() => {
+          // Aunque no haya tocado los chips: lo marcado (carga en las páginas
+          // de fletes) también tiene que llegar al formulario.
+          saveLoadType(loadType)
+          track('quote_cta_click', {
+            load_type: loadType,
+            move_size: sizeId,
+            distance_km: km ?? undefined,
+            value: price ?? undefined,
+            currency: 'PEN',
+            origin_district: fromDistrict.current,
+            destination_district: toDistrict.current,
+            has_estimate: price !== null,
+          })
+        }}
       >
         Continuar con esta cotización
         <ArrowIcon />

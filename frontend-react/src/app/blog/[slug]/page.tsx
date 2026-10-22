@@ -220,8 +220,10 @@ export default async function BlogPost({ params }: Props) {
           </div>
         ) : (
           <div className="mt-16">
-            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">¿Listo para mudarte?</p>
-            <QuoteWidget theme="light" />
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">
+              {post.quoteLoad === "cargo" ? "¿Listo para mandar tu carga?" : "¿Listo para mudarte?"}
+            </p>
+            <QuoteWidget theme="light" load={post.quoteLoad} />
           </div>
         )}
 

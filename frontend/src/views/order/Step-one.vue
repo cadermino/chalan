@@ -11,6 +11,25 @@
           ">
           <form class="bg-white pb-8 sm:p-0 p-5 sm:pb-8">
             <ViewsMessages :view-name="viewName"/>
+            <p class="text-center font-bold mb-4">
+              ¿Qué vas a transportar?
+            </p>
+            <div id="load-type" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
+              <button v-for="option in loadTypes"
+                :key="option.value"
+                type="button"
+                :data-load-type="option.value"
+                :aria-pressed="loadType === option.value"
+                @click="loadType = option.value"
+                class="border-2 rounded-lg px-3 py-3 text-left
+                  focus:outline-none focus:shadow-outline"
+                :class="loadType === option.value
+                  ? 'border-green-500 bg-green-100'
+                  : 'border-gray-300 hover:border-gray-400'">
+                <span class="block text-sm font-bold text-gray-700">{{ option.label }}</span>
+                <span class="block text-xs text-gray-500">{{ option.hint }}</span>
+              </button>
+            </div>
             <p class="text-center font-bold mb-10">
               Dirección de donde vamos a recoger tus cosas
             </p>
@@ -54,7 +73,7 @@
                   text-gray-700
                   text-sm
                   font-bold mb-2" for="address-from-floor">
-                      Piso de la vivienda <span class="text-red-500">*</span>
+                      {{ floorLabel }} <span class="text-red-500">*</span>
                   </label>
                   <div class="relative">
                     <select
@@ -227,7 +246,7 @@
                   text-gray-700
                   text-sm
                   font-bold mb-2" for="address-to-floor">
-                      Piso de la vivienda <span class="text-red-500">*</span>
+                      {{ floorLabel }} <span class="text-red-500">*</span>
                   </label>
                   <div class="relative">
                     <select
@@ -422,6 +441,12 @@ import { track } from '../../utils/analytics';
 import { tagBlockedStep } from '../../utils/sessionTags';
 import steps from '../../store/steps';
 import { PARKING_OPTIONS, DEFAULT_PARKING_DISTANCE, formatParkingDistance } from '../../utils/parking';
+import { LOAD_TYPES, DEFAULT_LOAD_TYPE } from '../../utils/loadTypes';
+
+// Una carga o un vehículo casi siempre se recoge a nivel de calle: el piso
+// arranca en el primero para que no frene a quien no sube escaleras.
+const STREET_LEVEL_LOADS = ['cargo', 'vehicle'];
+const STREET_LEVEL_FLOOR = 1;
 
 // Number('') es 0, así que vaciar el campo guardaba un cero y el paso quedaba
 // "completo" con la casilla en blanco. Vacío es null; el cero solo llega
@@ -458,6 +483,7 @@ export default {
       },
       showLeadPhoneModal: false,
       leadPhone: null,
+      loadTypes: LOAD_TYPES,
     };
   },
   components: {
@@ -475,6 +501,8 @@ export default {
     if (this.orderDetailsDestination.to_approximate_distance_from_parking === null) {
       this.toParkingDistance = DEFAULT_PARKING_DISTANCE;
     }
+    // El widget de la web puede haberlo elegido ya (lo deja en currentOrder).
+    this.loadType = this.currentOrder.load_type || DEFAULT_LOAD_TYPE;
     this.buildRequisites();
     track('begin_order');
   },
@@ -609,6 +637,7 @@ export default {
                 track('order_created', {
                   order_id: response.data.order_id,
                   ref_code: referralCode,
+                  load_type: this.loadType,
                 });
                 this.proceedToStepTwo();
               }
@@ -664,6 +693,7 @@ export default {
         track('step_one_blocked', {
           missing_field: missing[0],
           missing_count: missing.length,
+          load_type: this.loadType,
         });
         tagBlockedStep('step_one', missing[0]);
         this.scrollToFirstMissingField();
@@ -724,6 +754,21 @@ export default {
       return Object.keys(this.stepRequisites)
         .reduce((prev, curr) => prev
           && (stepOneRequisites[curr] === this.stepRequisites[curr]), true);
+    },
+    loadType: {
+      get() {
+        return this.currentOrder.load_type;
+      },
+      set(value) {
+        this.setOrder({ section: 'currentOrder', field: 'load_type', value });
+        if (STREET_LEVEL_LOADS.includes(value)) {
+          if (this.selectedFromFloor === null) this.selectedFromFloor = STREET_LEVEL_FLOOR;
+          if (this.selectedToFloor === null) this.selectedToFloor = STREET_LEVEL_FLOOR;
+        }
+      },
+    },
+    floorLabel() {
+      return STREET_LEVEL_LOADS.includes(this.loadType) ? 'Piso' : 'Piso de la vivienda';
     },
     shouldPromptForLeadPhone() {
       return !this.customer.customer_id

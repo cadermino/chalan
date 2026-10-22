@@ -2,6 +2,7 @@ import "server-only";
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import type { LoadType } from "@/components/QuoteWidget";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "blog");
 
@@ -11,6 +12,12 @@ export type PostCta = (typeof POST_CTAS)[number];
 // Un valor que no se conoce cae al cotizador de mudanza en vez de romper el post.
 function parseCta(value: unknown): PostCta | undefined {
   return POST_CTAS.find((cta) => cta === value);
+}
+
+const QUOTE_LOADS: LoadType[] = ["moving", "items", "cargo", "vehicle"];
+
+function parseQuoteLoad(value: unknown): LoadType | undefined {
+  return QUOTE_LOADS.find((load) => load === value);
 }
 
 export interface PostMeta {
@@ -33,6 +40,9 @@ export interface PostMeta {
   // están repartidos en varias categorías. Los servicios a domicilio sin
   // formulario (pintura, microcemento, porcelanato) cierran con su WhatsApp.
   cta?: PostCta;
+  // Qué viene marcado en el cotizador que cierra el post ("cargo" en los de
+  // fletes). Sin valor: mudanza.
+  quoteLoad?: LoadType;
 }
 
 export interface Post extends PostMeta {
@@ -67,6 +77,7 @@ export function getAllPosts(): PostMeta[] {
       image: data.image,
       waitlist: data.waitlist ?? false,
       cta: parseCta(data.cta),
+      quoteLoad: parseQuoteLoad(data.quoteLoad),
     } as PostMeta;
   });
 
@@ -94,6 +105,7 @@ export function getPost(slug: string): Post | null {
     image: data.image,
     waitlist: data.waitlist ?? false,
     cta: parseCta(data.cta),
+    quoteLoad: parseQuoteLoad(data.quoteLoad),
     content,
   };
 }

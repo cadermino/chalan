@@ -224,11 +224,22 @@ Between step 2 and step 3 the Vue router used to send visitors to `/register` (p
 - The login's "Regístrate" link goes to the contact step when the redirect is step 3 (`signUpRoute` in `components/Login.vue`). `/register` still exists outside the order flow.
 - GA4: `sign_up` with `method: 'contact'`, and `contact_existing_account`. Opening an order access link sends `login` with `method: 'order_link'` (`views/OrderAccess.vue`), so whoever came in through the emailed link counts in the funnel step "Pasó el registro" (`sign_up` or `login`).
 
+## What an Order Carries (load type)
+
+A quarter of the orders that came in through the moving form were not moves (sacks of rice, cement, 13.6 t of geomembrane, a pickup truck), and the form asked them for floors and a household inventory. Migration 030 added `orders.load_type` (`moving`, `items`, `cargo`, `vehicle`) and `orders.cargo_weight_kg` (the top of a weight range: 500, 1500, 3000, 10000, and 20000 for "more than 10 t"). Both empty = an order from before, read as a move.
+
+- **Lists**: `app/api/order/load.py` (API), `frontend/src/utils/loadTypes.js` (Vue), a copy in `backoffice-api/app/api/orders.py`, and labels in the backoffice `orders/Detail.jsx` and `Edit.jsx`. Change them together.
+- **Weight is required for `cargo` only**: step 2 shows the range select (`isRequired` in `store/index.js` skips `cargo_weight_kg` otherwise), `BelongingsAppointmentDate.is_complete()` keeps a cargo without weight from going to carriers, and `notify-carriers` lists it as missing. Any other load type drops the weight.
+- **The API only writes them when the body has `load_type`** (`_set_load` in `app/api/order/order.py`): callers that don't send it (the quotation agent) keep what was saved.
+- **Vue**: step 1 asks "¿Qué vas a transportar?" first (default `moving`). Cargo and vehicle start both floors at 1 and the label says "Piso". Step 2 changes the inventory label and placeholder (`INVENTORY_COPY`). Carriers see "Qué lleva" in `quotation.vue` and `order-details.vue`.
+- **Landing widget** (`QuoteWidget.tsx`): chips above the sizes. Cargo and vehicle relabel the sizes (Camioneta / Camión / Camión grande) and hide the moving icons; the price formula is the same for now. The choice goes to Vue by merging `load_type` into `localStorage.currentOrder`, on the chip click and on the CTA. `load="cargo"` opens a widget on cargo: `/fletes-peru` and the flete post, whose frontmatter `quoteLoad: "cargo"` also sets the widget that closes it.
+- **GA4**: `load_type` on `quote_widget_start`, `quote_estimated`, `quote_cta_click`, `order_created`, `step_one_blocked`, `step_two_submitted` (with `cargo_weight_kg`) and `step_two_blocked`.
+
 ## Edit Order in Backoffice
 
 Superadmins can edit order fields directly from the backoffice.
 
-- **API**: `PUT /backoffice-api/api/orders/:id` — editable fields: `appointment_date`, `order_status_id`, `approximate_budget`, `total_kilometers`, `comments`, `origin` address, `destination` address; superadmin only
+- **API**: `PUT /backoffice-api/api/orders/:id` — editable fields: `appointment_date`, `order_status_id`, `approximate_budget`, `total_kilometers`, `comments`, `load_type` and `cargo_weight_kg` (400 outside the lists), `origin` address, `destination` address; superadmin only
 - **Frontend**: `backoffice/src/pages/orders/Edit.jsx` — form accessible from the orders list via "Editar" link (superadmin only)
 
 ## Quotation Links (Admin Feature)

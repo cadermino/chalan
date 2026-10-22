@@ -122,6 +122,10 @@ class Order(db.Model):
 	carrier_notified_at = db.Column(db.DateTime(), nullable=True)
 	loaders_quantity = db.Column(db.Integer, nullable=True)
 	lead_phone = db.Column(db.String(15), nullable=True)
+	# Qué lleva la orden y, si es carga, el tope del tramo de peso (migración
+	# 030). Vacíos en las órdenes de antes: se leen como mudanza.
+	load_type = db.Column(db.String(20), nullable=True)
+	cargo_weight_kg = db.Column(db.Integer, nullable=True)
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')

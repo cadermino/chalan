@@ -25,7 +25,23 @@ const MISSING_FIELD_LABELS = {
   to_map_url: 'Destino: URL del mapa',
   appointment_date: 'Fecha de mudanza',
   comments: 'Comentarios',
+  cargo_weight_kg: 'Peso de la carga',
 }
+
+// Mismas listas que frontend/src/utils/loadTypes.js.
+const LOAD_TYPE_OPTIONS = [
+  { value: 'moving', label: 'Mudanza' },
+  { value: 'items', label: 'Objetos sueltos' },
+  { value: 'cargo', label: 'Carga o materiales' },
+  { value: 'vehicle', label: 'Vehículo' },
+]
+const CARGO_WEIGHT_OPTIONS = [
+  { value: 500, label: 'Hasta 500 kg' },
+  { value: 1500, label: 'Hasta 1,5 t' },
+  { value: 3000, label: 'Hasta 3 t' },
+  { value: 10000, label: 'Hasta 10 t' },
+  { value: 20000, label: 'Más de 10 t' },
+]
 
 const formatDateTime = iso => new Date(iso).toLocaleString('es-PE', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima',
@@ -221,6 +237,8 @@ export default function OrderEdit() {
         lead_phone: o.lead_phone ?? '',
         accounting_note: o.accounting_note ?? '',
         loaders_quantity: o.loaders_quantity ?? '',
+        load_type: o.load_type || 'moving',
+        cargo_weight_kg: o.cargo_weight_kg ?? '',
         origin: { ...addressDefaults, ...o.origin },
         destination: { ...addressDefaults, ...o.destination },
       })
@@ -288,6 +306,7 @@ export default function OrderEdit() {
         total_kilometers: form.total_kilometers === '' ? null : Number(form.total_kilometers),
         lead_phone: form.lead_phone === '' ? null : form.lead_phone,
         loaders_quantity: form.loaders_quantity === '' ? null : Number(form.loaders_quantity),
+        cargo_weight_kg: form.load_type !== 'cargo' || form.cargo_weight_kg === '' ? null : Number(form.cargo_weight_kg),
       })
       cancelledCount = data?.cancelled_quotations || 0
     } catch (err) {
@@ -478,6 +497,32 @@ export default function OrderEdit() {
             {!form.services.includes('cargo') && (
               <p className="text-xs text-gray-400 mt-1">Marca &quot;Servicio de carga&quot; para indicar cuántos.</p>
             )}
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Qué lleva</label>
+            <select
+              value={form.load_type}
+              onChange={e => setForm(f => ({ ...f, load_type: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {LOAD_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          {/* El peso solo se pide para una carga: sin él la orden no sale a
+              los transportistas. */}
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Peso de la carga</label>
+            <select
+              value={form.cargo_weight_kg}
+              disabled={form.load_type !== 'cargo'}
+              onChange={e => setForm(f => ({ ...f, cargo_weight_kg: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <option value="">—</option>
+              {CARGO_WEIGHT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
 
           <div className="col-span-2">

@@ -319,6 +319,10 @@ class Order(db.Model):
     # plata real. Con texto = "conciliar en contabilidad", y el texto dice
     # cómo; NULL = la orden sigue el modelo de siempre. Migración 021.
     accounting_note = db.Column(db.Text, nullable=True)
+    # Qué lleva y cuánto pesa si es carga (migración 030, la escribe el API
+    # principal). NULL = orden de antes, se lee como mudanza.
+    load_type = db.Column(db.String(20), nullable=True)
+    cargo_weight_kg = db.Column(db.Integer, nullable=True)
 
     order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='order', lazy='dynamic')
@@ -333,6 +337,8 @@ class Order(db.Model):
             'approximate_budget': self.approximate_budget,
             'created_date': _iso(self.created_date),
             'loaders_quantity': self.loaders_quantity,
+            'load_type': self.load_type,
+            'cargo_weight_kg': self.cargo_weight_kg,
         }
 
     def to_dict_full(self):

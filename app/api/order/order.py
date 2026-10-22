@@ -1,5 +1,6 @@
 import os
 from ..quotation.quotation_status import QuotationStatus
+from .load import clean_cargo_weight, clean_load_type, needs_cargo_weight
 from ... import db
 from ...models import LuServices as LuServicesModel
 from ...models import OrderDetails as OrderDetailsModel
@@ -37,6 +38,22 @@ def _address_value(column, value):
     except (TypeError, ValueError):
         return None
     return number if abs(number) <= _COORDINATES[column] else None
+
+
+def _set_load(order, data):
+    """Qué lleva la orden y, si es carga, cuánto pesa.
+
+    Solo si el cuerpo trae `load_type`: quien no lo manda (el agente de
+    cotizaciones, un cliente con el front viejo en caché) no borra lo que ya
+    estaba. Un valor que no es de la lista se guarda vacío, y el peso solo
+    queda en una carga. Devuelve los campos que escribió.
+    """
+    if 'load_type' not in data:
+        return []
+    order.load_type = clean_load_type(data.get('load_type'))
+    order.cargo_weight_kg = (clean_cargo_weight(data.get('cargo_weight_kg'))
+                             if needs_cargo_weight(order.load_type) else None)
+    return ['load_type', 'cargo_weight_kg']
 
 
 def yape_reservation_required():
@@ -80,6 +97,7 @@ class Order:
             customer_id = request['customer']['customer_id'],
             country_id = os.getenv('COUNTRY_ID')
         )
+        _set_load(order, request.get('order') or {})
         db.session.add(order)
         db.session.commit()
         order_details_from = OrderDetailsModel()
@@ -182,6 +200,7 @@ class Order:
         loaders_quantity = request['order'].get('loaders_quantity')
         order.loaders_quantity = loaders_quantity if loaders_quantity != '' else None
         written.extend(['approximate_budget', 'loaders_quantity'])
+        written.extend(_set_load(order, request['order']))
         db.session.add(order)
         db.session.commit()
 

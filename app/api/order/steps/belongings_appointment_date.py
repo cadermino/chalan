@@ -1,6 +1,7 @@
 from ..order import Order
 from datetime import datetime
 from ....models import LuServices as LuServicesModel
+from ..load import needs_cargo_weight
 
 class BelongingsAppointmentDate:
 
@@ -27,6 +28,11 @@ class BelongingsAppointmentDate:
                 is_complete.append(req)
             else:
                 is_complete[0] = (is_complete[0] and req)
+        # Una carga sin peso no sale a cotizar: con 13 t de geomembrana el
+        # transportista tiene que saber qué camión mandar.
+        if needs_cargo_weight(requisites_values.get('load_type')) \
+                and not requisites_values.get('cargo_weight_kg'):
+            return False
         return is_complete[0]
 
     def has_changed(self, data):
