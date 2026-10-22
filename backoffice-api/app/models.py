@@ -792,14 +792,16 @@ class OrderCarrierDecline(db.Model):
 
 
 class ServiceRequestPayment(db.Model):
-    """Espejo de `service_request_payments` (026): la reserva por Yape de una
-    solicitud. La escribe el API principal, también al confirmarla."""
+    """Espejo de `service_request_payments` (026, 032): la reserva por Yape de
+    una solicitud (`reservation`) y el saldo que el cliente le paga al
+    transportista en el lugar (`carrier_cash`). La escribe el API principal."""
     __tablename__ = 'service_request_payments'
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id'), nullable=False)
     service_request_quotation_id = db.Column(db.Integer, db.ForeignKey('service_request_quotations.id'), nullable=False)
+    concept = db.Column(db.String(20), nullable=False, server_default='reservation')
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     status = db.Column(db.String(20), nullable=False, server_default='pending')
     reference = db.Column(db.String(100))
@@ -812,6 +814,7 @@ class ServiceRequestPayment(db.Model):
         return {
             'id': self.id,
             'quotation_id': self.service_request_quotation_id,
+            'concept': self.concept,
             'amount': _money(self.amount),
             'status': self.status,
             'reference': self.reference,

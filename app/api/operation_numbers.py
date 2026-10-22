@@ -35,6 +35,7 @@ def operation_number_in_use(reference, order_id=None, service_request_id=None):
     if order_id is not None:
         order_query = order_query.filter(Payment.order_id != order_id)
     service_query = ServiceRequestPayment.query.filter(
+        ServiceRequestPayment.concept == 'reservation',
         ServiceRequestPayment.status != 'cancelled',
         ServiceRequestPayment.reference == reference,
     )

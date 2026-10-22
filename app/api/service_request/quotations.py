@@ -7,6 +7,10 @@ from ...models import (CarrierCompany, ServiceRequest, ServiceRequestCarrierDecl
                        ServiceRequestPayment, ServiceRequestQuotation)
 from .validation import InvalidRequest
 
+# Qué es cada fila de service_request_payments (migración 032).
+RESERVATION = 'reservation'
+CARRIER_CASH = 'carrier_cash'
+
 MAX_AMOUNT = Decimal('100000')
 MAX_NOTE = 500
 CENTS = Decimal('0.01')
@@ -132,6 +136,10 @@ def select_quotation(service_request_id, quotation_id, admin_user_id, replace=Tr
         return quotation  # idempotente: no cambia selected_at
     if not replace and any(q.status == 'selected' for q in service_request.quotations):
         raise QuotationError('another quotation was already selected', 409)
+    # Con el saldo cobrado el trabajo ya se hizo: cambiar de transportista
+    # dejaría ese pago colgado de una cotización que ya no es la elegida.
+    if any(p.concept == CARRIER_CASH and p.status == 'paid' for p in service_request.payments):
+        raise QuotationError('the job is already completed', 409)
 
     rate = platform_fee_rate()
     for other in service_request.quotations:
@@ -163,10 +171,15 @@ def split_total(quotation, rate):
     return total, total - on_site, on_site
 
 
+def _live(service_request, quotation_id, concept):
+    return next((p for p in reversed(service_request.payments)
+                 if p.concept == concept and p.service_request_quotation_id == quotation_id
+                 and p.status != 'cancelled'), None)
+
+
 def live_reservation(service_request, quotation_id):
     """La reserva por verificar o ya pagada de esa cotización, o None."""
-    return next((p for p in reversed(service_request.payments)
-                 if p.service_request_quotation_id == quotation_id and p.status != 'cancelled'), None)
+    return _live(service_request, quotation_id, RESERVATION)
 
 
 def record_reservation(service_request, quotation, reference):
@@ -184,7 +197,7 @@ def record_reservation(service_request, quotation, reference):
     _, amount, _ = split_total(quotation, quotation.platform_fee_rate)
     reservation = ServiceRequestPayment(
         service_request_id=service_request.id, service_request_quotation_id=quotation.id,
-        amount=amount, reference=reference)
+        concept=RESERVATION, amount=amount, reference=reference)
     db.session.add(reservation)
     db.session.commit()
     return reservation, True
@@ -195,7 +208,8 @@ def resolve_reservation(service_request_id, payment_id, status, admin_user_id):
     pending. Si no llegó y la cotización la había elegido el cliente, se libera
     la elección para que pueda volver a elegir (y a yapear)."""
     service_request = _lock_request(service_request_id)
-    payment = next((p for p in service_request.payments if p.id == payment_id), None)
+    payment = next((p for p in service_request.payments
+                    if p.id == payment_id and p.concept == RESERVATION), None)
     if payment is None:
         raise QuotationError('payment not found', 404)
     if payment.status != 'pending':
@@ -211,6 +225,68 @@ def resolve_reservation(service_request_id, payment_id, status, admin_user_id):
             _unfreeze(quotation)
     db.session.commit()
     return payment
+
+
+def _selected(service_request):
+    selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
+    if selected is None:
+        raise QuotationError('no quotation is selected', 409)
+    return selected
+
+
+def register_reservation(service_request_id, admin_user_id, reference=None):
+    """El admin registra una reserva que ya vio en Yape, para una elegida que no
+    tiene ninguna: la eligió él, o el trato se cerró por WhatsApp y el cliente
+    nunca informó su número en la página. Nace pagada. 409 si ya hay una viva:
+    esa se confirma o se rechaza, no se duplica."""
+    service_request = _lock_request(service_request_id)
+    quotation = _selected(service_request)
+    if live_reservation(service_request, quotation.id) is not None:
+        raise QuotationError('the selected quotation already has a reservation', 409)
+    _, amount, _ = split_total(quotation, quotation.platform_fee_rate)
+    reservation = ServiceRequestPayment(
+        service_request_id=service_request.id, service_request_quotation_id=quotation.id,
+        concept=RESERVATION, amount=amount, reference=reference or None, status='paid',
+        paid_at=datetime.utcnow(), confirmed_by_admin_id=admin_user_id)
+    db.session.add(reservation)
+    db.session.commit()
+    return reservation, quotation
+
+
+def record_carrier_cash(service_request_id, admin_user_id):
+    """El trabajo se hizo y el cliente le pagó al transportista su precio en el
+    lugar: es lo que deja la solicitud completada. Solo con la reserva pagada
+    (sin ella el trabajo nunca quedó en firme). Registrarlo otra vez devuelve el
+    mismo pago, no lo duplica."""
+    service_request = _lock_request(service_request_id)
+    quotation = _selected(service_request)
+    reservation = live_reservation(service_request, quotation.id)
+    if reservation is None or reservation.status != 'paid':
+        raise QuotationError('the reservation is not paid yet', 409)
+    existing = _live(service_request, quotation.id, CARRIER_CASH)
+    if existing is not None:
+        return existing
+    payment = ServiceRequestPayment(
+        service_request_id=service_request.id, service_request_quotation_id=quotation.id,
+        concept=CARRIER_CASH, amount=quotation.amount, status='paid',
+        paid_at=datetime.utcnow(), confirmed_by_admin_id=admin_user_id)
+    db.session.add(payment)
+    db.session.commit()
+    return payment
+
+
+def undo_carrier_cash(service_request_id):
+    """Se registró el saldo por error: la solicitud vuelve a en proceso. Se
+    cancela en vez de borrarse, como las reservas que no llegaron."""
+    service_request = _lock_request(service_request_id)
+    payment = next((p for p in reversed(service_request.payments)
+                    if p.concept == CARRIER_CASH and p.status != 'cancelled'), None)
+    if payment is None:
+        raise QuotationError('there is no carrier cash payment', 404)
+    payment.status = 'cancelled'
+    payment.paid_at = None
+    payment.confirmed_by_admin_id = None
+    db.session.commit()
 
 
 def confirmed_quotation(service_request):

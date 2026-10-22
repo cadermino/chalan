@@ -17,6 +17,10 @@ from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceMaterial, ServiceType, _iso, _money)
 
 STATUSES = ('draft', 'submitted', 'cancelled')
+# En qué va cada solicitud, para la lista (ver _stage). `active` agrupa las que
+# todavía piden algo de alguien: cotizar, elegir, verificar el yapeo o hacer el trabajo.
+STAGES = ('draft', 'waiting', 'quoted', 'deposit_pending', 'in_progress', 'completed', 'cancelled')
+ACTIVE_STAGES = ('waiting', 'quoted', 'deposit_pending', 'in_progress')
 TOKEN_PURPOSE = 'service_request'
 TOKEN_TTL = timedelta(days=10)
 LIST_LIMIT = 200
@@ -194,12 +198,38 @@ def _deposits(request_ids):
     deposits = {request_id: {'status': 'none', 'amount': None} for request_id in selected}
     live = (ServiceRequestPayment.query
             .filter(ServiceRequestPayment.service_request_id.in_(list(selected)),
+                    ServiceRequestPayment.concept == 'reservation',
                     ServiceRequestPayment.status != 'cancelled')
             .order_by(ServiceRequestPayment.id).all()) if selected else []
     for payment in live:
         if selected.get(payment.service_request_id) == payment.service_request_quotation_id:
             deposits[payment.service_request_id] = {'status': payment.status, 'amount': _money(payment.amount)}
     return deposits
+
+
+def _carrier_cash_paid(request_ids):
+    """Las solicitudes cuyo saldo en el lugar ya se registró: el trabajo se hizo."""
+    if not request_ids:
+        return set()
+    return {request_id for (request_id,) in
+            db.session.query(ServiceRequestPayment.service_request_id)
+            .filter(ServiceRequestPayment.service_request_id.in_(request_ids),
+                    ServiceRequestPayment.concept == 'carrier_cash',
+                    ServiceRequestPayment.status == 'paid').distinct()}
+
+
+def _stage(status, quotations_count, deposit, cash_paid):
+    """La etapa sale de lo que ya hay, no se guarda: borrador y cancelada son el
+    estado tal cual; una enviada espera cotizaciones, espera que el cliente elija,
+    espera la reserva (sin ella el trabajo no está en firme, también si la
+    eligió un admin), está en proceso, o terminó cuando se registró el saldo."""
+    if status in ('draft', 'cancelled'):
+        return status
+    if deposit is None:
+        return 'quoted' if quotations_count else 'waiting'
+    if deposit['status'] != 'paid':
+        return 'deposit_pending'
+    return 'completed' if cash_paid else 'in_progress'
 
 
 def _counts(model, request_ids):
@@ -223,15 +253,22 @@ def list_service_requests():
         if status not in STATUSES:
             return jsonify({'message': 'invalid status'}), 400
         query = query.filter_by(status=status)
+    stage = request.args.get('stage')
+    if stage:
+        if stage != 'active' and stage not in STAGES:
+            return jsonify({'message': 'invalid stage'}), 400
+        query = query.filter_by(status=stage if stage in ('draft', 'cancelled') else 'submitted')
     service_type = request.args.get('service_type')
     if service_type:
         query = query.join(ServiceType).filter(ServiceType.code == service_type)
-    rows = query.order_by(ServiceRequest.id.desc()).limit(LIST_LIMIT).all()
+    query = query.order_by(ServiceRequest.id.desc())
+    # La etapa se calcula, así que el filtro va después de leerlas: el tope se
+    # aplica a lo filtrado, no antes (cortaría las más viejas de una etapa).
+    rows = query.all() if stage else query.limit(LIST_LIMIT).all()
 
     ids = [r.id for r in rows]
-    items = _counts(ServiceRequestItem, ids)
-    notified = _counts(ServiceRequestNotification, ids)
     deposits = _deposits(ids)
+    cash_paid = _carrier_cash_paid(ids)
     quotations = {}
     if ids:
         for request_id, count, lowest in (
@@ -241,6 +278,14 @@ def list_service_requests():
             .group_by(ServiceRequestQuotation.service_request_id).all()
         ):
             quotations[request_id] = (count, _money(lowest))
+    stages = {r.id: _stage(r.status, quotations.get(r.id, (0, None))[0], deposits.get(r.id), r.id in cash_paid)
+              for r in rows}
+    if stage:
+        wanted = ACTIVE_STAGES if stage == 'active' else (stage,)
+        rows = [r for r in rows if stages[r.id] in wanted][:LIST_LIMIT]
+        ids = [r.id for r in rows]
+    items = _counts(ServiceRequestItem, ids)
+    notified = _counts(ServiceRequestNotification, ids)
     return jsonify({'service_requests': [
         {
             'id': r.id,
@@ -254,6 +299,7 @@ def list_service_requests():
             'quotations_count': quotations.get(r.id, (0, None))[0],
             'min_amount': quotations.get(r.id, (0, None))[1],
             'deposit': deposits.get(r.id),
+            'stage': stages[r.id],
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),
         }
@@ -281,8 +327,12 @@ def get_service_request(service_request_id):
     current_rate = _platform_fee_rate()
     declines = ServiceRequestCarrierDecline.query.filter_by(service_request_id=service_request.id) \
         .order_by(ServiceRequestCarrierDecline.updated_date.desc()).all()
+    stage = _stage(service_request.status, len(service_request.quotations),
+                   _deposits([service_request.id]).get(service_request.id),
+                   service_request.id in _carrier_cash_paid([service_request.id]))
     return jsonify({'service_request': {
         **service_request.to_dict_full(),
+        'stage': stage,
         'materials_summary': _materials_summary(service_request),
         'notifications': [n.to_dict() for n in service_request.notifications],
         'platform_fee_rate': float(current_rate),
@@ -518,3 +568,42 @@ def resolve_service_request_payment(service_request_id, payment_id):
     if res.status_code not in (200, 400, 404, 409):
         return jsonify({'message': 'failed to update the payment'}), 502
     return jsonify(res.json()), res.status_code
+
+
+def _forward_payment(method, path, body=None):
+    """Reenvía al API principal, dueño de los pagos y de los avisos. 400, 404 y
+    409 se devuelven tal cual para que la pantalla diga qué pasó."""
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            method, f'{internal_api}/api/v1{path}',
+            json={**(body or {}), 'admin_user_id': g.current_user.id},
+            headers=_internal_headers(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the payment service'}), 502
+    if res.status_code == 204:
+        return '', 204
+    if res.status_code not in (200, 201, 400, 404, 409):
+        return jsonify({'message': 'failed to update the payment'}), 502
+    return jsonify(res.json()), res.status_code
+
+
+@api.route('/service-requests/<int:service_request_id>/reservation', methods=['POST'])
+@admin_required
+def register_service_request_reservation(service_request_id):
+    """El admin registra una reserva que ya vio en Yape, para una elegida sin
+    reserva (la eligió él, o se cerró por WhatsApp). El API principal la crea
+    pagada y avisa al transportista y al cliente."""
+    operation_number = (request.get_json(silent=True) or {}).get('operation_number')
+    return _forward_payment('POST', f'/service-requests/{service_request_id}/reservation',
+                            {'operation_number': operation_number})
+
+
+@api.route('/service-requests/<int:service_request_id>/carrier-cash', methods=['POST', 'DELETE'])
+@admin_required
+def service_request_carrier_cash(service_request_id):
+    """El cliente le pagó al transportista en el lugar (POST): la solicitud queda
+    completada. DELETE lo deshace si se registró por error."""
+    return _forward_payment(request.method, f'/service-requests/{service_request_id}/carrier-cash')

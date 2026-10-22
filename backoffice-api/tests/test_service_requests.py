@@ -831,3 +831,127 @@ def test_bulk_cancel_requires_an_admin_role(client, submitted):
 
     assert res.status_code == 403
     assert db.session.get(ServiceRequest, submitted.id).status == 'submitted'
+
+
+# --- stages and recorded payments ---------------------------------------------------------
+
+def add_payment(service_request, quotation, concept='reservation', status='paid', amount=10):
+    db.session.add(ServiceRequestPayment(service_request_id=service_request.id,
+                                         service_request_quotation_id=quotation.id,
+                                         concept=concept, status=status, amount=amount))
+    db.session.commit()
+
+
+def stage_of(client, admin, service_request):
+    detail = client.get(f'/api/service-requests/{service_request.id}', headers=admin).get_json()['service_request']
+    [row] = [r for r in client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+             if r['id'] == service_request.id]
+    assert row['stage'] == detail['stage']
+    return row['stage']
+
+
+def test_the_stage_follows_quotations_reservation_and_carrier_cash(client, admin, submitted, packing):
+    assert stage_of(client, admin, submitted) == 'waiting'
+
+    quotation = make_quotation(submitted, make_carrier(packing), 100)
+    assert stage_of(client, admin, submitted) == 'quoted'
+
+    quotation.status, quotation.total_amount, quotation.platform_fee_rate = 'selected', 110, 0.1
+    db.session.commit()
+    # La eligió un admin y nadie registró la reserva: sin ella no está en firme.
+    assert stage_of(client, admin, submitted) == 'deposit_pending'
+
+    add_payment(submitted, quotation, status='pending')
+    assert stage_of(client, admin, submitted) == 'deposit_pending'
+
+    ServiceRequestPayment.query.one().status = 'paid'
+    db.session.commit()
+    assert stage_of(client, admin, submitted) == 'in_progress'
+
+    add_payment(submitted, quotation, concept='carrier_cash', amount=100)
+    assert stage_of(client, admin, submitted) == 'completed'
+
+    submitted.status = 'cancelled'
+    db.session.commit()
+    assert stage_of(client, admin, submitted) == 'cancelled'
+
+
+def test_the_carrier_cash_is_not_read_as_the_reservation(client, admin, submitted, packing):
+    quotation = make_quotation(submitted, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
+    add_payment(submitted, quotation, concept='carrier_cash', amount=100)
+
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+
+    assert row['deposit'] == {'status': 'none', 'amount': None}
+    assert row['stage'] == 'deposit_pending'
+
+
+def test_the_list_filters_by_stage(client, admin, submitted, packing):
+    done = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='submitted')
+    draft = ServiceRequest(public_id='f' * 32, service_type_id=packing.id, status='draft')
+    db.session.add_all([done, draft])
+    db.session.commit()
+    quotation = make_quotation(done, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
+    add_payment(done, quotation)
+    add_payment(done, quotation, concept='carrier_cash', amount=100)
+
+    def ids(stage):
+        res = client.get('/api/service-requests', query_string={'stage': stage}, headers=admin)
+        return [r['id'] for r in res.get_json()['service_requests']]
+
+    assert ids('active') == [submitted.id]
+    assert ids('waiting') == [submitted.id]
+    assert ids('completed') == [done.id]
+    assert ids('draft') == [draft.id]
+    assert ids('in_progress') == []
+    assert client.get('/api/service-requests', query_string={'stage': 'paid'}, headers=admin).status_code == 400
+
+
+def test_registering_a_reservation_forwards_the_number_and_the_admin(client, admin, submitted, monkeypatch):
+    seen = {}
+
+    def fake_request(method, url, json, headers, timeout):
+        seen.update(method=method, url=url, json=json)
+        return FakeResponse(201, {'id': 4, 'status': 'paid'})
+    monkeypatch.setattr('app.api.service_requests.requests.request', fake_request)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+
+    res = client.post(f'/api/service-requests/{submitted.id}/reservation', json={'operation_number': '5678'},
+                      headers=admin)
+
+    assert (res.status_code, res.get_json()) == (201, {'id': 4, 'status': 'paid'})
+    admin_id = AdminUser.query.filter_by(role='admin').first().id
+    assert seen == {'method': 'POST', 'url': f'http://flask-api:8001/api/v1/service-requests/{submitted.id}/reservation',
+                    'json': {'operation_number': '5678', 'admin_user_id': admin_id}}
+
+
+@pytest.mark.parametrize('method, answer, expected', [
+    ('POST', FakeResponse(200, {'id': 5, 'status': 'paid', 'amount': 100.0}), 200),
+    ('POST', FakeResponse(409, {'message': 'the reservation is not paid yet'}), 409),
+    ('DELETE', FakeResponse(204, None), 204),
+    ('DELETE', FakeResponse(500, {}), 502),
+])
+def test_the_carrier_cash_is_forwarded_to_the_main_api(client, admin, submitted, monkeypatch, method, answer, expected):
+    seen = {}
+
+    def fake_request(method, url, json, headers, timeout):
+        seen.update(method=method, url=url)
+        return answer
+    monkeypatch.setattr('app.api.service_requests.requests.request', fake_request)
+
+    res = client.open(f'/api/service-requests/{submitted.id}/carrier-cash', method=method, headers=admin)
+
+    assert res.status_code == expected
+    assert seen['method'] == method
+    assert seen['url'].endswith(f'/api/v1/service-requests/{submitted.id}/carrier-cash')
+
+
+def test_recording_payments_requires_an_admin_role(client, submitted, monkeypatch):
+    calls = []
+    monkeypatch.setattr('app.api.service_requests.requests.request', lambda *a, **k: calls.append(1))
+    carrier = make_carrier()
+    headers = make_user('carrier_company', carrier_company_id=carrier.id)
+
+    assert client.post(f'/api/service-requests/{submitted.id}/reservation', json={}, headers=headers).status_code == 403
+    assert client.post(f'/api/service-requests/{submitted.id}/carrier-cash', headers=headers).status_code == 403
+    assert calls == []

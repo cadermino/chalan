@@ -1413,3 +1413,135 @@ def test_no_contact_is_shown_before_choosing(client):
     service_request, _, _ = submitted_with_quote(client)
 
     assert customer_quotations(client, service_request.public_id).get_json()['carrier_contact'] is None
+
+
+# --- payments the admin records ----------------------------------------------------------
+
+def register_reservation(client, request_id, operation_number=None, internal=True):
+    body = {'admin_user_id': 7}
+    if operation_number is not None:
+        body['operation_number'] = operation_number
+    return client.post(f'/api/v1/service-requests/{request_id}/reservation', json=body,
+                       headers=internal_headers() if internal else {})
+
+
+def carrier_cash(client, request_id, method='post', internal=True):
+    return getattr(client, method)(f'/api/v1/service-requests/{request_id}/carrier-cash',
+                                   json={'admin_user_id': 7},
+                                   headers=internal_headers() if internal else {})
+
+
+def selected_by_admin(client, amount=100):
+    service_request, carrier, quotation_id = submitted_with_quote(client, amount=amount)
+    select(client, service_request.id, quotation_id)
+    return service_request, carrier, quotation_id
+
+
+def test_admin_payment_routes_require_the_internal_token(client):
+    service_request, _, _ = selected_by_admin(client)
+
+    assert register_reservation(client, service_request.id, internal=False).status_code == 403
+    assert carrier_cash(client, service_request.id, internal=False).status_code == 403
+    assert carrier_cash(client, service_request.id, method='delete', internal=False).status_code == 403
+    assert ServiceRequestPayment.query.count() == 0
+
+
+def test_the_admin_registers_the_reservation_of_a_quotation_they_chose(client, sent):
+    service_request, carrier, quotation_id = selected_by_admin(client)
+    sent['email'].clear()
+
+    response = register_reservation(client, service_request.id, operation_number='5678')
+
+    assert response.status_code == 201
+    payment = ServiceRequestPayment.query.one()
+    assert (payment.concept, payment.status, payment.amount, payment.reference) == (
+        'reservation', 'paid', 10, '5678')
+    assert (payment.confirmed_by_admin_id, payment.paid_at is not None) == (7, True)
+    [to_carrier] = sent['email']
+    assert (to_carrier['template'], to_carrier['on_site']) == ('email/service_request_chosen_carrier', 'S/ 100.00')
+    page = customer_quotations(client, service_request.public_id).get_json()
+    assert page['reservation'] == {'status': 'paid', 'amount': 10.0, 'reference': '5678'}
+
+
+def test_a_reservation_is_registered_once_and_without_a_number_too(client):
+    service_request, _, _ = selected_by_admin(client)
+
+    assert register_reservation(client, service_request.id).status_code == 201
+    assert ServiceRequestPayment.query.one().reference is None
+    assert register_reservation(client, service_request.id).status_code == 409
+
+
+def test_registering_a_reservation_needs_a_selected_quotation_and_an_unused_number(client, yape, order):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    payment_type = PaymentType(type='yape')
+    db.session.add(payment_type)
+    db.session.commit()
+    db.session.add(Payment(order_id=order.id, lu_payment_type_id=payment_type.id, amount=10,
+                           concept='reservation', status='paid', reference='7777'))
+    db.session.commit()
+
+    assert register_reservation(client, service_request.id).status_code == 409
+    select(client, service_request.id, quotation_id)
+    assert register_reservation(client, service_request.id, operation_number='12').status_code == 400
+    assert register_reservation(client, service_request.id, operation_number='7777').status_code == 409
+    assert ServiceRequestPayment.query.count() == 0
+
+
+def test_a_reservation_the_customer_reported_is_confirmed_not_registered_again(client, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+
+    assert register_reservation(client, service_request.id).status_code == 409
+
+
+def test_the_carrier_cash_is_recorded_only_once_the_reservation_is_paid(client, sent, yape):
+    service_request, _, quotation_id = submitted_with_quote(client, amount=100)
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+    reservation_id = ServiceRequestPayment.query.one().id
+
+    assert carrier_cash(client, service_request.id).status_code == 409
+    resolve(client, service_request.id, reservation_id, 'paid')
+    sent['email'].clear()
+    sent['whatsapp'].clear()
+
+    response = carrier_cash(client, service_request.id)
+
+    assert response.status_code == 200
+    assert response.get_json()['amount'] == 100.0
+    cash = ServiceRequestPayment.query.filter_by(concept='carrier_cash').one()
+    assert (cash.status, cash.service_request_quotation_id, cash.confirmed_by_admin_id) == ('paid', quotation_id, 7)
+    assert (sent['email'], sent['whatsapp']) == ([], [])
+    assert carrier_cash(client, service_request.id).get_json()['id'] == cash.id
+    page = customer_quotations(client, service_request.public_id).get_json()
+    assert page['reservation'] == {'status': 'paid', 'amount': 10.0, 'reference': '1234'}
+
+
+def test_the_carrier_cash_needs_a_selected_quotation(client):
+    service_request, _, _ = submitted_with_quote(client)
+
+    assert carrier_cash(client, service_request.id).status_code == 409
+
+
+def test_undoing_the_carrier_cash_cancels_it(client):
+    service_request, _, _ = selected_by_admin(client)
+    register_reservation(client, service_request.id)
+    carrier_cash(client, service_request.id)
+
+    assert carrier_cash(client, service_request.id, method='delete').status_code == 204
+
+    cash = ServiceRequestPayment.query.filter_by(concept='carrier_cash').one()
+    assert (cash.status, cash.paid_at, cash.confirmed_by_admin_id) == ('cancelled', None, None)
+    assert carrier_cash(client, service_request.id, method='delete').status_code == 404
+    assert carrier_cash(client, service_request.id).status_code == 200
+    assert ServiceRequestPayment.query.filter_by(concept='carrier_cash', status='paid').count() == 1
+
+
+def test_once_the_carrier_cash_is_paid_the_selection_cannot_change(client):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    other_id = quote(client, service_request.id, make_carrier('Otra SAC').id, amount=120).get_json()['id']
+    select(client, service_request.id, quotation_id)
+    register_reservation(client, service_request.id)
+    carrier_cash(client, service_request.id)
+
+    assert select(client, service_request.id, other_id).status_code == 409
+    assert db.session.get(ServiceRequestQuotation, quotation_id).status == 'selected'

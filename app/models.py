@@ -451,12 +451,15 @@ class OrderCarrierDecline(db.Model):
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
 class ServiceRequestPayment(db.Model):
-	"""La reserva que el cliente le yapea a Chalán al elegir una cotización
-	(migración 026). pending hasta que un admin encuentra el yapeo."""
+	"""La plata de una solicitud (migraciones 026 y 032). `reservation`: lo que el
+	cliente le yapea a Chalán al elegir, pending hasta que un admin encuentra el
+	yapeo. `carrier_cash`: lo que le paga al transportista el día del servicio,
+	que un admin registra al terminar el trabajo."""
 	__tablename__ = 'service_request_payments'
 	id = db.Column(db.Integer, primary_key=True)
 	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), nullable=False)
 	service_request_quotation_id = db.Column(db.Integer, db.ForeignKey('service_request_quotations.id', ondelete='CASCADE'), nullable=False)
+	concept = db.Column(db.String(20), nullable=False, server_default='reservation')  # reservation | carrier_cash
 	amount = db.Column(db.Numeric(10, 2), nullable=False)
 	status = db.Column(db.String(20), nullable=False, server_default='pending')  # pending | paid | cancelled
 	reference = db.Column(db.String(100))

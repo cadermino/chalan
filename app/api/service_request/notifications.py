@@ -299,7 +299,8 @@ def notify_job_confirmed(service_request, quotation, tell_customer):
     facts = _choice_facts(service_request, quotation)
     # Con la reserva pagada el cliente le paga al transportista su precio; sin
     # reserva le paga el total (y la comisión se le cobra al transportista aparte).
-    paid = any(p.status == 'paid' and p.service_request_quotation_id == quotation.id
+    paid = any(p.concept == 'reservation' and p.status == 'paid'
+               and p.service_request_quotation_id == quotation.id
                for p in service_request.payments)
     on_site = facts['amount'] if paid else facts['total']
     carrier = quotation.carrier_company

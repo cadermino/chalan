@@ -14,8 +14,9 @@ from .service_request.notifications import (
     contact_details, notify_customer_choice, notify_job_confirmed, notify_new_quotation, notify_service_request,
 )
 from .service_request.quotations import (
-    QuotationError, confirmed_quotation, live_reservation, parse_amount, parse_note, platform_fee_rate,
-    record_reservation, resolve_reservation, save_quotation, select_quotation, split_total,
+    RESERVATION, QuotationError, confirmed_quotation, live_reservation, parse_amount, parse_note,
+    platform_fee_rate, record_carrier_cash, record_reservation, register_reservation, resolve_reservation,
+    save_quotation, select_quotation, split_total, undo_carrier_cash,
 )
 from .service_request.types import SERVICE_TYPES
 from .service_request.validation import (
@@ -209,10 +210,11 @@ def _customer_quotation(quotation, rate):
 def _customer_reservation(service_request):
     """La reserva que importa en la página: la de la elegida, o la última
     cancelada si ya no hay elegida (no se encontró el yapeo y puede reintentar)."""
-    if not service_request.payments:
+    reservations = [p for p in service_request.payments if p.concept == RESERVATION]
+    if not reservations:
         return None
     selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
-    latest = service_request.payments[-1]
+    latest = reservations[-1]
     if selected is not None:
         latest = live_reservation(service_request, selected.id)
     elif latest.status != 'cancelled':
@@ -337,6 +339,52 @@ def resolve_service_request_payment(service_request_id, payment_id):
             except Exception as e:
                 current_app.logger.error(f'Confirmation notification error: {e}')
     return jsonify({'id': payment.id, 'status': payment.status}), 200
+
+
+def _admin_user_id(data):
+    admin_user_id = data.get('admin_user_id')
+    if admin_user_id is not None and (isinstance(admin_user_id, bool) or not isinstance(admin_user_id, int)):
+        raise InvalidRequest('admin_user_id must be an id')
+    return admin_user_id
+
+
+@api.route('/service-requests/<int:service_request_id>/reservation', methods=['POST'])
+def register_service_request_reservation(service_request_id):
+    """El admin registra una reserva que ya vio en Yape, para una elegida sin
+    reserva (la eligió él, o se cerró por WhatsApp). Interno. Pone el trabajo en
+    firme y avisa al transportista y al cliente, igual que confirmar un yapeo.
+    El número de operación es opcional; si viene, no puede estar usado."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    data = request.get_json(silent=True) or {}
+    admin_user_id = _admin_user_id(data)
+    number = clean_operation_number(data.get('operation_number'))
+    if number:
+        if not is_valid_operation_number(number):
+            return _message('invalid_operation_number', 400)
+        if operation_number_in_use(number, service_request_id=service_request_id):
+            return _message('operation_number_already_used', 409)
+
+    payment, quotation = register_reservation(service_request_id, admin_user_id, number)
+    try:
+        notify_job_confirmed(payment.service_request, quotation, tell_customer=True)
+    except Exception as e:
+        current_app.logger.error(f'Confirmation notification error: {e}')
+    return jsonify({'id': payment.id, 'status': payment.status}), 201
+
+
+@api.route('/service-requests/<int:service_request_id>/carrier-cash', methods=['POST', 'DELETE'])
+def service_request_carrier_cash(service_request_id):
+    """El admin registra que el cliente le pagó al transportista en el lugar
+    (POST), lo que deja la solicitud completada, o lo deshace (DELETE). Interno.
+    No avisa a nadie: lo cuentan ellos."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    if request.method == 'DELETE':
+        undo_carrier_cash(service_request_id)
+        return '', 204
+    payment = record_carrier_cash(service_request_id, _admin_user_id(request.get_json(silent=True) or {}))
+    return jsonify({'id': payment.id, 'status': payment.status, 'amount': float(payment.amount)}), 200
 
 
 @api.route('/service-requests/<public_id>', methods=['PATCH'])
