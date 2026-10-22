@@ -18,6 +18,7 @@ from .service_request.quotations import (
     platform_fee_rate, record_carrier_cash, record_reservation, register_reservation, resolve_reservation,
     save_quotation, select_quotation, split_total, undo_carrier_cash,
 )
+from .service_request.statuses import CANCELLED, PENDING, is_draft
 from .service_request.types import SERVICE_TYPES
 from .service_request.validation import (
     MAX_MEDIA, InvalidRequest, validate_address, validate_items,
@@ -101,6 +102,7 @@ def _serialize(service_request):
         'public_id': service_request.public_id,
         'service_type': service_request.service_type.code,
         'status': service_request.status,
+        'submitted': service_request.submitted_at is not None,
         'address': _address_dict(service_request),
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
         'whatsapp': service_request.whatsapp,
@@ -175,7 +177,7 @@ def create_service_request():
         public_id=uuid.uuid4().hex,
         service_type_id=service_type.id,
         country_id=int(country_id) if country_id else None,
-        status='draft',
+        status=PENDING,
         details={},
     )
     _set_address(service_request, address)
@@ -245,7 +247,7 @@ def get_customer_quotations(public_id):
     """La página de cotizaciones del cliente. Un borrador da 404: el link recién
     existe cuando la solicitud se envió."""
     service_request = _find_request(public_id)
-    if service_request is None or service_request.status == 'draft':
+    if service_request is None or is_draft(service_request):
         return _message('service request not found', 404)
     rate = platform_fee_rate()
     quotations = sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
@@ -282,7 +284,7 @@ def choose_service_request_quotation(public_id):
     if isinstance(quotation_id, bool) or not isinstance(quotation_id, int):
         raise InvalidRequest('quotation_id is required')
     service_request = _find_request(public_id)
-    if service_request is None or service_request.status == 'draft':
+    if service_request is None or is_draft(service_request):
         return _message('service request not found', 404)
     target = next((q for q in service_request.quotations if q.id == quotation_id), None)
     if target is None:
@@ -392,7 +394,7 @@ def update_service_request(public_id):
     service_request = _find_request(public_id)
     if service_request is None:
         return _message('service request not found', 404)
-    if service_request.status != 'draft':
+    if not is_draft(service_request):
         return _message('service request is no longer a draft', 409)
 
     data = request.get_json(silent=True) or {}
@@ -421,7 +423,7 @@ def presign_service_request_media(public_id):
     service_request = _find_request(public_id)
     if service_request is None:
         return _message('service request not found', 404)
-    if service_request.status != 'draft':
+    if not is_draft(service_request):
         return _message('service request is no longer a draft', 409)
 
     data = request.get_json(silent=True) or {}
@@ -441,7 +443,7 @@ def register_service_request_media(public_id):
     service_request = _find_request(public_id)
     if service_request is None:
         return _message('service request not found', 404)
-    if service_request.status != 'draft':
+    if not is_draft(service_request):
         return _message('service request is no longer a draft', 409)
 
     data = request.get_json(silent=True) or {}
@@ -494,7 +496,7 @@ def delete_service_request_media(public_id, media_id):
     service_request = _find_request(public_id)
     if service_request is None:
         return _message('service request not found', 404)
-    if service_request.status != 'draft':
+    if not is_draft(service_request):
         return _message('service request is no longer a draft', 409)
 
     media = ServiceRequestMedia.query.filter_by(
@@ -519,10 +521,10 @@ def submit_service_request(public_id):
     service_request = _find_request(public_id, for_update=True)
     if service_request is None:
         return _message('service request not found', 404)
-    if service_request.status == 'submitted':
-        return jsonify(_serialize(service_request)), 200
-    if service_request.status != 'draft':
+    if service_request.status == CANCELLED:
         return _message('service request was cancelled', 409)
+    if not is_draft(service_request):
+        return jsonify(_serialize(service_request)), 200
 
     data = request.get_json(silent=True) or {}
 
@@ -544,7 +546,6 @@ def submit_service_request(public_id):
     _set_address(service_request, address)
     service_request.preferred_date = preferred_date
     service_request.whatsapp = whatsapp
-    service_request.status = 'submitted'
     service_request.submitted_at = datetime.utcnow()
     db.session.commit()
 
@@ -601,7 +602,7 @@ def create_manual_service_request():
         public_id=uuid.uuid4().hex,
         service_type_id=service_type.id,
         country_id=int(country_id) if country_id else None,
-        status='submitted',
+        status=PENDING,
         whatsapp=whatsapp,
         preferred_date=preferred_date,
         submitted_at=datetime.utcnow(),
@@ -635,7 +636,7 @@ def notify_service_request_carriers(service_request_id):
     service_request = db.session.get(ServiceRequest, service_request_id)
     if service_request is None:
         return _message('service request not found', 404)
-    if service_request.status != 'submitted':
+    if is_draft(service_request) or service_request.status == CANCELLED:
         return _message('only submitted requests can be sent to carriers', 409)
 
     notified = notify_service_request(service_request, notify_admin=False)

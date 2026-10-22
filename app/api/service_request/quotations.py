@@ -5,6 +5,8 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from ... import db
 from ...models import (CarrierCompany, ServiceRequest, ServiceRequestCarrierDecline,
                        ServiceRequestPayment, ServiceRequestQuotation)
+from ..order.order import yape_reservation_required
+from .statuses import CANCELLED, COMPLETED, IN_PROGRESS, PENDING, is_draft
 from .validation import InvalidRequest
 
 # Qué es cada fila de service_request_payments (migración 032).
@@ -76,9 +78,9 @@ def _lock_request(service_request_id):
     )
     if service_request is None:
         raise QuotationError('service request not found', 404)
-    if service_request.status == 'draft':
+    if is_draft(service_request):
         raise QuotationError('service request was not sent yet', 409)
-    if service_request.status == 'cancelled':
+    if service_request.status == CANCELLED:
         raise QuotationError('service request was cancelled', 409)
     return service_request
 
@@ -155,6 +157,7 @@ def select_quotation(service_request_id, quotation_id, admin_user_id, replace=Tr
     quotation.total_amount = total_with_fee(quotation.amount, rate)
     quotation.selected_at = datetime.utcnow()
     quotation.selected_by_admin_id = admin_user_id
+    sync_status(service_request)
     db.session.commit()
     return quotation
 
@@ -196,9 +199,9 @@ def record_reservation(service_request, quotation, reference):
         return reservation, False
     _, amount, _ = split_total(quotation, quotation.platform_fee_rate)
     reservation = ServiceRequestPayment(
-        service_request_id=service_request.id, service_request_quotation_id=quotation.id,
-        concept=RESERVATION, amount=amount, reference=reference)
-    db.session.add(reservation)
+        service_request_quotation_id=quotation.id, concept=RESERVATION, amount=amount, reference=reference)
+    service_request.payments.append(reservation)
+    sync_status(service_request)
     db.session.commit()
     return reservation, True
 
@@ -223,6 +226,7 @@ def resolve_reservation(service_request_id, payment_id, status, admin_user_id):
         quotation = db.session.get(ServiceRequestQuotation, payment.service_request_quotation_id)
         if quotation is not None and quotation.status == 'selected' and quotation.selected_by_admin_id is None:
             _unfreeze(quotation)
+    sync_status(service_request)
     db.session.commit()
     return payment
 
@@ -245,10 +249,11 @@ def register_reservation(service_request_id, admin_user_id, reference=None):
         raise QuotationError('the selected quotation already has a reservation', 409)
     _, amount, _ = split_total(quotation, quotation.platform_fee_rate)
     reservation = ServiceRequestPayment(
-        service_request_id=service_request.id, service_request_quotation_id=quotation.id,
-        concept=RESERVATION, amount=amount, reference=reference or None, status='paid',
-        paid_at=datetime.utcnow(), confirmed_by_admin_id=admin_user_id)
-    db.session.add(reservation)
+        service_request_quotation_id=quotation.id, concept=RESERVATION, amount=amount,
+        reference=reference or None, status='paid', paid_at=datetime.utcnow(),
+        confirmed_by_admin_id=admin_user_id)
+    service_request.payments.append(reservation)
+    sync_status(service_request)
     db.session.commit()
     return reservation, quotation
 
@@ -267,10 +272,10 @@ def record_carrier_cash(service_request_id, admin_user_id):
     if existing is not None:
         return existing
     payment = ServiceRequestPayment(
-        service_request_id=service_request.id, service_request_quotation_id=quotation.id,
-        concept=CARRIER_CASH, amount=quotation.amount, status='paid',
-        paid_at=datetime.utcnow(), confirmed_by_admin_id=admin_user_id)
-    db.session.add(payment)
+        service_request_quotation_id=quotation.id, concept=CARRIER_CASH, amount=quotation.amount,
+        status='paid', paid_at=datetime.utcnow(), confirmed_by_admin_id=admin_user_id)
+    service_request.payments.append(payment)
+    sync_status(service_request)
     db.session.commit()
     return payment
 
@@ -286,7 +291,29 @@ def undo_carrier_cash(service_request_id):
     payment.status = 'cancelled'
     payment.paid_at = None
     payment.confirmed_by_admin_id = None
+    sync_status(service_request)
     db.session.commit()
+
+
+def sync_status(service_request):
+    """Pone el estado que corresponde a la elección y los pagos, como una orden:
+    pending hasta que el trabajo queda en firme (la reserva pagada, o elegida por
+    el cliente cuando no hace falta reserva), in_progress desde ahí, completed con
+    el saldo registrado. Una cancelada no se toca. No hace commit."""
+    if service_request.status == CANCELLED:
+        return
+    selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
+    status = PENDING
+    if selected is not None:
+        reservation = live_reservation(service_request, selected.id)
+        _, amount, _ = split_total(selected, selected.platform_fee_rate)
+        without_reservation = (reservation is None and selected.selected_by_admin_id is None
+                               and not (yape_reservation_required() and amount > 0))
+        if _live(service_request, selected.id, CARRIER_CASH) is not None:
+            status = COMPLETED
+        elif (reservation is not None and reservation.status == 'paid') or without_reservation:
+            status = IN_PROGRESS
+    service_request.status = status
 
 
 def confirmed_quotation(service_request):

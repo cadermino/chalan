@@ -323,7 +323,7 @@ class ServiceRequest(db.Model):
 	public_id = db.Column(db.String(32), nullable=False, unique=True)
 	service_type_id = db.Column(db.Integer, db.ForeignKey('lu_service_types.id'), nullable=False)
 	country_id = db.Column(db.Integer, db.ForeignKey('lu_country.id'), nullable=True)
-	status = db.Column(db.String(20), nullable=False, server_default='draft')  # draft | submitted | cancelled
+	status = db.Column(db.String(20), nullable=False, server_default='pending')  # pending | in_progress | completed | cancelled (service_request/statuses.py)
 	whatsapp = db.Column(db.String(20))
 	preferred_date = db.Column(db.Date)
 	street = db.Column(db.String(200))

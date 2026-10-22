@@ -70,7 +70,7 @@ export function RequestProvider({ children }) {
     }
     getRequest(publicId)
       .then((data) => {
-        if (data.status !== 'draft') {
+        if (data.submitted || data.status === 'cancelled') {
           storage.remove(STORAGE_KEY)
           return
         }

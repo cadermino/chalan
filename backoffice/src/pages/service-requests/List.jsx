@@ -5,19 +5,38 @@ import CopyButton from '../../components/CopyButton'
 import StatusIcon from '../../components/StatusIcon'
 import { formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 
-import { STAGES, stageLabel } from '../../lib/serviceRequestStages'
-
-// Mismo patrón que la lista de órdenes: cada etapa tiene su color e ícono, en el
-// botón de filtro y en la columna Etapa.
-const FILTERS = ['active', 'waiting', 'quoted', 'deposit_pending', 'in_progress', 'completed', 'draft', 'cancelled', 'all']
-  .map((key) => ({ key, ...STAGES[key] }))
-
-const HINTS = {
-  quoted: 'Tienen cotizaciones y el cliente todavía no eligió ninguna. Los que ya tienen una elegida pasan a Adelanto pendiente o En proceso.',
-  draft: 'Clientes que empezaron el formulario y no lo terminaron: aún no se avisó a ningún transportista.',
-  deposit_pending: 'Tienen una cotización elegida pero el adelanto no está confirmado: verifica el yapeo o regístralo desde el detalle.',
-  in_progress: 'Con el adelanto pagado. Cuando el cliente le pague el saldo al transportista, regístralo en el detalle y queda completado.',
+// Los mismos estados y filtros que la lista de órdenes: cada estado tiene su
+// color e ícono, en el botón de filtro y en la columna Estado. Las clases van
+// completas porque Tailwind solo genera las que encuentra literales en el código.
+// Un borrador (el cliente no terminó el formulario) es un pendiente sin enviar.
+const STATUSES = {
+  all: {
+    label: 'Todos', icon: 'list',
+    active: 'bg-gray-700 border-gray-700 text-white',
+    idle: 'border-gray-300 text-gray-600 hover:bg-gray-50',
+  },
+  pending: {
+    label: 'Pendiente', icon: 'clock', color: 'text-amber-500',
+    active: 'bg-amber-500 border-amber-500 text-white',
+    idle: 'border-amber-300 text-amber-700 hover:bg-amber-50',
+  },
+  in_progress: {
+    label: 'En progreso', icon: 'truck', color: 'text-blue-600',
+    active: 'bg-blue-600 border-blue-600 text-white',
+    idle: 'border-blue-300 text-blue-700 hover:bg-blue-50',
+  },
+  completed: {
+    label: 'Completado', icon: 'check', color: 'text-green-600',
+    active: 'bg-green-600 border-green-600 text-white',
+    idle: 'border-green-300 text-green-700 hover:bg-green-50',
+  },
+  cancelled: {
+    label: 'Cancelado', icon: 'cross', color: 'text-red-500',
+    active: 'bg-red-500 border-red-500 text-white',
+    idle: 'border-red-300 text-red-700 hover:bg-red-50',
+  },
 }
+const FILTERS = ['all', 'pending', 'in_progress', 'completed', 'cancelled'].map((key) => ({ key, ...STATUSES[key] }))
 
 function shortDay(iso) {
   if (!iso) return '—'
@@ -54,7 +73,7 @@ function DepositCell({ deposit }) {
 const canBulkCancel = (r) => r.status !== 'cancelled' && !r.deposit
 
 export default function ServiceRequestsList() {
-  const [stage, setStage] = useState('active')
+  const [status, setStatus] = useState('pending')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(() => new Set())
@@ -65,7 +84,7 @@ export default function ServiceRequestsList() {
 
   const load = () => {
     setLoading(true)
-    return client.get('/api/service-requests', { params: stage === 'all' ? {} : { stage } })
+    return client.get('/api/service-requests', { params: status === 'all' ? {} : { status } })
       .then(({ data }) => setRows(data.service_requests))
       .finally(() => setLoading(false))
   }
@@ -76,7 +95,7 @@ export default function ServiceRequestsList() {
     setSelected(new Set())
     setConfirmingCancel(false)
     load()
-  }, [stage])
+  }, [status])
 
   const selectableIds = rows.filter(canBulkCancel).map((r) => r.id)
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id))
@@ -134,16 +153,15 @@ export default function ServiceRequestsList() {
           <button
             key={f.key}
             type="button"
-            onClick={() => setStage(f.key)}
-            aria-pressed={stage === f.key}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${stage === f.key ? f.active : f.idle}`}
+            onClick={() => setStatus(f.key)}
+            aria-pressed={status === f.key}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${status === f.key ? f.active : f.idle}`}
           >
             <StatusIcon icon={f.icon} />
             {f.label}
           </button>
         ))}
       </div>
-      {HINTS[stage] && <p className="mb-4 text-sm text-gray-500">{HINTS[stage]}</p>}
 
       {bulkResult && (
         <div className={`mb-4 flex items-start justify-between gap-4 rounded-lg border p-3 text-sm ${
@@ -239,13 +257,13 @@ export default function ServiceRequestsList() {
                 <th className="px-4 py-3 text-left">Cotizaciones</th>
                 <th className="px-4 py-3 text-left">Desde</th>
                 <th className="px-4 py-3 text-left">Adelanto</th>
-                <th className="px-4 py-3 text-left">Etapa</th>
-                <th className="px-4 py-3 text-left">{stage === 'draft' ? 'Creada' : stage === 'all' ? 'Enviada / creada' : 'Enviada'}</th>
+                <th className="px-4 py-3 text-center">Estado</th>
+                <th className="px-4 py-3 text-left">Enviado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {!loading && rows.map((r) => {
-                const state = STAGES[r.stage]
+                const state = STATUSES[r.status]
                 const selectable = canBulkCancel(r)
                 return (
                   <tr key={r.id} className={selected.has(r.id) ? 'bg-teal-50' : 'hover:bg-gray-50'}>
@@ -285,15 +303,19 @@ export default function ServiceRequestsList() {
                     <td className="px-4 py-3 text-gray-700">{r.quotations_count}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{formatMoney(r.min_amount)}</td>
                     <td className="px-4 py-3"><DepositCell deposit={r.deposit} /></td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       {state ? (
-                        <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${state.badge}`}>
-                          <StatusIcon icon={state.icon} size={14} />
-                          {stageLabel(r.stage)}
+                        <span className={`inline-flex ${state.color}`} title={state.label}>
+                          <StatusIcon icon={state.icon} size={18} />
+                          <span className="sr-only">{state.label}</span>
                         </span>
-                      ) : r.stage}
+                      ) : r.status}
                     </td>
-                    <td className="px-4 py-3 text-gray-400">{formatTimestamp(r.status === 'draft' ? r.created_date : r.submitted_at)}</td>
+                    <td className="px-4 py-3 text-gray-400">
+                      {r.submitted_at
+                        ? formatTimestamp(r.submitted_at)
+                        : <span title={`Creado ${formatTimestamp(r.created_date)}`}>Sin enviar</span>}
+                    </td>
                   </tr>
                 )
               })}

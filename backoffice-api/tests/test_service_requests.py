@@ -48,7 +48,7 @@ def materials(packing):
 @pytest.fixture
 def submitted(packing, materials):
     service_request = ServiceRequest(
-        public_id='a' * 32, service_type_id=packing.id, status='submitted', whatsapp='+51987654321',
+        public_id='a' * 32, service_type_id=packing.id, status='pending', whatsapp='+51987654321',
         preferred_date=date(2026, 10, 20), street='Av. Javier Prado 123', neighborhood='San Isidro',
         country='PE', map_url='https://maps.google.com/?cid=1', submitted_at=datetime(2026, 10, 5, 12, 0))
     service_request.items = [
@@ -107,13 +107,13 @@ def test_list_requires_an_admin_role(client, submitted):
 
 
 def test_list_filters_by_status_and_counts_related_rows(client, admin, submitted, packing):
-    db.session.add(ServiceRequest(public_id='b' * 32, service_type_id=packing.id, status='draft'))
+    db.session.add(ServiceRequest(public_id='b' * 32, service_type_id=packing.id, status='cancelled'))
     carrier = make_carrier(packing)
     db.session.add(ServiceRequestNotification(service_request_id=submitted.id, carrier_company_id=carrier.id))
     db.session.commit()
 
     everything = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
-    only_submitted = client.get('/api/service-requests?status=submitted', headers=admin).get_json()['service_requests']
+    only_submitted = client.get('/api/service-requests?status=pending', headers=admin).get_json()['service_requests']
 
     assert len(everything) == 2
     assert [r['id'] for r in only_submitted] == [submitted.id]
@@ -165,12 +165,12 @@ def test_admin_can_cancel_a_request(client, admin, submitted):
     assert db.session.get(ServiceRequest, submitted.id).status == 'cancelled'
 
 
-@pytest.mark.parametrize('body', [{'status': 'draft'}, {'status': 'submitted'}, {'whatsapp': '+51999999999'}, {}])
+@pytest.mark.parametrize('body', [{'status': 'pending'}, {'status': 'completed'}, {'whatsapp': '+51999999999'}, {}])
 def test_only_cancelling_is_allowed(client, admin, submitted, body):
     res = client.patch(f'/api/service-requests/{submitted.id}', json=body, headers=admin)
 
     assert res.status_code == 400
-    assert db.session.get(ServiceRequest, submitted.id).status == 'submitted'
+    assert db.session.get(ServiceRequest, submitted.id).status == 'pending'
 
 
 # --- resend through the main API ----------------------------------------------
@@ -278,7 +278,7 @@ def test_link_to_a_missing_request_is_404(client):
 
 
 def test_link_to_a_draft_is_404(client, packing):
-    draft = ServiceRequest(public_id='c' * 32, service_type_id=packing.id, status='draft')
+    draft = ServiceRequest(public_id='c' * 32, service_type_id=packing.id, status='pending')
     db.session.add(draft)
     db.session.commit()
 
@@ -556,7 +556,7 @@ def test_sending_a_price_is_502_when_the_main_api_is_down_or_answers_oddly(clien
 
 def test_sending_a_price_checks_the_link_and_never_answers_401(client, submitted, packing, monkeypatch):
     carrier = make_carrier(packing)
-    draft = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='draft')
+    draft = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='pending')
     db.session.add(draft)
     db.session.commit()
     expired = carrier_token(submitted.id, carrier.id, exp=datetime.now(timezone.utc) - timedelta(minutes=1))
@@ -618,7 +618,7 @@ def test_list_shows_how_many_quotations_and_the_lowest(client, admin, submitted,
     one, two = make_carrier(packing, name='Uno SAC'), make_carrier(packing, name='Dos SAC')
     make_quotation(submitted, one, 250)
     make_quotation(submitted, two, 180.5)
-    empty = ServiceRequest(public_id='e' * 32, service_type_id=packing.id, status='submitted')
+    empty = ServiceRequest(public_id='e' * 32, service_type_id=packing.id, status='pending', submitted_at=datetime(2026, 10, 5))
     db.session.add(empty)
     db.session.commit()
 
@@ -723,7 +723,7 @@ def test_detail_has_the_customer_link_and_who_chose(client, admin, submitted, pa
 
 
 def test_a_draft_has_no_customer_link(client, admin, submitted):
-    submitted.status = 'draft'
+    submitted.submitted_at = None
     db.session.commit()
 
     data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
@@ -794,9 +794,9 @@ def test_list_shows_the_deposit_like_orders(client, admin, submitted, packing):
 
 
 def test_bulk_cancel_skips_cancelled_assigned_and_missing_requests(client, admin, submitted, packing):
-    assigned = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='submitted')
+    assigned = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='pending', submitted_at=datetime(2026, 10, 5))
     done = ServiceRequest(public_id='e' * 32, service_type_id=packing.id, status='cancelled')
-    draft = ServiceRequest(public_id='f' * 32, service_type_id=packing.id, status='draft')
+    draft = ServiceRequest(public_id='f' * 32, service_type_id=packing.id, status='pending')
     db.session.add_all([assigned, done, draft])
     db.session.commit()
     make_quotation(assigned, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
@@ -814,7 +814,7 @@ def test_bulk_cancel_skips_cancelled_assigned_and_missing_requests(client, admin
         ],
     }
     assert (db.session.get(ServiceRequest, submitted.id).status, db.session.get(ServiceRequest, assigned.id).status) == (
-        'cancelled', 'submitted')
+        'cancelled', 'pending')
 
 
 @pytest.mark.parametrize('body', [{}, {'service_request_ids': []}, {'service_request_ids': ['1']},
@@ -830,50 +830,16 @@ def test_bulk_cancel_requires_an_admin_role(client, submitted):
     res = client.post('/api/service-requests/bulk-cancel', headers=headers, json={'service_request_ids': [submitted.id]})
 
     assert res.status_code == 403
-    assert db.session.get(ServiceRequest, submitted.id).status == 'submitted'
+    assert db.session.get(ServiceRequest, submitted.id).status == 'pending'
 
 
-# --- stages and recorded payments ---------------------------------------------------------
+# --- recorded payments ------------------------------------------------------------------
 
 def add_payment(service_request, quotation, concept='reservation', status='paid', amount=10):
     db.session.add(ServiceRequestPayment(service_request_id=service_request.id,
                                          service_request_quotation_id=quotation.id,
                                          concept=concept, status=status, amount=amount))
     db.session.commit()
-
-
-def stage_of(client, admin, service_request):
-    detail = client.get(f'/api/service-requests/{service_request.id}', headers=admin).get_json()['service_request']
-    [row] = [r for r in client.get('/api/service-requests', headers=admin).get_json()['service_requests']
-             if r['id'] == service_request.id]
-    assert row['stage'] == detail['stage']
-    return row['stage']
-
-
-def test_the_stage_follows_quotations_reservation_and_carrier_cash(client, admin, submitted, packing):
-    assert stage_of(client, admin, submitted) == 'waiting'
-
-    quotation = make_quotation(submitted, make_carrier(packing), 100)
-    assert stage_of(client, admin, submitted) == 'quoted'
-
-    quotation.status, quotation.total_amount, quotation.platform_fee_rate = 'selected', 110, 0.1
-    db.session.commit()
-    # La eligió un admin y nadie registró la reserva: sin ella no está en firme.
-    assert stage_of(client, admin, submitted) == 'deposit_pending'
-
-    add_payment(submitted, quotation, status='pending')
-    assert stage_of(client, admin, submitted) == 'deposit_pending'
-
-    ServiceRequestPayment.query.one().status = 'paid'
-    db.session.commit()
-    assert stage_of(client, admin, submitted) == 'in_progress'
-
-    add_payment(submitted, quotation, concept='carrier_cash', amount=100)
-    assert stage_of(client, admin, submitted) == 'completed'
-
-    submitted.status = 'cancelled'
-    db.session.commit()
-    assert stage_of(client, admin, submitted) == 'cancelled'
 
 
 def test_the_carrier_cash_is_not_read_as_the_reservation(client, admin, submitted, packing):
@@ -883,28 +849,24 @@ def test_the_carrier_cash_is_not_read_as_the_reservation(client, admin, submitte
     [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
 
     assert row['deposit'] == {'status': 'none', 'amount': None}
-    assert row['stage'] == 'deposit_pending'
 
 
-def test_the_list_filters_by_stage(client, admin, submitted, packing):
-    done = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='submitted')
-    draft = ServiceRequest(public_id='f' * 32, service_type_id=packing.id, status='draft')
-    db.session.add_all([done, draft])
+def test_the_list_filters_by_the_order_statuses(client, admin, submitted, packing):
+    done = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='completed',
+                          submitted_at=datetime(2026, 10, 5))
+    working = ServiceRequest(public_id='f' * 32, service_type_id=packing.id, status='in_progress',
+                             submitted_at=datetime(2026, 10, 5))
+    db.session.add_all([done, working])
     db.session.commit()
-    quotation = make_quotation(done, make_carrier(packing), 100, status='selected', total=110, rate=0.1)
-    add_payment(done, quotation)
-    add_payment(done, quotation, concept='carrier_cash', amount=100)
 
-    def ids(stage):
-        res = client.get('/api/service-requests', query_string={'stage': stage}, headers=admin)
+    def ids(status):
+        res = client.get('/api/service-requests', query_string={'status': status}, headers=admin)
         return [r['id'] for r in res.get_json()['service_requests']]
 
-    assert ids('active') == [submitted.id]
-    assert ids('waiting') == [submitted.id]
+    assert ids('pending') == [submitted.id]
+    assert ids('in_progress') == [working.id]
     assert ids('completed') == [done.id]
-    assert ids('draft') == [draft.id]
-    assert ids('in_progress') == []
-    assert client.get('/api/service-requests', query_string={'stage': 'paid'}, headers=admin).status_code == 400
+    assert client.get('/api/service-requests', query_string={'status': 'submitted'}, headers=admin).status_code == 400
 
 
 def test_registering_a_reservation_forwards_the_number_and_the_admin(client, admin, submitted, monkeypatch):

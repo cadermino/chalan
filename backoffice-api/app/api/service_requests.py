@@ -16,11 +16,13 @@ from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
                       ServiceMaterial, ServiceType, _iso, _money)
 
-STATUSES = ('draft', 'submitted', 'cancelled')
-# En qué va cada solicitud, para la lista (ver _stage). `active` agrupa las que
-# todavía piden algo de alguien: cotizar, elegir, verificar el yapeo o hacer el trabajo.
-STAGES = ('draft', 'waiting', 'quoted', 'deposit_pending', 'in_progress', 'completed', 'cancelled')
-ACTIVE_STAGES = ('waiting', 'quoted', 'deposit_pending', 'in_progress')
+# Los mismos estados que una orden, como texto. Los escribe el API principal
+# (app/api/service_request/statuses.py); un borrador es un pending sin submitted_at.
+STATUSES = ('pending', 'in_progress', 'completed', 'cancelled')
+
+
+def _is_draft(service_request):
+    return service_request.status == 'pending' and service_request.submitted_at is None
 TOKEN_PURPOSE = 'service_request'
 TOKEN_TTL = timedelta(days=10)
 LIST_LIMIT = 200
@@ -89,7 +91,7 @@ def _quotation_for_admin(quotation, current_rate):
 def _customer_quotations_path(service_request):
     """La página donde el cliente ve y elige; None mientras sea borrador (da 404)."""
     form_path = FORM_PATHS.get(service_request.service_type.code if service_request.service_type else None)
-    if form_path is None or service_request.status == 'draft':
+    if form_path is None or _is_draft(service_request):
         return None
     return f'{form_path}/cotizaciones/{service_request.public_id}'
 
@@ -129,7 +131,7 @@ def _resolve_carrier_link(token):
 
     service_request = db.session.get(ServiceRequest, payload.get('service_request_id'))
     # Un borrador no se aviso a nadie: si el link llega a uno, no existe todavia.
-    if service_request is None or service_request.status == 'draft':
+    if service_request is None or _is_draft(service_request):
         return None, None, (jsonify({'message': 'invalid link'}), 404)
     return service_request, payload.get('carrier_company_id'), None
 
@@ -207,31 +209,6 @@ def _deposits(request_ids):
     return deposits
 
 
-def _carrier_cash_paid(request_ids):
-    """Las solicitudes cuyo saldo en el lugar ya se registró: el trabajo se hizo."""
-    if not request_ids:
-        return set()
-    return {request_id for (request_id,) in
-            db.session.query(ServiceRequestPayment.service_request_id)
-            .filter(ServiceRequestPayment.service_request_id.in_(request_ids),
-                    ServiceRequestPayment.concept == 'carrier_cash',
-                    ServiceRequestPayment.status == 'paid').distinct()}
-
-
-def _stage(status, quotations_count, deposit, cash_paid):
-    """La etapa sale de lo que ya hay, no se guarda: borrador y cancelada son el
-    estado tal cual; una enviada espera cotizaciones, espera que el cliente elija,
-    espera la reserva (sin ella el trabajo no está en firme, también si la
-    eligió un admin), está en proceso, o terminó cuando se registró el saldo."""
-    if status in ('draft', 'cancelled'):
-        return status
-    if deposit is None:
-        return 'quoted' if quotations_count else 'waiting'
-    if deposit['status'] != 'paid':
-        return 'deposit_pending'
-    return 'completed' if cash_paid else 'in_progress'
-
-
 def _counts(model, request_ids):
     """Cantidad de filas de `model` por solicitud, en una sola consulta."""
     if not request_ids:
@@ -253,22 +230,15 @@ def list_service_requests():
         if status not in STATUSES:
             return jsonify({'message': 'invalid status'}), 400
         query = query.filter_by(status=status)
-    stage = request.args.get('stage')
-    if stage:
-        if stage != 'active' and stage not in STAGES:
-            return jsonify({'message': 'invalid stage'}), 400
-        query = query.filter_by(status=stage if stage in ('draft', 'cancelled') else 'submitted')
     service_type = request.args.get('service_type')
     if service_type:
         query = query.join(ServiceType).filter(ServiceType.code == service_type)
-    query = query.order_by(ServiceRequest.id.desc())
-    # La etapa se calcula, así que el filtro va después de leerlas: el tope se
-    # aplica a lo filtrado, no antes (cortaría las más viejas de una etapa).
-    rows = query.all() if stage else query.limit(LIST_LIMIT).all()
+    rows = query.order_by(ServiceRequest.id.desc()).limit(LIST_LIMIT).all()
 
     ids = [r.id for r in rows]
+    items = _counts(ServiceRequestItem, ids)
+    notified = _counts(ServiceRequestNotification, ids)
     deposits = _deposits(ids)
-    cash_paid = _carrier_cash_paid(ids)
     quotations = {}
     if ids:
         for request_id, count, lowest in (
@@ -278,14 +248,6 @@ def list_service_requests():
             .group_by(ServiceRequestQuotation.service_request_id).all()
         ):
             quotations[request_id] = (count, _money(lowest))
-    stages = {r.id: _stage(r.status, quotations.get(r.id, (0, None))[0], deposits.get(r.id), r.id in cash_paid)
-              for r in rows}
-    if stage:
-        wanted = ACTIVE_STAGES if stage == 'active' else (stage,)
-        rows = [r for r in rows if stages[r.id] in wanted][:LIST_LIMIT]
-        ids = [r.id for r in rows]
-    items = _counts(ServiceRequestItem, ids)
-    notified = _counts(ServiceRequestNotification, ids)
     return jsonify({'service_requests': [
         {
             'id': r.id,
@@ -299,7 +261,6 @@ def list_service_requests():
             'quotations_count': quotations.get(r.id, (0, None))[0],
             'min_amount': quotations.get(r.id, (0, None))[1],
             'deposit': deposits.get(r.id),
-            'stage': stages[r.id],
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),
         }
@@ -327,12 +288,8 @@ def get_service_request(service_request_id):
     current_rate = _platform_fee_rate()
     declines = ServiceRequestCarrierDecline.query.filter_by(service_request_id=service_request.id) \
         .order_by(ServiceRequestCarrierDecline.updated_date.desc()).all()
-    stage = _stage(service_request.status, len(service_request.quotations),
-                   _deposits([service_request.id]).get(service_request.id),
-                   service_request.id in _carrier_cash_paid([service_request.id]))
     return jsonify({'service_request': {
         **service_request.to_dict_full(),
-        'stage': stage,
         'materials_summary': _materials_summary(service_request),
         'notifications': [n.to_dict() for n in service_request.notifications],
         'platform_fee_rate': float(current_rate),

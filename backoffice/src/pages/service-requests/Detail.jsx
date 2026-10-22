@@ -7,7 +7,6 @@ import ClientContact from '../../components/ClientContact'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
-import { STAGES, stageLabel } from '../../lib/serviceRequestStages'
 
 
 // El link se arma con el origen actual, así sirve igual en local y en producción.
@@ -25,7 +24,7 @@ function customerMessage(request, quotation) {
 function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
   const quotations = request.quotations || []
   // Con el saldo cobrado el trabajo ya se hizo: la API rechaza cambiar de transportista.
-  const canPick = request.status === 'submitted' && request.stage !== 'completed'
+  const canPick = !isDraft(request) && ['pending', 'in_progress'].includes(request.status)
   const selected = quotations.find((q) => q.status === 'selected')
   const lowest = quotations.length > 1 ? Math.min(...quotations.map((q) => q.amount)) : null
   const feePercent = Number((request.platform_fee_rate * 100).toFixed(2))
@@ -113,6 +112,17 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
   )
 }
 
+// Los mismos estados que una orden. Un pendiente sin submitted_at es un borrador:
+// el cliente no terminó el formulario y no se le avisó a nadie.
+const STATUS_LABEL = { pending: 'Pendiente', in_progress: 'En progreso', completed: 'Completado', cancelled: 'Cancelado' }
+const STATUS_STYLE = {
+  pending: 'bg-amber-50 text-amber-700',
+  in_progress: 'bg-blue-50 text-blue-700',
+  completed: 'bg-green-50 text-green-700',
+  cancelled: 'bg-red-50 text-red-700',
+}
+const isDraft = (request) => request.status === 'pending' && !request.submitted_at
+
 const CONCEPT_LABEL = { reservation: 'Reserva por Yape', carrier_cash: 'Saldo en efectivo al transportista' }
 const PAYMENT_LABEL = {
   reservation: { pending: 'Por verificar', paid: 'Confirmada', cancelled: 'No llegó' },
@@ -160,7 +170,7 @@ function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegist
     && p.quotation_id === selected.id && p.status !== 'cancelled')
   const reservation = live('reservation')
   const cash = live('carrier_cash')
-  const active = request.status === 'submitted'
+  const active = !isDraft(request) && request.status !== 'cancelled'
   const reservationAmount = selected ? selected.total_amount - selected.amount : null
 
   return (
@@ -441,9 +451,12 @@ export default function ServiceRequestDetail() {
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link to="/service-requests" className="text-sm text-teal-600 hover:underline">← Servicios</Link>
         <h1 className="text-2xl font-bold text-gray-900">Servicio #{request.id}</h1>
-        <span className={`rounded-full px-3 py-0.5 text-xs font-medium ${STAGES[request.stage]?.badge || 'bg-gray-200 text-gray-700'}`}>
-          {stageLabel(request.stage)}
+        <span className={`rounded-full px-3 py-0.5 text-xs font-medium ${STATUS_STYLE[request.status] || 'bg-gray-200 text-gray-700'}`}>
+          {STATUS_LABEL[request.status] || request.status}
         </span>
+        {isDraft(request) && (
+          <span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs font-medium text-gray-700">Sin enviar</span>
+        )}
       </div>
 
       {/* Cliente — el mismo bloque que en el detalle de una orden */}
@@ -508,7 +521,7 @@ export default function ServiceRequestDetail() {
           )}
 
         <div className="mt-4 flex flex-wrap gap-3">
-          {request.status === 'submitted' && (
+          {!isDraft(request) && request.status !== 'cancelled' && (
             <button
               type="button"
               disabled={busy || pending === 0}

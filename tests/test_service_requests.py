@@ -166,7 +166,7 @@ def test_create_with_full_address_returns_public_id(client):
 
     assert len(public_id) == 32
     saved = ServiceRequest.query.filter_by(public_id=public_id).one()
-    assert saved.status == 'draft'
+    assert (saved.status, saved.submitted_at) == ('pending', None)
     assert saved.neighborhood == 'San Isidro'
 
 
@@ -294,7 +294,7 @@ def test_get_returns_the_draft_to_resume(client):
 
     data = client.get(f'/api/v1/service-requests/{public_id}').get_json()
 
-    assert data['status'] == 'draft'
+    assert (data['status'], data['submitted']) == ('pending', False)
     assert data['address']['street'] == ADDRESS['street']
     assert data['preferred_date'] == TOMORROW
     assert data['items'][0]['materials'] == ['stretch_film', 'carpet']
@@ -346,7 +346,7 @@ def test_submit_stores_whatsapp_in_e164_and_marks_it_submitted(client):
 
     assert response.status_code == 200
     saved = ServiceRequest.query.one()
-    assert saved.status == 'submitted'
+    assert (saved.status, saved.submitted_at is not None) == ('pending', True)
     assert saved.whatsapp == '+51987654321'
     assert saved.submitted_at is not None
 
@@ -359,7 +359,7 @@ def test_submit_with_invalid_whatsapp_is_rejected(client, whatsapp):
     response = submit(client, public_id, whatsapp=whatsapp)
 
     assert response.status_code == 400
-    assert ServiceRequest.query.one().status == 'draft'
+    assert ServiceRequest.query.one().submitted_at is None
 
 
 def test_submit_without_items_is_rejected(client):
@@ -393,7 +393,7 @@ def test_submit_revalidates_a_saved_date_that_has_since_passed(client, monkeypat
     response = submit(client, public_id)
 
     assert response.status_code == 400
-    assert ServiceRequest.query.one().status == 'draft'
+    assert ServiceRequest.query.one().submitted_at is None
 
 
 def test_a_submitted_request_can_no_longer_be_edited(client):
@@ -507,7 +507,7 @@ def test_a_notification_failure_does_not_fail_the_submit(client, monkeypatch):
     response = submit(client, public_id)
 
     assert response.status_code == 200
-    assert ServiceRequest.query.one().status == 'submitted'
+    assert ServiceRequest.query.one().submitted_at is not None
 
 
 def test_notify_carriers_requires_the_internal_token(client):
@@ -711,7 +711,7 @@ def test_manual_request_is_born_submitted_and_tells_the_carriers_but_not_the_adm
 
     assert response.status_code == 201
     saved = ServiceRequest.query.one()
-    assert (saved.status, saved.whatsapp, saved.neighborhood) == ('submitted', '+51987654321', 'San Isidro')
+    assert (saved.status, saved.whatsapp, saved.neighborhood) == ('pending', '+51987654321', 'San Isidro')
     assert saved.submitted_at is not None
     assert [i.description for i in saved.items] == ['Sofá']
     assert response.get_json()['notified_carrier_ids'] == [carrier.id]
@@ -993,7 +993,7 @@ def test_selecting_the_same_one_twice_keeps_its_selected_at(client):
 def test_select_of_a_quotation_from_another_request_is_404(client):
     request_id = make_submitted(client)
     carrier = make_carrier()
-    other = ServiceRequest(public_id='z' * 32, service_type_id=ServiceType.query.first().id, status='submitted')
+    other = ServiceRequest(public_id='z' * 32, service_type_id=ServiceType.query.first().id, status='pending', submitted_at=datetime(2026, 10, 5))
     db.session.add(other)
     db.session.commit()
     foreign = ServiceRequestQuotation(service_request_id=other.id, carrier_company_id=carrier.id, amount=50)
@@ -1145,7 +1145,7 @@ def test_the_customer_sees_totals_split_into_reservation_and_on_site_cheapest_fi
     body = customer_quotations(client, public_id).get_json()
 
     assert body['service_type'] == {'code': 'packing', 'name': 'Embalaje'}
-    assert (body['status'], body['neighborhood'], body['preferred_date']) == ('submitted', 'San Isidro', TOMORROW)
+    assert (body['status'], body['neighborhood'], body['preferred_date']) == ('pending', 'San Isidro', TOMORROW)
     assert body['items'] == [{'description': 'Sofá', 'quantity': 1, 'work': None, 'pack': None}]
     assert (body['reservation_required'], body['reservation']) == (False, None)
     assert [(q['carrier_name'], q['total_amount'], q['reservation_amount'], q['on_site_amount'], q['note'])
@@ -1297,7 +1297,7 @@ def test_choosing_again_while_pending_corrects_the_number_without_notifying(clie
 
 def test_an_operation_number_used_by_another_request_or_a_move_is_rejected(client, yape):
     service_request, _, quotation_id = submitted_with_quote(client)
-    other = ServiceRequest(public_id='b' * 32, service_type_id=service_request.service_type_id, status='submitted')
+    other = ServiceRequest(public_id='b' * 32, service_type_id=service_request.service_type_id, status='pending', submitted_at=datetime(2026, 10, 5))
     db.session.add(other)
     db.session.commit()
     other_quote = ServiceRequestQuotation(service_request_id=other.id, carrier_company_id=1, amount=50)
@@ -1545,3 +1545,62 @@ def test_once_the_carrier_cash_is_paid_the_selection_cannot_change(client):
 
     assert select(client, service_request.id, other_id).status_code == 409
     assert db.session.get(ServiceRequestQuotation, quotation_id).status == 'selected'
+
+
+# --- statuses, like an order -------------------------------------------------------------
+
+def status_of(service_request):
+    db.session.expire_all()
+    return db.session.get(ServiceRequest, service_request.id).status
+
+
+def test_a_reserved_job_goes_in_progress_when_the_yapeo_is_confirmed(client, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+    assert status_of(service_request) == 'pending'
+
+    resolve(client, service_request.id, ServiceRequestPayment.query.one().id, 'paid')
+    assert status_of(service_request) == 'in_progress'
+
+
+def test_a_yapeo_that_did_not_arrive_leaves_it_pending(client, yape):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    choose(client, service_request.public_id, quotation_id, operation_number='1234')
+
+    resolve(client, service_request.id, ServiceRequestPayment.query.one().id, 'cancelled')
+
+    assert status_of(service_request) == 'pending'
+
+
+def test_without_reservation_choosing_puts_it_in_progress(client):
+    service_request, _, quotation_id = submitted_with_quote(client)
+
+    choose(client, service_request.public_id, quotation_id)
+
+    assert status_of(service_request) == 'in_progress'
+
+
+def test_an_admin_pick_waits_for_the_reservation_and_the_carrier_cash_completes_it(client):
+    service_request, _, _ = selected_by_admin(client)
+    assert status_of(service_request) == 'pending'
+
+    register_reservation(client, service_request.id)
+    assert status_of(service_request) == 'in_progress'
+
+    carrier_cash(client, service_request.id)
+    assert status_of(service_request) == 'completed'
+
+    carrier_cash(client, service_request.id, method='delete')
+    assert status_of(service_request) == 'in_progress'
+
+
+def test_switching_to_a_quotation_without_reservation_goes_back_to_pending(client):
+    service_request, _, quotation_id = submitted_with_quote(client)
+    other_id = quote(client, service_request.id, make_carrier('Otra SAC').id, amount=120).get_json()['id']
+    select(client, service_request.id, quotation_id)
+    register_reservation(client, service_request.id)
+
+    select(client, service_request.id, other_id)
+
+    assert status_of(service_request) == 'pending'
