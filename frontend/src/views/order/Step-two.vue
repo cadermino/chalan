@@ -386,9 +386,17 @@ export default {
         };
         chalan.recognizeItems(payload)
           .then((response) => {
-            if (response.data.items) {
+            if (response.data.items && response.data.items.length) {
               this.mergeItems(response.data.items);
               this.syncComments();
+            } else {
+              this.setViewsMessages({
+                view: this.viewName,
+                message: {
+                  text: 'No reconocimos objetos en esta foto: agrégalos a mano',
+                  type: 'info',
+                },
+              });
             }
             thumb.processing = false;
           })

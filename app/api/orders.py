@@ -1,4 +1,5 @@
 import os
+import re
 import base64
 import uuid
 from flask import jsonify, request, current_app
@@ -623,6 +624,37 @@ def get_carrier_companies():
     return CarrierCompanySchema(many=True).dump(carrier_companies)
 
 
+# No solo mudanzas: una de cada cuatro órdenes es carga (sacos de arroz,
+# ladrillos, geomembrana, un auto), y con "objetos de una mudanza" el modelo
+# se negaba ante esas fotos.
+RECOGNIZE_ITEMS_PROMPT = (
+    'Analiza esta imagen e identifica lo que se va a transportar: muebles, '
+    'electrodomésticos, cajas, mercadería, materiales de construcción, maquinaria '
+    'o vehículos. '
+    'Responde SOLO con una lista, un objeto por línea, con la cantidad al inicio. '
+    'Formato: "1 sofá grande", "2 sillas", "50 sacos de cemento", etc. '
+    'Si no ves nada que transportar, responde solo NINGUNO. '
+    'No incluyas explicaciones ni texto adicional.'
+)
+
+# Respuestas que no son objetos. Antes entraban a la lista tal cual y llegaban
+# al transportista como un ítem más ("Lo siento, no puedo ayudar con eso.").
+_NOT_AN_ITEM = re.compile(
+    r"^(ninguno\.?$|lo siento|no puedo|no es posible|no se (ve|ven|observa|identifica)"
+    r"|i'?m sorry|sorry|i can'?t|i cannot|unable to)",
+    re.IGNORECASE,
+)
+
+
+def recognized_items(text):
+    items = []
+    for line in (text or '').split('\n'):
+        item = line.strip().lstrip('-•*').strip()
+        if item and not _NOT_AN_ITEM.match(item):
+            items.append(item)
+    return items
+
+
 @api.route('/order/recognize-items', methods=['POST'])
 def recognize_items():
     if 'image' not in request.files:
@@ -674,13 +706,7 @@ def recognize_items():
                     'content': [
                         {
                             'type': 'text',
-                            'text': (
-                                'Analiza esta imagen e identifica todos los muebles y objetos visibles '
-                                'que se necesitarían mover en una mudanza. '
-                                'Responde SOLO con una lista, un objeto por línea, con la cantidad al inicio. '
-                                'Formato: "1 sofá grande", "2 sillas", etc. '
-                                'No incluyas explicaciones ni texto adicional.'
-                            ),
+                            'text': RECOGNIZE_ITEMS_PROMPT,
                         },
                         {
                             'type': 'image_url',
@@ -694,8 +720,8 @@ def recognize_items():
             ],
             max_tokens=500,
         )
-        items_text = response.choices[0].message.content.strip()
-        items = [line.strip() for line in items_text.split('\n') if line.strip()]
+        message = response.choices[0].message
+        items = [] if getattr(message, 'refusal', None) else recognized_items(message.content)
         return jsonify({
             'items': items,
             'image': OrderImageSchema().dump(order_image),
