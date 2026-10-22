@@ -6,6 +6,7 @@ from sqlalchemy import exc
 from . import auth
 from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
 from ..utils import create_blank_company_and_vehicle
+from ..carrier_documents import documents_url, make_token as documents_token
 from ..email import send_email
 from .. import db
 
@@ -80,6 +81,19 @@ def register():
             user=user,
             phone=data['phone'].strip(),
         )
+        # La landing sigue con el paso de documentos usando este token. El
+        # correo lleva el mismo link para quien no los tenga a mano ahora.
+        send_email(
+            user.email,
+            'Sube tus documentos para activar tu cuenta',
+            'email/carrier_documents_request',
+            user=user,
+            documents_url=documents_url(user.carrier_company_id),
+        )
+        return jsonify({
+            'message': 'registration successful, wait for admin approval',
+            'documents_token': documents_token(user.carrier_company_id),
+        }), 201
 
     return jsonify({'message': 'registration successful, wait for admin approval'}), 201
 

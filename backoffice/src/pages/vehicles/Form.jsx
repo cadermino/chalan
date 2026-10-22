@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
+import { useAuth } from '../../contexts/AuthContext'
+import Card from '../../components/Card'
+import { DocumentFile, UploadLinkRow, useCarrierDocuments } from '../../components/CarrierDocuments'
 
 // Datos de la tarjeta de identificación vehicular (SUNARP) y de la caja de
 // carga. Todos opcionales.
@@ -48,6 +51,14 @@ export default function VehicleForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState(EMPTY)
   const [loading, setLoading] = useState(false)
+  const { user } = useAuth()
+  // La tarjeta que subió el transportista, al lado de los campos para copiarlos.
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
+  const showCard = isAdmin && isEdit
+  const { documents, uploadUrl, error: documentsError } = useCarrierDocuments(companyId, showCard)
+  // La de este vehículo, o una que quedó sin vehículo (se borró el suyo).
+  const cards = (documents || []).filter((d) => d.doc_type === 'vehicle_card'
+    && (d.vehicle_id === Number(vehicleId) || d.vehicle_id == null))
 
   useEffect(() => {
     if (isEdit) {
@@ -106,12 +117,13 @@ export default function VehicleForm() {
     .filter(([, value]) => value && String(value).trim())
 
   return (
-    <div className="max-w-2xl">
+    <div className={showCard ? 'max-w-6xl' : 'max-w-2xl'}>
       <div className="flex items-center gap-3 mb-6">
         <Link to={back} className="text-teal-600 hover:underline text-sm">← Vehículos</Link>
         <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Editar vehículo' : 'Nuevo vehículo'}</h1>
       </div>
 
+      <div className={showCard ? 'grid gap-6 lg:grid-cols-2 items-start' : ''}>
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Marca">
@@ -261,6 +273,22 @@ export default function VehicleForm() {
           <Link to={back} className="text-sm text-gray-500 hover:underline self-center">Cancelar</Link>
         </div>
       </form>
+
+      {showCard && (
+        <Card title="Tarjeta de propiedad" className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+          {documents === null && <p className="text-sm text-gray-400">Cargando…</p>}
+          {documentsError && <p className="text-sm text-red-600">No se pudo cargar la tarjeta.</p>}
+          {documents && !documentsError && (
+            <div className="space-y-4">
+              {cards.length === 0
+                ? <p className="text-sm text-gray-500">El transportista todavía no subió la tarjeta de este vehículo.</p>
+                : cards.map((d, i) => <DocumentFile key={d.id} document={d} index={i} />)}
+              <UploadLinkRow url={uploadUrl} />
+            </div>
+          )}
+        </Card>
+      )}
+      </div>
     </div>
   )
 }

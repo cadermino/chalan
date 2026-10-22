@@ -29,6 +29,11 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
+    def presigned_get(self, filename, expires_in=3600):
+        """Temporary URL to read a private file."""
+        pass
+
+    @abstractmethod
     def head(self, filename):
         """Real size and content type of a stored file, or None if it is not there."""
         pass

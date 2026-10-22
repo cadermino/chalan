@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@/lib/analytics'
+import { CarrierDocumentsUpload } from '@/components/CarrierDocumentsUpload'
 
 // Mismo endpoint que backoffice/src/pages/Register.jsx, same-origin vía nginx (/backoffice-api/).
 // El blueprint de auth está montado en /auth (no /api/auth) — ver backoffice-api/app/__init__.py.
@@ -76,6 +78,8 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  // Con él la cuenta sigue directo al paso de documentos (DNI/CE, licencia, tarjeta).
+  const [documentsToken, setDocumentsToken] = useState('')
 
   const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -115,7 +119,10 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
         return
       }
 
+      const data = await res.json().catch(() => ({}))
+      setDocumentsToken(data.documents_token || '')
       setDone(true)
+      track('carrier_sign_up')
     } catch {
       setError('No pudimos conectar con el servidor. Inténtalo de nuevo en un momento.')
     } finally {
@@ -130,6 +137,17 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
     fontSize: 14,
     outline: 'none',
     ...t.input,
+  }
+
+  if (done && documentsToken) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ ...t.body, fontSize: 14, lineHeight: 1.5 }}>
+          ✅ Tu cuenta fue creada. Falta un paso para que la activemos:
+        </p>
+        <CarrierDocumentsUpload token={documentsToken} theme={theme} />
+      </div>
+    )
   }
 
   if (done) {
@@ -204,6 +222,7 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
 
       <p style={{ ...t.footnote, fontSize: 11, letterSpacing: '0.04em', textAlign: 'center' }}>
         Al registrarte aceptas que un administrador revise y active tu cuenta antes de que puedas cotizar.
+        Después te pediremos tu DNI, licencia y tarjeta de propiedad para validarte.
       </p>
     </form>
   )

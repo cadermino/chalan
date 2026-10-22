@@ -48,7 +48,7 @@ const BENEFITS = [
 ]
 
 const STEPS = [
-  { n: '01', title: 'Regístrate', body: 'Completa el formulario con tus datos. Toma menos de dos minutos.' },
+  { n: '01', title: 'Regístrate', body: 'Completa el formulario y sube una foto de tu DNI, tu licencia y la tarjeta de propiedad del vehículo.' },
   { n: '02', title: 'Completa tu perfil', body: 'Una vez aprobada tu cuenta, agrega los datos de tu empresa y tus vehículos.' },
   { n: '03', title: 'Cotiza pedidos', body: 'Verás las mudanzas disponibles y podrás cotizar las que te convengan.' },
   { n: '04', title: 'Cobra por tu trabajo', body: 'Realizas la mudanza y recibes el pago del pedido cotizado.' },
@@ -58,6 +58,7 @@ const FAQ = [
   { q: '¿Cuánto cuesta registrarse?', a: 'Nada. Crear tu cuenta y el perfil de tu empresa es gratis, sin cuota de afiliación.' },
   { q: '¿Estoy obligado a aceptar todas las mudanzas?', a: 'No. Tú decides a qué pedidos cotizar según la ruta, el tamaño y la fecha que te convengan.' },
   { q: '¿Cuánto tiempo tarda la aprobación de mi cuenta?', a: 'Un administrador revisa y activa las cuentas nuevas normalmente en poco tiempo. Te avisaremos cuando puedas empezar a cotizar.' },
+  { q: '¿Qué documentos me piden y para qué?', a: 'Tu DNI o carné de extranjería, tu licencia de conducir y la tarjeta de propiedad del vehículo (foto o PDF). Los usamos solo para validar tu cuenta: que eres quien dices ser, que puedes manejar y que el vehículo está en regla. Solo los ve el equipo de Chalán, nunca los clientes.' },
   { q: '¿Qué necesito para completar mi perfil?', a: 'Después de la aprobación, completas desde tu panel los datos de tu empresa y de tus vehículos (marca, capacidad, tarifas).' },
 ]
 

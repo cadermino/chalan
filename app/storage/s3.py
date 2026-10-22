@@ -47,6 +47,13 @@ class S3Storage(StorageBackend):
             ExpiresIn=expires_in,
         )
 
+    def presigned_get(self, filename, expires_in=3600):
+        return self._get_client().generate_presigned_url(
+            'get_object',
+            Params={'Bucket': self._get_bucket(), 'Key': filename},
+            ExpiresIn=expires_in,
+        )
+
     def head(self, filename):
         try:
             response = self._get_client().head_object(Bucket=self._get_bucket(), Key=filename)

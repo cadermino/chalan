@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import client from '../../api/client'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
+import CarrierDocumentsCard from '../../components/CarrierDocuments'
 
 const EMPTY = {
   name: '', description: '', rfc: '', email: '', phone: '',
@@ -69,7 +70,7 @@ export default function CarrierCompanyForm() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <Link to="/carrier-companies" className="text-teal-600 hover:underline text-sm">← Empresas</Link>
         <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Editar empresa' : 'Nueva empresa'}</h1>
@@ -157,6 +158,8 @@ export default function CarrierCompanyForm() {
           <Link to="/carrier-companies" className="text-sm text-gray-500 hover:underline self-center">Cancelar</Link>
         </div>
       </form>
+
+      {isAdmin && isEdit && <CarrierDocumentsCard companyId={id} />}
     </div>
   )
 }

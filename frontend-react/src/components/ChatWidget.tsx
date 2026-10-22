@@ -76,7 +76,8 @@ function formatTime(iso: string): string {
 export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
   const pathname = usePathname()
   // El agente cotiza mudanzas: no aparece en otros servicios (y sus posts) ni en transportistas.
-  const hidden = hiddenPaths.includes(pathname)
+  // También sus subpáginas (/transportistas/documentos/<token>).
+  const hidden = hiddenPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [body, setBody] = useState('')

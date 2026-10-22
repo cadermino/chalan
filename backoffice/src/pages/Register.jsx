@@ -17,6 +17,8 @@ export default function Register() {
   })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  // Solo transportistas: el link a la página de la landing para subir DNI/CE, licencia y tarjeta.
+  const [documentsUrl, setDocumentsUrl] = useState('')
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -28,7 +30,7 @@ export default function Register() {
     }
     setLoading(true)
     try {
-      await client.post('/auth/register', {
+      const { data } = await client.post('/auth/register', {
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
         dni: form.dni.trim(),
@@ -37,6 +39,9 @@ export default function Register() {
         password: form.password,
         role: form.role,
       })
+      if (data.documents_token) {
+        setDocumentsUrl(`${window.location.origin}/transportistas/documentos/${data.documents_token}`)
+      }
       setDone(true)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error al registrarse')
@@ -54,6 +59,17 @@ export default function Register() {
           <p className="text-sm text-gray-500 mb-6">
             Tu cuenta fue creada. Un administrador la activará pronto y recibirás acceso al backoffice.
           </p>
+          {documentsUrl && (
+            <div className="mb-6">
+              <p className="text-sm text-gray-700 mb-3">
+                Para validarte necesitamos una foto de tu DNI o carné de extranjería, tu licencia de conducir
+                y la tarjeta de propiedad del vehículo. Solo los ve el equipo de Chalán.
+              </p>
+              <a href={documentsUrl} className="inline-block bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-2 rounded-lg">
+                Subir mis documentos
+              </a>
+            </div>
+          )}
           <Link to="/login" className="text-teal-600 hover:underline text-sm">
             Volver al inicio de sesión
           </Link>

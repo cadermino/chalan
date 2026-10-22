@@ -25,7 +25,11 @@ export type LandingEvent =
   | 'quote_estimated'
   | 'quote_cta_click'
   // Fuera del embudo: el botón de reseña en Google tras dejar la nuestra.
-  | 'google_review_click';
+  | 'google_review_click'
+  // Alta de transportistas (/transportistas): registro y documentos para validarlos.
+  | 'carrier_sign_up'
+  | 'carrier_document_uploaded'
+  | 'carrier_documents_complete';
 
 type Params = Record<string, string | number | boolean | null | undefined>;
 

@@ -375,6 +375,22 @@ class ServiceRequestMedia(db.Model):
 	size_bytes = db.Column(db.Integer)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
+class CarrierDocument(db.Model):
+	"""DNI/CE, licencia o tarjeta de propiedad que sube un transportista (migración 031).
+
+	Privados: la política del bucket solo abre orders/ y service-requests/;
+	el backoffice los ve con URLs firmadas que vencen.
+	"""
+	__tablename__ = 'carrier_documents'
+	id = db.Column(db.Integer, primary_key=True)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), nullable=False)
+	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id', ondelete='SET NULL'))
+	doc_type = db.Column(db.String(20), nullable=False)  # identity | driver_license | vehicle_card
+	storage_key = db.Column(db.String(300), nullable=False, unique=True)
+	content_type = db.Column(db.String(60))
+	size_bytes = db.Column(db.Integer)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
 class CarrierCompanyServiceType(db.Model):
 	"""Que servicios ofrece cada empresa (mudanza incluida); lo marca un admin."""
 	__tablename__ = 'carrier_company_service_types'
