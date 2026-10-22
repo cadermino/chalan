@@ -13,10 +13,10 @@ const FILTERS = ['active', 'waiting', 'quoted', 'deposit_pending', 'in_progress'
   .map((key) => ({ key, ...STAGES[key] }))
 
 const HINTS = {
-  quoted: 'Tienen cotizaciones y el cliente todavía no eligió ninguna. Las que ya tienen una elegida pasan a Adelanto pendiente o En proceso.',
+  quoted: 'Tienen cotizaciones y el cliente todavía no eligió ninguna. Los que ya tienen una elegida pasan a Adelanto pendiente o En proceso.',
   draft: 'Clientes que empezaron el formulario y no lo terminaron: aún no se avisó a ningún transportista.',
   deposit_pending: 'Tienen una cotización elegida pero el adelanto no está confirmado: verifica el yapeo o regístralo desde el detalle.',
-  in_progress: 'Con el adelanto pagado. Cuando el cliente le pague el saldo al transportista, regístralo en el detalle y queda completada.',
+  in_progress: 'Con el adelanto pagado. Cuando el cliente le pague el saldo al transportista, regístralo en el detalle y queda completado.',
 }
 
 function shortDay(iso) {
@@ -105,7 +105,7 @@ export default function ServiceRequestsList() {
       setSelected(new Set())
       await load()
     } catch (err) {
-      setBulkResult({ type: 'error', message: err.response?.data?.message || 'No se pudieron cancelar las solicitudes' })
+      setBulkResult({ type: 'error', message: err.response?.data?.message || 'No se pudieron cancelar los servicios' })
     } finally {
       setConfirmingCancel(false)
       setCancelling(false)
@@ -117,14 +117,14 @@ export default function ServiceRequestsList() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Solicitudes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Servicios</h1>
         <div className="flex items-center gap-4">
-          <span className="hidden text-sm text-gray-400 sm:inline">{loading ? '' : `${rows.length} solicitudes`}</span>
+          <span className="hidden text-sm text-gray-400 sm:inline">{loading ? '' : `${rows.length} servicios`}</span>
           <Link
             to="/service-requests/new"
             className="whitespace-nowrap rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
           >
-            + Nueva solicitud
+            + Nuevo servicio
           </Link>
         </div>
       </div>
@@ -153,7 +153,7 @@ export default function ServiceRequestsList() {
             <span>{bulkResult.message}</span>
           ) : (
             <div>
-              <div>Se cancelaron {bulkResult.cancelled.length} solicitud{bulkResult.cancelled.length === 1 ? '' : 'es'}.</div>
+              <div>{bulkResult.cancelled.length === 1 ? 'Se canceló 1 servicio' : `Se cancelaron ${bulkResult.cancelled.length} servicios`}.</div>
               {bulkResult.skipped.length > 0 && (
                 <div className="mt-1 text-amber-700">
                   No se cancelaron: {bulkResult.skipped.map((s) => `#${s.id} (${s.reason})`).join(', ')}
@@ -170,12 +170,12 @@ export default function ServiceRequestsList() {
       {selected.size > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
           <span className="text-gray-700">
-            {selected.size} solicitud{selected.size === 1 ? '' : 'es'} seleccionada{selected.size === 1 ? '' : 's'}
+            {selected.size} servicio{selected.size === 1 ? '' : 's'} seleccionado{selected.size === 1 ? '' : 's'}
           </span>
           {confirmingCancel ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-red-700">
-                ¿Cancelar {selected.size === 1 ? 'la solicitud' : `las ${selected.size} solicitudes`}? El cliente ya no podrá elegir cotizaciones.
+                ¿Cancelar {selected.size === 1 ? 'el servicio' : `los ${selected.size} servicios`}? El cliente ya no podrá elegir cotizaciones.
               </span>
               <button
                 type="button"
@@ -204,7 +204,7 @@ export default function ServiceRequestsList() {
                 onClick={() => { setBulkResult(null); setConfirmingCancel(true) }}
                 className="rounded-lg border border-red-300 px-3 py-1.5 font-medium text-red-700 hover:bg-red-50"
               >
-                Cancelar solicitudes
+                Cancelar servicios
               </button>
             </div>
           )}
@@ -224,8 +224,8 @@ export default function ServiceRequestsList() {
                     ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
                     onChange={toggleAll}
                     disabled={selectableIds.length === 0}
-                    title="Seleccionar las solicitudes que se pueden cancelar"
-                    aria-label="Seleccionar las solicitudes que se pueden cancelar"
+                    title="Seleccionar los servicios que se pueden cancelar"
+                    aria-label="Seleccionar los servicios que se pueden cancelar"
                     className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:opacity-40"
                   />
                 </th>
@@ -256,11 +256,11 @@ export default function ServiceRequestsList() {
                         onChange={() => toggleOne(r.id)}
                         disabled={!selectable}
                         title={selectable
-                          ? `Seleccionar la solicitud #${r.id}`
+                          ? `Seleccionar el servicio #${r.id}`
                           : r.status === 'cancelled'
-                            ? 'Ya está cancelada'
+                            ? 'Ya está cancelado'
                             : 'Tiene una cotización elegida: se cancela desde el detalle'}
-                        aria-label={`Seleccionar la solicitud #${r.id}`}
+                        aria-label={`Seleccionar el servicio #${r.id}`}
                         className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:opacity-30"
                       />
                     </td>
@@ -301,7 +301,7 @@ export default function ServiceRequestsList() {
                 <tr><td colSpan={columns} className="px-4 py-8 text-center text-gray-400">Cargando...</td></tr>
               )}
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={columns} className="px-4 py-8 text-center text-gray-400">No hay solicitudes</td></tr>
+                <tr><td colSpan={columns} className="px-4 py-8 text-center text-gray-400">No hay servicios</td></tr>
               )}
             </tbody>
           </table>

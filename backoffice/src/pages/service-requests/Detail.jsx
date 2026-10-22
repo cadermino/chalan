@@ -220,7 +220,7 @@ function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegist
                   ? (
                     <ConfirmBar
                       busy={busy}
-                      text="Anular el saldo registrado: la solicitud vuelve a En proceso."
+                      text="Anular el saldo registrado: el servicio vuelve a En proceso."
                       onYes={() => onCarrierCash('delete')}
                       onNo={() => onAskConfirm(null)}
                     />
@@ -281,8 +281,8 @@ function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegist
       {active && reservation?.status === 'paid' && !cash && (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-sm text-gray-700">
-            Cuando el cliente le pague {formatMoney(selected.amount)} a {carrier} el día del servicio, regístralo: la
-            solicitud queda completada.
+            Cuando el cliente le pague {formatMoney(selected.amount)} a {carrier} el día del servicio, regístralo: el
+            servicio queda completado.
           </p>
           {confirming?.action === 'cash' ? (
             <ConfirmBar
@@ -329,7 +329,7 @@ export default function ServiceRequestDetail() {
   const load = () =>
     client.get(`/api/service-requests/${id}`)
       .then(({ data }) => setRequest(data.service_request))
-      .catch((err) => setError(err.response?.status === 404 ? 'La solicitud no existe.' : 'No se pudo cargar.'))
+      .catch((err) => setError(err.response?.status === 404 ? 'El servicio no existe.' : 'No se pudo cargar.'))
 
   useEffect(() => { load() }, [id])
 
@@ -342,7 +342,7 @@ export default function ServiceRequestDetail() {
       await load()
     } catch (err) {
       toast.error(err.response?.status === 409
-        ? 'Solo se puede reenviar una solicitud ya enviada por el cliente'
+        ? 'Solo se puede reenviar un servicio ya enviado por el cliente'
         : 'No se pudo reenviar')
     } finally {
       setBusy(false)
@@ -358,7 +358,7 @@ export default function ServiceRequestDetail() {
       await load()
     } catch (err) {
       toast.error(err.response?.status === 409
-        ? 'La solicitud ya no admite elegir (¿fue cancelada?)'
+        ? 'El servicio ya no admite elegir (¿fue cancelado?)'
         : 'No se pudo elegir la cotización')
     } finally {
       setBusy(false)
@@ -393,7 +393,7 @@ export default function ServiceRequestDetail() {
         : message === 'operation_number_already_used'
           ? 'Ese número de operación ya se usó en otra reserva'
           : err.response?.status === 409
-            ? 'Esta solicitud ya tiene una reserva'
+            ? 'Este servicio ya tiene una reserva'
             : 'No se pudo registrar la reserva')
     } finally {
       setBusy(false)
@@ -404,7 +404,7 @@ export default function ServiceRequestDetail() {
     setBusy(true)
     try {
       await client[method](`/api/service-requests/${id}/carrier-cash`)
-      toast.success(method === 'post' ? 'Saldo registrado: la solicitud quedó completada' : 'Saldo anulado')
+      toast.success(method === 'post' ? 'Saldo registrado: el servicio quedó completado' : 'Saldo anulado')
       setConfirmingPayment(null)
       await load()
     } catch (err) {
@@ -420,7 +420,7 @@ export default function ServiceRequestDetail() {
     setBusy(true)
     try {
       await client.patch(`/api/service-requests/${id}`, { status: 'cancelled' })
-      toast.success('Solicitud cancelada')
+      toast.success('Servicio cancelado')
       setConfirmingCancel(false)
       await load()
     } catch (err) {
@@ -439,8 +439,8 @@ export default function ServiceRequestDetail() {
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link to="/service-requests" className="text-sm text-teal-600 hover:underline">← Solicitudes</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Solicitud #{request.id}</h1>
+        <Link to="/service-requests" className="text-sm text-teal-600 hover:underline">← Servicios</Link>
+        <h1 className="text-2xl font-bold text-gray-900">Servicio #{request.id}</h1>
         <span className={`rounded-full px-3 py-0.5 text-xs font-medium ${STAGES[request.stage]?.badge || 'bg-gray-200 text-gray-700'}`}>
           {stageLabel(request.stage)}
         </span>
@@ -525,13 +525,13 @@ export default function ServiceRequestDetail() {
               onClick={() => setConfirmingCancel(true)}
               className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
-              Cancelar solicitud
+              Cancelar servicio
             </button>
           )}
           {request.status !== 'cancelled' && confirmingCancel && (
             <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-3">
               <p className="flex-1 text-sm text-red-700">
-                Los transportistas verán que ya no hace falta cotizar. ¿Cancelar la solicitud?
+                Los transportistas verán que ya no hace falta cotizar. ¿Cancelar el servicio?
               </p>
               <button
                 type="button"

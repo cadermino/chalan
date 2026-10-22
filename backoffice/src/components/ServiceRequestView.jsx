@@ -100,7 +100,7 @@ export default function ServiceRequestView({ request }) {
         <p className="text-xs uppercase tracking-wide text-teal-100">Fecha deseada</p>
         <p className="text-2xl font-bold first-letter:uppercase">{formatDay(request.preferred_date)}</p>
         <p className="mt-1 text-sm text-teal-100">
-          {request.service_type?.name} · solicitud #{request.id}
+          {request.service_type?.name} · #{request.id}
           {request.submitted_at ? ` · enviada ${formatTimestamp(request.submitted_at)}` : ''}
         </p>
       </div>

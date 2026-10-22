@@ -4,7 +4,7 @@
 // encuentra literales en el código.
 export const STAGES = {
   active: {
-    label: 'Activas', icon: 'clock',
+    label: 'Activos', icon: 'clock',
     active: 'bg-gray-700 border-gray-700 text-white',
     idle: 'border-gray-300 text-gray-700 hover:bg-gray-50',
   },
@@ -29,22 +29,22 @@ export const STAGES = {
     idle: 'border-teal-300 text-teal-700 hover:bg-teal-50',
   },
   completed: {
-    label: 'Completadas', single: 'Completada', icon: 'check', color: 'text-green-600', badge: 'bg-green-50 text-green-700',
+    label: 'Completados', single: 'Completado', icon: 'check', color: 'text-green-600', badge: 'bg-green-50 text-green-700',
     active: 'bg-green-600 border-green-600 text-white',
     idle: 'border-green-300 text-green-700 hover:bg-green-50',
   },
   draft: {
-    label: 'Incompletas', single: 'Incompleta', icon: 'draft', color: 'text-amber-500', badge: 'bg-amber-50 text-amber-700',
+    label: 'Incompletos', single: 'Incompleto', icon: 'draft', color: 'text-amber-500', badge: 'bg-amber-50 text-amber-700',
     active: 'bg-amber-500 border-amber-500 text-white',
     idle: 'border-amber-300 text-amber-700 hover:bg-amber-50',
   },
   cancelled: {
-    label: 'Canceladas', single: 'Cancelada', icon: 'cross', color: 'text-red-500', badge: 'bg-red-50 text-red-700',
+    label: 'Cancelados', single: 'Cancelado', icon: 'cross', color: 'text-red-500', badge: 'bg-red-50 text-red-700',
     active: 'bg-red-500 border-red-500 text-white',
     idle: 'border-red-300 text-red-700 hover:bg-red-50',
   },
   all: {
-    label: 'Todas', icon: 'list',
+    label: 'Todos', icon: 'list',
     active: 'bg-gray-700 border-gray-700 text-white',
     idle: 'border-gray-300 text-gray-600 hover:bg-gray-50',
   },

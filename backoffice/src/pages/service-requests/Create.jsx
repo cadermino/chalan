@@ -28,7 +28,7 @@ const EMPTY_DESTINATION = { street: '', interior: '', neighborhood: '', city: 'L
 // El API principal responde en inglés, pensado para quien programa; acá se avisa
 // qué falta con las palabras del formulario.
 function friendlyError(message) {
-  if (!message) return 'Error al crear la solicitud'
+  if (!message) return 'Error al crear el servicio'
   if (message.includes('destination.map_url')) return 'Falta el link de Google Maps del destino (tiene que empezar con https://).'
   if (message.includes('destination.neighborhood')) return 'Falta el distrito del destino.'
   if (message.includes('destination')) return 'Falta la dirección de destino: algún mueble se desarma y se arma en otro lado.'
@@ -136,8 +136,8 @@ export default function ServiceRequestCreate() {
         notify_carriers: form.notifyCarriers,
       })
       toast.success(data.notified_carrier_ids.length
-        ? `Solicitud creada. Avisamos a ${data.notified_carrier_ids.length} transportista(s)`
-        : 'Solicitud creada')
+        ? `Servicio creado. Avisamos a ${data.notified_carrier_ids.length} transportista(s)`
+        : 'Servicio creado')
       navigate(`/service-requests/${data.id}`)
     } catch (err) {
       setError(friendlyError(err.response?.data?.message))
@@ -148,8 +148,8 @@ export default function ServiceRequestCreate() {
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Solicitudes</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nueva solicitud</h1>
+        <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Servicios</Link>
+        <h1 className="text-2xl font-bold text-gray-900">Nuevo servicio</h1>
       </div>
       <p className="text-sm text-gray-500 mb-4">
         Para pedidos que el cliente describió por WhatsApp o llamada. Queda como enviada y se avisa a los transportistas.
@@ -322,7 +322,7 @@ export default function ServiceRequestCreate() {
             type="submit" disabled={saving}
             className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-2 rounded-lg disabled:opacity-60"
           >
-            {saving ? 'Creando…' : 'Crear solicitud'}
+            {saving ? 'Creando…' : 'Crear servicio'}
           </button>
           <Link to="/service-requests" className="text-sm text-gray-500 hover:underline self-center">Cancelar</Link>
         </div>
