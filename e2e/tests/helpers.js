@@ -273,6 +273,15 @@ function getQuotationId(orderId) {
   ).toString().trim());
 }
 
+// Qué lleva la orden y el peso de una carga (migración 030), tal como quedaron
+// en la base. Columnas vacías salen como null.
+function getOrderLoad(orderId) {
+  const [loadType, weight] = execSync(
+    `docker exec chalan-db-1 psql -U chalan_user -d chalan -tAc "SELECT COALESCE(load_type, ''), COALESCE(cargo_weight_kg::text, '') FROM orders WHERE id=${orderId};"`,
+  ).toString().trim().split('|');
+  return { loadType: loadType || null, cargoWeightKg: weight ? Number(weight) : null };
+}
+
 // Estados de orden (app/api/order/order_status.py).
 const ORDER_STATUS = { pending: 1, inProgress: 2 };
 
@@ -514,6 +523,7 @@ module.exports = {
   getPayments,
   getOrderStatusId,
   getQuotationId,
+  getOrderLoad,
   ORDER_STATUS,
   uniqueOperationNumber,
   confirmReservationAsAdmin,
