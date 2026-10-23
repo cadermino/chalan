@@ -151,6 +151,8 @@ def test_get_lists_the_documents_without_urls(client, storage, emails, pending_c
 
     data = client.get(f'/api/v1/carrier-documents/{token}').get_json()
     assert data['company_name'] == 'Juan Perez'
+    assert data['max_files'] == {'identity': 4, 'driver_license': 4, 'vehicle_card': 2}
+    assert data['card_vehicle_id'] == Vehicle.query.filter_by(carrier_company_id=pending_company.id).first().id
     assert data['can_delete'] is True
     assert [d['doc_type'] for d in data['documents']] == ['identity']
     assert 'url' not in data['documents'][0]
@@ -252,10 +254,10 @@ def test_the_card_of_one_vehicle_cannot_be_registered_on_another(client, storage
     assert CarrierDocument.query.count() == 0
 
 
-def test_the_four_files_limit_counts_per_vehicle(client, storage, emails, pending_company):
+def test_a_card_takes_two_files_per_vehicle(client, storage, emails, pending_company):
     first = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
     second = _second_vehicle(pending_company)
-    for _ in range(4):
+    for _ in range(2):
         assert _upload_card(client, storage, pending_company.id, first.id).status_code == 201
 
     full = client.post(f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{first.id}/card/presign',
@@ -310,3 +312,12 @@ def test_an_admin_deletes_a_card_of_an_active_company(client, storage, emails, p
     db.session.commit()
     assert client.delete(f'/api/v1/carrier-companies/{other.id}/documents/{document_id}',
                          headers=_internal()).status_code == 404
+
+
+def test_the_carrier_link_takes_two_card_files(client, storage, emails, pending_company):
+    token = make_token(pending_company.id)
+    for _ in range(2):
+        assert _upload(client, storage, token, 'vehicle_card').status_code == 201
+    res = client.post(f'/api/v1/carrier-documents/{token}/presign',
+                      json={'doc_type': 'vehicle_card', 'content_type': 'image/jpeg', 'size_bytes': 10})
+    assert res.status_code == 400

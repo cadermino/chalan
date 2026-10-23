@@ -16,8 +16,9 @@ export const DOC_LABELS = {
 }
 
 // Espejo de app/api/carrier_documents.py: el servidor es quien manda, esto
-// solo evita subir un archivo para enterarse de que no se podía.
-export const MAX_FILES = 4
+// solo evita subir un archivo para enterarse de que no se podía. Una tarjeta
+// por vehículo: frente y reverso, o el PDF de la electrónica.
+export const MAX_CARD_FILES = 2
 const MAX_BYTES = 10 * 1024 * 1024
 const CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
@@ -130,7 +131,7 @@ async function uploadVehicleCard(companyId, vehicleId, file) {
 export function VehicleCardUpload({ companyId, vehicleId, count, onDone }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
-  const left = MAX_FILES - count
+  const left = MAX_CARD_FILES - count
 
   const upload = async (e) => {
     const files = Array.from(e.target.files || []).slice(0, left)
@@ -155,14 +156,14 @@ export function VehicleCardUpload({ companyId, vehicleId, count, onDone }) {
     }
   }
 
-  if (left <= 0) return <p className="text-xs text-gray-400">Ya tiene {MAX_FILES} archivos: borra uno para subir otro.</p>
+  if (left <= 0) return <p className="text-xs text-gray-400">Ya tiene frente y reverso: borra uno para reemplazarlo.</p>
   return (
     <div>
       <label className={`inline-block cursor-pointer rounded-lg border border-teal-600 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50 ${uploading ? 'pointer-events-none opacity-60' : ''}`}>
         {uploading ? 'Subiendo…' : '+ Subir tarjeta de propiedad'}
         <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple className="hidden" onChange={upload} disabled={uploading} />
       </label>
-      <p className="mt-1 text-xs text-gray-400">Foto o PDF, frente y reverso. Hasta {MAX_FILES} archivos, 10 MB cada uno.</p>
+      <p className="mt-1 text-xs text-gray-400">Foto o PDF: frente y reverso, hasta {MAX_CARD_FILES} archivos de 10 MB.</p>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )

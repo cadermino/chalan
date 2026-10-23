@@ -12,6 +12,7 @@ type DocType = 'identity' | 'driver_license' | 'vehicle_card'
 interface CarrierDocument {
   id: number
   doc_type: DocType
+  vehicle_id: number | null
   content_type: string
 }
 
@@ -19,6 +20,10 @@ interface Status {
   company_name: string
   documents: CarrierDocument[]
   max_per_type: number
+  // Por tipo: la tarjeta lleva 2 (frente y reverso). Opcionales para una
+  // respuesta del API de antes del deploy.
+  max_files?: Partial<Record<DocType, number>>
+  card_vehicle_id?: number | null
   can_delete: boolean
 }
 
@@ -36,7 +41,7 @@ const SECTIONS: { type: DocType; title: string; hint: string }[] = [
   {
     type: 'vehicle_card',
     title: 'Tarjeta de propiedad del vehículo',
-    hint: 'La tarjeta de identificación vehicular de SUNARP: una foto de la tarjeta física, o el PDF si es electrónica. Que se lean la placa y los pesos.',
+    hint: 'La tarjeta de identificación vehicular de SUNARP: frente y reverso de la tarjeta física, o el PDF si es electrónica. Que se lean la placa y los pesos.',
   },
 ]
 
@@ -175,7 +180,9 @@ export function CarrierDocumentsUpload({ token, theme = 'dark' }: { token: strin
     return <div style={container}><p style={{ ...t.mute, fontSize: 14 }}>Cargando…</p></div>
   }
 
-  const byType = (type: DocType) => status.documents.filter((d) => d.doc_type === type)
+  // La tarjeta que se sube aquí es la del primer vehículo; las de los demás las sube Chalán.
+  const byType = (type: DocType) => status.documents.filter((d) => d.doc_type === type
+    && (type !== 'vehicle_card' || status.card_vehicle_id == null || d.vehicle_id === status.card_vehicle_id))
   const complete = isComplete(status.documents)
 
   const added = (doc: CarrierDocument) => {
@@ -205,7 +212,7 @@ export function CarrierDocumentsUpload({ token, theme = 'dark' }: { token: strin
           token={token}
           section={section}
           documents={byType(section.type)}
-          max={status.max_per_type}
+          max={status.max_files?.[section.type] ?? status.max_per_type}
           canDelete={status.can_delete}
           theme={theme}
           onAdded={added}

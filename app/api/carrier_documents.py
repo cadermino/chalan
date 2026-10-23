@@ -49,8 +49,11 @@ DOC_LABELS = {
     'driver_license': 'Licencia de conducir',
     'vehicle_card': 'Tarjeta de propiedad',
 }
-# Frente y reverso, y alguna repetición si la primera salió borrosa.
+# Frente y reverso, y alguna repetición si la primera salió borrosa. DNI y
+# licencia pueden ser de más de una persona (el dueño y el chofer).
 MAX_PER_TYPE = 4
+# Una sola tarjeta por vehículo: frente y reverso, o el PDF de la electrónica.
+MAX_CARD_FILES = 2
 MAX_BYTES = 10 * 1024 * 1024
 # HEIC no: el backoffice no lo puede mostrar en Chrome. La landing convierte
 # las fotos a JPEG antes de subirlas, así que solo llega HEIC si eso falla.
@@ -149,6 +152,10 @@ def _vehicle_for_card(company_id):
     return vehicle.id if vehicle else None
 
 
+def _max_files(doc_type):
+    return MAX_CARD_FILES if doc_type == 'vehicle_card' else MAX_PER_TYPE
+
+
 def _count(company_id, doc_type, vehicle_id):
     """Archivos de ese documento: por empresa, o por vehículo si es la tarjeta."""
     query = CarrierDocument.query.filter_by(carrier_company_id=company_id, doc_type=doc_type)
@@ -179,8 +186,8 @@ def _presign(company, doc_type, vehicle_id):
         raise InvalidRequest('size_bytes must be a positive integer')
     if size_bytes > MAX_BYTES:
         raise InvalidRequest(f'file too large (max {MAX_BYTES // (1024 * 1024)}MB)')
-    if _count(company.id, doc_type, vehicle_id) >= MAX_PER_TYPE:
-        raise InvalidRequest(f'at most {MAX_PER_TYPE} files per document')
+    if _count(company.id, doc_type, vehicle_id) >= _max_files(doc_type):
+        raise InvalidRequest(f'at most {_max_files(doc_type)} files per document')
 
     name = f'{doc_type}-v{vehicle_id}' if doc_type == 'vehicle_card' and vehicle_id else doc_type
     storage_key = f'{KEY_PREFIX}/{company.id}/{name}-{uuid.uuid4().hex}.{CONTENT_TYPES[content_type]}'
@@ -219,8 +226,8 @@ def _register(company, storage_key, vehicle_id=None, notify=True):
         problem = 'file type not allowed'
     elif stored['size'] > MAX_BYTES:
         problem = 'file too large'
-    elif _count(company.id, doc_type, key_vehicle_id) >= MAX_PER_TYPE:
-        problem = f'at most {MAX_PER_TYPE} files per document'
+    elif _count(company.id, doc_type, key_vehicle_id) >= _max_files(doc_type):
+        problem = f'at most {_max_files(doc_type)} files per document'
     if problem is not None:
         storage.delete(storage_key)
         raise InvalidRequest(problem)
@@ -265,6 +272,10 @@ def get_carrier_documents(token):
         'company_name': company.name,
         'documents': [_to_dict(d) for d in _documents_of(company.id)],
         'max_per_type': MAX_PER_TYPE,
+        'max_files': {doc_type: _max_files(doc_type) for doc_type in DOC_TYPES},
+        # La tarjeta que sube el link es la de este vehículo; las de los demás
+        # las sube un admin y no cuentan en el tope de la página.
+        'card_vehicle_id': _vehicle_for_card(company.id),
         'can_delete': not company.active,
     }), 200
 
