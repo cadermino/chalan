@@ -271,6 +271,12 @@ export default function VehicleForm() {
           </Field>
         </div>
 
+        {isAdmin && !isEdit && (
+          <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+            La tarjeta de propiedad se sube después de guardar: entra a editar el vehículo desde la lista.
+          </p>
+        )}
+
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
