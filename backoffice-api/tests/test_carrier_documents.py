@@ -8,7 +8,7 @@ import pytest
 from itsdangerous import URLSafeTimedSerializer
 
 from app import db
-from app.models import CarrierCompany
+from app.models import CarrierCompany, Vehicle
 from tests.test_service_requests import FakeResponse, admin, make_user  # noqa: F401
 
 SECRET = 'test-secret-key-at-least-32-bytes-long'
@@ -86,3 +86,67 @@ def test_admins_get_the_documents_from_the_main_api(client, admin, company, monk
 def test_carriers_cannot_see_the_documents(client, company):
     headers = make_user('carrier_company', suffix='c', carrier_company_id=company.id)
     assert client.get(f'/api/carrier-companies/{company.id}/documents', headers=headers).status_code == 403
+
+
+@pytest.fixture
+def vehicle(company):
+    vehicle = Vehicle(carrier_company_id=company.id, active=1)
+    db.session.add(vehicle)
+    db.session.commit()
+    return vehicle
+
+
+@pytest.fixture
+def forwarded(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, json, headers, timeout):
+        calls.append({'method': method, 'url': url, 'json': json, 'headers': headers})
+        if method == 'DELETE':
+            return FakeResponse(204, None)
+        return FakeResponse(201, {'id': 9, 'doc_type': 'vehicle_card'})
+    monkeypatch.setattr('app.api.carrier_documents.requests.request', fake_request)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    return calls
+
+
+def test_admins_upload_a_vehicle_card_through_the_main_api(client, admin, company, vehicle, forwarded):
+    base = f'/api/carrier-companies/{company.id}/vehicles/{vehicle.id}/card'
+
+    assert client.post(f'{base}/presign', json={'content_type': 'image/jpeg', 'size_bytes': 10},
+                       headers=admin).status_code == 201
+    assert client.post(base, json={'storage_key': 'k'}, headers=admin).status_code == 201
+    assert client.delete(f'/api/carrier-companies/{company.id}/documents/9', headers=admin).status_code == 204
+
+    main = f'http://flask-api:8001/api/v1/carrier-companies/{company.id}'
+    assert [(c['method'], c['url']) for c in forwarded] == [
+        ('POST', f'{main}/vehicles/{vehicle.id}/card/presign'),
+        ('POST', f'{main}/vehicles/{vehicle.id}/card'),
+        ('DELETE', f'{main}/documents/9'),
+    ]
+    assert forwarded[0]['json'] == {'content_type': 'image/jpeg', 'size_bytes': 10}
+    assert all(c['headers']['Authorization'].startswith('Bearer ') for c in forwarded)
+
+
+def test_a_vehicle_of_another_company_is_not_forwarded(client, admin, company, forwarded):
+    other = CarrierCompany(name='Otra', active=1)
+    db.session.add(other)
+    db.session.flush()
+    foreign = Vehicle(carrier_company_id=other.id, active=1)
+    db.session.add(foreign)
+    db.session.commit()
+
+    res = client.post(f'/api/carrier-companies/{company.id}/vehicles/{foreign.id}/card/presign',
+                      json={'content_type': 'image/jpeg', 'size_bytes': 10}, headers=admin)
+
+    assert res.status_code == 404
+    assert forwarded == []
+
+
+def test_carriers_cannot_upload_or_delete_documents(client, company, vehicle, forwarded):
+    headers = make_user('carrier_company', suffix='c', carrier_company_id=company.id)
+
+    assert client.post(f'/api/carrier-companies/{company.id}/vehicles/{vehicle.id}/card/presign',
+                       json={}, headers=headers).status_code == 403
+    assert client.delete(f'/api/carrier-companies/{company.id}/documents/9', headers=headers).status_code == 403
+    assert forwarded == []

@@ -4,7 +4,7 @@ import client from '../../api/client'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/Card'
-import { DocumentFile, UploadLinkRow, useCarrierDocuments } from '../../components/CarrierDocuments'
+import { DocumentFile, VehicleCardUpload, deleteDocument, useCarrierDocuments } from '../../components/CarrierDocuments'
 
 // Datos de la tarjeta de identificación vehicular (SUNARP) y de la caja de
 // carga. Todos opcionales.
@@ -52,13 +52,22 @@ export default function VehicleForm() {
   const [form, setForm] = useState(EMPTY)
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
-  // La tarjeta que subió el transportista, al lado de los campos para copiarlos.
+  // La tarjeta de este vehículo, al lado de los campos para copiarlos. La
+  // sube el transportista con su link (la de su primer vehículo) o un admin aquí.
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const showCard = isAdmin && isEdit
-  const { documents, uploadUrl, error: documentsError } = useCarrierDocuments(companyId, showCard)
-  // La de este vehículo, o una que quedó sin vehículo (se borró el suyo).
-  const cards = (documents || []).filter((d) => d.doc_type === 'vehicle_card'
-    && (d.vehicle_id === Number(vehicleId) || d.vehicle_id == null))
+  const { documents, error: documentsError, reload: reloadDocuments } = useCarrierDocuments(companyId, showCard)
+  const cards = (documents || []).filter((d) => d.doc_type === 'vehicle_card' && d.vehicle_id === Number(vehicleId))
+
+  const removeCard = async (document) => {
+    try {
+      await deleteDocument(companyId, document.id)
+      toast.success('Archivo borrado')
+    } catch {
+      toast.error('No se pudo borrar el archivo')
+    }
+    reloadDocuments()
+  }
 
   useEffect(() => {
     if (isEdit) {
@@ -281,9 +290,9 @@ export default function VehicleForm() {
           {documents && !documentsError && (
             <div className="space-y-4">
               {cards.length === 0
-                ? <p className="text-sm text-gray-500">El transportista todavía no subió la tarjeta de este vehículo.</p>
-                : cards.map((d, i) => <DocumentFile key={d.id} document={d} index={i} />)}
-              <UploadLinkRow url={uploadUrl} />
+                ? <p className="text-sm text-gray-500">Este vehículo todavía no tiene tarjeta.</p>
+                : cards.map((d, i) => <DocumentFile key={d.id} document={d} index={i} onDelete={() => removeCard(d)} />)}
+              <VehicleCardUpload companyId={companyId} vehicleId={vehicleId} count={cards.length} onDone={reloadDocuments} />
             </div>
           )}
         </Card>

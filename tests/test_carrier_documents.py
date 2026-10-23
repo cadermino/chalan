@@ -177,3 +177,136 @@ def test_the_backoffice_gets_signed_urls(client, storage, emails, pending_compan
     res = client.get(url, headers={'Authorization': f'Bearer {generate_internal_token()}'})
     assert res.status_code == 200
     assert 'signature=' in res.get_json()['documents'][0]['url']
+
+
+# Tarjeta por vehículo: el admin sube la de cualquier vehículo desde el
+# backoffice (rutas internas); con el link, el transportista sube la del primero.
+
+def _internal():
+    return {'Authorization': f'Bearer {generate_internal_token()}'}
+
+
+def _second_vehicle(company):
+    vehicle = Vehicle(carrier_company_id=company.id, active=1, plates='B2C-345')
+    db.session.add(vehicle)
+    db.session.commit()
+    return vehicle
+
+
+def _upload_card(client, storage, company_id, vehicle_id, content_type='image/jpeg'):
+    base = f'/api/v1/carrier-companies/{company_id}/vehicles/{vehicle_id}/card'
+    res = client.post(f'{base}/presign', json={'content_type': content_type, 'size_bytes': 2048}, headers=_internal())
+    assert res.status_code == 200, res.get_json()
+    key = res.get_json()['storage_key']
+    storage.stored[key] = {'size': 2048, 'content_type': content_type}
+    return client.post(base, json={'storage_key': key}, headers=_internal())
+
+
+def test_an_admin_uploads_the_card_of_any_vehicle(client, storage, emails, pending_company):
+    second = _second_vehicle(pending_company)
+
+    res = _upload_card(client, storage, pending_company.id, second.id)
+
+    assert res.status_code == 201
+    assert res.get_json()['vehicle_id'] == second.id
+    document = db.session.get(CarrierDocument, res.get_json()['id'])
+    assert document.storage_key.startswith(f'carrier-documents/{pending_company.id}/vehicle_card-v{second.id}-')
+
+
+def test_the_card_routes_are_internal_only(client, storage, pending_company):
+    vehicle = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+    base = f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{vehicle.id}/card'
+
+    assert client.post(f'{base}/presign', json={'content_type': 'image/jpeg', 'size_bytes': 10}).status_code == 403
+    assert client.post(base, json={'storage_key': 'x'}).status_code == 403
+    assert client.delete(f'/api/v1/carrier-companies/{pending_company.id}/documents/1').status_code == 403
+
+
+def test_a_vehicle_of_another_company_is_not_found(client, storage, pending_company):
+    other = CarrierCompany(name='Otra', active=1)
+    db.session.add(other)
+    db.session.commit()
+    foreign = _second_vehicle(other)
+
+    res = client.post(f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{foreign.id}/card/presign',
+                      json={'content_type': 'image/jpeg', 'size_bytes': 10}, headers=_internal())
+    assert res.status_code == 404
+
+
+def test_the_card_of_one_vehicle_cannot_be_registered_on_another(client, storage, pending_company):
+    first = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+    second = _second_vehicle(pending_company)
+    key = client.post(f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{first.id}/card/presign',
+                      json={'content_type': 'image/jpeg', 'size_bytes': 10}, headers=_internal()).get_json()['storage_key']
+    storage.stored[key] = {'size': 10, 'content_type': 'image/jpeg'}
+
+    res = client.post(f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{second.id}/card',
+                      json={'storage_key': key}, headers=_internal())
+    assert res.status_code == 400
+    # Ni un DNI subido por el link como tarjeta del vehículo.
+    identity = f'carrier-documents/{pending_company.id}/identity-abc.jpg'
+    storage.stored[identity] = {'size': 10, 'content_type': 'image/jpeg'}
+    res = client.post(f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{second.id}/card',
+                      json={'storage_key': identity}, headers=_internal())
+    assert res.status_code == 400
+    assert CarrierDocument.query.count() == 0
+
+
+def test_the_four_files_limit_counts_per_vehicle(client, storage, emails, pending_company):
+    first = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+    second = _second_vehicle(pending_company)
+    for _ in range(4):
+        assert _upload_card(client, storage, pending_company.id, first.id).status_code == 201
+
+    full = client.post(f'/api/v1/carrier-companies/{pending_company.id}/vehicles/{first.id}/card/presign',
+                       json={'content_type': 'image/jpeg', 'size_bytes': 10}, headers=_internal())
+    assert full.status_code == 400
+    assert _upload_card(client, storage, pending_company.id, second.id).status_code == 201
+
+
+def test_the_carrier_link_still_uploads_the_first_vehicle_card(client, storage, emails, pending_company):
+    first = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+    _second_vehicle(pending_company)
+
+    res = _upload(client, storage, make_token(pending_company.id), 'vehicle_card')
+
+    assert res.get_json()['vehicle_id'] == first.id
+
+
+def test_a_card_key_from_before_goes_to_the_first_vehicle(client, storage, emails, pending_company):
+    first = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+    key = f'carrier-documents/{pending_company.id}/vehicle_card-abc.jpg'
+    storage.stored[key] = {'size': 10, 'content_type': 'image/jpeg'}
+
+    res = client.post(f'/api/v1/carrier-documents/{make_token(pending_company.id)}', json={'storage_key': key})
+
+    assert res.status_code == 201
+    assert res.get_json()['vehicle_id'] == first.id
+
+
+def test_an_admin_upload_does_not_email_the_team(client, storage, emails, pending_company):
+    token = make_token(pending_company.id)
+    _upload(client, storage, token, 'identity')
+    _upload(client, storage, token, 'driver_license')
+    vehicle = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+
+    _upload_card(client, storage, pending_company.id, vehicle.id)
+
+    assert emails == []
+
+
+def test_an_admin_deletes_a_card_of_an_active_company(client, storage, emails, pending_company):
+    pending_company.active = 1
+    db.session.commit()
+    vehicle = Vehicle.query.filter_by(carrier_company_id=pending_company.id).first()
+    document_id = _upload_card(client, storage, pending_company.id, vehicle.id).get_json()['id']
+
+    res = client.delete(f'/api/v1/carrier-companies/{pending_company.id}/documents/{document_id}', headers=_internal())
+
+    assert res.status_code == 204
+    assert db.session.get(CarrierDocument, document_id) is None
+    other = CarrierCompany(name='Otra', active=1)
+    db.session.add(other)
+    db.session.commit()
+    assert client.delete(f'/api/v1/carrier-companies/{other.id}/documents/{document_id}',
+                         headers=_internal()).status_code == 404
