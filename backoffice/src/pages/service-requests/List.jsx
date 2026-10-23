@@ -255,7 +255,7 @@ export default function ServiceRequestsList() {
                 <th className="px-4 py-3 text-left">Cosas</th>
                 <th className="px-4 py-3 text-left">Avisados</th>
                 <th className="px-4 py-3 text-left">Cotizaciones</th>
-                <th className="px-4 py-3 text-left">Desde</th>
+                <th className="px-4 py-3 text-left">Precio</th>
                 <th className="px-4 py-3 text-left">Adelanto</th>
                 <th className="px-4 py-3 text-center">Estado</th>
                 <th className="px-4 py-3 text-left">Creación</th>
@@ -301,7 +301,14 @@ export default function ServiceRequestsList() {
                     <td className="px-4 py-3 text-gray-500">{r.items_count}</td>
                     <td className="px-4 py-3 text-gray-500">{r.notified_count}</td>
                     <td className="px-4 py-3 text-gray-700">{r.quotations_count}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{formatMoney(r.min_amount)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                      {/* Con una elegida, su precio; si no, la más barata. Precios del transportista, sin comisión. */}
+                      {r.selected_amount != null
+                        ? <span title="Cotización elegida">{formatMoney(r.selected_amount)} <span className="text-xs text-teal-600">elegida</span></span>
+                        : r.min_amount != null
+                          ? <span title="La cotización más barata">desde {formatMoney(r.min_amount)}</span>
+                          : formatMoney(null)}
+                    </td>
                     <td className="px-4 py-3"><DepositCell deposit={r.deposit} /></td>
                     <td className="px-4 py-3 text-center">
                       {state ? (

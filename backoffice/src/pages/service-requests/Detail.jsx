@@ -161,6 +161,8 @@ function ConfirmBar({ text, busy, onYes, onNo }) {
 // registra al terminar el trabajo, y es lo que deja la solicitud completada.
 function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegister, onCarrierCash }) {
   const [operationNumber, setOperationNumber] = useState('')
+  // Un servicio que ya se hizo y se registra tarde no tiene a quién avisar.
+  const [notify, setNotify] = useState(true)
   const payments = request.payments || []
   const selected = (request.quotations || []).find((q) => q.status === 'selected')
   if (payments.length === 0 && !selected) return null
@@ -260,8 +262,10 @@ function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegist
           {confirming?.action === 'register' ? (
             <ConfirmBar
               busy={busy}
-              text={`Registrar la reserva de ${formatMoney(reservationAmount)} como pagada: se le avisa a ${carrier} y al cliente.`}
-              onYes={() => onRegister(operationNumber)}
+              text={notify
+                ? `Registrar la reserva de ${formatMoney(reservationAmount)} como pagada: se le avisa a ${carrier} y al cliente.`
+                : `Registrar la reserva de ${formatMoney(reservationAmount)} como pagada, sin avisarle a nadie.`}
+              onYes={() => onRegister(operationNumber, notify)}
               onNo={() => onAskConfirm(null)}
             />
           ) : !confirming && (
@@ -283,6 +287,15 @@ function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegist
               >
                 Registrar reserva pagada
               </button>
+              <label className="flex w-full items-center gap-2 text-xs text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={notify}
+                  onChange={(e) => setNotify(e.target.checked)}
+                  className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                />
+                Avisar a {carrier} y al cliente (desmárcalo si el servicio ya se hizo)
+              </label>
             </div>
           )}
         </div>
@@ -389,11 +402,11 @@ export default function ServiceRequestDetail() {
     }
   }
 
-  const registerReservation = async (operationNumber) => {
+  const registerReservation = async (operationNumber, notify) => {
     setBusy(true)
     try {
-      await client.post(`/api/service-requests/${id}/reservation`, { operation_number: operationNumber || null })
-      toast.success('Reserva registrada: avisamos al transportista y al cliente')
+      await client.post(`/api/service-requests/${id}/reservation`, { operation_number: operationNumber || null, notify })
+      toast.success(notify ? 'Reserva registrada: avisamos al transportista y al cliente' : 'Reserva registrada, sin avisos')
       setConfirmingPayment(null)
       await load()
     } catch (err) {

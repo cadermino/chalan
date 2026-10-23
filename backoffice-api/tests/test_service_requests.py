@@ -851,6 +851,16 @@ def test_the_carrier_cash_is_not_read_as_the_reservation(client, admin, submitte
     assert row['deposit'] == {'status': 'none', 'amount': None}
 
 
+def test_the_list_shows_the_price_of_the_chosen_quotation(client, admin, submitted, packing):
+    make_quotation(submitted, make_carrier(packing, name='Barata SAC'), 50)
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+    assert (row['min_amount'], row['selected_amount']) == (50.0, None)
+
+    make_quotation(submitted, make_carrier(packing, name='Elegida SAC'), 80, status='selected', total=88, rate=0.1)
+    [row] = client.get('/api/service-requests', headers=admin).get_json()['service_requests']
+    assert (row['min_amount'], row['selected_amount']) == (50.0, 80.0)
+
+
 def test_the_list_filters_by_the_order_statuses(client, admin, submitted, packing):
     done = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='completed',
                           submitted_at=datetime(2026, 10, 5))
@@ -885,6 +895,9 @@ def test_registering_a_reservation_forwards_the_number_and_the_admin(client, adm
     admin_id = AdminUser.query.filter_by(role='admin').first().id
     assert seen == {'method': 'POST', 'url': f'http://flask-api:8001/api/v1/service-requests/{submitted.id}/reservation',
                     'json': {'operation_number': '5678', 'admin_user_id': admin_id}}
+
+    client.post(f'/api/service-requests/{submitted.id}/reservation', json={'notify': False}, headers=admin)
+    assert seen['json'] == {'operation_number': None, 'notify': False, 'admin_user_id': admin_id}
 
 
 @pytest.mark.parametrize('method, answer, expected', [

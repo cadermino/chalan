@@ -240,6 +240,11 @@ def list_service_requests():
     notified = _counts(ServiceRequestNotification, ids)
     deposits = _deposits(ids)
     quotations = {}
+    # El precio de la elegida: con una elegida, el "desde" de las demás ya no dice nada.
+    chosen = dict(
+        db.session.query(ServiceRequestQuotation.service_request_id, ServiceRequestQuotation.amount)
+        .filter(ServiceRequestQuotation.service_request_id.in_(ids),
+                ServiceRequestQuotation.status == 'selected').all()) if ids else {}
     if ids:
         for request_id, count, lowest in (
             db.session.query(ServiceRequestQuotation.service_request_id, func.count(),
@@ -260,6 +265,7 @@ def list_service_requests():
             'notified_count': notified.get(r.id, 0),
             'quotations_count': quotations.get(r.id, (0, None))[0],
             'min_amount': quotations.get(r.id, (0, None))[1],
+            'selected_amount': _money(chosen[r.id]) if r.id in chosen else None,
             'deposit': deposits.get(r.id),
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),
@@ -552,10 +558,12 @@ def _forward_payment(method, path, body=None):
 def register_service_request_reservation(service_request_id):
     """El admin registra una reserva que ya vio en Yape, para una elegida sin
     reserva (la eligió él, o se cerró por WhatsApp). El API principal la crea
-    pagada y avisa al transportista y al cliente."""
-    operation_number = (request.get_json(silent=True) or {}).get('operation_number')
-    return _forward_payment('POST', f'/service-requests/{service_request_id}/reservation',
-                            {'operation_number': operation_number})
+    pagada y avisa al transportista y al cliente, salvo con `notify: false`."""
+    data = request.get_json(silent=True) or {}
+    body = {'operation_number': data.get('operation_number')}
+    if 'notify' in data:
+        body['notify'] = data['notify']
+    return _forward_payment('POST', f'/service-requests/{service_request_id}/reservation', body)
 
 
 @api.route('/service-requests/<int:service_request_id>/carrier-cash', methods=['POST', 'DELETE'])

@@ -1604,3 +1604,26 @@ def test_switching_to_a_quotation_without_reservation_goes_back_to_pending(clien
     select(client, service_request.id, other_id)
 
     assert status_of(service_request) == 'pending'
+
+
+def test_a_reservation_registered_late_can_skip_the_notices(client, sent):
+    service_request, _, _ = selected_by_admin(client)
+    sent['email'].clear()
+    sent['whatsapp'].clear()
+
+    response = client.post(f'/api/v1/service-requests/{service_request.id}/reservation',
+                           json={'admin_user_id': 7, 'notify': False}, headers=internal_headers())
+
+    assert response.status_code == 201
+    assert (sent['email'], sent['whatsapp']) == ([], [])
+    assert status_of(service_request) == 'in_progress'
+
+
+def test_notify_must_be_a_boolean(client):
+    service_request, _, _ = selected_by_admin(client)
+
+    response = client.post(f'/api/v1/service-requests/{service_request.id}/reservation',
+                           json={'notify': 'no'}, headers=internal_headers())
+
+    assert response.status_code == 400
+    assert ServiceRequestPayment.query.count() == 0
