@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
+import OrderVideosField from '../../components/OrderVideosField'
+import { uploadPendingVideos } from '../../lib/orderVideos'
 
 const STATUS_OPTIONS = [
   { value: 1, label: 'Pendiente' },
@@ -200,6 +202,9 @@ export default function OrderEdit() {
   const [form, setForm] = useState(null)
   const [existingImages, setExistingImages] = useState([])
   const [images, setImages] = useState([])
+  const [existingVideos, setExistingVideos] = useState([])
+  const [pendingVideos, setPendingVideos] = useState([])
+  const [deletingVideoId, setDeletingVideoId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadWarning, setUploadWarning] = useState(null)
@@ -243,6 +248,7 @@ export default function OrderEdit() {
         destination: { ...addressDefaults, ...o.destination },
       })
       setExistingImages(o.images || [])
+      setExistingVideos(o.videos || [])
       setSent({ requested: Boolean(o.quotation_requested), at: o.carrier_notified_at || null })
     }).finally(() => setLoading(false))
 
@@ -283,6 +289,19 @@ export default function OrderEdit() {
       setError(err.response?.data?.message || 'Error al borrar la imagen')
     } finally {
       setDeletingImageId(null)
+    }
+  }
+
+  const deleteExistingVideo = async (videoId) => {
+    setDeletingVideoId(videoId)
+    setError(null)
+    try {
+      await client.delete(`/api/orders/${orderId}/videos/${videoId}`)
+      setExistingVideos(prev => prev.filter(v => v.id !== videoId))
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al borrar el video')
+    } finally {
+      setDeletingVideoId(null)
     }
   }
 
@@ -342,6 +361,12 @@ export default function OrderEdit() {
       setExistingImages(prev => [...prev, ...uploaded])
     }
 
+    // Antes de mandar la orden, para que el transportista ya los vea al abrir el link.
+    const attemptedVideos = pendingVideos.length
+    const { uploaded: uploadedVideos, failed: failedVideos } =
+      await uploadPendingVideos(orderId, pendingVideos, setPendingVideos)
+    if (uploadedVideos.length) setExistingVideos(prev => [...prev, ...uploadedVideos])
+
     let sentCount = null
     if (sendToCarriers) {
       try {
@@ -366,9 +391,12 @@ export default function OrderEdit() {
     }
 
     setSaving(false)
-    if (failedUploads > 0) {
+    if (failedUploads > 0 || failedVideos.length > 0) {
+      const failures = []
+      if (failedUploads > 0) failures.push(`${failedUploads} de ${attemptedUploads} imagen(es)`)
+      if (failedVideos.length > 0) failures.push(`${failedVideos.length} de ${attemptedVideos} video(s)`)
       setUploadWarning(
-        `Los cambios se guardaron, pero ${failedUploads} de ${attemptedUploads} imagen(es) no se pudieron subir.`
+        `Los cambios se guardaron, pero ${failures.join(' y ')} no se pudieron subir.`
         + (sentCount > 0 ? ` La orden se mandó a ${sentCount} transportista(s).` : '')
       )
       return
@@ -597,6 +625,15 @@ export default function OrderEdit() {
           )}
         </div>
 
+        <OrderVideosField
+          existing={existingVideos}
+          pending={pendingVideos}
+          setPending={setPendingVideos}
+          onDeleteExisting={deleteExistingVideo}
+          deletingId={deletingVideoId}
+          disabled={saving}
+        />
+
         <AddressFields
           title="Origen"
           values={form.origin}
@@ -695,7 +732,7 @@ export default function OrderEdit() {
                 : 'bg-teal-600 hover:bg-teal-700 text-white'
             }`}
           >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+            {saving ? (pendingVideos.some(v => v.progress !== null) ? 'Subiendo videos...' : 'Guardando...') : 'Guardar cambios'}
           </button>
           {canSend && (
             <button

@@ -447,6 +447,29 @@ class OrderImage(db.Model):
         }
 
 
+class OrderVideo(db.Model):
+    """Video de la carga (migración 035). Se sube y se borra por el API principal."""
+    __tablename__ = 'order_videos'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    storage_key = db.Column(db.String(300), nullable=False)
+    content_type = db.Column(db.String(60))
+    size_bytes = db.Column(db.Integer)
+    created_date = db.Column(db.DateTime())
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'content_type': self.content_type,
+            'size_bytes': self.size_bytes,
+            'created_date': _iso(self.created_date),
+        }
+
+
 class Quotation(db.Model):
     __tablename__ = 'quotations'
     __table_args__ = {'extend_existing': True}

@@ -557,6 +557,24 @@ export default function OrderDetail() {
           </div>
         )}
 
+        {/* Videos de la carga — solo admin; el transportista los ve en su link */}
+        {isAdmin && order.videos && order.videos.length > 0 && (
+          <div className="bg-white rounded-xl shadow p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Videos</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {order.videos.map((video) => (
+                <video
+                  key={video.id}
+                  src={video.url}
+                  controls
+                  preload="metadata"
+                  className="w-full aspect-video rounded-lg border border-gray-200 bg-black"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Existing quotation */}
         {order.existing_quotation && (
           <div className="bg-white rounded-xl shadow p-5">

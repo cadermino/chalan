@@ -132,6 +132,7 @@ class Order(db.Model):
 	quotations = db.relationship("Quotations", backref="order", lazy='dynamic')
 	services = db.relationship("OrdersServices", backref="order", lazy='dynamic')
 	images = db.relationship("OrderImage", backref="order", lazy='dynamic')
+	videos = db.relationship("OrderVideo", backref="order", lazy='dynamic', order_by="OrderVideo.id")
 
 class OrderDetails(db.Model):
 	__tablename__ = 'order_details'
@@ -276,6 +277,17 @@ class OrderImage(db.Model):
 	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
 	url = db.Column(db.String(500), nullable=False)
 	storage_key = db.Column(db.String(300), nullable=False)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+class OrderVideo(db.Model):
+	"""Video de la carga que sube un admin (migración 035); lo ve el transportista al cotizar."""
+	__tablename__ = 'order_videos'
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+	url = db.Column(db.String(500), nullable=False)
+	storage_key = db.Column(db.String(300), nullable=False, unique=True)
+	content_type = db.Column(db.String(60))
+	size_bytes = db.Column(db.Integer)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
@@ -557,6 +569,12 @@ class OrderImageSchema(ma.SQLAlchemyAutoSchema):
 		model = OrderImage
 		load_instance = True
 		fields = ('id', 'url', 'created_date')
+
+class OrderVideoSchema(ma.SQLAlchemyAutoSchema):
+	class Meta:
+		model = OrderVideo
+		load_instance = True
+		fields = ('id', 'url', 'content_type', 'created_date')
 
 class OrdersServicesSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:

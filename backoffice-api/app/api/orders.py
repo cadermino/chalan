@@ -10,7 +10,7 @@ from . import api
 from .decorators import login_required
 from .. import carrier_prospects
 from ..order_access import make_token as make_order_access_token
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 # Qué lleva una orden y los topes de los tramos de peso de una carga. Copia de
@@ -785,6 +785,57 @@ def delete_order_image(order_id, image_id):
     return jsonify({'message': 'deleted'}), 200
 
 
+def _forward_video_call(method, path, json=None):
+    """Reenvía al API principal, que es el que firma la subida a S3 y escribe
+    order_videos. Devuelve la respuesta tal cual: sus mensajes de error (tipo,
+    tamaño, máximo de videos) son los que el formulario muestra."""
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            method,
+            f'{internal_api}/api/v1/order/{path}',
+            json=json,
+            headers=_internal_headers(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the upload service'}), 502
+    if res.status_code == 204:
+        return '', 204
+    try:
+        body = res.json()
+    except ValueError:
+        body = {'message': 'upload service error'}
+    return jsonify(body), res.status_code
+
+
+@api.route('/orders/<int:order_id>/videos/presign', methods=['POST'])
+@login_required
+def presign_order_video(order_id):
+    """Firma la subida de un video de la carga directo del navegador a S3 (un
+    video de 250 MB no pasa por aquí). Después el navegador lo registra con
+    POST /orders/:id/videos."""
+    if g.current_user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+    return _forward_video_call('POST', f'{order_id}/videos/presign', request.get_json(silent=True) or {})
+
+
+@api.route('/orders/<int:order_id>/videos', methods=['POST'])
+@login_required
+def register_order_video(order_id):
+    if g.current_user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+    return _forward_video_call('POST', f'{order_id}/videos', request.get_json(silent=True) or {})
+
+
+@api.route('/orders/<int:order_id>/videos/<int:video_id>', methods=['DELETE'])
+@login_required
+def delete_order_video(order_id, video_id):
+    if g.current_user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+    return _forward_video_call('DELETE', f'{order_id}/videos/{video_id}')
+
+
 @api.route('/orders/<int:order_id>', methods=['GET'])
 @login_required
 def get_order(order_id):
@@ -828,11 +879,13 @@ def get_order(order_id):
     customer_name = None
     customer_phone = None
     images = None
+    videos = None
     if is_admin:
         if customer:
             customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
             customer_phone = customer.mobile_phone
         images = [i.to_dict() for i in OrderImage.query.filter_by(order_id=order_id).all()]
+        videos = [v.to_dict() for v in OrderVideo.query.filter_by(order_id=order_id).order_by(OrderVideo.id).all()]
 
     services = [s.to_dict() for s in OrdersService.query.filter_by(order_id=order_id).all()]
 
@@ -849,6 +902,7 @@ def get_order(order_id):
             'lead_phone': order.lead_phone if is_admin else None,
             'services': services,
             'images': images,
+            'videos': videos,
             'financials': _financial_breakdown(order) if is_admin else None,
         }
     }), 200

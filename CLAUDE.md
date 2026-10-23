@@ -242,6 +242,15 @@ Superadmins can edit order fields directly from the backoffice.
 - **API**: `PUT /backoffice-api/api/orders/:id` — editable fields: `appointment_date`, `order_status_id`, `approximate_budget`, `total_kilometers`, `comments`, `load_type` and `cargo_weight_kg` (400 outside the lists), `origin` address, `destination` address; superadmin only
 - **Frontend**: `backoffice/src/pages/orders/Edit.jsx` — form accessible from the orders list via "Editar" link (superadmin only)
 
+## Order Videos (backoffice → carrier link)
+
+Customers send videos of their things over WhatsApp. A superadmin uploads them in the backoffice order create/edit form (`components/OrderVideosField.jsx`, `lib/orderVideos.js`), and carriers watch them on the quotation link (`quotation.vue`, also `order-details.vue`) under "Videos de la carga", with an "Abrir video" link because an iPhone HEVC `.mov` does not play in every browser.
+
+- **Table** `order_videos` (migration 035), separate from `order_images`: every reader of that one draws an `<img>` and AI item recognition runs on it. `Order.details()` returns `videos` next to `images`.
+- **Upload**, like service request media: browser → S3 with a presigned POST, never through the backoffice-api (250 MB). backoffice-api `POST /api/orders/:id/videos/presign`, `POST /api/orders/:id/videos` `{storage_key}`, `DELETE /api/orders/:id/videos/:vid` (superadmin) forward with the internal token to the main API `/api/v1/order/:id/videos...` (`app/api/order_videos.py`, internal only), which re-checks the stored file with `head`. MP4/MOV/WEBM, 250 MB, 5 per order. Keys `orders/<id>/video-<uuid>.<ext>`, public under the bucket's `orders/*` policy.
+- The forms queue the videos and upload them on save, one at a time with a progress bar; edit uploads them before "Guardar y enviar" notifies carriers. A failed one stays in the queue with its error.
+- **CORS**: the bucket accepts POST from `https://chalan.pe`, which covers the backoffice in production. The local backoffice (`http://localhost:5173`) is not in the bucket's CORS list, so a real upload from there fails at the S3 step until that origin is added.
+
 ## Quotation Links (Admin Feature)
 
 Admins can generate quotation links per carrier company from any order detail page in the backoffice.

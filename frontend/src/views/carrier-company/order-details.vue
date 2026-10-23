@@ -329,6 +329,28 @@
                   </a>
                 </div>
               </div>
+              <div v-if="orderVideos.length" class="mt-4">
+                <p class="font-bold mb-2">
+                  Videos de la carga:
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div v-for="(video, index) in orderVideos" :key="video.id">
+                    <video :src="video.url"
+                      controls
+                      playsinline
+                      preload="metadata"
+                      class="w-full rounded border bg-black"
+                      style="aspect-ratio: 16 / 9" />
+                    <!-- Un .mov del iPhone (HEVC) no se reproduce en todos los
+                      navegadores; descargado sí se puede ver. -->
+                    <a :href="video.url"
+                      target="_blank"
+                      class="text-sm text-blue-600 underline">
+                      Abrir video {{ index + 1 }}
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -432,6 +454,9 @@ export default {
     },
     orderImages() {
       return this.orderData?.images || [];
+    },
+    orderVideos() {
+      return this.orderData?.videos || [];
     },
     amountFromDatabase() {
       // Lo que el transportista cobra en efectivo, que ya no es la primera fila

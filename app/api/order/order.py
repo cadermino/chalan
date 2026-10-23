@@ -17,6 +17,7 @@ from ...models import OrderSchema, \
     PaymentSchema,\
     OrdersServicesSchema,\
     OrderImageSchema,\
+    OrderVideoSchema,\
     VehicleSchema
 
 _PAYMENT_TYPE_IDS = {}
@@ -152,6 +153,7 @@ class Order:
         order_data['payments'] = payment_data
         order_data['services'] = services
         order_data['images'] = OrderImageSchema(many=True).dump(order.images)
+        order_data['videos'] = OrderVideoSchema(many=True).dump(order.videos)
         return order_data
 
     def link_customer(self, customer_id):

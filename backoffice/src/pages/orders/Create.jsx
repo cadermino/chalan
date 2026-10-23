@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
+import OrderVideosField from '../../components/OrderVideosField'
+import { uploadPendingVideos } from '../../lib/orderVideos'
 
 export default function OrderCreate() {
   const navigate = useNavigate()
@@ -32,6 +34,7 @@ export default function OrderCreate() {
     notifyCarriers: true,
   })
   const [images, setImages] = useState([])
+  const [pendingVideos, setPendingVideos] = useState([])
   const [saving, setSaving] = useState(false)
   const [uploadWarning, setUploadWarning] = useState(null)
   const [createdOrderId, setCreatedOrderId] = useState(null)
@@ -141,10 +144,16 @@ export default function OrderCreate() {
       }
     }
 
+    const { failed: failedVideos } = await uploadPendingVideos(orderId, pendingVideos, setPendingVideos)
+
     setSaving(false)
-    if (failedUploads > 0) {
+    if (failedUploads > 0 || failedVideos.length > 0) {
+      const failures = []
+      if (failedUploads > 0) failures.push(`${failedUploads} de ${images.length} imagen(es)`)
+      if (failedVideos.length > 0) failures.push(`${failedVideos.length} de ${pendingVideos.length} video(s)`)
       setUploadWarning(
-        `La orden #${orderId} se creó correctamente, pero ${failedUploads} de ${images.length} imagen(es) no se pudieron subir.`
+        `La orden #${orderId} se creó correctamente, pero ${failures.join(' y ')} no se pudieron subir.`
+        + (failedVideos.length > 0 ? ' Los videos se pueden volver a subir desde Editar.' : '')
       )
       setCreatedOrderId(orderId)
       return
@@ -334,6 +343,12 @@ export default function OrderCreate() {
           )}
         </div>
 
+        <OrderVideosField
+          pending={pendingVideos}
+          setPending={setPendingVideos}
+          disabled={saving || !!uploadWarning}
+        />
+
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
           <p className="text-xs font-bold text-teal-600 uppercase tracking-wide">Origen</p>
           <div className="grid grid-cols-2 gap-3">
@@ -479,7 +494,7 @@ export default function OrderCreate() {
             disabled={saving || !!uploadWarning}
             className="px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium disabled:opacity-50"
           >
-            {saving ? 'Creando...' : 'Crear orden'}
+            {saving ? (pendingVideos.some(v => v.progress !== null) ? 'Subiendo videos...' : 'Creando...') : 'Crear orden'}
           </button>
         </div>
       </form>
