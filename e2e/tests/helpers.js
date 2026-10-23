@@ -348,11 +348,31 @@ function psql(sql) {
 }
 
 /**
+ * Una empresa de prueba le cotiza 100 a un servicio, como si lo hubiera hecho
+ * desde su link (que avisa al admin y al cliente). `selected: true` la deja
+ * elegida por un admin, sin reserva, con el total congelado en 110. La empresa
+ * la borra cleanupSeededServiceRequests().
+ */
+function seedServiceQuotation(serviceRequestId, { selected = false } = {}) {
+  const carrierId = psql(`
+    INSERT INTO carrier_company (name, email, active, country_id)
+    VALUES ('E2E Embalajes', 'carlos.calderon@chalan.pe', 1, 1) RETURNING id;
+  `);
+  seededCarrierIds.push(Number(carrierId));
+  psql(selected
+    ? `INSERT INTO service_request_quotations (service_request_id, carrier_company_id, amount, status,
+         platform_fee_rate, total_amount, selected_at, selected_by_admin_id)
+       VALUES (${serviceRequestId}, ${carrierId}, 100, 'selected', 0.1, 110, now(), 1);`
+    : `INSERT INTO service_request_quotations (service_request_id, carrier_company_id, amount)
+       VALUES (${serviceRequestId}, ${carrierId}, 100);`);
+  return Number(carrierId);
+}
+
+/**
  * Un servicio de embalaje sembrado en Postgres, como si el cliente lo hubiera
  * enviado: sin pasar por el formulario, que avisa a los transportistas.
- * `submitted: false` deja un borrador. Con `quotation`, una empresa de prueba le
- * cotiza 100 (`selected: true` la deja elegida por un admin, sin reserva, con el
- * total congelado en 110). Lo borra cleanupSeededServiceRequests().
+ * `submitted: false` deja un borrador. Con `quotation`, seedServiceQuotation.
+ * Lo borra cleanupSeededServiceRequests().
  */
 function seedServiceRequest({ submitted = true, quotation = false, selected = false } = {}) {
   const id = Number(psql(`
@@ -364,24 +384,28 @@ function seedServiceRequest({ submitted = true, quotation = false, selected = fa
     RETURNING id;
   `));
   seededServiceRequestIds.push(id);
-  if (quotation) {
-    const carrierId = psql(`
-      INSERT INTO carrier_company (name, email, active, country_id)
-      VALUES ('E2E Embalajes', 'carlos.calderon@chalan.pe', 1, 1) RETURNING id;
-    `);
-    seededCarrierIds.push(Number(carrierId));
-    psql(selected
-      ? `INSERT INTO service_request_quotations (service_request_id, carrier_company_id, amount, status,
-           platform_fee_rate, total_amount, selected_at, selected_by_admin_id)
-         VALUES (${id}, ${carrierId}, 100, 'selected', 0.1, 110, now(), 1);`
-      : `INSERT INTO service_request_quotations (service_request_id, carrier_company_id, amount)
-         VALUES (${id}, ${carrierId}, 100);`);
-  }
+  if (quotation) seedServiceQuotation(id, { selected });
   return id;
+}
+
+/**
+ * El servicio que el formulario acaba de crear con ese WhatsApp ({ id, publicId }),
+ * anotado para que cleanupSeededServiceRequests() también lo borre.
+ */
+function findServiceRequestByWhatsapp(whatsapp) {
+  const [id, publicId] = psql(
+    `SELECT id || '|' || public_id FROM service_requests WHERE whatsapp = '${whatsapp}' ORDER BY id DESC LIMIT 1;`,
+  ).split('|');
+  seededServiceRequestIds.push(Number(id));
+  return { id: Number(id), publicId };
 }
 
 function getServiceRequestStatus(id) {
   return psql(`SELECT status FROM service_requests WHERE id = ${id};`);
+}
+
+function getServiceRequestPublicId(id) {
+  return psql(`SELECT public_id FROM service_requests WHERE id = ${id};`);
 }
 
 /** Borra los servicios sembrados con sus pagos y cotizaciones, y sus empresas. */
@@ -608,7 +632,10 @@ module.exports = {
   confirmReservationAsAdmin,
   openBackofficeAsAdmin,
   seedServiceRequest,
+  seedServiceQuotation,
+  findServiceRequestByWhatsapp,
   getServiceRequestStatus,
+  getServiceRequestPublicId,
   cleanupSeededServiceRequests,
   getOrderIdFromStore,
   mockGooglePlaces,

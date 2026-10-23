@@ -1,0 +1,140 @@
+const { test, expect } = require('@playwright/test');
+const {
+  mockGooglePlaces, uniqueOperationNumber, openBackofficeAsAdmin, seedServiceRequest, seedServiceQuotation,
+  findServiceRequestByWhatsapp, getServiceRequestStatus, getServiceRequestPublicId, cleanupSeededServiceRequests,
+} = require('./helpers');
+
+// Lo que ve el cliente de un servicio de embalaje (services-web), de punta a
+// punta: el formulario, su página de cotizaciones, el yapeo de la reserva y
+// cómo queda cuando Chalán lo confirma y registra el saldo. Depende de .env.dev
+// (YAPE_RESERVATION_REQUIRED=true, PLATFORM_FEE=0.1): una cotización de 100 da
+// un total de 110, con 10 de reserva.
+//
+// La cotización la siembra seedServiceQuotation en vez del link del
+// transportista. Enviar el formulario avisa al admin por correo; las empresas
+// demo que ofrecen embalaje no tienen correo ni teléfono, y los WhatsApp no
+// salen fuera de producción.
+
+const FORM = '/embalaje/cotizar';
+const STORAGE_KEY = 'chalan_packing_request';
+
+/** Pasado mañana en Lima, como lo pide el input date (el formulario no acepta hoy). */
+function inTwoDaysInLima() {
+  const date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(date);
+}
+
+/** Nueve dígitos que empiezan con 9, distintos en cada corrida: así se encuentra el servicio. */
+function uniqueWhatsapp() {
+  return `9${String(Date.now()).slice(-8)}`;
+}
+
+/** Elige una dirección del autocompletado falso de Google (mockGooglePlaces). */
+async function pickAddress(page, formatted) {
+  await page.waitForFunction(
+    () => (window.__autocompleteInstances || []).some((entry) => entry.input.id === 'address-street'),
+    null,
+    { timeout: 15000 },
+  );
+  await page.evaluate((address) => {
+    const entry = window.__autocompleteInstances.find((e) => e.input.id === 'address-street');
+    entry.instance.__select({
+      formatted_address: address,
+      url: 'https://maps.google.com/?cid=123',
+      address_components: [
+        { long_name: 'Miraflores', short_name: 'Miraflores', types: ['sublocality_level_1'] },
+        { long_name: 'Lima', short_name: 'Lima', types: ['administrative_area_level_2'] },
+        { long_name: 'Lima', short_name: 'Lima', types: ['administrative_area_level_1'] },
+        { long_name: 'Perú', short_name: 'PE', types: ['country'] },
+      ],
+    });
+  }, formatted);
+}
+
+test.afterEach(() => cleanupSeededServiceRequests());
+
+test.describe('A packing customer, start to finish', () => {
+  test('fills the form, picks a quotation, yapes the reservation and ends up scheduled', async ({ page }) => {
+    await mockGooglePlaces(page);
+    const whatsapp = uniqueWhatsapp();
+
+    // 1. El formulario: dirección, qué embalamos, fecha y WhatsApp.
+    await page.goto(FORM, { waitUntil: 'networkidle' });
+    await pickAddress(page, 'Av. Larco 345, Miraflores, Lima, Perú');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Qué hay que embalar?' })).toBeVisible();
+    await page.getByRole('button', { name: '+ Sofá' }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await page.fill('#preferred-date', inTwoDaysInLima());
+    await page.fill('#whatsapp', whatsapp);
+    await page.getByRole('button', { name: 'Enviar solicitud' }).click();
+
+    await expect(page.getByRole('heading', { name: '¡Recibimos tu solicitud!' })).toBeVisible({ timeout: 15000 });
+    const request = findServiceRequestByWhatsapp(`+51${whatsapp}`);
+    expect(getServiceRequestStatus(request.id)).toBe('pending');
+
+    // 2. Llega una cotización y el cliente la ve en su página.
+    seedServiceQuotation(request.id);
+    await page.getByRole('link', { name: 'Ver mis cotizaciones' }).click();
+    await expect(page).toHaveURL(new RegExp(`${FORM}/cotizaciones/${request.publicId}`));
+    await expect(page.getByText('E2E Embalajes')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('S/ 110.00').first()).toBeVisible();
+
+    // 3. La elige y yapea la reserva: queda por verificar, todavía pendiente.
+    await page.getByRole('button', { name: 'Elegir esta' }).click();
+    await expect(page.getByRole('heading', { name: 'Confirma tu servicio' })).toBeVisible();
+    await expect(page.getByText('Yapea tu reserva para agendar')).toBeVisible();
+    const operationNumber = uniqueOperationNumber();
+    await page.fill('#operation-number', operationNumber);
+    await page.getByRole('button', { name: 'Agendar' }).click();
+
+    await expect(page.getByText('Estamos verificando tu yapeo')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(`Recibimos tu número de operación ${operationNumber}`)).toBeVisible();
+    expect(getServiceRequestStatus(request.id)).toBe('pending');
+
+    // 4. Chalán encuentra el yapeo en el backoffice: en progreso.
+    const admin = await page.context().newPage();
+    await openBackofficeAsAdmin(admin, `/service-requests/${request.id}`);
+    await admin.getByRole('button', { name: 'Confirmar yapeo' }).click();
+    await admin.getByRole('button', { name: 'Sí', exact: true }).click();
+    await expect(admin.getByText('En progreso', { exact: true })).toBeVisible({ timeout: 15000 });
+    expect(getServiceRequestStatus(request.id)).toBe('in_progress');
+
+    // El cliente ve su servicio agendado, con cuánto le paga al transportista.
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.getByText('¡Listo! Tu servicio con E2E Embalajes quedó agendado')).toBeVisible();
+    await expect(page.getByText('Ya yapeaste S/ 10.00. El día del servicio le pagas S/ 100.00 a E2E Embalajes.'))
+      .toBeVisible();
+    await expect(page.getByRole('button', { name: 'Elegir esta' })).toHaveCount(0);
+
+    // 5. Hecho el trabajo, Chalán registra el saldo: completado. El cliente sigue viendo lo mismo.
+    await admin.getByRole('button', { name: 'Registrar saldo pagado' }).click();
+    await admin.getByRole('button', { name: 'Sí', exact: true }).click();
+    await expect(admin.getByText('Completado', { exact: true })).toBeVisible({ timeout: 15000 });
+    expect(getServiceRequestStatus(request.id)).toBe('completed');
+
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.getByText('¡Listo! Tu servicio con E2E Embalajes quedó agendado')).toBeVisible();
+  });
+
+  test('coming back to the form resumes a draft, but not one already sent', async ({ page }) => {
+    await mockGooglePlaces(page);
+    const draft = seedServiceRequest({ submitted: false });
+    const sent = seedServiceRequest();
+
+    // Un borrador guardado se retoma: la dirección que dejó sigue ahí.
+    await page.goto(FORM, { waitUntil: 'networkidle' });
+    await page.evaluate(([key, value]) => localStorage.setItem(key, value), [STORAGE_KEY, getServiceRequestPublicId(draft)]);
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('#address-street')).toHaveValue('Av. E2E 123');
+
+    // Uno que ya se envió (otra pestaña, otro día) no: el formulario empieza de cero.
+    await page.evaluate(([key, value]) => localStorage.setItem(key, value), [STORAGE_KEY, getServiceRequestPublicId(sent)]);
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('#address-street')).toHaveValue('');
+    expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBeNull();
+  });
+});
