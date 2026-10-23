@@ -208,6 +208,11 @@ class Quotations(db.Model):
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=True)
 	selected = db.Column(db.SmallInteger, server_default='0')
 	quotation_status_id = db.Column(db.Integer, db.ForeignKey("lu_quotation_status.id"), server_default='1', nullable=False)
+	# Lo que el transportista aclara junto al precio: "voy con 2 cargadores",
+	# "en 2 viajes" (migración 036). La ve el cliente. No está en
+	# QuotationsSchema porque el link de cada transportista lista todas las
+	# cotizaciones de la orden: solo recibe la suya.
+	note = db.Column(db.String(500))
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 

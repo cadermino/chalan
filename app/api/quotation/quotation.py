@@ -14,6 +14,7 @@ class Quotation:
             amount = quotationData['amount'],
             order_id = quotationData['order_id'],
             carrier_company_id = quotationData['carrier_company_id'],
+            note = quotationData.get('note'),
         )
         db.session.add(quotation)
         db.session.commit()
@@ -69,6 +70,7 @@ class Quotation:
                 'id': quotation.id,
                 'amount': quotation.amount,
                 'total_amount': total_amount,
+                'note': quotation.note,
                 'selected': selected,
                 'order_id': quotation.order_id,
                 'carrier_company_id': carrier_company.id,

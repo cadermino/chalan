@@ -16,6 +16,7 @@ from ..models import Quotations as QuotationsModel, Order as OrderModel
 from .email import send_email
 from .whatsapp import send_whatsapp
 from .order_access import order_access_url
+from .service_request.quotations import parse_note
 from .. import db
 
 
@@ -119,10 +120,14 @@ def create_quotation():
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
     base_amount = float(quotation_data['amount'])
+    # Opcional, como en las cotizaciones de servicios: 400 si no es texto o
+    # pasa de 500. Al recotizar, sin `note` queda la que tenía.
+    note = parse_note(quotation_data.get('note'))
     data = {
         'amount': base_amount,
         'order_id': order_id,
         'carrier_company_id': carrier_company_id,
+        'note': note,
     }
     previous_quotation = QuotationEntity().get(order_id, carrier_company_id)
     if previous_quotation is None or previous_quotation.quotation_status_id != QuotationStatus.Selected():
@@ -136,6 +141,7 @@ def create_quotation():
         message = 'quotation {id} created!'.format(id=quotation.id)
         quotation_id = quotation.id
         quotation_amount = quotation.amount
+        quotation_note = quotation.note
         quotation_status_id = quotation.quotation_status_id
         status_response = 201
 
@@ -174,10 +180,14 @@ def create_quotation():
         # el monto viejo sin guardar nada: el transportista creía haber
         # actualizado su precio, Chalán seguía viendo el anterior y la
         # diferencia aparecía recién al mudarse. Ahora se actualiza de verdad.
-        QuotationEntity(previous_quotation.id).update({'amount': base_amount})
+        changes = {'amount': base_amount}
+        if 'note' in quotation_data:
+            changes['note'] = note
+        QuotationEntity(previous_quotation.id).update(changes)
         message = 'quotation {id} updated!'.format(id=previous_quotation.id)
         quotation_id = previous_quotation.id
         quotation_amount = base_amount
+        quotation_note = changes.get('note', previous_quotation.note)
         quotation_status_id = previous_quotation.quotation_status_id
         status_response = 200
 
@@ -185,6 +195,7 @@ def create_quotation():
         'message': message,
         'quotation_id': quotation_id,
         'amount': quotation_amount,
+        'note': quotation_note,
         'quotation_status_id': quotation_status_id,
     }), status_response
 

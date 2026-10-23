@@ -1386,6 +1386,7 @@ def list_order_quotations(order_id):
             **q.to_dict(),
             'carrier_company_name': company.name if company else None,
             'total_amount': total_amount,
+            'note': q.note,
         })
 
     declines = OrderCarrierDecline.query.filter_by(order_id=order_id) \

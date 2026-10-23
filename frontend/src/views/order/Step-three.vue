@@ -81,6 +81,11 @@
                       <li v-if="payloadLabel(quotation)"><span>Capacidad de carga:</span>
                         <span class="font-bold"> {{ payloadLabel(quotation) }}</span>
                       </li>
+                      <li v-if="quotation.note" class="mt-3 bg-gray-50 rounded p-2
+                        text-gray-700 whitespace-pre-line break-words">
+                        <span class="font-bold">Comentario del transportista:</span>
+                        {{ quotation.note }}
+                      </li>
                       <li class="mt-3">
                         {{ quotation.description }}
                       </li>

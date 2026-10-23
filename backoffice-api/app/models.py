@@ -483,6 +483,9 @@ class Quotation(db.Model):
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=True)
     selected = db.Column(db.SmallInteger, server_default='0')
     quotation_status_id = db.Column(db.Integer, server_default='1', nullable=False)
+    # Lo que el transportista aclara junto al precio (migración 036). No va en
+    # to_dict: solo la ven los admins (list_order_quotations) y el cliente.
+    note = db.Column(db.String(500))
     created_date = db.Column(db.DateTime())
     updated_date = db.Column(db.DateTime())
 

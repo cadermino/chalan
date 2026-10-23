@@ -241,6 +241,10 @@ def order_detail():
     order_details = order.details()
     quotations = QuotationEntity().listByOrderId(data['order_id'])
     order_details['quotations'] = QuotationsSchema(many=True).dump(quotations.quotations)
+    # Su propia nota, para recotizar sin reescribirla; las de los demás no.
+    for dumped, quotation in zip(order_details['quotations'], quotations.quotations):
+        if quotation.carrier_company_id == data['carrier_company_id']:
+            dumped['note'] = quotation.note
 
     if order_details.get('approximate_budget'):
         platform_fee = float(os.getenv('PLATFORM_FEE'))

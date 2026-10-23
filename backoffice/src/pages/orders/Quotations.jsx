@@ -153,7 +153,11 @@ export default function OrderQuotations() {
               {quotations.map((q) => (
                 <tr key={q.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-900">#{q.id}</td>
-                  <td className="px-4 py-3 text-gray-700">{q.carrier_company_name || '—'}</td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {q.carrier_company_name || '—'}
+                    {/* Lo que aclara junto al precio; el cliente también lo ve. */}
+                    {q.note && <p className="mt-1 max-w-xs whitespace-pre-line text-xs text-gray-500">“{q.note}”</p>}
+                  </td>
 
                   {isAdmin && (
                     <td className="px-4 py-3">

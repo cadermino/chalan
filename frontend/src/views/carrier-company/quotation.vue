@@ -383,6 +383,9 @@
                 maximumSignificantDigits: 5,
               }) }}
           </p>
+          <p v-if="noteFromDatabase" class="whitespace-pre-line text-gray-700">
+            <span class="font-bold mr-1">Tu comentario para el cliente:</span>{{ noteFromDatabase }}
+          </p>
         </div>
         <div v-if="!hasQuotation && !decline" class="max-w-3xl mx-auto mt-8 space-y-4">
           <div class="
@@ -427,6 +430,21 @@
                   transition-colors
                   duration-500
                   ease-in-out">
+            </div>
+            <div class="relative mb-4">
+              <label for="quotation-note" class="leading-7 text-sm text-gray-600">
+                Comentarios para el cliente (opcional)
+              </label>
+              <textarea
+                id="quotation-note"
+                v-model="note"
+                rows="3"
+                :maxlength="noteMaxLength"
+                :placeholder="notePlaceholder"
+                class="w-full bg-white rounded border border-gray-300 focus:border-indigo-500
+                  focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700
+                  py-1 px-3 leading-6"></textarea>
+              <p class="text-xs text-gray-400 text-right">{{ note.length }}/{{ noteMaxLength }}</p>
             </div>
             <button @click="sendQuotation"
               class="text-white
@@ -538,6 +556,10 @@ export default {
       orderDetails: [],
       carrierCompanyId: null,
       amount: null,
+      // Lo que aclara junto al precio; lo ve el cliente. Mismo tope que el API.
+      note: '',
+      noteMaxLength: 500,
+      notePlaceholder: 'Ej.: voy con 2 cargadores, se hace en 2 viajes, incluye embalaje del sofá',
       quotations: [],
       services: [],
       quotationStatus: {
@@ -606,17 +628,16 @@ export default {
     hasQuotation() {
       return Boolean(this.amountFromDatabase) || false;
     },
+    currentQuotation() {
+      return (this.quotations || [])
+        .find(quotation => quotation.carrier_company_id === this.carrierCompanyId
+          && quotation.quotation_status_id !== this.quotationStatus.cancelled) || null;
+    },
     amountFromDatabase() {
-      if (!this.quotations || this.quotations.length === 0) {
-        return null;
-      }
-      const currentQuotation = this.quotations
-        .filter(quotation => quotation.carrier_company_id === this.carrierCompanyId
-          && quotation.quotation_status_id !== this.quotationStatus.cancelled);
-      if (currentQuotation.length === 0) {
-        return null;
-      }
-      return currentQuotation[0].amount;
+      return this.currentQuotation ? this.currentQuotation.amount : null;
+    },
+    noteFromDatabase() {
+      return this.currentQuotation ? this.currentQuotation.note : null;
     },
     packagingService() {
       if (!this.services || this.services.length === 0) {
@@ -828,6 +849,7 @@ export default {
       const payload = {
         token: this.token,
         amount: this.amount,
+        note: this.note,
       };
       chalan
         .createQuotation(payload)
@@ -841,10 +863,12 @@ export default {
                 && quotation.quotation_status_id !== this.quotationStatus.cancelled);
             if (existing) {
               existing.amount = response.data.amount;
+              existing.note = response.data.note;
               existing.quotation_status_id = response.data.quotation_status_id;
             } else {
               this.quotations.push({
                 amount: response.data.amount,
+                note: response.data.note,
                 carrier_company_id: this.carrierCompanyId,
                 quotation_status_id: response.data.quotation_status_id,
               });

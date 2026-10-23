@@ -269,6 +269,9 @@ Admins can generate quotation links per carrier company from any order detail pa
 ### Token Structure
 JWT signed with `SECRET_KEY`, payload: `{ carrier_company_id, order_id, exp (10 days), iat }`. Same token format used throughout the quotation flow (`frontend/src/views/carrier-company/quotation.vue` decodes it).
 
+### Carrier Note on a Quotation
+`quotations.note` (migration 036, up to 500 characters, optional): what the carrier says next to the price ("voy con 2 cargadores", "se hace en 2 viajes"). The carrier writes it under the price on the quotation link (`quotation.vue`, "Comentarios para el cliente"). `POST /api/v1/quotations` takes `note` and validates it with `parse_note` from service requests (400 if it is not text or too long, blank is null). A re-quote without `note` keeps the old one, and an empty one clears it. The customer sees it on the quotation card (`Step-three.vue`, from `toJson`) and admins in `orders/Quotations.jsx`. It is **not** in `QuotationsSchema` or the backoffice `Quotation.to_dict()`: the carrier link (`GET /api/v1/orders/details`) lists every quotation of the order, so each carrier only gets its own note there. Nothing filters phone numbers, same as service request notes.
+
 ## Database Migrations
 
 Migrations live in `migrations/versions/` and follow sequential numbering (`001_`, `002_`, etc.). They run inside the `flask` container. The backoffice-api does NOT have its own migrations — all schema changes go through the main API's Alembic setup since both apps share the same database.

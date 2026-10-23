@@ -10,7 +10,7 @@ import jwt
 import pytest
 
 from app import db
-from app.models import (CarrierCompanyServiceType, Order, OrderCarrierDecline,
+from app.models import (CarrierCompanyServiceType, Order, OrderCarrierDecline, Quotation,
                         ServiceRequestCarrierDecline, ServiceType)
 from tests.test_service_requests import (SECRET, FakeResponse, admin, carrier_token,  # noqa: F401
                                          make_carrier, make_user, materials, packing, submitted)
@@ -122,6 +122,17 @@ def test_detail_and_admin_quotations_show_the_decline(client, admin, carrier, ca
     declines = client.get(f'/api/orders/{order.id}/quotations', headers=admin).get_json()['declines']
     assert [(d['carrier_company_name'], d['reason'], d['note']) for d in declines] == [
         ('Mudanzas SAC', 'other', 'No tengo gente')]
+
+
+def test_admins_see_the_note_of_each_quotation(client, admin, carrier):
+    order = make_order()
+    db.session.add(Quotation(order_id=order.id, carrier_company_id=carrier.id, amount=500,
+                             note='Voy con 2 cargadores', created_date=datetime(2026, 10, 2)))
+    db.session.commit()
+
+    quotations = client.get(f'/api/orders/{order.id}/quotations', headers=admin).get_json()['quotations']
+
+    assert [(q['carrier_company_name'], q['note']) for q in quotations] == [('Mudanzas SAC', 'Voy con 2 cargadores')]
 
 
 # --- solicitudes de servicio ------------------------------------------------------
