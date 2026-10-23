@@ -11,7 +11,7 @@ from . import api
 from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from .. import db
-from ..models import (CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
+from ..models import (ROLE_SUPERADMIN, CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestCarrierDecline, ServiceRequestItem,
                       ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
                       ServiceMaterial, ServiceType, _iso, _money)
@@ -348,11 +348,20 @@ def update_service_request(service_request_id):
     if service_request is None:
         return jsonify({'message': 'service request not found'}), 404
     data = request.get_json(silent=True) or {}
-    # Cancelar es lo único que se puede hacer desde acá: el resto de los datos
-    # los escribe el cliente, y no se editan a sus espaldas.
-    if data.get('status') != 'cancelled':
-        return jsonify({'message': "only status 'cancelled' can be set"}), 400
-    service_request.status = 'cancelled'
+    # Solo el estado: el resto de los datos los escribe el cliente, y no se
+    # editan a sus espaldas. Cancelar lo puede cualquier admin; poner otro
+    # estado a mano, solo un superadmin, como editar el estado de una orden.
+    # El API principal lo vuelve a calcular (sync_status) la próxima vez que
+    # cambie la elección o un pago.
+    status = data.get('status')
+    if status not in STATUSES:
+        return jsonify({'message': 'invalid status'}), 400
+    if status != 'cancelled' and g.current_user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'only a superadmin can set that status'}), 403
+    # Un borrador no se envió a nadie: sacarlo de pending lo haría pasar por enviado.
+    if _is_draft(service_request) and status not in ('pending', 'cancelled'):
+        return jsonify({'message': 'a draft can only be cancelled'}), 409
+    service_request.status = status
     db.session.commit()
     return jsonify({'service_request': service_request.to_dict_full()}), 200
 

@@ -7,7 +7,7 @@ import ClientContact from '../../components/ClientContact'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
-
+import { useAuth } from '../../contexts/AuthContext'
 
 // El link se arma con el origen actual, así sirve igual en local y en producción.
 function carrierUrl(token) {
@@ -122,6 +122,45 @@ const STATUS_STYLE = {
   cancelled: 'bg-red-50 text-red-700',
 }
 const isDraft = (request) => request.status === 'pending' && !request.submitted_at
+
+// Cambiar el estado a mano (superadmin, como en Editar orden): para lo que pasó
+// fuera del sistema. La API lo vuelve a calcular si después cambia la elección
+// o un pago. Un borrador solo se puede cancelar.
+function StatusEditor({ request, busy, onSave }) {
+  const [value, setValue] = useState(request.status)
+  useEffect(() => { setValue(request.status) }, [request.status])
+  const options = isDraft(request) ? ['pending', 'cancelled'] : Object.keys(STATUS_LABEL)
+
+  return (
+    <div className="flex items-center gap-2">
+      <label htmlFor="status-editor" className="sr-only">Cambiar estado</label>
+      <select
+        id="status-editor"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        disabled={busy}
+        className="rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+      >
+        {options.map((key) => <option key={key} value={key}>{STATUS_LABEL[key]}</option>)}
+      </select>
+      {value !== request.status && (
+        <>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onSave(value)}
+            className="rounded-lg bg-teal-600 px-3 py-1 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+          >
+            Guardar estado
+          </button>
+          <button type="button" disabled={busy} onClick={() => setValue(request.status)} className="text-xs text-gray-500 hover:underline">
+            Deshacer
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
 
 const CONCEPT_LABEL = { reservation: 'Reserva por Yape', carrier_cash: 'Saldo en efectivo al transportista' }
 const PAYMENT_LABEL = {
@@ -336,6 +375,7 @@ function Payments({ request, busy, confirming, onAskConfirm, onResolve, onRegist
 
 export default function ServiceRequestDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
   const [request, setRequest] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -439,6 +479,19 @@ export default function ServiceRequestDetail() {
     }
   }
 
+  const saveStatus = async (status) => {
+    setBusy(true)
+    try {
+      await client.patch(`/api/service-requests/${id}`, { status })
+      toast.success(`Estado cambiado a ${STATUS_LABEL[status]}`)
+      await load()
+    } catch (err) {
+      toast.error(err.response?.status === 409 ? 'Un servicio incompleto solo se puede cancelar' : 'No se pudo cambiar el estado')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const cancel = async () => {
     setBusy(true)
     try {
@@ -469,6 +522,9 @@ export default function ServiceRequestDetail() {
         </span>
         {isDraft(request) && (
           <span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs font-medium text-gray-700">Incompleto</span>
+        )}
+        {user?.role === 'superadmin' && (
+          <div className="ml-auto"><StatusEditor request={request} busy={busy} onSave={saveStatus} /></div>
         )}
       </div>
 

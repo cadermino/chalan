@@ -165,12 +165,41 @@ def test_admin_can_cancel_a_request(client, admin, submitted):
     assert db.session.get(ServiceRequest, submitted.id).status == 'cancelled'
 
 
-@pytest.mark.parametrize('body', [{'status': 'pending'}, {'status': 'completed'}, {'whatsapp': '+51999999999'}, {}])
-def test_only_cancelling_is_allowed(client, admin, submitted, body):
+@pytest.mark.parametrize('body', [{'status': 'submitted'}, {'whatsapp': '+51999999999'}, {}])
+def test_only_the_status_can_be_set(client, admin, submitted, body):
     res = client.patch(f'/api/service-requests/{submitted.id}', json=body, headers=admin)
 
     assert res.status_code == 400
     assert db.session.get(ServiceRequest, submitted.id).status == 'pending'
+
+
+def test_an_admin_can_only_cancel(client, admin, submitted):
+    res = client.patch(f'/api/service-requests/{submitted.id}', json={'status': 'completed'}, headers=admin)
+
+    assert res.status_code == 403
+    assert db.session.get(ServiceRequest, submitted.id).status == 'pending'
+
+
+@pytest.mark.parametrize('status', ['in_progress', 'completed', 'pending'])
+def test_a_superadmin_can_set_any_status(client, submitted, status):
+    submitted.status = 'cancelled'
+    db.session.commit()
+    headers = make_user('superadmin')
+
+    res = client.patch(f'/api/service-requests/{submitted.id}', json={'status': status}, headers=headers)
+
+    assert (res.status_code, res.get_json()['service_request']['status']) == (200, status)
+
+
+def test_a_draft_can_only_be_cancelled(client, submitted):
+    submitted.submitted_at = None
+    db.session.commit()
+    headers = make_user('superadmin')
+
+    assert client.patch(f'/api/service-requests/{submitted.id}', json={'status': 'completed'},
+                        headers=headers).status_code == 409
+    assert client.patch(f'/api/service-requests/{submitted.id}', json={'status': 'cancelled'},
+                        headers=headers).status_code == 200
 
 
 # --- resend through the main API ----------------------------------------------
