@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom'
 import { chooseQuotation, getQuotations } from '../api'
 import { track } from '../analytics'
 import ConfirmModal, { money } from '../components/ConfirmModal'
-import { COPY, SERVICE, whatsappUrl, workLabel } from '../config'
+import { COPY, SERVICE, paintingFacts, whatsappUrl, workLabel } from '../config'
 import { formatDateLabel } from '../dates'
+
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 function itemLabel(item) {
   const extras = [item.work && workLabel(item.work), item.pack && 'embalado'].filter(Boolean)
@@ -62,8 +64,8 @@ function SelectedStatus({ selected, reservation, contact, date, onCorrect }) {
       </p>
       <p className="mt-1 text-inkSoft">
         {reservation?.status === 'paid'
-          ? `Ya yapeaste ${money(reservation.amount)}. El día del servicio le pagas ${money(selected.on_site_amount)} a ${selected.carrier_name}.`
-          : `Le pagas ${money(selected.total_amount)} a ${selected.carrier_name} el día del servicio.`}
+          ? `Ya yapeaste ${money(reservation.amount)}. ${capitalize(COPY.payDay)} le pagas ${money(selected.on_site_amount)} a ${selected.carrier_name}.`
+          : `Le pagas ${money(selected.total_amount)} a ${selected.carrier_name} ${COPY.payDay}.`}
         {contact?.phone
           ? ` Coordina la hora directo con ${contact.name}.`
           : ' Te escribimos por WhatsApp para coordinar la hora.'}
@@ -171,12 +173,20 @@ export default function Quotations() {
       <h1 className="text-2xl font-semibold text-inkStrong">Tus cotizaciones</h1>
       <p className="mt-1 text-inkSoft">{summary}</p>
 
-      <details className="mt-4 rounded-lg border border-line p-3 text-sm">
-        <summary className="cursor-pointer text-inkSoft">{COPY.itemsSummary} ({data.items.length})</summary>
-        <ul className="mt-2 space-y-1 text-ink">
-          {data.items.map((item, index) => <li key={index}>{itemLabel(item)}</li>)}
-        </ul>
-      </details>
+      {SERVICE === 'painting' ? (
+        <details className="mt-4 rounded-lg border border-line p-3 text-sm">
+          <summary className="cursor-pointer text-inkSoft">{COPY.itemsSummary}</summary>
+          <p className="mt-2 whitespace-pre-line text-ink">{data.details?.description || 'Lo explicaste en el video.'}</p>
+          {paintingFacts(data.details) && <p className="mt-1 text-mute">{paintingFacts(data.details)}</p>}
+        </details>
+      ) : (
+        <details className="mt-4 rounded-lg border border-line p-3 text-sm">
+          <summary className="cursor-pointer text-inkSoft">{COPY.itemsSummary} ({data.items.length})</summary>
+          <ul className="mt-2 space-y-1 text-ink">
+            {data.items.map((item, index) => <li key={index}>{itemLabel(item)}</li>)}
+          </ul>
+        </details>
+      )}
 
       {cancelled && (
         <div role="status" className="mt-6 rounded-lg border border-line bg-paper2 p-4 text-sm text-inkStrong">

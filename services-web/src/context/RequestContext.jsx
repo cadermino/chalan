@@ -16,6 +16,8 @@ const EMPTY_DRAFT = {
   items: [],
   // Solo armado: dónde se arman los muebles que se desarman en la dirección.
   destination: null,
+  // Solo pintura: qué pintar (description) y las respuestas rápidas.
+  details: {},
   media: [],
   preferredDate: '',
   whatsapp: '',
@@ -44,11 +46,21 @@ function fromServer(data) {
     address: toForm(data.address),
     items: (data.items || []).map((item) => newItem({ ...item, pack: Boolean(item.pack) })),
     destination: destination ? toForm(destination) : null,
+    details: SERVICE === 'painting' ? (data.details || {}) : {},
     media: data.media || [],
     preferredDate: data.preferred_date || '',
     // El servidor guarda +51987654321; el campo muestra solo los 9 dígitos.
     whatsapp: (data.whatsapp || '').replace(/^\+51/, ''),
   }
+}
+
+// Si el segundo paso está hecho. Pintura no tiene lista: basta con contar qué
+// pintar, o con un video que lo explique (misma regla que check_painting_submit).
+export function itemsDone(draft) {
+  if (SERVICE === 'painting') {
+    return Boolean(draft.details.description) || draft.media.some((m) => m.media_type === 'video')
+  }
+  return draft.items.length > 0
 }
 
 const RequestContext = createContext(null)
@@ -111,6 +123,11 @@ export function RequestProvider({ children }) {
     patch(destination === undefined ? { items } : { items, destination })
   }, [draft.publicId, patch])
 
+  const saveDetails = useCallback(async (details) => {
+    const saved = await updateRequest(draft.publicId, { details })
+    patch({ details: saved.details || {} })
+  }, [draft.publicId, patch])
+
   // Devuelve el public_id: el borrador se vacía, pero la pantalla de enviado
   // lo necesita para el link a las cotizaciones.
   const submit = useCallback(async ({ whatsapp, preferredDate }) => {
@@ -135,8 +152,9 @@ export function RequestProvider({ children }) {
     removeMedia: (id) => setDraft((c) => ({ ...c, media: c.media.filter((m) => m.id !== id) })),
     saveAddress,
     saveItems,
+    saveDetails,
     submit,
-  }), [draft, ready, patch, saveAddress, saveItems, submit])
+  }), [draft, ready, patch, saveAddress, saveItems, saveDetails, submit])
 
   return <RequestContext.Provider value={value}>{children}</RequestContext.Provider>
 }

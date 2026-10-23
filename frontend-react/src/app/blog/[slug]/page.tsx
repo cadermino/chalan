@@ -204,6 +204,25 @@ export default async function BlogPost({ params }: Props) {
               <h2 className="text-2xl font-bold text-gray-900">{HOME_SERVICES[post.cta].blogCta.title}</h2>
               <p className="mt-2 text-gray-600">{HOME_SERVICES[post.cta].blogCta.body}</p>
               <div className="mt-6 flex flex-wrap items-center gap-4">
+                {/* Con formulario (pintura), el botón va ahí; <a> porque lo sirve services-web. */}
+                {HOME_SERVICES[post.cta].formUrl ? (
+                  <>
+                    <a
+                      href={HOME_SERVICES[post.cta].formUrl}
+                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700"
+                    >
+                      Cotizar en 2 minutos →
+                    </a>
+                    <a
+                      href={whatsappUrl(HOME_SERVICES[post.cta].whatsappText)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 font-medium hover:underline"
+                    >
+                      o por WhatsApp
+                    </a>
+                  </>
+                ) : (
                 <a
                   href={whatsappUrl(HOME_SERVICES[post.cta].whatsappText)}
                   target="_blank"
@@ -212,6 +231,7 @@ export default async function BlogPost({ params }: Props) {
                 >
                   Cotizar por WhatsApp →
                 </a>
+                )}
                 <Link href={HOME_SERVICES[post.cta].path} className="text-indigo-600 font-medium hover:underline">
                   Ver precios de {HOME_SERVICES[post.cta].name.toLowerCase()}
                 </Link>

@@ -9,7 +9,8 @@ MAX_ITEMS = 50
 MAX_MEDIA = 10
 MAX_ADVANCE_DAYS = 90
 IMAGE_MAX_BYTES = 10 * 1024 * 1024
-VIDEO_MAX_BYTES = 100 * 1024 * 1024
+# A video explaining the job, talking over it, easily passes 100 MB on a phone.
+VIDEO_MAX_BYTES = 250 * 1024 * 1024
 
 # content type -> (media type, file extension). media_type is derived from the
 # content type here and never taken from the client.

@@ -19,7 +19,7 @@ from .service_request.quotations import (
     save_quotation, select_quotation, split_total, undo_carrier_cash,
 )
 from .service_request.statuses import CANCELLED, PENDING, is_draft
-from .service_request.types import SERVICE_TYPES
+from .service_request.types import SERVICE_TYPES, needs_items
 from .service_request.validation import (
     MAX_MEDIA, InvalidRequest, validate_address, validate_items,
     validate_media_upload, validate_preferred_date, MEDIA_MAX_BYTES,
@@ -260,6 +260,8 @@ def get_customer_quotations(public_id):
             {'description': item.description, 'quantity': item.quantity, 'work': item.work, 'pack': item.pack}
             for item in service_request.items
         ],
+        # Pintura no tiene lista: lo que pidió va aquí (descripción y respuestas rápidas).
+        'details': service_request.details or {},
         # Lo decide el servidor (YAPE_RESERVATION_REQUIRED), no una variable del
         # front: así la página y el chequeo de /choose no pueden desalinearse.
         'reservation_required': yape_reservation_required(),
@@ -536,7 +538,7 @@ def submit_service_request(public_id):
     # The saved address was validated when it was written, but a field can be
     # missing if the draft never completed the step.
     address = validate_address(_address_dict(service_request))
-    if not service_request.items:
+    if needs_items(service_request.service_type) and not service_request.items:
         raise InvalidRequest('at least one item is required')
     _check_submit(service_request, service_request.service_type)
     # Revalidated even if saved: a draft kept for days can hold a date that has
@@ -591,9 +593,12 @@ def create_manual_service_request():
         raise InvalidRequest('unknown service_type')
     address = validate_address(data.get('address'))
     _check_manual_address(address, 'address')
-    items = _validate_items(data.get('items'), service_type)
-    if not items:
-        raise InvalidRequest('at least one item is required')
+    if needs_items(service_type):
+        items = _validate_items(data.get('items'), service_type)
+        if not items:
+            raise InvalidRequest('at least one item is required')
+    else:
+        items = _validate_items(data.get('items') or [], service_type)
     details = SERVICE_TYPES[service_type.code]['validate_details'](data.get('details'))
     if details.get('destination'):
         _check_manual_address(details['destination'], 'details.destination')

@@ -49,6 +49,7 @@ HEALTH_PATHS=(
   "/backoffice-api/api/service-types"         # backoffice-api (401 esperado)
   "/embalaje/cotizar"                         # services-web
   "/armado/cotizar"                           # services-web, por la ruta nueva de nginx
+  "/pintura/cotizar"                          # services-web, pintura
 )
 
 DRY_RUN=0

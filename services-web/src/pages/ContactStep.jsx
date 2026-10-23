@@ -4,7 +4,7 @@ import StepNav from '../components/StepNav'
 import StepTracker from '../components/StepTracker'
 import { friendlyError, getMaterials } from '../api'
 import { track } from '../analytics'
-import { COPY, PATHS, SERVICE, workLabel } from '../config'
+import { COPY, PATHS, SERVICE, paintingFacts, workLabel } from '../config'
 import { useRequest } from '../context/RequestContext'
 import { MAX_ADVANCE_DAYS, dateLimits, formatDateLabel, isValidPreferredDate } from '../dates'
 
@@ -134,6 +134,17 @@ export default function ContactStep() {
             {address.street}{address.interior ? ` · ${address.interior}` : ''}
           </span>
         </SummaryRow>
+        {SERVICE === 'painting' ? (
+          <SummaryRow title={COPY.itemsSummary} editTo={PATHS.items}>
+            {draft.details.description
+              ? <p className="whitespace-pre-line" data-clarity-mask="true">{draft.details.description}</p>
+              : <p>Lo explicas en el video.</p>}
+            {paintingFacts(draft.details) && <p className="mt-1 text-mute">{paintingFacts(draft.details)}</p>}
+            <p className="mt-2 text-mute">
+              {draft.media.length === 0 ? 'Sin fotos ni videos' : `${draft.media.length} foto(s) o video(s)`}
+            </p>
+          </SummaryRow>
+        ) : (
         <SummaryRow title={`${COPY.itemsSummary} (${draft.items.length})`} editTo={PATHS.items}>
           <ul className="space-y-1">
             {draft.items.map((item) => {
@@ -150,6 +161,7 @@ export default function ContactStep() {
             {draft.media.length === 0 ? 'Sin fotos ni videos' : `${draft.media.length} foto(s) o video(s)`}
           </p>
         </SummaryRow>
+        )}
         {destination && (
           <SummaryRow title="Se arman en" editTo={PATHS.items}>
             <span data-clarity-mask="true">

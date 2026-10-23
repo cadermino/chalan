@@ -1,18 +1,22 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
-import { useRequest } from './context/RequestContext'
+import { itemsDone, useRequest } from './context/RequestContext'
 import { pageView } from './analytics'
 import { BASE_PATH, PATHS, SERVICE } from './config'
 import AddressStep from './pages/AddressStep'
 import PackingItemsStep from './pages/packing/ItemsStep'
 import FurnitureItemsStep from './pages/furniture/ItemsStep'
+import PaintingDetailsStep from './pages/painting/DetailsStep'
 import ContactStep from './pages/ContactStep'
 import Sent from './pages/Sent'
 import Quotations from './pages/Quotations'
 
-// Lo único que cambia de un servicio a otro es la lista; el resto se comparte.
-const ItemsStep = SERVICE === 'furniture_assembly' ? FurnitureItemsStep : PackingItemsStep
+// Lo único que cambia de un servicio a otro es el segundo paso; el resto se comparte.
+const ItemsStep = {
+  furniture_assembly: FurnitureItemsStep,
+  painting: PaintingDetailsStep,
+}[SERVICE] || PackingItemsStep
 
 // Equivalente a `requiresPreviousComplete` del router del flujo de mudanza: no se
 // salta un paso cuyo anterior no está hecho (p. ej. al abrir el link a medias).
@@ -21,7 +25,7 @@ function RequireStep({ needs, children }) {
   if (!ready) return <p className="py-16 text-center text-inkSoft">Cargando…</p>
   if (needs === 'address' && !draft.publicId) return <Navigate to={PATHS.address} replace />
   if (needs === 'items' && !draft.publicId) return <Navigate to={PATHS.address} replace />
-  if (needs === 'items' && draft.items.length === 0) return <Navigate to={PATHS.items} replace />
+  if (needs === 'items' && !itemsDone(draft)) return <Navigate to={PATHS.items} replace />
   return children
 }
 

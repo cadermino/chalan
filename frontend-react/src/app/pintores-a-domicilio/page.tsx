@@ -70,7 +70,7 @@ const FAQ: ServiceFaq[] = [
   },
   {
     q: '¿Cómo calculo los metros a pintar?',
-    a: 'Se cotiza por los metros de pared, no por los del departamento. Por cada ambiente, suma el largo de sus paredes, multiplícalo por la altura y resta puertas y ventanas. Si no quieres medir, mándanos fotos y las medidas de cada ambiente por WhatsApp y lo calculamos.',
+    a: 'Se cotiza por los metros de pared, no por los del departamento. Por cada ambiente, suma el largo de sus paredes, multiplícalo por la altura y resta puertas y ventanas. Si no quieres medir, al cotizar súbenos un video recorriendo los ambientes y lo calculamos.',
   },
   {
     q: 'Voy a entregar el departamento, ¿tengo que pintarlo?',
@@ -117,8 +117,9 @@ export default function PintoresADomicilio() {
         </>
       }
       heroSub="Departamentos y casas, por dentro y por fuera. Con empastado si hace falta, y también para entregar el depa."
-      ctaBody="Mándanos fotos de las paredes y los metros, o las medidas de cada ambiente. Te respondemos con el precio por WhatsApp."
+      ctaBody="Cuéntanos qué hay que pintar, o súbenos un video recorriendo las paredes. Los pintores te cotizan y eliges."
       whatsappText={service.whatsappText}
+      formUrl={service.formUrl}
       prices={PRICES}
       priceUnit="por m²"
       pricesTitle={<>Precios de pintura<br />por metro cuadrado.</>}
@@ -190,14 +191,14 @@ export default function PintoresADomicilio() {
       steps={[
         {
           n: '01',
-          title: 'Mándanos fotos y medidas',
-          body: 'Por WhatsApp: fotos de las paredes y los metros, o las medidas de cada ambiente, y si es interior o exterior.',
+          title: 'Cuéntanos qué pintar',
+          body: 'En el formulario: escríbelo o sube un video recorriendo las paredes. Si sabes los metros o si es interior o exterior, mejor.',
           icon: 'chat',
         },
         {
           n: '02',
-          title: 'Te cotizamos y agendamos',
-          body: 'Te confirmamos el precio, cuánta pintura comprar y coordinamos el día.',
+          title: 'Comparas y agendas',
+          body: 'Te llegan las cotizaciones por WhatsApp, eliges una y reservas con Yape. El resto se paga al terminar.',
           icon: 'cal',
         },
         {
@@ -210,8 +211,8 @@ export default function PintoresADomicilio() {
       faq={FAQ}
       final={{
         eyebrow: 'Agenda tu pintura',
-        title: <>Paredes como nuevas.<br /><em>Cotiza por WhatsApp.</em></>,
-        lede: 'Mándanos fotos y medidas. Te respondemos con el precio y agendamos.',
+        title: <>Paredes como nuevas.<br /><em>Cotiza en 2 minutos.</em></>,
+        lede: 'Cuéntanos qué pintar o súbenos un video. Te llegan las cotizaciones y eliges.',
       }}
       service={{
         name: 'Pintores a domicilio',

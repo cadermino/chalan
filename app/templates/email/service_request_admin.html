@@ -84,7 +84,12 @@
                     WhatsApp del cliente: <strong>{{whatsapp}}</strong><br/>
                     {% if neighborhood %}Distrito: <strong>{{neighborhood}}</strong><br/>{% endif %}
                     {% if preferred_date %}Fecha deseada: <strong>{{preferred_date}}</strong><br/>{% endif %}
+                    {% if needs_items %}
                     Cosas en la lista: <strong>{{items_count}}</strong>
+                    {% else %}
+                    {% if description %}Qué pide: <strong>{{description}}</strong><br/>{% endif %}
+                    Fotos y videos: <strong>{{media_count}}</strong>
+                    {% endif %}
                   </td>
                 </tr>
                 <tr>

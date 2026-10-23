@@ -10,7 +10,7 @@ from ...models import (CarrierCompany, CarrierCompanyServiceType,
 from ..email import send_email
 from ..whatsapp import normalize_phone, send_whatsapp
 from .quotations import platform_fee_rate, total_with_fee
-from .types import SERVICE_TYPES
+from .types import SERVICE_TYPES, needs_items
 
 TOKEN_PURPOSE = 'service_request'
 TOKEN_TTL = timedelta(days=10)
@@ -131,6 +131,10 @@ def _notify_admin(service_request, service_name, notified_names):
                 neighborhood=service_request.neighborhood,
                 preferred_date=_date_label(service_request),
                 items_count=len(service_request.items),
+                # Pintura no trae lista: lo que pide va escrito o en un video.
+                needs_items=needs_items(service_request.service_type),
+                description=(service_request.details or {}).get('description'),
+                media_count=len(service_request.media),
                 carriers=notified_names,
                 admin_url=admin_url,
             )

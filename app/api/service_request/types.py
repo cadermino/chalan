@@ -57,6 +57,70 @@ def check_furniture_submit(service_request):
         service_request.details = details
 
 
+# Painting has no list of things: the customer says what to paint in their own
+# words (or in a video, speaking over it), plus a few optional answers that make
+# the painters' quotes comparable. Codes, not labels: the labels live in each
+# screen (services-web, backoffice).
+PAINTING_AREAS = ('interior', 'exterior', 'both')
+PAINTING_SIZES = ('detail', 'one_room', 'few_rooms', 'whole')
+PAINTING_PAINT_BY = ('customer', 'painter', 'unsure')
+PAINTING_WALL_ISSUES = ('humidity', 'cracks', 'putty')
+PAINTING_DESCRIPTION_MAX = 2000
+PAINTING_M2_MAX = 5000
+
+
+def _choice(details, key, choices):
+    value = details.get(key)
+    if value in (None, ''):
+        return None
+    if value not in choices:
+        raise InvalidRequest(f'details.{key} must be one of: {", ".join(choices)}')
+    return value
+
+
+def validate_painting_details(details):
+    """Every field is optional here: what is required (a description, or a
+    video that explains it) is checked on submit, once the media is in."""
+    if details is None:
+        return {}
+    if not isinstance(details, dict):
+        raise InvalidRequest('details must be an object')
+    cleaned = {}
+    description = details.get('description')
+    if description is not None:
+        if not isinstance(description, str):
+            raise InvalidRequest('details.description must be text')
+        description = description.strip()
+        if len(description) > PAINTING_DESCRIPTION_MAX:
+            raise InvalidRequest(f'details.description must be at most {PAINTING_DESCRIPTION_MAX} characters')
+        if description:
+            cleaned['description'] = description
+    for key, choices in (('area', PAINTING_AREAS), ('size', PAINTING_SIZES), ('paint_by', PAINTING_PAINT_BY)):
+        value = _choice(details, key, choices)
+        if value is not None:
+            cleaned[key] = value
+    m2 = details.get('area_m2')
+    if m2 not in (None, ''):
+        if isinstance(m2, bool) or not isinstance(m2, int) or not 1 <= m2 <= PAINTING_M2_MAX:
+            raise InvalidRequest(f'details.area_m2 must be a whole number from 1 to {PAINTING_M2_MAX}')
+        cleaned['area_m2'] = m2
+    issues = details.get('wall_issues')
+    if issues not in (None, []):
+        if not isinstance(issues, list) or any(i not in PAINTING_WALL_ISSUES for i in issues):
+            raise InvalidRequest(f'details.wall_issues must be a list of: {", ".join(PAINTING_WALL_ISSUES)}')
+        cleaned['wall_issues'] = [i for i in PAINTING_WALL_ISSUES if i in issues]
+    return cleaned
+
+
+def check_painting_submit(service_request):
+    """The painter needs to know what to paint: written, or told in a video."""
+    if (service_request.details or {}).get('description'):
+        return
+    if any(m.media_type == 'video' for m in service_request.media):
+        return
+    raise InvalidRequest('describe what to paint, or upload a video explaining it')
+
+
 # Code (lu_service_types.code) -> what is specific to that service. A new
 # service is a row in lu_service_types plus an entry here; no migration.
 #
@@ -65,6 +129,7 @@ def check_furniture_submit(service_request):
 # - materials_from (optional): another service's materials catalog. Assembly
 #   uses packing's, because the assembler packs with the same materials.
 # - check_submit (optional): rules across items and details, before sending.
+# - needs_items (default True): whether it is sent with a list of things.
 # `form_path` es donde vive el formulario en services-web; la página de
 # cotizaciones del cliente cuelga de ahí (`<form_path>/cotizaciones/<public_id>`).
 SERVICE_TYPES = {
@@ -76,4 +141,14 @@ SERVICE_TYPES = {
         'materials_from': 'packing',
         'check_submit': check_furniture_submit,
     },
+    'painting': {
+        'form_path': '/pintura/cotizar',
+        'validate_details': validate_painting_details,
+        'check_submit': check_painting_submit,
+        'needs_items': False,
+    },
 }
+
+
+def needs_items(service_type):
+    return SERVICE_TYPES[service_type.code].get('needs_items', True)

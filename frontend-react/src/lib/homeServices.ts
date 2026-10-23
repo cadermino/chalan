@@ -1,6 +1,8 @@
-// Servicios a domicilio que todavía se cotizan solo por WhatsApp (sin formulario
-// en services-web). Lo usan sus landings y el llamado al final de sus posts del
-// blog, así el texto del WhatsApp y la ruta viven en un solo lugar.
+// Servicios a domicilio de las landings con ServiceLanding. Lo usan sus landings
+// y el llamado al final de sus posts del blog, así el texto del WhatsApp y la
+// ruta viven en un solo lugar. Los que tienen formulario en services-web llevan
+// `formUrl` (pintura): ahí el botón principal es el formulario y WhatsApp queda
+// de segunda opción. Los demás se cotizan solo por WhatsApp.
 
 export const WHATSAPP_NUMBER = '51972643007'
 
@@ -11,16 +13,23 @@ export type HomeServiceKey = 'pintura' | 'microcemento' | 'porcelanato' | 'depar
 
 export const HOME_SERVICES: Record<
   HomeServiceKey,
-  { path: string; name: string; whatsappText: string; blogCta: { eyebrow: string; title: string; body: string } }
+  {
+    path: string
+    name: string
+    whatsappText: string
+    formUrl?: string
+    blogCta: { eyebrow: string; title: string; body: string }
+  }
 > = {
   pintura: {
     path: '/pintores-a-domicilio',
     name: 'Pintores a domicilio',
     whatsappText: 'Hola, quiero cotizar un servicio de pintura',
+    formUrl: '/pintura/cotizar',
     blogCta: {
       eyebrow: '¿Prefieres que lo pinten por ti?',
-      title: 'Cotiza la pintura por WhatsApp',
-      body: 'Mándanos fotos de las paredes y los metros (o las medidas de cada ambiente) y te respondemos con el precio. Lima, Callao y Huancayo.',
+      title: 'Cotiza la pintura en 2 minutos',
+      body: 'Cuéntanos qué hay que pintar o súbenos un video recorriendo las paredes. Los pintores te cotizan y eliges. Lima, Callao y Huancayo.',
     },
   },
   microcemento: {

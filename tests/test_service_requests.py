@@ -572,7 +572,7 @@ def test_presign_returns_a_key_under_the_request_prefix(client, storage):
     ('application/pdf', 1024),
     ('image/svg+xml', 1024),
     ('image/jpeg', 10 * 1024 * 1024 + 1),
-    ('video/mp4', 100 * 1024 * 1024 + 1),
+    ('video/mp4', 250 * 1024 * 1024 + 1),
     ('image/jpeg', 0),
     ('image/jpeg', 'grande'),
 ])
@@ -1627,3 +1627,86 @@ def test_notify_must_be_a_boolean(client):
 
     assert response.status_code == 400
     assert ServiceRequestPayment.query.count() == 0
+
+
+# --- painting: no list, a description or a video -----------------------------------------
+
+@pytest.fixture
+def painting(app):
+    painting = ServiceType(code='painting', name='Pintura', requestable=1)
+    db.session.add(painting)
+    db.session.commit()
+    return painting
+
+
+def painting_draft(client, details=None):
+    public_id = create_draft(client, service_type='painting')
+    if details is not None:
+        response = client.patch(f'/api/v1/service-requests/{public_id}', json={'details': details})
+        assert response.status_code == 200, response.get_json()
+    return public_id
+
+
+def test_a_painting_request_is_sent_with_a_description_and_no_list(client, painting, sent, monkeypatch):
+    monkeypatch.setenv('NOTIFY_EMAIL', 'ops@chalan.pe')
+    public_id = painting_draft(client, {
+        'description': '  Sala y comedor, color blanco humo  ', 'area': 'interior', 'size': 'few_rooms',
+        'area_m2': 45, 'paint_by': 'painter', 'wall_issues': ['putty', 'humidity'],
+    })
+
+    response = submit(client, public_id, preferred_date=TOMORROW)
+
+    assert response.status_code == 200, response.get_json()
+    saved = ServiceRequest.query.one()
+    assert saved.details == {'description': 'Sala y comedor, color blanco humo', 'area': 'interior',
+                             'size': 'few_rooms', 'area_m2': 45, 'paint_by': 'painter',
+                             'wall_issues': ['humidity', 'putty']}
+    assert saved.items == [] and saved.submitted_at is not None
+    [to_admin] = sent['email']
+    assert (to_admin['needs_items'], to_admin['description'], to_admin['media_count']) == (
+        False, 'Sala y comedor, color blanco humo', 0)
+
+
+def test_without_a_description_a_video_is_enough(client, painting):
+    public_id = painting_draft(client, {'area': 'exterior'})
+
+    assert submit(client, public_id, preferred_date=TOMORROW).status_code == 400
+
+    service_request = ServiceRequest.query.one()
+    db.session.add(ServiceRequestMedia(service_request_id=service_request.id, url='https://x/foto.jpg',
+                                       storage_key='k1', media_type='image'))
+    db.session.commit()
+    assert submit(client, public_id, preferred_date=TOMORROW).status_code == 400
+
+    db.session.add(ServiceRequestMedia(service_request_id=service_request.id, url='https://x/video.mp4',
+                                       storage_key='k2', media_type='video'))
+    db.session.commit()
+    assert submit(client, public_id, preferred_date=TOMORROW).status_code == 200
+
+
+@pytest.mark.parametrize('details', [
+    {'area': 'roof'}, {'size': 'huge'}, {'paint_by': 'nobody'}, {'area_m2': 0}, {'area_m2': '40'},
+    {'area_m2': 5001}, {'wall_issues': ['mold']}, {'wall_issues': 'putty'}, {'description': 5},
+    {'description': 'x' * 2001}, 'texto',
+])
+def test_invalid_painting_details_are_rejected(client, painting, details):
+    public_id = painting_draft(client)
+
+    response = client.patch(f'/api/v1/service-requests/{public_id}', json={'details': details})
+
+    assert response.status_code == 400
+
+
+def test_blank_painting_answers_are_dropped(client, painting):
+    public_id = painting_draft(client, {'description': '   ', 'area': '', 'area_m2': None, 'wall_issues': []})
+
+    assert ServiceRequest.query.filter_by(public_id=public_id).one().details == {}
+
+
+def test_an_admin_can_note_a_painting_request_without_items(client, painting, sent):
+    response = manual(client, service_type='painting', items=None,
+                      details={'description': 'Fachada de 2 pisos', 'area': 'exterior'})
+
+    assert response.status_code == 201, response.get_json()
+    assert ServiceRequest.query.one().details == {'description': 'Fachada de 2 pisos', 'area': 'exterior'}
+    assert manual(client, service_type='painting', items=None, details={}).status_code == 400

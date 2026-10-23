@@ -111,7 +111,7 @@ export default function MediaUploader({ publicId, media, onAdded, onRemoved, onB
         + Subir fotos o videos
       </button>
       <p className="mt-1 text-xs text-mute">
-        Opcional, pero ayuda a cotizar mejor. Hasta {MAX_MEDIA} archivos: fotos de 10 MB o videos de 100 MB.
+        Opcional, pero ayuda a cotizar mejor. Hasta {MAX_MEDIA} archivos: fotos de 10 MB o videos de 250 MB.
       </p>
 
       {uploads.length > 0 && (

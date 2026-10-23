@@ -138,3 +138,69 @@ test.describe('A packing customer, start to finish', () => {
     expect(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)).toBeNull();
   });
 });
+
+// Pintura no tiene lista: el cliente cuenta qué pintar (o lo explica en un
+// video) y contesta unas preguntas opcionales. Sin pintores locales con
+// "Pintura" marcada, enviar solo avisa al admin.
+test.describe('A painting customer, start to finish', () => {
+  const PAINTING_FORM = '/pintura/cotizar';
+
+  test('the landing sends them to the form, WhatsApp stays as a second option', async ({ page }) => {
+    await page.goto('/pintores-a-domicilio', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('main a[href="/pintura/cotizar"]').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Prefiero escribir por WhatsApp' })).toHaveAttribute('href', /wa\.me/);
+  });
+
+  test('describes the job, gets quoted, and the admin sees what to paint', async ({ page }) => {
+    await mockGooglePlaces(page);
+    const whatsapp = uniqueWhatsapp();
+
+    await page.goto(PAINTING_FORM, { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: '¿Dónde hay que pintar?' })).toBeVisible();
+    await pickAddress(page, 'Av. Pardo 610, Miraflores, Lima, Perú');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    // Sin descripción ni video no avanza.
+    await expect(page.getByRole('heading', { name: '¿Qué quieres pintar?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByRole('alert')).toContainText('Cuéntanos qué hay que pintar');
+
+    await page.fill('#painting-description', 'Sala y comedor, paredes y techo. Blanco humo.');
+    await page.getByText('Interior', { exact: true }).click();
+    await page.getByText('2 a 3 ambientes', { exact: true }).click();
+    await page.fill('#painting-m2', '45');
+    await page.getByText('Que la incluya el pintor', { exact: true }).click();
+    await page.getByText('Humedad', { exact: true }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await expect(page.getByText('Sala y comedor, paredes y techo. Blanco humo.')).toBeVisible();
+    await expect(page.getByText('Interior · 2 a 3 ambientes · 45 m² · Pintura: que la incluya el pintor · Paredes: humedad'))
+      .toBeVisible();
+    await page.fill('#preferred-date', inTwoDaysInLima());
+    await page.fill('#whatsapp', whatsapp);
+    await page.getByRole('button', { name: 'Enviar solicitud' }).click();
+
+    await expect(page.getByRole('heading', { name: '¡Recibimos tu solicitud!' })).toBeVisible({ timeout: 15000 });
+    const request = findServiceRequestByWhatsapp(`+51${whatsapp}`);
+
+    // Le cotizan y en su página ve lo que pidió; el saldo se paga al terminar.
+    seedServiceQuotation(request.id);
+    await page.getByRole('link', { name: 'Ver mis cotizaciones' }).click();
+    await expect(page.getByText('E2E Embalajes')).toBeVisible({ timeout: 15000 });
+    await page.getByText('Qué pintamos').click();
+    await expect(page.getByText('Sala y comedor, paredes y techo. Blanco humo.')).toBeVisible();
+    await page.getByRole('button', { name: 'Elegir esta' }).click();
+    await expect(page.getByText('se lo pagas a E2E Embalajes al terminar el trabajo')).toBeVisible();
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+
+    // El admin ve qué hay que pintar en el detalle.
+    const admin = await page.context().newPage();
+    await openBackofficeAsAdmin(admin, `/service-requests/${request.id}`);
+    await expect(admin.getByText('Qué hay que pintar')).toBeVisible();
+    await expect(admin.getByText('Sala y comedor, paredes y techo. Blanco humo.')).toBeVisible();
+    await expect(admin.getByText('La incluye el pintor')).toBeVisible();
+    await expect(admin.getByText('45 m²')).toBeVisible();
+  });
+});

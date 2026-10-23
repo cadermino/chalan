@@ -58,7 +58,7 @@ export const registerMedia = (publicId, storageKey) =>
 export const deleteMedia = (publicId, mediaId) =>
   client.delete(`/service-requests/${publicId}/media/${mediaId}`)
 
-// Directo a S3, sin pasar por nuestra API (un video de 100 MB bloquearía un
+// Directo a S3, sin pasar por nuestra API (un video de 250 MB bloquearía un
 // worker). Va con axios pelado: sin baseURL ni el Content-Type JSON del cliente.
 // S3 exige que `file` sea el último campo del formulario.
 export function uploadToStorage(upload, file, onProgress) {
@@ -82,7 +82,7 @@ export function friendlyError(err, fallback) {
   }
   if (message.includes('whatsapp')) return 'Revisa tu número de WhatsApp.'
   if (message.includes('destination')) return 'Revisa la dirección de destino: elígela de la lista de sugerencias.'
-  if (message.includes('item')) return COPY.emptyItems
+  if (message.includes('item') || message.includes('what to paint')) return COPY.emptyItems
   if (message.includes('address')) return 'Revisa la dirección: elígela de la lista de sugerencias.'
   return fallback
 }

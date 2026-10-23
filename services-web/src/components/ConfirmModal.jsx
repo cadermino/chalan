@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { COPY } from '../config'
 
 const asset = (name) => `${import.meta.env.BASE_URL}${name}`
 
@@ -104,7 +105,7 @@ export default function ConfirmModal({ quotation, summary, reservationRequired, 
 
         {!withReservation && (
           <p className="mt-4 text-sm text-inkSoft">
-            El pago es en efectivo, directo a {quotation.carrier_name}, el día del servicio.
+            El pago es en efectivo, directo a {quotation.carrier_name}, {COPY.payDay}.
           </p>
         )}
 
@@ -115,8 +116,8 @@ export default function ConfirmModal({ quotation, summary, reservationRequired, 
                 <p className="text-sm font-semibold text-inkStrong">Yapea tu reserva para agendar</p>
                 <p className="mt-1 text-sm text-inkSoft">
                   Yapea <span className="font-semibold text-inkStrong">{money(quotation.reservation_amount)}</span> para
-                  agendar. El resto ({money(quotation.on_site_amount)}) se lo pagas a {quotation.carrier_name} el día
-                  del servicio.
+                  agendar. El resto ({money(quotation.on_site_amount)}) se lo pagas a {quotation.carrier_name}{' '}
+                  {COPY.payDay}.
                 </p>
                 {/* width/height son los píxeles del archivo: reservan la caja antes de que baje y el modal no salta. */}
                 <img

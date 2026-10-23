@@ -1,5 +1,5 @@
 // Espejo de app/api/service_request/validation.py: el servidor es quien manda,
-// esto solo evita subir 100 MB para enterarse de que no se podía.
+// esto solo evita subir 250 MB para enterarse de que no se podía.
 export const MAX_MEDIA = 10
 const MB = 1024 * 1024
 
@@ -13,7 +13,7 @@ const TYPES = {
   'video/quicktime': 'video',
   'video/webm': 'video',
 }
-const MAX_BYTES = { image: 10 * MB, video: 100 * MB }
+const MAX_BYTES = { image: 10 * MB, video: 250 * MB }
 
 // Algunos navegadores (y los HEIC del iPhone en varios casos) dejan file.type vacío.
 const BY_EXTENSION = {
@@ -39,7 +39,7 @@ export function problemWith(file) {
   const kind = TYPES[contentTypeOf(file)]
   if (!kind) return 'Solo se aceptan fotos (JPG, PNG, WEBP, HEIC) y videos (MP4, MOV, WEBM).'
   if (file.size > MAX_BYTES[kind]) {
-    return kind === 'image' ? 'La foto pesa más de 10 MB.' : 'El video pesa más de 100 MB.'
+    return kind === 'image' ? 'La foto pesa más de 10 MB.' : 'El video pesa más de 250 MB.'
   }
   return null
 }

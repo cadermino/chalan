@@ -37,6 +37,9 @@ export type ServiceLandingProps = {
   whatsappText: string
   // Textos del botón de WhatsApp y de su recuadro; por defecto, los de cotizar con precios.
   cta?: { eyebrow: string; label: string; note: string }
+  // Un servicio con formulario en services-web (p. ej. /pintura/cotizar): el botón
+  // principal lleva ahí y WhatsApp queda como segunda opción.
+  formUrl?: string
   // Ciudades de `areaServed`; por defecto Lima, Callao y Huancayo.
   areas?: string[]
   prices?: ServicePrice[]
@@ -124,7 +127,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
   const lowest = prices.length ? soles(Math.min(...prices.map((p) => p.from))) : ''
   const cta = props.cta ?? {
     eyebrow: 'Cotiza ahora',
-    label: 'Cotizar por WhatsApp',
+    label: props.formUrl ? 'Cotizar en 2 minutos' : 'Cotizar por WhatsApp',
     note: `Desde ${lowest} ${props.priceUnit ?? ''} · Cotización sin costo`,
   }
   // Con tabla de precios, las secciones siguientes empiezan en 02.
@@ -171,12 +174,34 @@ export function ServiceLanding(props: ServiceLandingProps) {
       <Arrow className="arrow" />
     </Link>
   )
+  // Con formulario: <a> y no next/link, porque services-web es otro contenedor
+  // (mismo criterio que LandingNav). WhatsApp pasa a ser el botón secundario.
+  const ctaButtons = (label: string, style: CSSProperties, whatsappLabel: string) => props.formUrl ? (
+    <>
+      <a href={props.formUrl} className="btn btn-primary" style={style}>
+        {label}
+        <Arrow className="arrow" />
+      </a>
+      <Link
+        href={whatsapp}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-ghost"
+        style={{ ...style, padding: '12px 20px', fontSize: 14 }}
+      >
+        <WhatsAppIcon />
+        {whatsappLabel}
+      </Link>
+    </>
+  ) : whatsappButton(label, style)
 
   return (
     <>
       <LandingNav
         links={props.navLinks}
-        cta={{ label: cta.label, href: whatsapp, plain: true, external: true }}
+        cta={props.formUrl
+          ? { label: cta.label, href: props.formUrl, plain: true }
+          : { label: cta.label, href: whatsapp, plain: true, external: true }}
       />
       <main id="main-content" className={`chalan-landing ${fontVars}`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -239,7 +264,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
                     </div>
                     <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--ink)' }}>{props.ctaBody}</p>
                   </div>
-                  {whatsappButton(cta.label, { justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 })}
+                  {ctaButtons(cta.label, { justifyContent: 'center', gap: 10, padding: '14px 20px', fontSize: 15 }, 'Prefiero escribir por WhatsApp')}
                   <p
                     style={{
                       fontFamily: 'var(--mono)',
@@ -378,7 +403,7 @@ export function ServiceLanding(props: ServiceLandingProps) {
                 <p className="lede" style={{ marginTop: 24 }}>{props.final.lede}</p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                {whatsappButton(cta.label, { gap: 10 })}
+                {ctaButtons(cta.label, { gap: 10 }, 'Escribir por WhatsApp')}
               </div>
             </div>
           </div>

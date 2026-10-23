@@ -87,11 +87,52 @@ function AddressBlock({ address }) {
 
 // Lo que necesita un transportista para cotizar. Lo comparten la página pública
 // del link y el detalle del admin, para que ambos vean exactamente lo mismo.
+// Las respuestas rápidas de pintura, todas opcionales. Los codes los valida el
+// API principal (PAINTING_* en app/api/service_request/types.py); las mismas
+// etiquetas que ve el cliente en services-web (config.js).
+export const PAINTING_LABELS = {
+  area: { interior: 'Interior', exterior: 'Exterior o fachada', both: 'Interior y exterior' },
+  size: { detail: 'Una pared o un detalle', one_room: '1 ambiente', few_rooms: '2 a 3 ambientes', whole: 'Depa o casa completa' },
+  paint_by: { customer: 'La compra el cliente', painter: 'La incluye el pintor', unsure: 'No sabe, que le recomienden' },
+  wall_issues: { humidity: 'Humedad', cracks: 'Rajaduras', putty: 'Necesitan empaste' },
+}
+
+function PaintingDetails({ details, media }) {
+  const facts = [
+    ['Dónde', PAINTING_LABELS.area[details.area]],
+    ['Cuánto', PAINTING_LABELS.size[details.size]],
+    ['Metros de pared', details.area_m2 ? `${details.area_m2} m²` : null],
+    ['Pintura', PAINTING_LABELS.paint_by[details.paint_by]],
+    ['Paredes', (details.wall_issues || []).map((c) => PAINTING_LABELS.wall_issues[c]).join(', ') || null],
+  ].filter(([, value]) => value)
+  const hasVideo = media.some((m) => m.media_type === 'video')
+
+  return (
+    <Card title="Qué hay que pintar">
+      {details.description
+        ? <p className="whitespace-pre-line text-sm text-gray-900">{details.description}</p>
+        : <p className="text-sm text-gray-500">{hasVideo ? 'Lo explica en el video.' : 'Sin descripción.'}</p>}
+      {facts.length > 0 && (
+        <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          {facts.map(([label, value]) => (
+            <div key={label} className="flex gap-2">
+              <dt className="text-gray-400">{label}:</dt>
+              <dd className="text-gray-900">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </Card>
+  )
+}
+
 export default function ServiceRequestView({ request }) {
   const [opened, setOpened] = useState(null)
   // Armado de muebles: cada mueble dice qué hacer y si se embala, y los que se
   // desarman y arman van a una segunda dirección.
   const isAssembly = request.service_type?.code === 'furniture_assembly'
+  // Pintura no tiene lista: lo que pide va en details (o en un video).
+  const isPainting = request.service_type?.code === 'painting'
   const destination = request.details?.destination
 
   return (
@@ -129,6 +170,9 @@ export default function ServiceRequestView({ request }) {
         </Card>
       )}
 
+      {isPainting && <PaintingDetails details={request.details || {}} media={request.media} />}
+
+      {!isPainting && (
       <Card title={`${isAssembly ? 'Muebles' : 'Qué hay que embalar'} (${request.items.length})`}>
         <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
@@ -159,6 +203,7 @@ export default function ServiceRequestView({ request }) {
           </table>
         </div>
       </Card>
+      )}
 
       <Card title={`Fotos y videos (${request.media.length})`}>
         {request.media.length === 0
