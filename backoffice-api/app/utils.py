@@ -1,6 +1,7 @@
 import os
 
-from .models import CarrierCompany, ServiceType, Vehicle, MOVING_SERVICE_CODE
+from .models import (CarrierCompany, CarrierCompanyDepartment, ServiceType, Vehicle,
+                     LIMA_DEPARTMENT_CODE, MOVING_SERVICE_CODE)
 from . import db
 
 
@@ -42,6 +43,8 @@ def create_blank_company_and_vehicle(email='', phone='', person_name=''):
     moving = ServiceType.query.filter_by(code=MOVING_SERVICE_CODE, active=1).first()
     if moving is not None:
         company.service_types = [moving]
+    # Y en Lima, donde están todas: el admin lo corrige si es de otro departamento.
+    company.departments = [CarrierCompanyDepartment(department_code=LIMA_DEPARTMENT_CODE)]
     db.session.add(company)
     db.session.flush()  # get company.id before the outer commit
     vehicle = Vehicle(carrier_company_id=company.id, active=0)

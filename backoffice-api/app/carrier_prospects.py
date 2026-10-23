@@ -29,6 +29,13 @@ DEPARTMENTS = {
     '21': 'Puno', '22': 'San Martín', '23': 'Tacna', '24': 'Tumbes', '25': 'Ucayali',
 }
 
+# Dónde puede trabajar una empresa (carrier_company_departments): Callao va dentro
+# de Lima, que es un solo mercado, así que no se elige aparte.
+WORK_DEPARTMENTS = {
+    code: 'Lima y Callao' if code == '15' else name
+    for code, name in DEPARTMENTS.items() if code != '07'
+}
+
 # Cómo aparece cada departamento en el texto de una dirección: su nombre y las
 # ciudades que Google escribe en lugar del departamento. Sin tildes y en minúsculas.
 _ALIASES = {

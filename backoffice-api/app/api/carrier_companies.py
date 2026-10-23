@@ -2,8 +2,10 @@ from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required
-from ..models import (AdminUser, CarrierCompany, CarrierCompanyServiceType, ServiceType,
-                      ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, MOVING_SERVICE_CODE)
+from ..models import (AdminUser, CarrierCompany, CarrierCompanyDepartment, CarrierCompanyServiceType,
+                      ServiceType, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, LIMA_DEPARTMENT_CODE,
+                      MOVING_SERVICE_CODE)
+from ..carrier_prospects import WORK_DEPARTMENTS
 from .. import db
 
 
@@ -53,7 +55,50 @@ def _company_dict(company):
     active_types = sorted((s for s in company.service_types if s.active), key=lambda s: s.id)
     return {**company.to_dict(),
             'service_type_ids': sorted(s.id for s in company.service_types),
-            'service_types': [s.to_dict() for s in active_types]}
+            'service_types': [s.to_dict() for s in active_types],
+            **_departments_dict(company.department_codes)}
+
+
+def _departments_dict(codes):
+    # Los nombres van con los códigos: la lista los muestra sin pedir el catálogo.
+    return {'department_codes': codes,
+            'departments': [{'code': c, 'name': WORK_DEPARTMENTS.get(c, c)} for c in codes]}
+
+
+def _department_codes_from(codes):
+    """Departamentos donde trabaja la empresa. Devuelve (códigos, error).
+
+    Como los servicios, solo un admin los marca. Callao ('07') no se acepta:
+    va dentro de Lima ('15').
+    """
+    if not isinstance(codes, list) or not all(isinstance(c, str) for c in codes):
+        return None, 'department_codes must be a list of codes'
+    if any(c not in WORK_DEPARTMENTS for c in codes):
+        return None, 'unknown department_codes'
+    return sorted(set(codes)), None
+
+
+def _set_departments(company, codes):
+    # Reemplaza la lista sin borrar y volver a crear las filas que se quedan.
+    keep = [d for d in company.departments if d.department_code in codes]
+    kept = {d.department_code for d in keep}
+    company.departments = keep + [CarrierCompanyDepartment(department_code=c)
+                                  for c in codes if c not in kept]
+
+
+def _departments_by_company(company_ids):
+    """Códigos de departamento de cada empresa, en una sola consulta (como los servicios)."""
+    if not company_ids:
+        return {}
+    rows = (
+        CarrierCompanyDepartment.query
+        .filter(CarrierCompanyDepartment.carrier_company_id.in_(company_ids))
+        .order_by(CarrierCompanyDepartment.department_code).all()
+    )
+    grouped = {}
+    for row in rows:
+        grouped.setdefault(row.carrier_company_id, []).append(row.department_code)
+    return grouped
 
 
 def _service_types_from(ids):
@@ -90,6 +135,15 @@ def _service_types_by_company(company_ids):
     return grouped
 
 
+@api.route('/departments', methods=['GET'])
+@login_required
+def list_departments():
+    """Los departamentos que se pueden marcar en una empresa, Lima primero."""
+    # El ubigeo ya va en orden alfabético (Áncash incluido, que por la tilde se iría al final).
+    codes = sorted(WORK_DEPARTMENTS, key=lambda c: (c != LIMA_DEPARTMENT_CODE, c))
+    return jsonify({'departments': [{'code': c, 'name': WORK_DEPARTMENTS[c]} for c in codes]}), 200
+
+
 @api.route('/carrier-companies', methods=['GET'])
 @login_required
 def list_carrier_companies():
@@ -106,11 +160,13 @@ def list_carrier_companies():
         users_by_company = _users_by_company([c.id for c in companies])
 
     service_types_by_company = _service_types_by_company([c.id for c in companies])
+    departments_by_company = _departments_by_company([c.id for c in companies])
 
     return jsonify({'carrier_companies': [
         {**c.to_dict(),
          'users': users_by_company.get(c.id, []),
-         'service_types': service_types_by_company.get(c.id, [])}
+         'service_types': service_types_by_company.get(c.id, []),
+         **_departments_dict(departments_by_company.get(c.id, []))}
         for c in companies
     ]}), 200
 
@@ -156,6 +212,11 @@ def create_carrier_company():
         # que el admin diga otra cosa, y una empresa sin ella no recibe órdenes.
         moving = ServiceType.query.filter_by(code=MOVING_SERVICE_CODE, active=1).first()
         company.service_types = [moving] if moving else []
+    # Sin departamentos explícitos, Lima: ahí están todas las empresas hoy.
+    codes, error = _department_codes_from(data.get('department_codes', [LIMA_DEPARTMENT_CODE]))
+    if error:
+        return jsonify({'message': error}), 400
+    _set_departments(company, codes)
     db.session.add(company)
     db.session.commit()
     return jsonify({'carrier_company': _company_dict(company)}), 201
@@ -179,6 +240,13 @@ def update_carrier_company(company_id):
         if error:
             return jsonify({'message': error}), 400
         company.service_types = types
+    if 'department_codes' in data:
+        if g.current_user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+            return jsonify({'message': 'only admins can change where a company works'}), 403
+        codes, error = _department_codes_from(data['department_codes'])
+        if error:
+            return jsonify({'message': error}), 400
+        _set_departments(company, codes)
     for field in ('name', 'description', 'rfc', 'email', 'phone', 'address',
                   'cover_image', 'facebook', 'youtube', 'country_id'):
         if field in data:

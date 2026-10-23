@@ -4,7 +4,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import {
-  DEFAULT_LIST_STATE, filterCompanies, hasActiveFilters, hasMovingService, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
+  DEFAULT_LIST_STATE, departmentOptions, filterCompanies, hasActiveFilters, hasMovingService, isPendingApproval, offersMoves, parseListState, MOVING_CODE,
   serializeListState, serviceOptions, sortCompanies,
 } from '../../lib/companyList'
 
@@ -94,24 +94,26 @@ export default function CarrierCompaniesList() {
   const options = useMemo(() => serviceOptions(companies), [companies])
   // Un servicio de la URL que ya no existe (un link viejo) no filtra: mejor ver todo que una lista vacía.
   const service = options.some((o) => o.code === state.service) ? state.service : ''
+  const departments = useMemo(() => departmentOptions(companies), [companies])
+  const department = departments.some((d) => d.code === state.department) ? state.department : ''
   const pendingCount = useMemo(() => companies.filter(isPendingApproval).length, [companies])
 
   const visible = useMemo(
     () => sortCompanies(
-      filterCompanies(companies, { ...state, service }, editingId),
+      filterCompanies(companies, { ...state, service, department }, editingId),
       state.sort,
       state.dir,
     ),
-    [companies, state, service, editingId],
+    [companies, state, service, department, editingId],
   )
 
   // Primer clic en una columna: ascendente; segundo: descendente.
   const handleSort = (key) =>
     update(state.sort === key ? { dir: state.dir === 'asc' ? 'desc' : 'asc' } : { sort: key, dir: 'asc' })
 
-  const filtering = hasActiveFilters({ ...state, service })
-  const clearAll = () => update({ q: '', status: DEFAULT_LIST_STATE.status, service: '', pending: false })
-  const columns = canCreate ? 8 : 7
+  const filtering = hasActiveFilters({ ...state, service, department })
+  const clearAll = () => update({ q: '', status: DEFAULT_LIST_STATE.status, service: '', department: '', pending: false })
+  const columns = canCreate ? 9 : 8
 
   return (
     <div>
@@ -190,6 +192,32 @@ export default function CarrierCompaniesList() {
               </svg>
             </div>
 
+            {departments.length > 1 && (
+              <div className="relative">
+                <select
+                  value={department}
+                  onChange={(e) => update({ department: e.target.value })}
+                  aria-label="Filtrar por departamento"
+                  className="appearance-none rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-9 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="">Todos los departamentos</option>
+                  {departments.map((d) => <option key={d.code} value={d.code}>{d.name}</option>)}
+                </select>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 8l5 5 5-5" />
+                </svg>
+              </div>
+            )}
+
             {canCreate && (pendingCount > 0 || state.pending) && (
               <button
                 type="button"
@@ -222,6 +250,7 @@ export default function CarrierCompaniesList() {
               <th className="px-4 py-3 text-left">Email</th>
               <th className="px-4 py-3 text-left">Teléfono</th>
               <th className="px-4 py-3 text-left">Servicios</th>
+              <th className="px-4 py-3 text-left">Dónde trabaja</th>
               <SortableTh label="Estado" column="status" sort={state} onSort={handleSort} />
               <th className="px-4 py-3 text-left">Acciones</th>
             </tr>
@@ -301,6 +330,11 @@ export default function CarrierCompaniesList() {
                         )}
                       </div>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {c.departments?.length
+                      ? c.departments.map((d) => d.name).join(', ')
+                      : <span className="text-amber-600" title="Edita la empresa para marcar dónde trabaja">Sin departamento</span>}
                   </td>
                   <td className="px-4 py-3">
                     {c.active

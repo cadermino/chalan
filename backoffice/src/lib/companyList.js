@@ -43,6 +43,7 @@ export function searchableText(company) {
     company.rfc,
     ...(company.users || []).flatMap((u) => [u.name, u.email]),
     ...(company.service_types || []).map((t) => t.name),
+    ...(company.departments || []).map((d) => d.name),
     offersMoves(company) ? 'mudanza' : '',
   ]
   return normalize(parts.filter((p) => p !== null && p !== undefined).join(' '))
@@ -88,7 +89,9 @@ export const MOVES = 'moves'
 
 // Las activas, y las más nuevas primero: son las que suelen necesitar algo (cargar sus
 // servicios, sus vehículos). Las inactivas quedan a un clic en "Todas" o "Inactivas".
-export const DEFAULT_LIST_STATE = { q: '', sort: 'id', dir: 'desc', status: 'active', service: '', pending: false }
+export const DEFAULT_LIST_STATE = {
+  q: '', sort: 'id', dir: 'desc', status: 'active', service: '', department: '', pending: false,
+}
 
 // Una cuenta que se registró desde la landing queda inactiva hasta que un admin la aprueba;
 // la empresa con alguna cuenta así está esperando aprobación.
@@ -117,13 +120,24 @@ export function serviceOptions(companies) {
   ]
 }
 
-export function filterCompanies(companies, { q, status, service, pending }, pinnedId = null) {
+// Los departamentos donde trabaja alguna empresa, para el filtro (Lima primero, como en el
+// formulario). Uno donde no trabaja nadie solo daría una lista vacía.
+export function departmentOptions(companies) {
+  const names = new Map()
+  companies.forEach((c) => (c.departments || []).forEach((d) => names.set(d.code, d.name)))
+  return [...names.entries()]
+    .map(([code, name]) => ({ code, name }))
+    .sort((a, b) => (b.code === '15') - (a.code === '15') || a.name.localeCompare(b.name, 'es'))
+}
+
+export function filterCompanies(companies, { q, status, service, department, pending }, pinnedId = null) {
   return companies.filter((c) => {
     // La fila que se está editando no desaparece aunque el cambio la saque del filtro.
     if (pinnedId !== null && c.id === pinnedId) return true
     if (status === 'active' && !c.active) return false
     if (status === 'inactive' && c.active) return false
     if (service && !hasService(c, service)) return false
+    if (department && !(c.department_codes || []).includes(department)) return false
     if (pending && !isPendingApproval(c)) return false
     return matchesSearch(c, q)
   })
@@ -141,6 +155,7 @@ export function parseListState(params) {
     dir: dir === 'asc' || dir === 'desc' ? dir : DEFAULT_LIST_STATE.dir,
     status: STATUS_FILTERS.includes(status) ? status : DEFAULT_LIST_STATE.status,
     service: params.get('service') || '',
+    department: params.get('department') || '',
     pending: params.get('pending') === '1',
   }
 }
@@ -155,11 +170,13 @@ export function serializeListState(state) {
   if (state.dir !== d.dir) params.set('dir', state.dir)
   if (state.status !== d.status) params.set('status', state.status)
   if (state.service) params.set('service', state.service)
+  if (state.department) params.set('department', state.department)
   if (state.pending) params.set('pending', '1')
   return params
 }
 
 // ¿Hay algo filtrando más allá de la vista por defecto (sin contar el orden)?
 export function hasActiveFilters(state) {
-  return Boolean(state.q.trim()) || state.status !== DEFAULT_LIST_STATE.status || Boolean(state.service) || state.pending
+  return Boolean(state.q.trim()) || state.status !== DEFAULT_LIST_STATE.status || Boolean(state.service)
+    || Boolean(state.department) || state.pending
 }

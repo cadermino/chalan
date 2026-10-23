@@ -48,6 +48,9 @@ ALL_ROLES = (ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE)
 # mudanza tienen su propio flujo; este tipo solo dice qué empresas las reciben.
 MOVING_SERVICE_CODE = 'moving'
 
+# Lima (y Callao) en carrier_company_departments: donde están hoy todas las empresas.
+LIMA_DEPARTMENT_CODE = '15'
+
 
 class AdminUser(db.Model):
     __tablename__ = 'admin_users'
@@ -165,6 +168,12 @@ class CarrierCompany(db.Model):
     quotations = db.relationship('Quotation', backref='carrier_company', lazy='dynamic')
     # Todo lo que hace la empresa: 'moving', 'packing', 'furniture_assembly'.
     service_types = db.relationship('ServiceType', secondary='carrier_company_service_types')
+    # Dónde trabaja: códigos de departamento (migración 037), Lima y Callao como '15'.
+    departments = db.relationship('CarrierCompanyDepartment', cascade='all, delete-orphan')
+
+    @property
+    def department_codes(self):
+        return sorted(d.department_code for d in self.departments)
 
     def offers(self, code):
         """¿La empresa tiene marcado este servicio (activo en el catálogo)?"""
@@ -728,6 +737,18 @@ class CarrierCompanyServiceType(db.Model):
 
     carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), primary_key=True)
     service_type_id = db.Column(db.Integer, db.ForeignKey('lu_service_types.id'), primary_key=True)
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+
+
+class CarrierCompanyDepartment(db.Model):
+    """Un departamento donde trabaja la empresa (migración 037). El código es el
+    del ubigeo, el mismo que `carrier_prospects.locate()` saca de una dirección."""
+    __tablename__ = 'carrier_company_departments'
+    __table_args__ = {'extend_existing': True}
+
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
+                                   primary_key=True)
+    department_code = db.Column(db.String(2), primary_key=True)
     created_date = db.Column(db.DateTime(), server_default=func.now())
 
 

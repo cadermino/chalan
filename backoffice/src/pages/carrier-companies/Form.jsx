@@ -9,6 +9,8 @@ const EMPTY = {
   name: '', description: '', rfc: '', email: '', phone: '',
   address: '', cover_image: '', facebook: '', youtube: '', active: true, country_id: '',
   service_type_ids: [],
+  // Una empresa nueva arranca en Lima, donde están hoy todas.
+  department_codes: ['15'],
 }
 
 export default function CarrierCompanyForm() {
@@ -19,6 +21,7 @@ export default function CarrierCompanyForm() {
   // Qué servicios ofrece lo marca un admin: Chalán decide quién embala bien.
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [serviceTypes, setServiceTypes] = useState([])
+  const [departments, setDepartments] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [loading, setLoading] = useState(false)
 
@@ -33,11 +36,12 @@ export default function CarrierCompanyForm() {
           setForm((f) => (f.service_type_ids.length ? f : { ...f, service_type_ids: moving }))
         }
       })
+      client.get('/api/departments').then(({ data }) => setDepartments(data.departments))
     }
     if (isEdit) {
       client.get(`/api/carrier-companies/${id}`).then(({ data }) => {
         const c = data.carrier_company
-        setForm({ ...c, active: Boolean(c.active), country_id: c.country_id ?? '', service_type_ids: c.service_type_ids ?? [] })
+        setForm({ ...c, active: Boolean(c.active), country_id: c.country_id ?? '', service_type_ids: c.service_type_ids ?? [], department_codes: c.department_codes ?? [] })
       })
     }
   }, [id])
@@ -53,7 +57,10 @@ export default function CarrierCompanyForm() {
     try {
       const payload = { ...form, country_id: form.country_id === '' ? null : Number(form.country_id) }
       // El servidor responde 403 si una empresa intenta cambiar sus propios servicios.
-      if (!isAdmin) delete payload.service_type_ids
+      if (!isAdmin) {
+        delete payload.service_type_ids
+        delete payload.department_codes
+      }
       if (isEdit) {
         await client.put(`/api/carrier-companies/${id}`, payload)
         toast.success('Empresa actualizada')
@@ -136,6 +143,31 @@ export default function CarrierCompanyForm() {
               </div>
               <p className="text-xs text-gray-400 mt-1">
                 Marca todo lo que hace la empresa. Solo las que tienen la mudanza marcada reciben órdenes de mudanza; los demás servicios, sus solicitudes.
+              </p>
+            </Field>
+          )}
+          {isAdmin && departments.length > 0 && (
+            <Field label="Dónde trabaja" span={2}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 mt-1">
+                {departments.map((d) => (
+                  <label key={d.code} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.department_codes.includes(d.code)}
+                      onChange={(e) => setForm((f) => ({
+                        ...f,
+                        department_codes: e.target.checked
+                          ? [...f.department_codes, d.code]
+                          : f.department_codes.filter((code) => code !== d.code),
+                      }))}
+                      className="w-4 h-4 accent-teal-600"
+                    />
+                    <span className="text-sm">{d.name}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Los departamentos donde hace sus servicios. Por ahora solo sirve para saberlo y filtrar la lista; las órdenes siguen llegando a todas.
               </p>
             </Field>
           )}
