@@ -21,7 +21,7 @@
                 :input-attrs="{ id: 'datetime', clearable: false }"
                 :locale="datePickerLocale"
                 :formats="{ input: DATE_INPUT_FORMAT }"
-                :time-config="{ is24: false, minutesIncrement: 5 }"
+                :time-config="{ is24: false, minutesIncrement: 5, timePickerInline: true }"
                 :action-row="{ selectBtnLabel: 'Aceptar', cancelBtnLabel: 'Salir', showNow: false }"
                 class="theme-chalan"
                 :min-date="minDatetime"
