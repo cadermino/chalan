@@ -64,17 +64,18 @@ export function tagBlockedStep(step, field) {
   if (field) tagSessionLabel(`${step}_blocked:${field}`);
 }
 
-// Plugin de Vuex: escucha las mutaciones en vez de llamar a tagSession desde
+// Plugin de Pinia: escucha las actions en vez de llamar a tagSession desde
 // cada componente. La orden y el cliente se asignan desde muchos lugares
 // (crear orden, login con email, Google o Facebook, restaurar del
-// localStorage), pero todos pasan por estas dos mutaciones.
-export function sessionTagsPlugin(store) {
-  store.subscribe(({ type, payload }) => {
+// localStorage), pero todos pasan por estas dos actions.
+export function sessionTagsPlugin({ store }) {
+  store.$onAction(({ name, args }) => {
+    const [payload] = args;
     if (!payload) return;
-    if (type === 'setOrder' && payload.section === 'currentOrder' && payload.field === 'order_id') {
+    if (name === 'setOrder' && payload.section === 'currentOrder' && payload.field === 'order_id') {
       tagSession('order_id', payload.value);
     }
-    if (type === 'setCustomerData' && payload.field === 'customer_id') {
+    if (name === 'setCustomerData' && payload.field === 'customer_id') {
       tagSession('customer_id', payload.value);
     }
   });

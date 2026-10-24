@@ -8,10 +8,10 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     await createOrderViaApi(page, { upTo: 'step-one' });
     await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
 
-    // Inject appointment date via Vuex store (bypasses the datetime picker popup)
+    // Inject appointment date via the store (bypasses the datetime picker popup)
     await page.evaluate((date) => {
-      const store = document.querySelector('#app').__vue__.$store;
-      store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: date });
+      const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+      store.setOrder({ section: 'currentOrder', field: 'appointment_date', value: date });
     }, TEST_DATA.stepTwo.appointmentDate);
 
     // Type an item but deliberately never click "+ Agregar" or press Enter -
@@ -28,7 +28,7 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     await expect(page).toHaveURL(/step-three/, { timeout: 15000 });
 
     const comments = await page.evaluate(
-      () => document.querySelector('#app').__vue__.$store.state.currentOrder.comments,
+      () => document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').currentOrder.comments,
     );
     expect(comments).toContain('1 mesa de centro');
   });
@@ -47,8 +47,8 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     await createOrderViaApi(page, { upTo: 'step-one' });
     await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
     await page.evaluate((date) => {
-      const store = document.querySelector('#app').__vue__.$store;
-      store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: date });
+      const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+      store.setOrder({ section: 'currentOrder', field: 'appointment_date', value: date });
     }, TEST_DATA.stepTwo.appointmentDate);
 
     await page.setInputFiles('input[type="file"]', {
@@ -66,7 +66,7 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
 
     await expect(page).toHaveURL(/step-three|contacto/, { timeout: 15000 });
     const comments = await page.evaluate(
-      () => document.querySelector('#app').__vue__.$store.state.currentOrder.comments,
+      () => document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').currentOrder.comments,
     );
     expect(comments).toContain('refrigeradora');
   });

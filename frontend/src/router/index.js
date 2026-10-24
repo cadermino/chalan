@@ -1,11 +1,12 @@
-import Vue from 'vue';
-import VueRouter from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import steps from '../store/steps';
-import store from '../store/index';
+import { useStore } from '../store/index';
+import pinia from '../store/pinia';
 import countryData from '../countryData';
 import storage from '../utils/safeStorage';
 
-const country = process.env.VUE_APP_COUNTRY;
+const store = useStore(pinia);
+const country = import.meta.env.VUE_APP_COUNTRY;
 const HTTP_RESPONSE = {
   BAD_REQUEST: 400,
   NOT_FOUND: 404,
@@ -15,20 +16,23 @@ const RESPONSE_MESSAGE = {
     404: 'La orden no existe',
   },
 };
-Vue.use(VueRouter);
 
 const routes = [
   {
     path: '/',
     name: 'home',
+    // La portada es el Next.js: se sale de la app. Router 4 pide un componente
+    // aunque nunca se llegue a mostrar.
+    component: { render: () => null },
     beforeEnter() {
       window.location = '/';
+      return false;
     },
   },
   {
     path: '/carrier-company/orders/:token',
     name: 'ordersByCarrierCompany',
-    component: () => import(/* webpackChunkName: "orders" */ '../views/carrier-company/orders'),
+    component: () => import('../views/carrier-company/orders.vue'),
     props: route => ({
       token: route.params.token,
       countryData: countryData[country].general,
@@ -37,7 +41,7 @@ const routes = [
   {
     path: '/carrier-company/order/:token',
     name: 'carrierCompanyOrderDetails',
-    component: () => import(/* webpackChunkName: "order-details" */ '../views/carrier-company/order-details'),
+    component: () => import('../views/carrier-company/order-details.vue'),
     props: route => ({
       token: route.params.token,
       countryData: countryData[country].general,
@@ -46,7 +50,7 @@ const routes = [
   {
     path: '/carrier-company/:id',
     name: 'carrier-company',
-    component: () => import(/* webpackChunkName: "carrier-company" */ '../views/carrier-company'),
+    component: () => import('../views/carrier-company/index.vue'),
     props: route => ({
       carrierId: Number(route.params.id),
       countryData: countryData[country]['carrier-company'],
@@ -55,7 +59,7 @@ const routes = [
   {
     path: '/order/step-one',
     name: 'step-one',
-    component: () => import(/* webpackChunkName: "step-one" */ '../views/order/Step-one.vue'),
+    component: () => import('../views/order/Step-one.vue'),
     props: {
       countryData: countryData[country]['step-one'],
     },
@@ -63,13 +67,13 @@ const routes = [
   {
     path: '/order/step-two',
     name: 'step-two',
-    component: () => import(/* webpackChunkName: "step-two" */ '../views/order/Step-two.vue'),
+    component: () => import('../views/order/Step-two.vue'),
     meta: { requiresPreviousComplete: true },
   },
   {
     path: '/order/:order_id?/step-three',
     name: 'step-three',
-    component: () => import(/* webpackChunkName: "step-three" */ '../views/order/Step-three.vue'),
+    component: () => import('../views/order/Step-three.vue'),
     meta: { requiresPreviousComplete: true, requiresAuth: true },
     props: {
       countryData: countryData[country]['step-three'],
@@ -79,12 +83,12 @@ const routes = [
     // Entre el paso 2 y el 3: nombre, correo y WhatsApp, sin contraseña.
     path: '/order/contacto',
     name: 'order-contact',
-    component: () => import(/* webpackChunkName: "order-contact" */ '../views/order/Contact.vue'),
+    component: () => import('../views/order/Contact.vue'),
   },
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: () => import(/* webpackChunkName: "dashboard" */ '../views/Dashboard.vue'),
+    component: () => import('../views/Dashboard.vue'),
     meta: { requiresAuth: true },
     props: {
       countryData: countryData[country].dashboard,
@@ -93,12 +97,12 @@ const routes = [
   {
     path: '/login',
     name: 'login',
-    component: () => import(/* webpackChunkName: "login" */ '../views/auth/Login.vue'),
+    component: () => import('../views/auth/Login.vue'),
   },
   {
     path: '/register',
     name: 'register',
-    component: () => import(/* webpackChunkName: "register" */ '../views/auth/Register.vue'),
+    component: () => import('../views/auth/Register.vue'),
   },
   {
     path: '/register-login',
@@ -108,31 +112,30 @@ const routes = [
     // Link de los avisos de cotización: abre la orden sin pedir contraseña.
     path: '/acceso/:token',
     name: 'order-access',
-    component: () => import(/* webpackChunkName: "order-access" */ '../views/OrderAccess.vue'),
+    component: () => import('../views/OrderAccess.vue'),
     props: true,
   },
   {
     path: '/quotation/:token',
     name: 'quotation',
-    component: () => import(/* webpackChunkName: "quotation" */ '../views/carrier-company/quotation'),
+    component: () => import('../views/carrier-company/quotation.vue'),
     props: route => ({
       token: route.params.token,
       countryData: countryData[country].general,
     }),
   },
   {
-    path: '*',
+    path: '/:pathMatch(.*)*',
     name: 'page-not-found',
-    component: () => import(/* webpackChunkName: "page-not-found" */ '../views/PageNotFound.vue'),
+    component: () => import('../views/PageNotFound.vue'),
   },
 ];
 
-const router = new VueRouter({
-  mode: 'history',
-  base: process.env.VUE_APP_BASE_URL,
+const router = createRouter({
+  history: createWebHistory(import.meta.env.VUE_APP_BASE_URL),
   routes,
   scrollBehavior() {
-    return { x: 0, y: 0 };
+    return { top: 0, left: 0 };
   },
 });
 
@@ -141,12 +144,12 @@ function hasQueryParams(route) {
 }
 
 function getDataFromLocalStorage() {
-  store.dispatch('getDataFromLocalStorage', 'currentOrder');
-  store.dispatch('getDataFromLocalStorage', 'orderDetailsOrigin');
-  store.dispatch('getDataFromLocalStorage', 'orderDetailsDestination');
-  store.dispatch('getDataFromLocalStorage', 'services');
-  store.dispatch('getDataFromLocalStorage', 'customer');
-  store.dispatch('getDataFromLocalStorage', 'viewsMessages');
+  store.getDataFromLocalStorage('currentOrder');
+  store.getDataFromLocalStorage('orderDetailsOrigin');
+  store.getDataFromLocalStorage('orderDetailsDestination');
+  store.getDataFromLocalStorage('services');
+  store.getDataFromLocalStorage('customer');
+  store.getDataFromLocalStorage('viewsMessages');
 }
 
 async function getOrderFromDataBase(to, next) {
@@ -154,20 +157,20 @@ async function getOrderFromDataBase(to, next) {
   if (to.params.order_id) {
     const { order_id: orderId } = to.params;
     try {
-      await store.dispatch('getOrderFromDataBase', orderId);
+      await store.getOrderFromDataBase(orderId);
     } catch (error) {
       let message = '';
       if (error.response?.status === HTTP_RESPONSE.NOT_FOUND) {
         message = RESPONSE_MESSAGE.NOT_FOUND[error.response.status];
       }
-      store.commit('setViewsMessages', {
+      store.setViewsMessages({
         view: to.name,
         message: {
           text: message,
           type: 'error',
         },
       });
-      store.dispatch('addDataToLocalStorage', ['viewsMessages']);
+      store.addDataToLocalStorage(['viewsMessages']);
       if (error.response?.status === HTTP_RESPONSE.BAD_REQUEST) {
         next({
           path: '/register-login',
@@ -182,7 +185,7 @@ async function getOrderFromDataBase(to, next) {
 
 router.beforeEach(async (to, from, next) => {
   getDataFromLocalStorage();
-  store.commit('setNowDate');
+  store.setNowDate();
   const alreadyNavigated = await getOrderFromDataBase(to, next);
   if (alreadyNavigated) return;
 
@@ -193,7 +196,7 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.matched.some(record => record.meta.requiresPreviousComplete
     && record.meta.requiresAuth)) {
-    if (store.getters.isUserLogged) {
+    if (store.isUserLogged) {
       if (!steps[to.name].previous) {
         next({
           name: 'step-one',
@@ -246,7 +249,7 @@ router.beforeEach(async (to, from, next) => {
       }
     }
   } else if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (store.getters.isUserLogged) {
+    if (store.isUserLogged) {
       if (!hasQueryParams(to) && hasQueryParams(from)) {
         next({ name: to.name, query: queryParams });
       } else {
@@ -284,6 +287,9 @@ router.afterEach((to) => {
   // gtag ignora el page_location que se le pasa por evento y arma dl leyendo
   // document.location al momento del envío, así que la única forma de que
   // salga bien es enviar tarde, no pasarle el valor correcto.
+  //
+  // Eso se midió con vue-router 3. El 4 ya hizo el pushState al llegar acá,
+  // pero el setTimeout no estorba y cubre los dos casos.
   setTimeout(() => {
     window.gtag('event', 'page_view', {
       page_path: to.fullPath,

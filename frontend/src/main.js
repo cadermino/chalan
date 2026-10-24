@@ -1,29 +1,29 @@
-import Vue from 'vue';
+import { createApp } from 'vue';
 import * as Sentry from '@sentry/vue';
+import moment from 'moment';
+// Con webpack, moment.locale('es') cargaba el idioma solo; con Vite hay que
+// importarlo, o las fechas que se muestran salen en inglés.
+import 'moment/locale/es';
 import App from './App.vue';
 import router from './router';
-import store from './store';
+import pinia from './store/pinia';
 import './assets/css/tailwind.css';
 
-const moment = require('moment');
+const app = createApp(App);
 
-Vue.use(require('vue-moment'), {
-  moment,
-});
+// Lo que antes daba vue-moment: los componentes usan this.$moment.
+app.config.globalProperties.$moment = moment;
 
-Vue.config.productionTip = false;
-
-const sentryDsn = process.env.VUE_APP_SENTRY_DSN;
+const sentryDsn = import.meta.env.VUE_APP_SENTRY_DSN;
 if (sentryDsn) {
   Sentry.init({
-    Vue,
+    app,
     dsn: sentryDsn,
     environment: 'production',
   });
 }
 
-new Vue({
-  router,
-  store,
-  render: h => h(App),
-}).$mount('#app');
+// Pinia antes que el router: sus guards leen el store en la primera navegación.
+app.use(pinia);
+app.use(router);
+app.mount('#app');

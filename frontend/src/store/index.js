@@ -1,10 +1,9 @@
-import Vue from 'vue';
-import Vuex from 'vuex';
-import VueJwtDecode from 'vue-jwt-decode';
+import { markRaw } from 'vue';
+import { defineStore } from 'pinia';
+import { jwtDecode } from 'jwt-decode';
 import steps from './steps';
 import chalan from '../api/chalan';
 import storage from '../utils/safeStorage';
-import { sessionTagsPlugin } from '../utils/sessionTags';
 import { needsCargoWeight } from '../utils/loadTypes';
 
 const isEmpty = arr => !arr.length;
@@ -66,11 +65,11 @@ function checkCompleteStep(state) {
     }
   });
 }
-Vue.use(Vuex);
-
-export default new Vuex.Store({
-  plugins: [sessionTagsPlugin],
-  state: {
+// Las mutations de Vuex quedaron como actions con el mismo nombre y la misma
+// firma (setOrder, setCustomerData...): los componentes las siguen llamando
+// igual, y utils/sessionTags.js las escucha con $onAction.
+export const useStore = defineStore('main', {
+  state: () => ({
     FB: undefined,
     nowDate: '',
     steps,
@@ -164,26 +163,28 @@ export default new Vuex.Store({
       quotation_amount: null,
     },
     loading: false,
-  },
+  }),
   getters: {
     getToken(state) {
       return state.customer.token;
     },
-    isTokenValid(state, getters) {
-      return state.nowDate < (getters.decodeToken.exp * 1000);
+    isTokenValid(state) {
+      return state.nowDate < (this.decodeToken.exp * 1000);
     },
     decodeToken(state) {
       try {
-        return VueJwtDecode.decode(state.customer.token);
+        return jwtDecode(state.customer.token);
       } catch {
         return {
           exp: 0,
         };
       }
     },
-    isUserLogged: (state, getters) => (state.customer.customer_id
-      && state.customer.token
-      && getters.isTokenValid) || false,
+    isUserLogged(state) {
+      return (state.customer.customer_id
+        && state.customer.token
+        && this.isTokenValid) || false;
+    },
     getFirstIncompleteStep(state) {
       let lastStep = {};
       Object.keys(state.steps).every((viewName) => {
@@ -197,47 +198,46 @@ export default new Vuex.Store({
       return lastStep;
     },
   },
-  mutations: {
-    setFB(state, FB) {
-      state.FB = FB;
-    },
-    setOrder(state, payload) {
-      state[payload.section][payload.field] = payload.value;
-      storage.setItem(payload.section, JSON.stringify(state[payload.section]));
-      state.formValidationMessages[payload.field] = null;
-      checkCompleteStep(state);
-    },
-    setCustomerData(state, payload) {
-      state.customer[payload.field] = payload.value;
-      storage.setItem('customer', JSON.stringify(state.customer));
-    },
-    setViewsMessages(state, payload) {
-      state.viewsMessages[payload.view] = payload.message;
-    },
-    setFormValidationMessages(state, payload) {
-      state.formValidationMessages[payload.field] = payload.message;
-    },
-    setNowDate(state) {
-      state.nowDate = Date.now();
-    },
-    setLoader(state, value) {
-      state.loading = value;
-    },
-  },
   actions: {
-    async fetchLastPendingOrder({ dispatch, state }) {
+    setFB(FB) {
+      // El SDK de Facebook no tiene que volverse reactivo.
+      this.FB = FB ? markRaw(FB) : FB;
+    },
+    setOrder(payload) {
+      this[payload.section][payload.field] = payload.value;
+      storage.setItem(payload.section, JSON.stringify(this[payload.section]));
+      this.formValidationMessages[payload.field] = null;
+      checkCompleteStep(this);
+    },
+    setCustomerData(payload) {
+      this.customer[payload.field] = payload.value;
+      storage.setItem('customer', JSON.stringify(this.customer));
+    },
+    setViewsMessages(payload) {
+      this.viewsMessages[payload.view] = payload.message;
+    },
+    setFormValidationMessages(payload) {
+      this.formValidationMessages[payload.field] = payload.message;
+    },
+    setNowDate() {
+      this.nowDate = Date.now();
+    },
+    setLoader(value) {
+      this.loading = value;
+    },
+    async fetchLastPendingOrder() {
       const payload = {
-        token: state.customer.token,
-        customerId: state.customer.customer_id,
+        token: this.customer.token,
+        customerId: this.customer.customer_id,
       };
       const response = await chalan.getLastPendingOrder(payload);
       if (response.data.order) {
-        await dispatch('getOrderFromDataBase', response.data.order.id);
+        await this.getOrderFromDataBase(response.data.order.id);
       }
     },
-    async getOrderFromDataBase({ commit, state }, orderId) {
+    async getOrderFromDataBase(orderId) {
       const payload = {
-        token: state.customer.token,
+        token: this.customer.token,
         orderId,
       };
       const order = await chalan.getOrderByCustomer(payload)
@@ -262,7 +262,7 @@ export default new Vuex.Store({
         vehicle: { description: currentOrder.vehicle_description } = {},
       } = order.data.order);
       Object.keys(currentOrder).forEach((key) => {
-        commit('setOrder', { section: 'currentOrder', field: key, value: currentOrder[key] });
+        this.setOrder({ section: 'currentOrder', field: key, value: currentOrder[key] });
       });
       const {
         order_details: orderDetails,
@@ -285,7 +285,7 @@ export default new Vuex.Store({
       } = orderDetailsOrigin);
       from.from_has_elevator = String(from.from_has_elevator);
       Object.keys(from).forEach((key) => {
-        commit('setOrder', { section: 'orderDetailsOrigin', field: key, value: from[key] });
+        this.setOrder({ section: 'orderDetailsOrigin', field: key, value: from[key] });
       });
       const orderDetailsDestination = orderDetails.filter(item => item.type === 'deliver_to')[0];
       const to = {};
@@ -304,7 +304,7 @@ export default new Vuex.Store({
       } = orderDetailsDestination);
       to.to_has_elevator = String(to.to_has_elevator);
       Object.keys(to).forEach((key) => {
-        commit('setOrder', { section: 'orderDetailsDestination', field: key, value: to[key] });
+        this.setOrder({ section: 'orderDetailsDestination', field: key, value: to[key] });
       });
       let packaging = null;
       let cargo = null;
@@ -312,25 +312,25 @@ export default new Vuex.Store({
         packaging = services.find(item => item.name === 'packaging');
         cargo = services.find(item => item.name === 'cargo');
       }
-      commit('setOrder', { section: 'services', field: 'packaging', value: packaging ? '1' : '0' });
-      commit('setOrder', { section: 'services', field: 'cargo', value: cargo ? '1' : '0' });
+      this.setOrder({ section: 'services', field: 'packaging', value: packaging ? '1' : '0' });
+      this.setOrder({ section: 'services', field: 'cargo', value: cargo ? '1' : '0' });
       return true;
     },
-    logout({ state, dispatch, commit }) {
-      if (state.FB) {
-        state.FB.logout();
+    logout() {
+      if (this.FB) {
+        this.FB.logout();
       }
-      commit('setCustomerData', { field: 'customer_id', value: null });
-      commit('setCustomerData', { field: 'token', value: null });
-      dispatch('addDataToLocalStorage', ['customer']);
+      this.setCustomerData({ field: 'customer_id', value: null });
+      this.setCustomerData({ field: 'token', value: null });
+      this.addDataToLocalStorage(['customer']);
       window.location.reload();
     },
-    addDataToLocalStorage({ state }, location) {
+    addDataToLocalStorage(location) {
       location.forEach((item) => {
-        storage.setItem(item, JSON.stringify(state[item]));
+        storage.setItem(item, JSON.stringify(this[item]));
       });
     },
-    getDataFromLocalStorage({ commit }, location) {
+    getDataFromLocalStorage(location) {
       const mutations = {
         currentOrder: 'setOrder',
         orderDetailsOrigin: 'setOrder',
@@ -343,9 +343,9 @@ export default new Vuex.Store({
         try {
           const data = JSON.parse(storage.getItem(location));
           Object.keys(data).forEach((key) => {
-            commit(mutations[location], { section: location, field: key, value: data[key] });
+            this[mutations[location]]({ section: location, field: key, value: data[key] });
             if (location === 'viewsMessages') {
-              commit(mutations[location], { section: location, view: key, message: data[key] });
+              this[mutations[location]]({ section: location, view: key, message: data[key] });
             }
           });
         } catch (e) {
@@ -354,15 +354,15 @@ export default new Vuex.Store({
         }
       }
     },
-    validateRequiredFields({ commit, state }, viewName) {
+    validateRequiredFields(viewName) {
       const emptyFields = [];
       const stepOneRequisites = {
-        ...state.currentOrder,
-        ...state.orderDetailsOrigin,
-        ...state.orderDetailsDestination,
-        ...state.services,
+        ...this.currentOrder,
+        ...this.orderDetailsOrigin,
+        ...this.orderDetailsDestination,
+        ...this.services,
       };
-      state.steps[viewName].requisites
+      this.steps[viewName].requisites
         .filter(field => isRequired(field, stepOneRequisites))
         .forEach((field) => {
           // Misma noción de "lleno" que checkCompleteStep. Con `!valor`, una
@@ -387,9 +387,9 @@ export default new Vuex.Store({
       } else {
         message = null;
       }
-      commit('setViewsMessages', { view: viewName, message });
+      this.setViewsMessages({ view: viewName, message });
       emptyFields.forEach((field) => {
-        commit('setFormValidationMessages', { field, message: 'no olvides llenar este campo' });
+        this.setFormValidationMessages({ field, message: 'no olvides llenar este campo' });
       });
     },
   },

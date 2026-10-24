@@ -23,8 +23,8 @@
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex';
-import { fieldLabels } from '@/store';
+import { mapState } from 'pinia';
+import { useStore, fieldLabels } from '@/store';
 
 export default {
   name: 'ViewsMessages',
@@ -35,10 +35,10 @@ export default {
   },
   props: ['viewName'],
   computed: {
-    ...mapGetters([
+    ...mapState(useStore, [
       'isUserLogged',
     ]),
-    ...mapState([
+    ...mapState(useStore, [
       'customer',
       'viewsMessages',
       'formValidationMessages',

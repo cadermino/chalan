@@ -125,7 +125,7 @@ test.describe('Yape reservation required to book', () => {
 
     // Se navega con el router de la app para conservar la orden en el store.
     await page.evaluate(({ id, quotation }) => {
-      document.querySelector('#app').__vue__.$router.push({
+      document.querySelector('#app').__vue_app__.config.globalProperties.$router.push({
         name: 'carrier-company', params: { id }, query: { quotation_id: quotation },
       });
     }, { id: carrierId, quotation: quotationId });

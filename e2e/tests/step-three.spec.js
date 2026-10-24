@@ -72,8 +72,7 @@ test.describe('Order Step Three - Quotations', () => {
     await expect(page.locator('text=Hyundai')).toBeVisible({ timeout: 15000 });
 
     await page.evaluate(() => {
-      document.querySelector('#app').__vue__.$store.commit(
-        'setCustomerData', { field: 'mobile_phone', value: null },
+      document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').setCustomerData({ field: 'mobile_phone', value: null },
       );
     });
 

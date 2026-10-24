@@ -23,7 +23,7 @@
       <div v-if="isOpen" class="absolute right-0 mt-2 py-2 w-48 bg-white rounded-lg shadow-xl z-50">
         <router-link
           :to="{name: 'dashboard'}"
-          @click.native="isOpen = false"
+          @click="isOpen = false"
           class="block
           px-4
           py-2
@@ -69,7 +69,7 @@
       <div class="">
         <router-link
           :to="{name: 'dashboard'}"
-          @click.native="isOpen = false"
+          @click="isOpen = false"
           class="block text-gray hover:text-gray-500">
           Mis ordenes
         </router-link>
@@ -80,7 +80,8 @@
 </template>
 
 <script>
-import { mapActions, mapState } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 
 export default {
   data() {
@@ -89,23 +90,23 @@ export default {
     };
   },
   created() {
-    const handleEscape = (e) => {
+    this.handleEscape = (e) => {
       if (e.key === 'Esc' || e.key === 'Escape') {
         this.isOpen = false;
       }
     };
-    document.addEventListener('keydown', handleEscape);
-    this.$once('hook:beforeDestroy', () => {
-      document.removeEventListener('keydown', handleEscape);
-    });
+    document.addEventListener('keydown', this.handleEscape);
+  },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleEscape);
   },
   methods: {
-    ...mapActions([
+    ...mapActions(useStore, [
       'logout',
     ]),
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'customer',
     ]),
   },

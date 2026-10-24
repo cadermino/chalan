@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
-    <% if (process.env.NODE_ENV === 'production') { %>
+    <!-- Los bloques if:/endif los resuelve vite.config.mjs (indexHtml). -->
+    <!-- if:production -->
     <!-- Begin Inspectlet Asynchronous Code -->
     <script type="text/javascript">
       (function() {
@@ -25,7 +26,7 @@
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
       })(window, document, "clarity", "script", "wa41vtag57");
     </script>
-    <% } %>
+    <!-- endif -->
 
     <!-- Google tag (gtag.js). send_page_view is off here because this is an
          SPA - router/index.js's afterEach hook sends page_view on every
@@ -36,18 +37,18 @@
          mantiene produccion funcionando sin tocar el deploy; VUE_APP_GA_ID
          solo hace falta para apuntar a otra propiedad, o para encender GA en
          local y validar los eventos en DebugView antes de desplegar. -->
-    <% if (process.env.NODE_ENV === 'production' || process.env.VUE_APP_GA_ID) { %>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=<%= process.env.VUE_APP_GA_ID || 'G-72KVLDWMQD' %>"></script>
+    <!-- if:analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=__GA_ID__"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', '<%= process.env.VUE_APP_GA_ID || 'G-72KVLDWMQD' %>', {
+      gtag('config', '__GA_ID__', {
         send_page_view: false,
-        <% if (process.env.NODE_ENV !== 'production') { %>debug_mode: true,<% } %>
+        __GA_DEBUG__
       });
     </script>
-    <% } %>
+    <!-- endif -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -60,7 +61,7 @@
     <meta property="og:image:width" content="1519" />
     <meta property="og:image:height" content="1506" />
     <meta property="fb:app_id" content="461335397738111" />
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <link rel="icon" href="/favicon.ico">
     <link
       href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400i,700"
       rel="stylesheet"
@@ -73,6 +74,6 @@
       <strong>We're sorry but frontend doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
-    <!-- built files will be auto injected -->
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>

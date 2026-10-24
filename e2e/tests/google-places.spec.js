@@ -25,7 +25,7 @@ test.describe('Google Places autocomplete', () => {
     await selectMockAddress(page, 'address-to-street', TO_ADDRESS);
 
     const stored = await page.evaluate(() => {
-      const { orderDetailsOrigin, orderDetailsDestination } = document.querySelector('#app').__vue__.$store.state;
+      const { orderDetailsOrigin, orderDetailsDestination } = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
       return {
         fromStreet: orderDetailsOrigin.from_street,
         fromZip: orderDetailsOrigin.from_zip_code,

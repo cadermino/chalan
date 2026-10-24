@@ -8,7 +8,7 @@
         {{ orderDetailsOrigin.from_street }} &rarr; {{ orderDetailsDestination.to_street }}
       </p>
       <p class="text-sm text-gray-600" v-if="currentOrder.appointment_date">
-        {{ currentOrder.appointment_date | moment("dddd D MMMM YYYY - h:mm A") }}
+        {{ $moment(currentOrder.appointment_date).format("dddd D MMMM YYYY - h:mm A") }}
       </p>
     </div>
     <!-- Solo se pide si no lo tenemos ya. Quien entró con Google no trae
@@ -120,7 +120,8 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import 'moment/locale/es';
 import Modal from '@/components/Modal.vue';
 import yapeQr from '@/assets/yape-qr.jpg';
@@ -140,6 +141,7 @@ const quotationFields = {
 
 export default {
   name: 'PaymentConfirmationModal',
+  emits: ['close'],
   components: {
     Modal,
   },
@@ -202,7 +204,7 @@ export default {
     },
   },
   methods: {
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setOrder',
       'setCustomerData',
       'setViewsMessages',
@@ -312,7 +314,7 @@ export default {
     },
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
       'customer',
       'orderDetailsOrigin',
@@ -326,7 +328,7 @@ export default {
     yapeQrVisible() {
       return this.showYapeQr
         && this.currency === 'PEN'
-        && process.env.VUE_APP_YAPE_QR_ENABLED === 'true'
+        && import.meta.env.VUE_APP_YAPE_QR_ENABLED === 'true'
         && this.reservationAmount > 0;
     },
     // Lo que el cliente le debe a Chalán: el total menos el precio crudo del

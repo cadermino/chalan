@@ -16,25 +16,18 @@
               font-bold mb-2" for="datetime">
                   Elige la fecha y hora <span class="text-red-500">*</span>
               </label>
-              <Datetime v-model="selectedDate"
-                :input-class="datePickerClasses"
-                type="datetime"
-                input-id="datetime"
-                :phrases="{ok: 'Aceptar', cancel: 'Salir'}"
-                value-zone="America/Mexico_City"
-                :format="{ year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit' }"
-                use12-hour
-                :minute-step="5"
+              <VueDatePicker v-model="selectedDate"
+                :ui="{ input: datePickerClasses }"
+                :input-attrs="{ id: 'datetime', clearable: false }"
+                :locale="datePickerLocale"
+                :formats="{ input: DATE_INPUT_FORMAT }"
+                :time-config="{ is24: false, minutesIncrement: 5 }"
+                :action-row="{ selectBtnLabel: 'Aceptar', cancelBtnLabel: 'Salir', showNow: false }"
                 class="theme-chalan"
-                :min-datetime="minDatetime"
-                :max-datetime="maxDatetime"
+                :min-date="minDatetime"
+                :max-date="maxDatetime"
                 placeholder="17 de diciembre de 2026 18:00"
-              >
-              </Datetime>
+              />
               <p v-if="formValidationMessages['appointment_date']"
                 class="text-red-500
                 text-xs
@@ -337,10 +330,12 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapMutations } from 'vuex';
-import { Datetime } from 'vue-datetime';
-import 'vue-datetime/dist/vue-datetime.css';
-import { Settings } from 'luxon';
+import { reactive } from 'vue';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
+import { es } from 'date-fns/locale';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
@@ -350,7 +345,8 @@ import {
   CARGO_WEIGHT_OPTIONS, DEFAULT_LOAD_TYPE, INVENTORY_COPY, needsCargoWeight,
 } from '../../utils/loadTypes';
 
-Settings.defaultLocale = 'es';
+// Lo que mostraba vue-datetime: "17 de diciembre de 2026, 6:00 p. m.".
+const DATE_INPUT_FORMAT = "d 'de' MMMM 'de' yyyy, h:mm aaa";
 
 export default {
   name: 'step-two',
@@ -362,11 +358,12 @@ export default {
       recognizedItems: [],
       manualItem: '',
       cargoWeightOptions: CARGO_WEIGHT_OPTIONS,
+      DATE_INPUT_FORMAT,
     };
   },
   components: {
     Tracker,
-    Datetime,
+    VueDatePicker,
     ViewsMessages,
   },
   mounted() {
@@ -388,10 +385,10 @@ export default {
   props: [
   ],
   methods: {
-    ...mapActions([
+    ...mapActions(useStore, [
       'validateRequiredFields',
     ]),
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setOrder',
       'setViewsMessages',
       'setLoader',
@@ -411,8 +408,9 @@ export default {
         const url = URL.createObjectURL(file);
         // Por referencia y no por índice: si borra otra foto mientras esta se
         // analiza, el índice apunta a otra y una quedaba "analizando" para
-        // siempre, con "Siguiente" bloqueado.
-        const thumb = { url, file, processing: true };
+        // siempre, con "Siguiente" bloqueado. reactive(): en Vue 3 el array
+        // guarda un Proxy, y cambiar el objeto original no repinta nada.
+        const thumb = reactive({ url, file, processing: true });
         this.photoThumbnails.push(thumb);
 
         const payload = {
@@ -464,7 +462,7 @@ export default {
         if (existingIndex !== -1) {
           const existingParsed = this.parseItem(this.recognizedItems[existingIndex]);
           const totalQty = existingParsed.qty + parsed.qty;
-          this.$set(this.recognizedItems, existingIndex, `${totalQty} ${existingParsed.name}`);
+          this.recognizedItems[existingIndex] = `${totalQty} ${existingParsed.name}`;
         } else {
           this.recognizedItems.push(newItem);
         }
@@ -475,7 +473,7 @@ export default {
       // main thread, so a flaky local/network drive can fail here well
       // after createObjectURL succeeded (NotReadableError). Recognition
       // already ran on the original File, so just hide the broken preview.
-      this.$set(this.photoThumbnails[index], 'loadError', true);
+      this.photoThumbnails[index].loadError = true;
     },
     removePhoto(index) {
       URL.revokeObjectURL(this.photoThumbnails[index].url);
@@ -607,7 +605,7 @@ export default {
     analyzingPhotos() {
       return this.photoThumbnails.some(thumb => thumb.processing);
     },
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
       'customer',
       'formValidationMessages',
@@ -620,7 +618,8 @@ export default {
     ]),
     selectedDate: {
       get() {
-        return this.$moment(this.currentOrder.appointment_date).toISOString();
+        const date = this.currentOrder.appointment_date;
+        return date ? this.$moment(date).toDate() : null;
       },
       set(value) {
         if (value) {
@@ -635,11 +634,15 @@ export default {
       },
     },
     minDatetime() {
-      return new Date(Date.now()).toISOString();
+      return new Date(Date.now());
     },
     maxDatetime() {
       const date = new Date();
-      return new Date(date.setDate(date.getDate() + 60)).toISOString();
+      return new Date(date.setDate(date.getDate() + 60));
+    },
+    // Un computed y no data: el locale de date-fns no tiene que volverse reactivo.
+    datePickerLocale() {
+      return es;
     },
     datePickerClasses() {
       const classes = [
@@ -715,15 +718,8 @@ export default {
 };
 </script>
 <style>
-  .theme-chalan .vdatetime-popup__header,
-  .theme-chalan .vdatetime-calendar__month__day--selected > span > span,
-  .theme-chalan .vdatetime-calendar__month__day--selected:hover > span > span {
-    background: #4299e1;
-  }
-
-  .theme-chalan .vdatetime-year-picker__item--selected,
-  .theme-chalan .vdatetime-time-picker__item--selected,
-  .theme-chalan .vdatetime-popup__actions__button {
-    color: #4299e1;
+  /* El azul de los botones de la app (bg-blue-500 de Tailwind 1). */
+  .theme-chalan .dp__theme_light {
+    --dp-primary-color: #4299e1;
   }
 </style>

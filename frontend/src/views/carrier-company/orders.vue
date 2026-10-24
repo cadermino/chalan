@@ -25,8 +25,7 @@
                 <tr v-for="(order, key, index) in orders"
                     v-bind:key="index">
                   <td class="border px-4 py-2">{{ order.id }}</td>
-                  <td class="border px-4 py-2">{{ order.appointment_date |
-                    moment("dddd D MMMM - h:mm A") }}</td>
+                  <td class="border px-4 py-2">{{ $moment(order.appointment_date).format("dddd D MMMM - h:mm A") }}</td>
                   <td class="border px-4 py-2">{{
                     cashToCollect(order.payments).toLocaleString('en-US', {
                       style: 'currency',
@@ -56,7 +55,8 @@
   </div>
 </template>
 <script>
-import { mapMutations } from 'vuex';
+import { mapActions } from 'pinia';
+import { useStore } from '@/store';
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '@/api/chalan';
@@ -87,7 +87,7 @@ export default {
     this.getPendingOrders();
   },
   methods: {
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setViewsMessages',
       'setLoader',
     ]),

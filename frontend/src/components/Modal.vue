@@ -19,6 +19,7 @@
 <script>
 export default {
   name: 'Modal',
+  emits: ['close'],
   props: {
     visible: {
       type: Boolean,
@@ -39,15 +40,15 @@ export default {
     // comprobar `visible` un Escape en cualquier parte de la página emite
     // close. En Step-one eso disparaba el flujo de "omitir" del modal de
     // WhatsApp y navegaba a step-two sin que el modal se hubiera mostrado.
-    const handleEscape = (e) => {
+    this.handleEscape = (e) => {
       if (this.visible && this.closable && (e.key === 'Esc' || e.key === 'Escape')) {
         this.$emit('close');
       }
     };
-    document.addEventListener('keydown', handleEscape);
-    this.$once('hook:beforeDestroy', () => {
-      document.removeEventListener('keydown', handleEscape);
-    });
+    document.addEventListener('keydown', this.handleEscape);
+  },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleEscape);
   },
   methods: {
     onBackdropClick() {

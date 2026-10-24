@@ -83,7 +83,7 @@ test.describe('Basement floors', () => {
     await page.locator('#to-parking-distance').blur();
 
     const state = await page.evaluate(() => {
-      const store = document.querySelector('#app').__vue__.$store.state;
+      const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
       return {
         from: store.orderDetailsOrigin.from_floor_number,
         isComplete: store.steps['step-one'].isComplete,

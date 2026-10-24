@@ -5,8 +5,11 @@
 </template>
 
 <script>
+import { markRaw } from 'vue';
+
 export default {
   name: 'SearchBoxPlacesApiGoogle',
+  emits: ['google-address'],
   props: {
     inputId: String,
     mapId: String,
@@ -58,11 +61,13 @@ export default {
       const mapEl = document.getElementById(this.mapId);
       if (!mapEl) return;
 
-      this.map = new window.google.maps.Map(mapEl, {
+      // markRaw: los objetos de Google Maps no tienen que volverse reactivos
+      // (el Proxy de Vue 3 rompe sus campos privados).
+      this.map = markRaw(new window.google.maps.Map(mapEl, {
         center: { lat: -10, lng: -76 },
         zoom: 5,
         mapTypeId: 'roadmap',
-      });
+      }));
 
       const input = document.getElementById(this.inputId);
       const searchBox = new window.google.maps.places.SearchBox(input);
@@ -109,7 +114,7 @@ export default {
           scaledSize: new window.google.maps.Size(45, 45),
         };
       }
-      this.markers.push(new window.google.maps.Marker(markerOptions));
+      this.markers.push(markRaw(new window.google.maps.Marker(markerOptions)));
 
       const bounds = new window.google.maps.LatLngBounds();
       if (place.geometry.viewport) {

@@ -6,7 +6,7 @@
         <img
           alt="vehicle-image"
           class="lg:w-1/2 w-full lg:h-auto h-64 object-cover object-center rounded"
-          :src="require('../../assets/peterbilt-337.png')"
+          :src="vehicleImage"
         />
         <div class="lg:w-1/2 w-full lg:pl-10 lg:py-6 mt-6 lg:mt-0">
           <h2 class="text-sm title-font text-gray-500 tracking-widest">
@@ -166,9 +166,11 @@
 </template>
 
 <script>
-import { mapState, mapMutations, mapGetters } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import axios from 'axios';
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
+import vehicleImage from '@/assets/peterbilt-337.png';
 import chalan from '../../api/chalan';
 
 export default {
@@ -178,6 +180,7 @@ export default {
   },
   data() {
     return {
+      vehicleImage,
       name: null,
       address: null,
       description: null,
@@ -202,11 +205,11 @@ export default {
     quotationId: Number,
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
       'customer',
     ]),
-    ...mapGetters([
+    ...mapState(useStore, [
       'getFirstIncompleteStep',
     ]),
     formattedAmount() {
@@ -231,7 +234,7 @@ export default {
     },
   },
   methods: {
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setOrder',
       'setViewsMessages',
       'setLoader',
@@ -319,7 +322,7 @@ export default {
         });
     },
     fetchReviews() {
-      const url = process.env.VUE_APP_API_URL;
+      const url = import.meta.env.VUE_APP_API_URL;
       axios
         .get(`${url}reviews/company/${this.carrierId}`)
         .then((response) => {

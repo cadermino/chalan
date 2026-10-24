@@ -66,7 +66,8 @@
 </template>
 
 <script>
-import { mapMutations, mapActions, mapState } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 
 export default {
   name: 'Tracker',
@@ -81,8 +82,7 @@ export default {
   components: {},
   watch: {},
   methods: {
-    ...mapMutations([]),
-    ...mapActions([
+    ...mapActions(useStore, [
       'validateRequiredFields',
     ]),
     goToView(key) {
@@ -94,15 +94,10 @@ export default {
     },
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
+      'steps',
     ]),
-    steps() {
-      return this.$store.state.steps;
-    },
-    currentOrder() {
-      return this.$store.state.currentOrder;
-    },
     stepObjectLength() {
       return Object.keys(this.steps).length;
     },

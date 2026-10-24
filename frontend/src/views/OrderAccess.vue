@@ -7,7 +7,8 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapMutations } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import chalan from '../api/chalan';
 import { track } from '../utils/analytics';
 
@@ -25,7 +26,7 @@ export default {
     token: { type: String, required: true },
   },
   computed: {
-    ...mapGetters(['decodeToken']),
+    ...mapState(useStore, ['decodeToken']),
   },
   async mounted() {
     try {
@@ -52,8 +53,8 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(['setCustomerData', 'setViewsMessages']),
-    ...mapActions(['addDataToLocalStorage']),
+    ...mapActions(useStore, ['setCustomerData', 'setViewsMessages']),
+    ...mapActions(useStore, ['addDataToLocalStorage']),
   },
 };
 </script>

@@ -31,15 +31,15 @@ const loadButton = (page, value) => page.locator(`#load-type [data-load-type="${
 
 async function setAppointmentDate(page) {
   await page.evaluate((date) => {
-    const store = document.querySelector('#app').__vue__.$store;
-    store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: date });
+    const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+    store.setOrder({ section: 'currentOrder', field: 'appointment_date', value: date });
   }, TEST_DATA.stepTwo.appointmentDate);
 }
 
 async function setLoadType(page, value) {
   await page.evaluate((loadType) => {
-    const store = document.querySelector('#app').__vue__.$store;
-    store.commit('setOrder', { section: 'currentOrder', field: 'load_type', value: loadType });
+    const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+    store.setOrder({ section: 'currentOrder', field: 'load_type', value: loadType });
   }, value);
 }
 
@@ -150,7 +150,7 @@ test.describe('What the order carries', () => {
 
     await expect(page.getByText('No reconocimos objetos en esta foto')).toBeVisible();
     const comments = await page.evaluate(
-      () => document.querySelector('#app').__vue__.$store.state.currentOrder.comments,
+      () => document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').currentOrder.comments,
     );
     expect(comments || '').toBe('');
   });

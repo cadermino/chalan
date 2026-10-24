@@ -17,7 +17,7 @@
         <router-link
           v-if="!isUserLogged"
           :to="{ name: 'login' }"
-          @click.native="isOpen = false"
+          @click="isOpen = false"
           class="login-link"
         >Ingresar</router-link>
         <AccountDropdown v-if="isUserLogged" />
@@ -30,7 +30,7 @@
         >WhatsApp</a>
         <router-link
           :to="{ name: 'step-one' }"
-          @click.native="isOpen = false"
+          @click="isOpen = false"
           class="btn btn-primary"
         >
           Cotizar
@@ -84,13 +84,13 @@
       <router-link
         v-if="!isUserLogged"
         :to="{ name: 'login' }"
-        @click.native="isOpen = false"
+        @click="isOpen = false"
       >Ingresar</router-link>
       <AccountDropdown v-if="isUserLogged" />
       <a href="https://wa.me/51972643007" target="_blank" rel="noopener">WhatsApp</a>
       <router-link
         :to="{ name: 'step-one' }"
-        @click.native="isOpen = false"
+        @click="isOpen = false"
         class="btn btn-primary mobile-cta"
       >Cotizar</router-link>
     </div>
@@ -98,7 +98,8 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapGetters } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import AccountDropdown from '@/components/AccountDropdown.vue';
 
 export default {
@@ -107,10 +108,10 @@ export default {
     return { isOpen: false };
   },
   components: { AccountDropdown },
-  methods: { ...mapActions(['logout']) },
+  methods: { ...mapActions(useStore, ['logout']) },
   computed: {
-    ...mapGetters(['isUserLogged']),
-    ...mapState(['customer']),
+    ...mapState(useStore, ['isUserLogged']),
+    ...mapState(useStore, ['customer']),
   },
 };
 </script>

@@ -10,7 +10,7 @@
 </template>
 <script>
 import ViewsMessages from '@/components/ViewsMessages.vue';
-import CarrierCompany from '@/components/carrierCompany/CarrierCompany';
+import CarrierCompany from '@/components/carrierCompany/CarrierCompany.vue';
 
 export default {
   name: 'carrier-company',

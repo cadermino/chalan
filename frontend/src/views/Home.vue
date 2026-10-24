@@ -4,7 +4,7 @@
     <div
       class="lg:pt-48 lg:pb-64 py-20 bg-cover"
       :style="{ backgroundImage:
-      'url(' + require('@/assets/shipping-boxes-dark-resized.jpg') + ')'}"
+      'url(' + heroImage + ')'}"
     >
       <div class="container mx-auto px-6 text-left">
         <h2 class="text-4xl font-bold mb-2 text-white">
@@ -144,20 +144,23 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapMutations } from 'vuex';
+import { mapActions } from 'pinia';
+import { useStore } from '@/store';
+import heroImage from '@/assets/shipping-boxes-dark-resized.jpg';
 
 export default {
   props: [
   ],
+  data() {
+    return { heroImage };
+  },
   mounted() {
     this.setLoader(false);
   },
   computed: {
-    ...mapState({}),
   },
   methods: {
-    ...mapActions([]),
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setLoader',
     ]),
   },

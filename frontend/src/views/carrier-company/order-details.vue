@@ -72,8 +72,7 @@
               <p>
                 <span class="font-bold
                   mr-1">Fecha de mudanza: </span>
-                {{ orderData.appointment_date |
-                          moment("dddd D MMMM YYYY - h:mm A") }}
+                {{ $moment(orderData.appointment_date).format("dddd D MMMM YYYY - h:mm A") }}
               </p>
               <p v-if="distanceBetweenAddress">
                 <span class="font-bold
@@ -387,7 +386,8 @@
 <script>
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
-import { mapMutations, mapState } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import { cashToCollect } from '@/utils/payments';
 import chalan from '../../api/chalan';
 import formatFloor from '../../utils/floor';
@@ -414,7 +414,7 @@ export default {
         active: 1,
         cancelled: 3,
       },
-      googleDistanceUrl: process.env.VUE_APP_GOOGLE_DISTANCE_URL,
+      googleDistanceUrl: import.meta.env.VUE_APP_GOOGLE_DISTANCE_URL,
       payment: [],
     };
   },
@@ -426,7 +426,7 @@ export default {
     ViewsMessages,
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'formValidationMessages',
       'orderDetailsOrigin',
       'orderDetailsDestination',
@@ -496,7 +496,7 @@ export default {
     formatParkingDistance,
     formatLoadType,
     formatCargoWeight,
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setFormValidationMessages',
       'setViewsMessages',
       'setLoader',

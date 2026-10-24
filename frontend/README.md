@@ -21,4 +21,4 @@ npm run lint
 ```
 
 ### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+See `vite.config.mjs` and the [Vite config reference](https://vite.dev/config/).

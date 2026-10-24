@@ -1,6 +1,5 @@
 FROM node:24-alpine as vue-build-stage
 WORKDIR /chalan
-ENV NODE_OPTIONS=--openssl-legacy-provider
 # Dependencias antes del código, igual que en el stage del backoffice: así un
 # cambio de .vue no vuelve a bajar node_modules entero. Es el build más pesado
 # del deploy.

@@ -16,7 +16,7 @@ The project is a **monorepo with two Flask backends and three frontends**, all o
 |---------|------|------|---------|
 | `flask` | 8001 | Flask/Python 3.11 | Main API (`/api/v1`, `/api/auth`, `/landing`) |
 | `backoffice-api` | 8002 | Flask/Python 3.11 | Admin API (separate app, separate models) |
-| `vuex` | 8080 | Vue 2.6 | Customer-facing SPA (legacy) |
+| `vuex` | 8080 | Vue 3 + Vite + Pinia | Customer-facing SPA (order flow, carrier quotation link) |
 | `nextjs` | 3000 | Next.js 15 + TypeScript | Marketing/blog site (Peru production) |
 | `backoffice` | 5173 | React 18 + Vite | Admin dashboard |
 | `nginx` | 80 | Nginx | Reverse proxy |
@@ -93,6 +93,14 @@ cd e2e && npx playwright test                    # run all tests
 cd e2e && npx playwright test tests/step-one.spec.js  # run single test
 ```
 Base URL defaults to `http://local.chalan.mx` (override with `BASE_URL` env var).
+
+### Vue frontend (Vue 3, Vite, Pinia)
+- **Store**: one Pinia store, `useStore` (id `main`) in `frontend/src/store/index.js`. The old Vuex mutations are actions with the same name and payload (`setOrder({ section, field, value })`, `setCustomerData`...), and components map them with `mapState`/`mapActions(useStore, [...])`. `store/pinia.js` holds the single Pinia instance the router guards use. `utils/sessionTags.js` tags Inspectlet/Clarity through `$onAction`.
+- **Env**: Vite reads the old `VUE_APP_*` names (`envPrefix` in `vite.config.mjs`) as `import.meta.env.VUE_APP_*`, so the server's `frontend/.env.production` and the `ENV` in `Dockerfile.nginx.peru.prod` work unchanged.
+- **Build output** goes to `dist/js`, `dist/css` and `dist/img`, the paths nginx serves with immutable cache. `index.html` sits at `frontend/` (not `public/`); its `<!-- if:production -->` / `<!-- if:analytics -->` blocks (Inspectlet, Clarity, GA) are resolved by the `indexHtml` plugin in `vite.config.mjs`.
+- **Local dev**: the dev server uses the base `/vue-dev/` (the local nginx sends it to `vuex`) and serves the app routes (`/order`, `/acceso`...) through a fallback, like services-web. After changing `frontend/package.json`, recreate the container with `up -d --build -V vuex` or the old anonymous `node_modules` volume stays mounted.
+- **e2e** reach the store through `document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main')` and call actions directly (`store.setOrder(...)`).
+- `moment` locales must be imported (`main.js` imports `moment/locale/es`); webpack used to bundle them all. The appointment picker is `@vuepic/vue-datepicker` (date-fns `es` locale).
 
 ### Production Builds
 ```bash
@@ -329,7 +337,7 @@ All the carriers on the platform are in Lima. For a pending order that is not in
 - **What it carries**: `detect_needs` reads `orders.comments` for words (`vehiculos`: camioneta, moto, auto...; `construccion`: cemento, fierros...; `carga`; default `mudanza`). The card preselects that filter and shows the others as chips with counts. Matching uses the `type` that automajob gave each business (`mudanza`, `vehiculos`, `carga`, from its name and Google category), plus hints in its name. The type rules are coarse: motos and construction material have little signal until the scraping keywords include them.
 - **Order**: exact type first, then by distance if the order has coordinates, else by automajob's score (rating weighted by reviews).
 - **API**: `GET /backoffice-api/api/orders/:id/nearby-carriers?need=&end=` (admin/superadmin). `end` is `origin` or `destination` (the first one outside Lima by default).
-- **Coordinates and city on new orders** (migration 029): the Vue order form saves `city`, `state`, `latitude` and `longitude` from the Google place (`from_*` / `to_*`). The main API (`app/api/order/order.py`) drops a coordinate that is not a number in range. Orders from before this only have the written address, which is why `locate` falls back to the postal code and the text. The Vuex state must list these keys or editing an order would send nulls and wipe them (`store/index.js`, also when loading an order).
+- **Coordinates and city on new orders** (migration 029): the Vue order form saves `city`, `state`, `latitude` and `longitude` from the Google place (`from_*` / `to_*`). The main API (`app/api/order/order.py`) drops a coordinate that is not a number in range. Orders from before this only have the written address, which is why `locate` falls back to the postal code and the text. The store state must list these keys or editing an order would send nulls and wipe them (`store/index.js`, also when loading an order).
 
 ## Carrier Declines
 

@@ -1,7 +1,10 @@
-FROM node:14.16.0-alpine
+FROM node:24-alpine
 WORKDIR /chalan
-COPY ./frontend .
-
-RUN npm install
+COPY ./frontend/package.json ./frontend/package-lock.json ./
+RUN npm ci
+# Selectivo: sin esto se copiaría el node_modules del host (macOS) sobre el de Linux.
+COPY ./frontend/index.html ./frontend/vite.config.mjs ./frontend/postcss.config.js ./frontend/tailwind.config.js ./frontend/.browserslistrc ./
+COPY ./frontend/public ./public
+COPY ./frontend/src ./src
 
 CMD ["npm", "run", "serve"]

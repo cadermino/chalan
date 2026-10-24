@@ -17,9 +17,8 @@
 </template>
 
 <script>
-import {
-  mapState, mapActions, mapMutations, mapGetters,
-} from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import Login from '@/components/Login.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import Tracker from '@/components/Tracker.vue';
@@ -54,11 +53,11 @@ export default {
   props: [
   ],
   methods: {
-    ...mapActions([
+    ...mapActions(useStore, [
       'addDataToLocalStorage',
       'fetchLastPendingOrder',
     ]),
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setViewsMessages',
       'setLoader',
     ]),
@@ -123,7 +122,7 @@ export default {
     },
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
       'customer',
       'orderDetailsDestination',
@@ -131,7 +130,7 @@ export default {
       'services',
       'viewsMessages',
     ]),
-    ...mapGetters([
+    ...mapState(useStore, [
       'isUserLogged',
     ]),
     redirect() {

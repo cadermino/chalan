@@ -92,9 +92,8 @@
 </template>
 
 <script>
-import {
-  mapActions, mapGetters, mapMutations, mapState,
-} from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import Tracker from '@/components/Tracker.vue';
 import chalan from '../../api/chalan';
@@ -148,8 +147,8 @@ export default {
     this.fields.mobilePhone = this.customer.mobile_phone || '';
   },
   methods: {
-    ...mapMutations(['setCustomerData', 'setLoader', 'setViewsMessages']),
-    ...mapActions(['addDataToLocalStorage']),
+    ...mapActions(useStore, ['setCustomerData', 'setLoader', 'setViewsMessages']),
+    ...mapActions(useStore, ['addDataToLocalStorage']),
     goToLogin() {
       this.$router.push({ name: 'login', query: this.$route.query }).catch(() => {});
     },
@@ -208,8 +207,8 @@ export default {
     },
   },
   computed: {
-    ...mapState(['currentOrder', 'customer', 'loading']),
-    ...mapGetters(['isUserLogged', 'decodeToken']),
+    ...mapState(useStore, ['currentOrder', 'customer', 'loading']),
+    ...mapState(useStore, ['isUserLogged', 'decodeToken']),
     redirect() {
       return this.$route.query.redirect || { name: 'step-three' };
     },

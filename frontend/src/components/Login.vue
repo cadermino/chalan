@@ -310,14 +310,14 @@
 </template>
 
 <script>
-import {
-  mapMutations, mapState, mapGetters,
-} from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import chalan from '../api/chalan';
 import { track } from '../utils/analytics';
 
 export default {
   name: 'Login',
+  emits: ['user-logged'],
   props: {
     initialForm: {
       type: String,
@@ -363,7 +363,7 @@ export default {
     }
   },
   methods: {
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setCustomerData',
       'setLoader',
       'setViewsMessages',
@@ -508,7 +508,7 @@ export default {
       });
     },
     initGoogle() {
-      const clientId = process.env.VUE_APP_GOOGLE_CLIENT_ID;
+      const clientId = import.meta.env.VUE_APP_GOOGLE_CLIENT_ID;
       if (!clientId || !window.google?.accounts) return;
       window.google.accounts.id.initialize({
         client_id: clientId,
@@ -593,11 +593,11 @@ export default {
     },
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'loading',
       'customer',
     ]),
-    ...mapGetters([
+    ...mapState(useStore, [
       'decodeToken',
     ]),
     // A mitad de una orden no se crea una cuenta con contraseña: se piden los

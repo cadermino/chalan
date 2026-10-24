@@ -120,8 +120,7 @@ test.describe('Checkout via the Step-three payment modal', () => {
     // reproducir al que entró con Google (que no trae uno) u omitió el prompt
     // de step-one. Es el único caso en que el modal lo sigue pidiendo.
     await page.evaluate(() => {
-      document.querySelector('#app').__vue__.$store.commit(
-        'setCustomerData', { field: 'mobile_phone', value: null },
+      document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').setCustomerData({ field: 'mobile_phone', value: null },
       );
     });
 

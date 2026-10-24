@@ -1,5 +1,5 @@
-<template v-cloak>
-  <div id="app">
+<template>
+  <div>
     <div v-if="loading"
       class="w-full
       h-full
@@ -31,7 +31,8 @@
 </template>
 
 <script>
-import { mapActions, mapState } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import Navbar from '@/components/Navbar.vue';
 import ChatWidget from '@/components/ChatWidget.vue';
 
@@ -49,12 +50,12 @@ export default {
     }
   },
   methods: {
-    ...mapActions([
+    ...mapActions(useStore, [
       'logout',
     ]),
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'loading',
     ]),
   },

@@ -190,7 +190,8 @@
 </template>
 
 <script>
-import { mapState, mapMutations } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
@@ -232,7 +233,7 @@ export default {
     this.getQuotationsInLoop();
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     clearInterval(this.intervalId);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   },
@@ -257,7 +258,7 @@ export default {
       // libre ("2TN", "3.4"), así que va tal cual, sin inventarle unidad.
       return quotation.weight;
     },
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setOrder',
       'setViewsMessages',
       'setLoader',
@@ -312,20 +313,20 @@ export default {
     async fetchCompanyRatings(companyIds) {
       const uniqueIds = [...new Set(companyIds)]
         .filter(id => this.companyRatings[id] === undefined);
-      const url = process.env.VUE_APP_API_URL;
+      const url = import.meta.env.VUE_APP_API_URL;
       const requests = uniqueIds.map(id => axios
         .get(`${url}reviews/company/${id}`)
         .then((response) => {
-          this.$set(this.companyRatings, id, {
+          this.companyRatings[id] = {
             average_rating: response.data.average_rating || 0,
             total_reviews: response.data.total_reviews || 0,
-          });
+          };
         })
         .catch(() => {
-          this.$set(this.companyRatings, id, {
+          this.companyRatings[id] = {
             average_rating: 0,
             total_reviews: 0,
-          });
+          };
         }));
       await Promise.all(requests);
     },
@@ -422,7 +423,7 @@ export default {
     },
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
       'customer',
       'orderDetailsOrigin',

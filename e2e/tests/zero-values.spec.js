@@ -39,7 +39,7 @@ test.describe('Step one with zeros', () => {
   }
 
   const isStepOneComplete = (page) => page.evaluate(
-    () => document.querySelector('#app').__vue__.$store.state.steps['step-one'].isComplete,
+    () => document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').steps['step-one'].isComplete,
   );
 
   test('a parking distance of 0 completes the step and is not flagged on submit', async ({ page }) => {

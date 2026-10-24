@@ -34,19 +34,21 @@ const TEST_DATA = {
 };
 
 /**
- * Injects address data into the Vuex store, bypassing Google Places API.
- * Vue 2 exposes the instance on the DOM element as __vue__.
+ * Injects address data into the store, bypassing Google Places API.
+ * Vue 3 exposes the app on the mount element as __vue_app__; the Pinia store
+ * is reached through $pinia._s (Pinia's internal registry, the same one its
+ * devtools read), by its id 'main' (frontend/src/store/index.js).
  */
 async function injectAddressToStore(page, direction, data) {
   const section = direction === 'from' ? 'orderDetailsOrigin' : 'orderDetailsDestination';
   const prefix = direction;
 
   await page.evaluate(({ section: s, prefix: p, addr }) => {
-    const store = document.querySelector('#app').__vue__.$store;
-    store.commit('setOrder', { section: s, field: `${p}_street`, value: addr.street });
-    store.commit('setOrder', { section: s, field: `${p}_zip_code`, value: addr.zipCode });
-    store.commit('setOrder', { section: s, field: `${p}_country`, value: addr.country });
-    store.commit('setOrder', { section: s, field: `${p}_map_url`, value: addr.mapUrl });
+    const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+    store.setOrder({ section: s, field: `${p}_street`, value: addr.street });
+    store.setOrder({ section: s, field: `${p}_zip_code`, value: addr.zipCode });
+    store.setOrder({ section: s, field: `${p}_country`, value: addr.country });
+    store.setOrder({ section: s, field: `${p}_map_url`, value: addr.mapUrl });
   }, { section, prefix, addr: data });
 }
 
@@ -68,7 +70,7 @@ async function dismissLeadPhoneModalIfPresent(page) {
 /**
  * Creates a real backend order via the same two API calls Step-one.vue and
  * Step-two.vue make (POST /order then PUT /order/<id>), then injects the
- * resulting state straight into the live Vuex store and navigates through
+ * resulting state straight into the live store and navigates through
  * the SPA's own router - skipping the address/belongings forms entirely for
  * tests that only care about what happens afterward.
  *
@@ -123,7 +125,7 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
         customer: { customer_id: null },
         // Este helper hace de Step-two, asi que manda su misma marca. Sin ella
         // el backend responde 200 pero no escribe nada, y el estado que estos
-        // tests creen sembrar solo existe en el store de Vuex de mas abajo:
+        // tests creen sembrar solo existe en el store de mas abajo:
         // la fila de la orden queda vacia.
         orderEditedByCustomer: true,
       },
@@ -136,20 +138,21 @@ async function createOrderViaApi(page, { upTo = 'step-two' } = {}) {
   await page.evaluate(({
     id, from, to, stepTwoData,
   }) => {
-    const { $store: store, $router: router } = document.querySelector('#app').__vue__;
-    store.commit('setOrder', { section: 'currentOrder', field: 'order_id', value: id });
+    const { $router: router } = document.querySelector('#app').__vue_app__.config.globalProperties;
+    const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+    store.setOrder({ section: 'currentOrder', field: 'order_id', value: id });
     Object.entries(from).forEach(([field, value]) => {
-      store.commit('setOrder', { section: 'orderDetailsOrigin', field, value });
+      store.setOrder({ section: 'orderDetailsOrigin', field, value });
     });
     Object.entries(to).forEach(([field, value]) => {
-      store.commit('setOrder', { section: 'orderDetailsDestination', field, value });
+      store.setOrder({ section: 'orderDetailsDestination', field, value });
     });
     if (stepTwoData) {
-      store.commit('setOrder', { section: 'currentOrder', field: 'appointment_date', value: stepTwoData.appointmentDate });
-      store.commit('setOrder', { section: 'currentOrder', field: 'comments', value: stepTwoData.items.join('\n') });
-      store.commit('setOrder', { section: 'currentOrder', field: 'approximate_budget', value: stepTwoData.approximateBudget });
-      store.commit('setOrder', { section: 'services', field: 'packaging', value: stepTwoData.packaging });
-      store.commit('setOrder', { section: 'services', field: 'cargo', value: stepTwoData.cargo });
+      store.setOrder({ section: 'currentOrder', field: 'appointment_date', value: stepTwoData.appointmentDate });
+      store.setOrder({ section: 'currentOrder', field: 'comments', value: stepTwoData.items.join('\n') });
+      store.setOrder({ section: 'currentOrder', field: 'approximate_budget', value: stepTwoData.approximateBudget });
+      store.setOrder({ section: 'services', field: 'packaging', value: stepTwoData.packaging });
+      store.setOrder({ section: 'services', field: 'cargo', value: stepTwoData.cargo });
     }
     router.push({ name: stepTwoData ? 'step-three' : 'step-two' });
   }, {
@@ -444,7 +447,7 @@ async function confirmReservationAsAdmin(request, orderId) {
 }
 
 function getOrderIdFromStore(page) {
-  return page.evaluate(() => document.querySelector('#app').__vue__.$store.state.currentOrder.order_id);
+  return page.evaluate(() => document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').currentOrder.order_id);
 }
 
 /**

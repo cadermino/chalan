@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export default {
   createOrder(orderData) {
-    return axios.post(`${process.env.VUE_APP_API_URL}order`, orderData, {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}order`, orderData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -18,12 +18,12 @@ export default {
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    return axios.put(`${process.env.VUE_APP_API_URL}order/${orderData.order.order_id}`, orderData, {
+    return axios.put(`${import.meta.env.VUE_APP_API_URL}order/${orderData.order.order_id}`, orderData, {
       headers,
     });
   },
   saveLeadPhone(payload) {
-    return axios.put(`${process.env.VUE_APP_API_URL}order/${payload.orderId}/lead-phone`,
+    return axios.put(`${import.meta.env.VUE_APP_API_URL}order/${payload.orderId}/lead-phone`,
       { lead_phone: payload.leadPhone },
       {
         headers: {
@@ -32,14 +32,14 @@ export default {
       });
   },
   getAddress(zipcode) {
-    return axios.get(`${process.env.VUE_APP_API_URL}address/zipcode/${zipcode}`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}address/zipcode/${zipcode}`, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
   },
   getQuotations(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}quotations/${payload.orderId}`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}quotations/${payload.orderId}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -47,7 +47,7 @@ export default {
     });
   },
   updateQuotation(payload) {
-    return axios.put(`${process.env.VUE_APP_API_URL}quotation/${payload.quotationId}`, payload, {
+    return axios.put(`${import.meta.env.VUE_APP_API_URL}quotation/${payload.quotationId}`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -60,7 +60,7 @@ export default {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       data,
-      url: `${process.env.VUE_APP_AUTH_API_URL}login`,
+      url: `${import.meta.env.VUE_APP_AUTH_API_URL}login`,
     };
     return axios(options);
   },
@@ -75,7 +75,7 @@ export default {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       data,
-      url: `${process.env.VUE_APP_AUTH_API_URL}login-facebook`,
+      url: `${import.meta.env.VUE_APP_AUTH_API_URL}login-facebook`,
     };
     return axios(options);
   },
@@ -84,7 +84,7 @@ export default {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       data: { token: payload.token },
-      url: `${process.env.VUE_APP_AUTH_API_URL}order-access`,
+      url: `${import.meta.env.VUE_APP_AUTH_API_URL}order-access`,
     });
   },
   orderContact(payload) {
@@ -97,7 +97,7 @@ export default {
         email: payload.email,
         mobile_phone: payload.mobilePhone,
       },
-      url: `${process.env.VUE_APP_AUTH_API_URL}order-contact`,
+      url: `${import.meta.env.VUE_APP_AUTH_API_URL}order-contact`,
     });
   },
   loginGoogle(payload) {
@@ -105,7 +105,7 @@ export default {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       data: { credential: payload.credential },
-      url: `${process.env.VUE_APP_AUTH_API_URL}login-google`,
+      url: `${import.meta.env.VUE_APP_AUTH_API_URL}login-google`,
     });
   },
   register(payload) {
@@ -119,7 +119,7 @@ export default {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       data,
-      url: `${process.env.VUE_APP_AUTH_API_URL}register`,
+      url: `${import.meta.env.VUE_APP_AUTH_API_URL}register`,
     };
     return axios(options);
   },
@@ -127,7 +127,7 @@ export default {
     // El número de operación solo viaja cuando el modal pide la reserva con
     // Yape; sin él el body queda vacío, como antes.
     const body = payload.operationNumber ? { operation_number: payload.operationNumber } : {};
-    return axios.put(`${process.env.VUE_APP_API_URL}order/checkout-cash/${payload.orderId}`,
+    return axios.put(`${import.meta.env.VUE_APP_API_URL}order/checkout-cash/${payload.orderId}`,
       body,
       {
         headers: {
@@ -137,7 +137,7 @@ export default {
       });
   },
   updateCustomerProfile(payload) {
-    return axios.patch(`${process.env.VUE_APP_API_URL}customer/${payload.customerId}`,
+    return axios.patch(`${import.meta.env.VUE_APP_API_URL}customer/${payload.customerId}`,
       {
         mobile_phone: payload.mobilePhone,
       },
@@ -149,7 +149,7 @@ export default {
       });
   },
   getPendingOrders(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}customer/${payload.customerId}/orders`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}customer/${payload.customerId}/orders`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -157,14 +157,14 @@ export default {
     });
   },
   getCarrierCompany(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}carrier-company/${payload.carrierId}`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}carrier-company/${payload.carrierId}`, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
   },
   getOrderDetails(token) {
-    return axios.get(`${process.env.VUE_APP_API_URL}orders/details`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}orders/details`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -172,7 +172,7 @@ export default {
     });
   },
   createQuotation(payload) {
-    return axios.post(`${process.env.VUE_APP_API_URL}quotations`, payload, {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}quotations`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -180,7 +180,7 @@ export default {
     });
   },
   declineOrder(token, orderId, payload) {
-    return axios.post(`${process.env.VUE_APP_API_URL}order/${orderId}/decline`, payload, {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}order/${orderId}/decline`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -188,14 +188,14 @@ export default {
     });
   },
   undoDeclineOrder(token, orderId) {
-    return axios.delete(`${process.env.VUE_APP_API_URL}order/${orderId}/decline`, {
+    return axios.delete(`${import.meta.env.VUE_APP_API_URL}order/${orderId}/decline`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
   },
   getOrdersByCarrierCompany(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}carrier-company/orders`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}carrier-company/orders`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -203,7 +203,7 @@ export default {
     });
   },
   getOrderByCustomer(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}order/${payload.orderId}`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}order/${payload.orderId}`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -211,7 +211,7 @@ export default {
     });
   },
   getLastPendingOrder(payload) {
-    return axios.get(`${process.env.VUE_APP_API_URL}customer/${payload.customerId}/last-pending-order`, {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}customer/${payload.customerId}/last-pending-order`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${payload.token}`,
@@ -222,7 +222,7 @@ export default {
     const formData = new FormData();
     formData.append('image', payload.image);
     formData.append('order_id', payload.orderId);
-    return axios.post(`${process.env.VUE_APP_API_URL}order/recognize-items`, formData, {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}order/recognize-items`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

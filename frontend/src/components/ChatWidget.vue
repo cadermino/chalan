@@ -172,8 +172,8 @@
 <script>
 // Agente de cotización (LLM).
 // Contrato: POST { tenantId, sessionId, message } -> { messages: [{ type, text }] }
-const AGENT_URL = process.env.VUE_APP_CHAT_API_URL || 'https://api.automajob.com/chat/message';
-const TENANT_ID = process.env.VUE_APP_CHAT_TENANT_ID || '';
+const AGENT_URL = import.meta.env.VUE_APP_CHAT_API_URL || 'https://api.automajob.com/chat/message';
+const TENANT_ID = import.meta.env.VUE_APP_CHAT_TENANT_ID || '';
 
 const SESSION_KEY = 'chalan_chat_session';
 const HISTORY_KEY = 'chalan_chat_history';

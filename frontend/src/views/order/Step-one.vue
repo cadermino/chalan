@@ -431,7 +431,8 @@
 </template>
 
 <script>
-import { mapState, mapActions, mapMutations } from 'vuex';
+import { mapState, mapActions } from 'pinia';
+import { useStore } from '@/store';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue';
@@ -476,7 +477,7 @@ export default {
     return {
       viewName: 'step-one',
       stepRequisites: {},
-      placesApiKey: process.env.VUE_APP_PLACES_API_KEY,
+      placesApiKey: import.meta.env.VUE_APP_PLACES_API_KEY,
       orderStatusId: {
         pending: 1,
         'in progress': 2,
@@ -510,10 +511,10 @@ export default {
     countryData: Object,
   },
   methods: {
-    ...mapActions([
+    ...mapActions(useStore, [
       'validateRequiredFields',
     ]),
-    ...mapMutations([
+    ...mapActions(useStore, [
       'setOrder',
       'setFormValidationMessages',
       'setViewsMessages',
@@ -738,7 +739,7 @@ export default {
     },
   },
   computed: {
-    ...mapState([
+    ...mapState(useStore, [
       'currentOrder',
       'orderDetailsOrigin',
       'orderDetailsDestination',
