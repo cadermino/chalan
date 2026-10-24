@@ -434,8 +434,17 @@
               <label for="quotation-note" class="leading-7 text-sm text-gray-600">
                 Comentarios para el cliente (opcional)
               </label>
+              <!-- Un transportista escribió "carro por viaje 290 soles, estibas
+                   S/ 80.00 c/u": el cliente ve un solo total, distinto de esos
+                   montos, y no entendía cuánto iba a pagar. -->
+              <p id="quotation-note-hint" class="text-xs text-gray-500 mb-1">
+                No pongas precios ni costos aquí: el cliente ve un solo precio total y otros
+                montos lo confunden. Si algo se cobra aparte (estibas, otro viaje), súmalo al
+                precio de arriba.
+              </p>
               <textarea
                 id="quotation-note"
+                aria-describedby="quotation-note-hint"
                 v-model="note"
                 rows="3"
                 :maxlength="noteMaxLength"
