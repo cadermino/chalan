@@ -14,5 +14,8 @@ certifi==2026.10.19
 urllib3==2.8.0
 twilio>=9.0.0
 sentry-sdk[flask]==2.68.0
+# Aquí y no en el Dockerfile, para que Dependabot lo vigile: instalado desde
+# el Dockerfile se quedó en 21.2.0, con request smuggling, sin que nadie avisara.
+gunicorn==22.0.0
 
 pytest==9.1.1
