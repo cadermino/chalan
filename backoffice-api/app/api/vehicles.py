@@ -1,10 +1,13 @@
+import os
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
+import requests
 from flask import request, jsonify, g
 
 from . import api
 from .decorators import login_required, admin_required, superadmin_required
+from .orders import _internal_headers
 from ..models import Vehicle, CarrierCompany, Quotation, ROLE_CARRIER, MOVING_SERVICE_CODE
 from .. import db
 
@@ -227,3 +230,50 @@ def delete_vehicle(company_id, vehicle_id):
     db.session.delete(vehicle)
     db.session.commit()
     return jsonify({'message': 'vehicle deleted'}), 200
+
+
+def _forward_photo(method, company_id, vehicle_id, suffix='', json=None):
+    """Reenvía al API principal, dueño de S3 (app/api/vehicle_photos.py). Su
+    respuesta va tal cual: sus mensajes (tipo, tamaño) los muestra el formulario."""
+    if not _can_access_company(company_id):
+        return jsonify({'message': 'forbidden'}), 403
+    if Vehicle.query.filter_by(id=vehicle_id, carrier_company_id=company_id).first() is None:
+        return jsonify({'message': 'vehicle not found'}), 404
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            method,
+            f'{internal_api}/api/v1/carrier-companies/{company_id}/vehicles/{vehicle_id}/photo{suffix}',
+            json=json,
+            headers=_internal_headers(),
+            timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the photos service'}), 502
+    if res.status_code == 204:
+        return '', 204
+    try:
+        body = res.json()
+    except ValueError:
+        body = {'message': 'photos service error'}
+    return jsonify(body), res.status_code
+
+
+# La foto que ve el cliente en la página del transportista. La sube un admin o
+# la propia empresa: va directo del navegador a S3 con la firma de presign.
+@api.route('/carrier-companies/<int:company_id>/vehicles/<int:vehicle_id>/photo/presign', methods=['POST'])
+@login_required
+def presign_vehicle_photo(company_id, vehicle_id):
+    return _forward_photo('POST', company_id, vehicle_id, '/presign', request.get_json(silent=True) or {})
+
+
+@api.route('/carrier-companies/<int:company_id>/vehicles/<int:vehicle_id>/photo', methods=['POST'])
+@login_required
+def register_vehicle_photo(company_id, vehicle_id):
+    return _forward_photo('POST', company_id, vehicle_id, json=request.get_json(silent=True) or {})
+
+
+@api.route('/carrier-companies/<int:company_id>/vehicles/<int:vehicle_id>/photo', methods=['DELETE'])
+@login_required
+def delete_vehicle_photo(company_id, vehicle_id):
+    return _forward_photo('DELETE', company_id, vehicle_id)

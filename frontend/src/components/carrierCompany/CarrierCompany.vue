@@ -3,11 +3,46 @@
     v-if="name">
     <div class="container px-5 mx-auto">
       <div class="lg:w-4/5 mx-auto flex flex-wrap">
-        <img
-          alt="vehicle-image"
-          class="lg:w-1/2 w-full lg:h-auto h-64 object-cover object-center rounded"
-          :src="vehicleImage"
-        />
+        <!-- Las fotos de sus vehículos. El cliente calcula el tamaño por lo que
+          ve, así que sin foto no se muestra un camión cualquiera. -->
+        <div class="lg:w-1/2 w-full">
+          <template v-if="currentVehicle">
+            <img
+              :src="currentVehicle.picture"
+              :alt="vehicleName(currentVehicle)"
+              class="w-full h-64 lg:h-96 object-contain bg-gray-100 rounded"
+            />
+            <p class="mt-2 text-sm text-gray-600">
+              {{ vehicleCaption(currentVehicle) }}
+            </p>
+            <div v-if="vehiclesWithPhoto.length > 1"
+              class="mt-3 flex gap-2 overflow-x-auto">
+              <button
+                v-for="(vehicle, index) in vehiclesWithPhoto"
+                :key="vehicle.id"
+                type="button"
+                @click="vehicleIndex = index"
+                :aria-label="`Ver ${vehicleName(vehicle)}`"
+                :class="['shrink-0 rounded border-2',
+                  index === vehicleIndex ? 'border-blue-500' : 'border-transparent']"
+              >
+                <img :src="vehicle.picture" alt=""
+                  class="h-16 w-24 object-cover rounded" />
+              </button>
+            </div>
+          </template>
+          <div v-else
+            class="w-full h-64 lg:h-96 flex flex-col items-center justify-center
+              gap-3 bg-gray-100 rounded text-gray-400">
+            <svg class="w-16 h-16" fill="none" stroke="currentColor"
+              stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 7h11v9H3zM14 10h4l3 3v3h-7M7.5 18.5a1.5 1.5 0 1 1-3 0
+                1.5 1.5 0 0 1 3 0zM18.5 18.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+            </svg>
+            <p class="text-sm">Todavía no hay foto de sus vehículos</p>
+          </div>
+        </div>
         <div class="lg:w-1/2 w-full lg:pl-10 lg:py-6 mt-6 lg:mt-0">
           <h2 class="text-sm title-font text-gray-500 tracking-widest">
             MUDANZAS
@@ -170,7 +205,6 @@ import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import axios from 'axios';
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
-import vehicleImage from '@/assets/peterbilt-337.png';
 import chalan from '../../api/chalan';
 
 export default {
@@ -180,12 +214,12 @@ export default {
   },
   data() {
     return {
-      vehicleImage,
       name: null,
       address: null,
       description: null,
       coverImage: null,
       vehicles: null,
+      vehicleIndex: 0,
       averageRating: 0,
       totalReviews: 0,
       reviews: [],
@@ -232,8 +266,30 @@ export default {
       const raw = this.$route.query.quotation_id;
       return raw ? Number(raw) : null;
     },
+    vehiclesWithPhoto() {
+      return (this.vehicles || []).filter((vehicle) => vehicle.picture);
+    },
+    currentVehicle() {
+      return this.vehiclesWithPhoto[this.vehicleIndex] || this.vehiclesWithPhoto[0] || null;
+    },
   },
   methods: {
+    vehicleName(vehicle) {
+      return [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Vehículo';
+    },
+    // "Hyundai HD65 · 2019 · Carga cerrada · 2,500 kg": lo mismo que dice la cotización.
+    vehicleCaption(vehicle) {
+      const cover = {
+        cerrada: 'Carga cerrada',
+        toldo: 'Con toldo de lona',
+        abierta: 'Carga abierta',
+      }[vehicle.cargo_cover];
+      const payload = vehicle.payload_tons
+        ? `${Math.round(vehicle.payload_tons * 1000).toLocaleString('es-PE')} kg`
+        : null;
+      return [this.vehicleName(vehicle), vehicle.manufacture_year, cover, payload]
+        .filter(Boolean).join(' · ');
+    },
     ...mapActions(useStore, [
       'setOrder',
       'setViewsMessages',

@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 from ...models import CarrierCompany as CarrierCompanyModel
-from ...models import VehicleSchema
 from flask import jsonify, current_app
 from ... import db
 import jwt
@@ -47,8 +46,20 @@ class CarrierCompany:
         return self.carrier_company.country_id
 
     def get_vehicles(self):
-        vehicle_schema = VehicleSchema(many=True)
-        return vehicle_schema.dump(self.carrier_company.vehicles)
+        """Los vehículos activos para la página pública del transportista, el
+        primero el más antiguo (el que muestra la cotización). Sin placas: esta
+        respuesta la ve cualquiera."""
+        vehicles = sorted((v for v in self.carrier_company.vehicles if v.active), key=lambda v: v.id)
+        return [{
+            'id': v.id,
+            'brand': v.brand,
+            'model': v.model,
+            'description': v.description,
+            'picture': v.picture,
+            'cargo_cover': v.cargo_cover,
+            'manufacture_year': v.manufacture_year,
+            'payload_tons': float(v.payload_tons) if v.payload_tons is not None else None,
+        } for v in vehicles]
 
     @staticmethod
     def get(data):

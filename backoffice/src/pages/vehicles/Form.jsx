@@ -4,6 +4,7 @@ import client from '../../api/client'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/Card'
+import VehiclePhoto from '../../components/VehiclePhoto'
 import { DocumentFile, VehicleCardUpload, deleteDocument, useCarrierDocuments } from '../../components/CarrierDocuments'
 
 // Datos de la tarjeta de identificación vehicular (SUNARP) y de la caja de
@@ -101,6 +102,8 @@ export default function VehicleForm() {
       loader_fee: Number(form.loader_fee),
       loaders_quantity: Number(form.loaders_quantity),
     }
+    // La foto se guarda al subirla (VehiclePhoto), no con este botón.
+    delete payload.picture
     try {
       if (isEdit) {
         await client.put(`/api/carrier-companies/${companyId}/vehicles/${vehicleId}`, payload)
@@ -260,9 +263,16 @@ export default function VehicleForm() {
             <input type="number" min="0.01" max="25" step="0.01" value={form.box_height_m} onChange={set('box_height_m')} className="input" placeholder="ej. 1.90" />
           </Field>
 
-          <Field label="URL foto">
-            <input value={form.picture} onChange={set('picture')} className="input" placeholder="https://..." />
-          </Field>
+          {isEdit && (
+            <Field label="Foto" span={2}>
+              <VehiclePhoto
+                companyId={companyId}
+                vehicleId={vehicleId}
+                picture={form.picture}
+                onChange={(picture) => setForm((f) => ({ ...f, picture }))}
+              />
+            </Field>
+          )}
           <Field label="Estado">
             <label className="flex items-center gap-2 cursor-pointer mt-1">
               <input type="checkbox" checked={form.active} onChange={set('active')} className="w-4 h-4 accent-teal-600" />
@@ -271,9 +281,9 @@ export default function VehicleForm() {
           </Field>
         </div>
 
-        {isAdmin && !isEdit && (
+        {!isEdit && (
           <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
-            La tarjeta de propiedad se sube después de guardar: entra a editar el vehículo desde la lista.
+            {isAdmin ? 'La foto y la tarjeta de propiedad se suben' : 'La foto se sube'} después de guardar: entra a editar el vehículo desde la lista.
           </p>
         )}
 
