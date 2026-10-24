@@ -719,7 +719,20 @@ export default {
 </script>
 <style>
   /* El azul de los botones de la app (bg-blue-500 de Tailwind 1). */
-  .theme-chalan .dp__theme_light {
+  .theme-chalan .dp--theme-light {
     --dp-primary-color: #4299e1;
+  }
+
+  /* La hora al costado del calendario y no debajo. Solo con espacio: los dos
+     juntos miden unos 400px, y en un celular de 360px no caben. */
+  @media (min-width: 640px) {
+    .theme-chalan .dp--instance-calendar {
+      display: flex;
+      align-items: center;
+    }
+
+    .theme-chalan .dp--tp-wrap {
+      padding: 0 12px 0 4px;
+    }
   }
 </style>
