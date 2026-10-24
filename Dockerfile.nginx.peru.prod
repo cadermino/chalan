@@ -1,4 +1,4 @@
-FROM node:18-alpine as vue-build-stage
+FROM node:24-alpine as vue-build-stage
 WORKDIR /chalan
 ENV NODE_OPTIONS=--openssl-legacy-provider
 # Dependencias antes del código, igual que en el stage del backoffice: así un
@@ -11,7 +11,7 @@ COPY /frontend .
 ENV VUE_APP_YAPE_QR_ENABLED=true
 RUN npm run build
 
-FROM node:20-alpine as backoffice-build-stage
+FROM node:24-alpine as backoffice-build-stage
 WORKDIR /app
 # Lockfile + `npm ci` por lo mismo que el Next.js (Dockerfile.peru.prod):
 # versiones fijas, no la última que permita el ^.

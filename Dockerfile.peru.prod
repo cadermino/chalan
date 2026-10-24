@@ -1,4 +1,4 @@
-FROM node:18-alpine as react-build-stage
+FROM node:24-alpine as react-build-stage
 WORKDIR /app
 # Con el lockfile y `npm ci`: instala exactamente las versiones probadas en
 # local. Con solo package.json y `npm install`, cada build tomaba la última
@@ -16,7 +16,7 @@ ENV NEXT_PUBLIC_CHAT_API_URL=$NEXT_PUBLIC_CHAT_API_URL
 ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
-FROM node:18-alpine
+FROM node:24-alpine
 WORKDIR /chalan/frontend-react-standalone
 COPY --from=react-build-stage /app/.next/standalone ./
 COPY --from=react-build-stage /app/.next/static ./.next/static

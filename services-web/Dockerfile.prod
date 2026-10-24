@@ -1,6 +1,6 @@
 # Mini app de servicios (embalaje) en su propio contenedor, para desplegarla sin
 # reconstruir el nginx principal (que arrastra el build del Vue y del backoffice).
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 COPY services-web/package.json services-web/package-lock.json ./
 RUN npm ci

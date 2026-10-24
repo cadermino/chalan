@@ -12,7 +12,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "googleapis": "^144.0.0",
     "gray-matter": "^4.0.3",
-    "next": "^15.5.22",
+    "next": "^15.5.28",
     "next-mdx-remote": "^6.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -25,7 +25,7 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.5.22",
+    "eslint-config-next": "^15.5.28",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.7.0"
