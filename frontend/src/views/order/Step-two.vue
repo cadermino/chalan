@@ -14,20 +14,44 @@
               text-gray-700
               text-sm
               font-bold mb-2" for="datetime">
-                  Elige la fecha y hora <span class="text-red-500">*</span>
+                  Elige la fecha <span class="text-red-500">*</span>
               </label>
-              <VueDatePicker v-model="selectedDate"
+              <VueDatePicker v-model="pickerDay"
                 :ui="{ input: datePickerClasses }"
                 :input-attrs="{ id: 'datetime', clearable: false }"
                 :locale="datePickerLocale"
                 :formats="{ input: DATE_INPUT_FORMAT }"
-                :time-config="{ is24: false, minutesIncrement: 5, timePickerInline: true }"
-                :action-row="{ selectBtnLabel: 'Aceptar', cancelBtnLabel: 'Salir', showNow: false }"
+                :time-config="{ enableTimePicker: false }"
+                auto-apply
                 class="theme-chalan"
-                :min-date="minDatetime"
-                :max-date="maxDatetime"
-                placeholder="17 de diciembre de 2026 18:00"
+                :min-date="minDay"
+                :max-date="maxDay"
+                placeholder="17 de diciembre de 2026"
               />
+              <p class="block
+              text-gray-700
+              text-sm
+              font-bold mt-4 mb-2">
+                  Elige la hora <span class="text-red-500">*</span>
+              </p>
+              <div id="appointment-hour" class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                <button v-for="slot in hourSlots"
+                  :key="slot.hour"
+                  type="button"
+                  :data-hour="slot.hour"
+                  :aria-pressed="slot.selected"
+                  :disabled="slot.disabled"
+                  @click="selectHour(slot.hour)"
+                  class="border-2 rounded-lg px-2 py-2 text-sm font-bold
+                    focus:outline-none focus:shadow-outline"
+                  :class="slot.disabled
+                    ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                    : slot.selected
+                      ? 'border-green-500 bg-green-100 text-gray-700'
+                      : 'border-gray-300 text-gray-700 hover:border-gray-400'">
+                  {{ slot.label }}
+                </button>
+              </div>
               <p v-if="formValidationMessages['appointment_date']"
                 class="text-red-500
                 text-xs
@@ -336,6 +360,7 @@ import { useStore } from '@/store';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import { es } from 'date-fns/locale';
+import moment from 'moment';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
@@ -345,8 +370,26 @@ import {
   CARGO_WEIGHT_OPTIONS, DEFAULT_LOAD_TYPE, INVENTORY_COPY, needsCargoWeight,
 } from '../../utils/loadTypes';
 
-// Lo que mostraba vue-datetime: "17 de diciembre de 2026, 6:00 p. m.".
-const DATE_INPUT_FORMAT = "d 'de' MMMM 'de' yyyy, h:mm aaa";
+const DATE_INPUT_FORMAT = "d 'de' MMMM 'de' yyyy";
+
+// Horas en punto, de 7 am a 6 pm: botones en vez de un selector de hora, que
+// pedía un clic más y un AM/PM. La hora exacta se coordina por WhatsApp.
+const FIRST_HOUR = 7;
+const LAST_HOUR = 18;
+
+function hourLabel(hour) {
+  if (hour === 12) return '12 m';
+  return hour < 12 ? `${hour} am` : `${hour - 12} pm`;
+}
+
+function isToday(day) {
+  return day === moment().format('YYYY-MM-DD');
+}
+
+// Hoy solo valen las horas que todavía no llegaron.
+function isHourAvailable(day, hour) {
+  return !isToday(day) || hour > new Date().getHours();
+}
 
 export default {
   name: 'step-two',
@@ -359,6 +402,10 @@ export default {
       manualItem: '',
       cargoWeightOptions: CARGO_WEIGHT_OPTIONS,
       DATE_INPUT_FORMAT,
+      // El día o la hora que eligió y todavía no se guardaron: la fecha de la
+      // orden se escribe recién cuando están los dos.
+      pickedDay: null,
+      pickedHour: null,
     };
   },
   components: {
@@ -512,6 +559,29 @@ export default {
       }
       this.addManualItem();
     },
+    selectHour(hour) {
+      this.pickedHour = hour;
+      this.saveAppointment();
+    },
+    // Con día y hora, la fecha va a la orden y lo elegido deja de ser local.
+    saveAppointment() {
+      if (!this.appointmentDay || this.appointmentHour === null) return;
+      const hour = String(this.appointmentHour).padStart(2, '0');
+      this.setOrder({
+        section: 'currentOrder',
+        field: 'appointment_date',
+        value: `${this.appointmentDay} ${hour}:00:00`,
+      });
+      this.pickedDay = null;
+      this.pickedHour = null;
+    },
+    // Sin fecha, el paso pide elegir la hora otra vez en vez de guardar una que
+    // ya no vale.
+    clearAppointment() {
+      if (this.currentOrder.appointment_date) {
+        this.setOrder({ section: 'currentOrder', field: 'appointment_date', value: null });
+      }
+    },
     syncComments() {
       const comments = this.recognizedItems.join('\n');
       this.setOrder({ section: 'currentOrder', field: 'comments', value: comments || null });
@@ -616,27 +686,59 @@ export default {
       'steps',
       'viewsMessages',
     ]),
-    selectedDate: {
+    storedAppointment() {
+      const date = this.currentOrder.appointment_date;
+      return date ? this.$moment(date) : null;
+    },
+    appointmentDay() {
+      if (this.pickedDay) return this.pickedDay;
+      return this.storedAppointment ? this.storedAppointment.format('YYYY-MM-DD') : null;
+    },
+    // Una orden de antes de los botones puede tener 10:35 o 20:00: se marca su
+    // hora si cae en el rango, y si no, ninguna hasta que elija una.
+    appointmentHour() {
+      if (this.pickedHour !== null) return this.pickedHour;
+      if (!this.storedAppointment) return null;
+      const hour = this.storedAppointment.hours();
+      return hour >= FIRST_HOUR && hour <= LAST_HOUR ? hour : null;
+    },
+    pickerDay: {
       get() {
-        const date = this.currentOrder.appointment_date;
-        return date ? this.$moment(date).toDate() : null;
+        return this.appointmentDay ? this.$moment(this.appointmentDay, 'YYYY-MM-DD').toDate() : null;
       },
       set(value) {
-        if (value) {
-          const appointmentDate = this.$moment(value)
-            .format('YYYY-MM-DD HH:mm:ss');
-          this.setOrder({
-            section: 'currentOrder',
-            field: 'appointment_date',
-            value: appointmentDate,
-          });
+        if (!value) return;
+        this.pickedDay = this.$moment(value).format('YYYY-MM-DD');
+        // Sin una hora que valga para el día nuevo, la fecha guardada se borra:
+        // si quedara, la orden seguiría con el día anterior aunque se vea el nuevo.
+        if (this.appointmentHour === null || !isHourAvailable(this.pickedDay, this.appointmentHour)) {
+          this.pickedHour = null;
+          this.clearAppointment();
+          return;
         }
+        this.saveAppointment();
       },
     },
-    minDatetime() {
-      return new Date(Date.now());
+    hourSlots() {
+      const slots = [];
+      for (let hour = FIRST_HOUR; hour <= LAST_HOUR; hour += 1) {
+        slots.push({
+          hour,
+          label: hourLabel(hour),
+          selected: hour === this.appointmentHour,
+          disabled: Boolean(this.appointmentDay) && !isHourAvailable(this.appointmentDay, hour),
+        });
+      }
+      return slots;
     },
-    maxDatetime() {
+    // Después de las 6 pm ya no queda hora para hoy: el calendario arranca mañana.
+    minDay() {
+      const day = new Date();
+      if (day.getHours() >= LAST_HOUR) day.setDate(day.getDate() + 1);
+      day.setHours(0, 0, 0, 0);
+      return day;
+    },
+    maxDay() {
       const date = new Date();
       return new Date(date.setDate(date.getDate() + 60));
     },
@@ -721,18 +823,5 @@ export default {
   /* El azul de los botones de la app (bg-blue-500 de Tailwind 1). */
   .theme-chalan .dp--theme-light {
     --dp-primary-color: #4299e1;
-  }
-
-  /* La hora al costado del calendario y no debajo. Solo con espacio: los dos
-     juntos miden unos 400px, y en un celular de 360px no caben. */
-  @media (min-width: 640px) {
-    .theme-chalan .dp--instance-calendar {
-      display: flex;
-      align-items: center;
-    }
-
-    .theme-chalan .dp--tp-wrap {
-      padding: 0 12px 0 4px;
-    }
   }
 </style>

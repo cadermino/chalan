@@ -100,7 +100,7 @@ Base URL defaults to `http://local.chalan.mx` (override with `BASE_URL` env var)
 - **Build output** goes to `dist/js`, `dist/css` and `dist/img`, the paths nginx serves with immutable cache. `index.html` sits at `frontend/` (not `public/`); its `<!-- if:production -->` / `<!-- if:analytics -->` blocks (Inspectlet, Clarity, GA) are resolved by the `indexHtml` plugin in `vite.config.mjs`.
 - **Local dev**: the dev server uses the base `/vue-dev/` (the local nginx sends it to `vuex`) and serves the app routes (`/order`, `/acceso`...) through a fallback, like services-web. After changing `frontend/package.json`, recreate the container with `up -d --build -V vuex` or the old anonymous `node_modules` volume stays mounted.
 - **e2e** reach the store through `document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main')` and call actions directly (`store.setOrder(...)`).
-- `moment` locales must be imported (`main.js` imports `moment/locale/es`); webpack used to bundle them all. The appointment picker is `@vuepic/vue-datepicker` (date-fns `es` locale).
+- `moment` locales must be imported (`main.js` imports `moment/locale/es`); webpack used to bundle them all. The appointment is a day from `@vuepic/vue-datepicker` (date only, date-fns `es` locale) plus an hour button, on the hour from 7 am to 6 pm (`Step-two.vue`); today's past hours are disabled, and after 6 pm the calendar starts tomorrow. `appointment_date` is still `YYYY-MM-DD HH:00:00`, written once both are chosen.
 
 ### Production Builds
 ```bash
