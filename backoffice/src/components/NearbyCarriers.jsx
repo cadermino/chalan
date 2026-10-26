@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import client from '../api/client'
+import CopyButton from './CopyButton'
 
 // Transportistas de Google Maps de la zona de una orden que no es de Lima.
 // Son contactos en frío (repo automajob-contacts), no empresas de la plataforma:
 // el botón abre WhatsApp con un mensaje listo para invitarlos a cotizar.
 // El mensaje no lleva datos del cliente, solo la zona, lo que se transporta y la fecha.
+// Al que contesta que sí se le pegan los datos de la mudanza (`moveText`).
 
 const TYPE_LABELS = { mudanza: 'Mudanza', vehiculos: 'Vehículos', carga: 'Carga' }
 const NEED_PHRASES = {
@@ -38,7 +40,7 @@ function whatsappUrl(carrier, { department, need, appointmentDate }) {
   return `https://wa.me/${digits(carrier.phone)}?text=${encodeURIComponent(text)}`
 }
 
-export default function NearbyCarriers({ orderId, appointmentDate }) {
+export default function NearbyCarriers({ orderId, appointmentDate, moveText }) {
   const [data, setData] = useState(null)
   const [need, setNeed] = useState(null)
   const [end, setEnd] = useState(null)
@@ -93,9 +95,13 @@ export default function NearbyCarriers({ orderId, appointmentDate }) {
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-0.5">
-          Contactos de Google Maps, no están en la plataforma. Invítalos a cotizar por WhatsApp.
-        </p>
+        <div className="mt-0.5 flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-400">
+            Contactos de Google Maps, no están en la plataforma. Invítalos a cotizar por WhatsApp y, al que acepte,
+            pégale los datos de la mudanza.
+          </p>
+          {moveText && <CopyButton text={moveText} label="Copiar datos de la mudanza" />}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">

@@ -229,6 +229,43 @@ const loadTypeLabel = (value) => LOAD_TYPE_LABELS[value || 'moving'] || value
 const CARGO_WEIGHT_LABELS = { 500: 'Hasta 500 kg', 1500: 'Hasta 1,5 t', 3000: 'Hasta 3 t', 10000: 'Hasta 10 t', 20000: 'Más de 10 t' }
 const cargoWeightLabel = (kg) => (kg ? CARGO_WEIGHT_LABELS[kg] || `${kg} kg` : null)
 
+const SERVICE_LABELS = {
+  packaging: 'Embalaje', unpacking: 'Desembalaje', assembly: 'Armado de muebles', disassembly: 'Desarmado de muebles',
+}
+
+// Una dirección en una línea: la calle (Google ya trae el distrito casi siempre),
+// el piso, el ascensor y dónde se estaciona.
+function addressLine(addr) {
+  const place = [addr.neighborhood, addr.city].filter((p) => p && !(addr.street || '').includes(p))
+  return [
+    [addr.street, ...place].filter(Boolean).join(', ') || '—',
+    addr.floor_number ? `piso ${addr.floor_number}` : null,
+    addr.has_elevator ? 'con ascensor' : 'sin ascensor',
+    parkingLabel(addr.approximate_distance_from_parking)
+      ? `estacionamiento: ${parkingLabel(addr.approximate_distance_from_parking).toLowerCase()}`
+      : null,
+  ].filter(Boolean).join(' · ')
+}
+
+// Los datos de la mudanza para pegar en el WhatsApp de un transportista de
+// Google Maps que aceptó cotizar. Sin el nombre ni el teléfono del cliente.
+function moveSummary(order) {
+  const date = order.appointment_date
+    ? new Date(order.appointment_date).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Lima' })
+    : 'por definir'
+  const services = (order.services || []).map((s) => (s.name === 'cargo'
+    ? `Cargadores${order.loaders_quantity ? ` (${order.loaders_quantity})` : ''}`
+    : SERVICE_LABELS[s.name] || s.description || s.name))
+  return [
+    `Fecha: ${date}`,
+    `Qué lleva: ${[loadTypeLabel(order.load_type), cargoWeightLabel(order.cargo_weight_kg)].filter(Boolean).join(' · ')}`,
+    order.origin && `Origen: ${addressLine(order.origin)}`,
+    order.destination && `Destino: ${addressLine(order.destination)}`,
+    `Cosas: ${order.comments?.trim() || 'sin detalle'}`,
+    `Servicios: ${services.length ? services.join(', ') : 'ninguno'}`,
+  ].filter(Boolean).join('\n')
+}
+
 function AddressCard({ title, addr }) {
   if (!addr) return null
   const hasFullDetails = 'country' in addr
@@ -503,10 +540,6 @@ export default function OrderDetail() {
           </>
         )}
 
-        {/* Addresses */}
-        <AddressCard title="Origen" addr={order.origin} />
-        <AddressCard title="Destino" addr={order.destination} />
-
         {/* Servicios contratados (cargadores, embalaje, etc.) */}
         {order.services && (() => {
           const hasCargo = order.services.some((s) => s.name === 'cargo')
@@ -538,6 +571,10 @@ export default function OrderDetail() {
             </div>
           )
         })()}
+
+        {/* Addresses */}
+        <AddressCard title="Origen" addr={order.origin} />
+        <AddressCard title="Destino" addr={order.destination} />
 
         {/* Fotos de la mudanza — solo admin */}
         {isAdmin && order.images && order.images.length > 0 && (
@@ -663,7 +700,7 @@ export default function OrderDetail() {
 
         {/* Transportistas de Google Maps de la zona, para órdenes de provincia que aún buscan cotizaciones */}
         {isAdmin && order.order_status_id === 1 && (
-          <NearbyCarriers orderId={orderId} appointmentDate={order.appointment_date} />
+          <NearbyCarriers orderId={orderId} appointmentDate={order.appointment_date} moveText={moveSummary(order)} />
         )}
 
         {/* Link de cotización por empresa — solo para admins */}
