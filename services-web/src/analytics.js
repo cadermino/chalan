@@ -46,6 +46,34 @@ export function initClarity() {
   document.head.appendChild(script)
 }
 
+// Inspectlet, la misma cuenta que la landing (Next) y el flujo de mudanza (Vue).
+// Solo en producción. Sin CompressionStream (Safari < 16.4) no puede enviar nada,
+// así que ni se carga.
+const INSPECTLET_WID = 1681414770
+
+export function initInspectlet() {
+  if (!import.meta.env.PROD || typeof window.CompressionStream === 'undefined') return
+  window.__insp = window.__insp || []
+  window.__insp.push(['wid', INSPECTLET_WID])
+  const script = document.createElement('script')
+  script.async = true
+  script.src = `https://cdn.inspectlet.com/inspectlet.js?wid=${INSPECTLET_WID}&r=${Math.floor(Date.now() / 3600000)}`
+  document.head.appendChild(script)
+}
+
+const lastTagged = {}
+
+// Etiqueta la grabación de Inspectlet y la de Clarity, como el Vue
+// (frontend/src/utils/sessionTags.js): con el número de servicio del backoffice
+// se filtra la visita del cliente. Solo ids, nunca el public_id (abre la
+// solicitud), el WhatsApp ni la dirección.
+export function tagSession(key, value) {
+  if (value === null || value === undefined || value === '' || lastTagged[key] === value) return
+  lastTagged[key] = value
+  if (window.__insp && typeof window.__insp.push === 'function') window.__insp.push(['tagSession', { [key]: value }])
+  if (typeof window.clarity === 'function') window.clarity('set', key, String(value))
+}
+
 // Los adblockers tumban gtag: envolverlo evita que un bloqueador rompa el formulario.
 export function track(event, params = {}) {
   if (typeof window.gtag !== 'function') return

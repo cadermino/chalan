@@ -99,6 +99,7 @@ def _serialize(service_request):
     """What the form needs to resume a draft. The public_id is the credential,
     so the whatsapp the customer typed can safely come back to them."""
     return {
+        'id': service_request.id,
         'public_id': service_request.public_id,
         'service_type': service_request.service_type.code,
         'status': service_request.status,
@@ -183,7 +184,9 @@ def create_service_request():
     _set_address(service_request, address)
     db.session.add(service_request)
     db.session.commit()
-    return jsonify({'public_id': service_request.public_id}), 201
+    # `id` is not a credential (the public_id is): the form tags the session
+    # recording with it, so an admin can find the visit from the backoffice.
+    return jsonify({'id': service_request.id, 'public_id': service_request.public_id}), 201
 
 
 @api.route('/service-requests/<public_id>', methods=['GET'])
@@ -252,6 +255,7 @@ def get_customer_quotations(public_id):
     rate = platform_fee_rate()
     quotations = sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
     return jsonify({
+        'id': service_request.id,
         'service_type': {'code': service_request.service_type.code, 'name': service_request.service_type.name},
         'status': service_request.status,
         'neighborhood': service_request.neighborhood,

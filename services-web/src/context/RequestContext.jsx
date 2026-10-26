@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { createRequest, getRequest, submitRequest, updateRequest } from '../api'
 import { SERVICE } from '../config'
 import storage from '../storage'
-import { track } from '../analytics'
+import { tagSession, track } from '../analytics'
 
 // Uno por servicio: un borrador de embalaje no se retoma en el armado.
 const STORAGE_KEY = `chalan_${SERVICE}_request`
@@ -86,6 +86,7 @@ export function RequestProvider({ children }) {
           storage.remove(STORAGE_KEY)
           return
         }
+        tagSession('service_request_id', data.id)
         setDraft(fromServer(data))
       })
       .catch((err) => {
@@ -104,8 +105,9 @@ export function RequestProvider({ children }) {
       patch({ address })
       return
     }
-    const { public_id: publicId } = await createRequest({ service_type: SERVICE, address: payload, website })
+    const { id, public_id: publicId } = await createRequest({ service_type: SERVICE, address: payload, website })
     storage.set(STORAGE_KEY, publicId)
+    tagSession('service_request_id', id)
     track('service_request_started', { service: SERVICE })
     patch({ publicId, address })
   }, [draft.publicId, patch])

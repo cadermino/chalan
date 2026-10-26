@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { chooseQuotation, getQuotations } from '../api'
-import { track } from '../analytics'
+import { tagSession, track } from '../analytics'
 import ConfirmModal, { money } from '../components/ConfirmModal'
 import { COPY, SERVICE, paintingFacts, whatsappUrl, workLabel } from '../config'
 import { formatDateLabel } from '../dates'
@@ -96,6 +96,7 @@ export default function Quotations() {
     setLoadError('')
     return getQuotations(publicId)
       .then((body) => {
+        tagSession('service_request_id', body.id)
         setData(body)
         return body
       })

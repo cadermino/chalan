@@ -288,6 +288,13 @@ def test_a_failed_patch_writes_nothing(client):
     assert [i.description for i in saved.items] == ['Sofá']
 
 
+def test_the_form_gets_the_request_id_to_tag_the_session(client):
+    public_id = create_draft(client)
+    request_id = ServiceRequest.query.filter_by(public_id=public_id).one().id
+
+    assert client.get(f'/api/v1/service-requests/{public_id}').get_json()['id'] == request_id
+
+
 def test_get_returns_the_draft_to_resume(client):
     public_id = create_draft(client)
     fill(client, public_id)
