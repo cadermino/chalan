@@ -186,6 +186,50 @@ def create_service_request():
     return jsonify(res.json()), res.status_code
 
 
+def _forward_edit(method, service_request_id, suffix, json=None):
+    """Editar un servicio enviado y sus fotos: las reglas (las del formulario, y
+    que no haya cotización elegida) y S3 viven en el API principal; acá solo se
+    controla el rol. Los 400, 404 y 409 se devuelven tal cual."""
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            method,
+            f'{internal_api}/api/v1/service-requests/{service_request_id}{suffix}',
+            json=json, headers=_internal_headers(), timeout=30,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the service request service'}), 502
+    if res.status_code == 204:
+        return '', 204
+    if res.status_code not in (200, 201, 400, 404, 409):
+        return jsonify({'message': 'failed to update the service request'}), 502
+    return jsonify(res.json()), res.status_code
+
+
+@api.route('/service-requests/<int:service_request_id>', methods=['PUT'])
+@admin_required
+def edit_service_request(service_request_id):
+    return _forward_edit('PUT', service_request_id, '/manual', request.get_json(silent=True) or {})
+
+
+@api.route('/service-requests/<int:service_request_id>/media/presign', methods=['POST'])
+@admin_required
+def presign_service_request_media(service_request_id):
+    return _forward_edit('POST', service_request_id, '/media/presign', request.get_json(silent=True) or {})
+
+
+@api.route('/service-requests/<int:service_request_id>/media', methods=['POST'])
+@admin_required
+def register_service_request_media(service_request_id):
+    return _forward_edit('POST', service_request_id, '/media', request.get_json(silent=True) or {})
+
+
+@api.route('/service-requests/<int:service_request_id>/media/<int:media_id>', methods=['DELETE'])
+@admin_required
+def delete_service_request_media(service_request_id, media_id):
+    return _forward_edit('DELETE', service_request_id, f'/media/{media_id}')
+
+
 def _deposits(request_ids):
     """Cómo va la reserva que el cliente le yapea a Chalán, por solicitud, como la
     columna Adelanto de las órdenes. Sin entrada si no hay cotización elegida;
@@ -348,8 +392,8 @@ def update_service_request(service_request_id):
     if service_request is None:
         return jsonify({'message': 'service request not found'}), 404
     data = request.get_json(silent=True) or {}
-    # Solo el estado: el resto de los datos los escribe el cliente, y no se
-    # editan a sus espaldas. Cancelar lo puede cualquier admin; poner otro
+    # Solo el estado: los datos se editan con PUT (edit_service_request), que
+    # pasa por las reglas del API principal. Cancelar lo puede cualquier admin; poner otro
     # estado a mano, solo un superadmin, como editar el estado de una orden.
     # El API principal lo vuelve a calcular (sync_status) la próxima vez que
     # cambie la elección o un pago.

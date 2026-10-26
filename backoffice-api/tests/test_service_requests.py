@@ -461,6 +461,71 @@ def test_manual_creation_requires_an_admin_role(client):
     assert client.post('/api/service-requests', json={}, headers=headers).status_code == 403
 
 
+# --- editing through the main API ------------------------------------------------------
+
+@pytest.fixture
+def forwarded(monkeypatch):
+    seen = {}
+
+    def fake_request(method, url, json, headers, timeout):
+        seen.update(method=method, url=url, json=json, headers=headers)
+        if method == 'DELETE':
+            return FakeResponse(204, None)
+        return FakeResponse(200, {'public_id': 'x' * 32})
+    monkeypatch.setattr('app.api.service_requests.requests.request', fake_request)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    return seen
+
+
+def test_an_edit_is_forwarded_to_the_main_api_with_an_internal_token(client, admin, forwarded):
+    res = client.put('/api/service-requests/5', json={'whatsapp': '987654321'}, headers=admin)
+
+    assert res.status_code == 200
+    assert (forwarded['method'], forwarded['url']) == (
+        'PUT', 'http://flask-api:8001/api/v1/service-requests/5/manual')
+    assert forwarded['json'] == {'whatsapp': '987654321'}
+    token = forwarded['headers']['Authorization'].split()[1]
+    assert jwt.decode(token, SECRET, algorithms=['HS256'])['scope'] == 'internal'
+
+
+def test_photos_are_forwarded_too(client, admin, forwarded):
+    assert client.post('/api/service-requests/5/media/presign', json={'content_type': 'image/jpeg'},
+                       headers=admin).status_code == 200
+    assert forwarded['url'].endswith('/service-requests/5/media/presign')
+    assert client.post('/api/service-requests/5/media', json={'storage_key': 'k'}, headers=admin).status_code == 200
+    assert forwarded['url'].endswith('/service-requests/5/media')
+    assert client.delete('/api/service-requests/5/media/9', headers=admin).status_code == 204
+    assert forwarded['method'] == 'DELETE'
+    assert forwarded['url'].endswith('/service-requests/5/media/9')
+
+
+def test_an_edit_passes_the_main_api_answer_through(client, admin, monkeypatch):
+    monkeypatch.setattr('app.api.service_requests.requests.request',
+                        lambda *a, **k: FakeResponse(409, {'message': 'a quotation was already chosen'}))
+
+    res = client.put('/api/service-requests/5', json={}, headers=admin)
+
+    assert res.status_code == 409
+    assert res.get_json()['message'] == 'a quotation was already chosen'
+
+
+def test_an_edit_is_502_when_the_main_api_is_down(client, admin, monkeypatch):
+    def boom(*args, **kwargs):
+        raise requests_lib.ConnectionError('down')
+    monkeypatch.setattr('app.api.service_requests.requests.request', boom)
+
+    assert client.put('/api/service-requests/5', json={}, headers=admin).status_code == 502
+
+
+def test_editing_requires_an_admin_role(client, forwarded):
+    carrier = make_carrier()
+    headers = make_user('carrier_company', carrier_company_id=carrier.id)
+
+    assert client.put('/api/service-requests/5', json={}, headers=headers).status_code == 403
+    assert client.post('/api/service-requests/5/media/presign', json={}, headers=headers).status_code == 403
+    assert forwarded == {}
+
+
 # --- carrier quotations ----------------------------------------------------------------
 
 def make_quotation(service_request, carrier, amount, note=None, status='active', total=None, rate=None):

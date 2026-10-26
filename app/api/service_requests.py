@@ -425,37 +425,23 @@ def update_service_request(public_id):
     return jsonify(_serialize(service_request)), 200
 
 
-@api.route('/service-requests/<public_id>/media/presign', methods=['POST'])
-def presign_service_request_media(public_id):
-    service_request = _find_request(public_id)
-    if service_request is None:
-        return _message('service request not found', 404)
-    if not is_draft(service_request):
-        return _message('service request is no longer a draft', 409)
-
+def _presign_media(service_request):
     data = request.get_json(silent=True) or {}
     content_type = data.get('content_type')
     media_type, extension = validate_media_upload(content_type, data.get('size_bytes'))
     if len(service_request.media) >= MAX_MEDIA:
         raise InvalidRequest(f'at most {MAX_MEDIA} files are allowed')
 
-    storage_key = f'service-requests/{public_id}/{uuid.uuid4().hex}.{extension}'
+    storage_key = f'service-requests/{service_request.public_id}/{uuid.uuid4().hex}.{extension}'
     upload = get_storage().presigned_post(
         storage_key, content_type, MEDIA_MAX_BYTES[media_type])
     return jsonify({'upload': upload, 'storage_key': storage_key}), 200
 
 
-@api.route('/service-requests/<public_id>/media', methods=['POST'])
-def register_service_request_media(public_id):
-    service_request = _find_request(public_id)
-    if service_request is None:
-        return _message('service request not found', 404)
-    if not is_draft(service_request):
-        return _message('service request is no longer a draft', 409)
-
+def _register_media(service_request):
     data = request.get_json(silent=True) or {}
     storage_key = data.get('storage_key')
-    prefix = f'service-requests/{public_id}/'
+    prefix = f'service-requests/{service_request.public_id}/'
     # The key must be one this request was given: another request's file, or a
     # path that climbs out of the prefix, is not registrable here.
     if (not isinstance(storage_key, str) or not storage_key.startswith(prefix)
@@ -498,27 +484,66 @@ def register_service_request_media(public_id):
     return jsonify(_serialize_media(media)), 201
 
 
-@api.route('/service-requests/<public_id>/media/<int:media_id>', methods=['DELETE'])
-def delete_service_request_media(public_id, media_id):
-    service_request = _find_request(public_id)
-    if service_request is None:
-        return _message('service request not found', 404)
-    if not is_draft(service_request):
-        return _message('service request is no longer a draft', 409)
-
+def _delete_media(service_request, media_id, check_rules=False):
+    """`check_rules` for a sent request: it must still meet what it was sent
+    with (a painting explained only in its video cannot lose that video)."""
     media = ServiceRequestMedia.query.filter_by(
         id=media_id, service_request_id=service_request.id).first()
     if media is None:
         return _message('media not found', 404)
 
+    # Out of the list (delete-orphan removes the row on commit), so the check
+    # sees the request as it will be.
+    service_request.media.remove(media)
+    if check_rules:
+        try:
+            _check_submit(service_request, service_request.service_type)
+        except InvalidRequest:
+            db.session.rollback()
+            raise
     try:
         get_storage().delete(media.storage_key)
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f'Service request media delete error: {e}')
         return _message('Error deleting file', 500)
-    db.session.delete(media)
     db.session.commit()
     return '', 204
+
+
+def _find_draft(public_id):
+    """The customer's request, while it is still theirs to change. Returns
+    (request, error response)."""
+    service_request = _find_request(public_id)
+    if service_request is None:
+        return None, _message('service request not found', 404)
+    if not is_draft(service_request):
+        return None, _message('service request is no longer a draft', 409)
+    return service_request, None
+
+
+@api.route('/service-requests/<public_id>/media/presign', methods=['POST'])
+def presign_service_request_media(public_id):
+    service_request, error = _find_draft(public_id)
+    if error:
+        return error
+    return _presign_media(service_request)
+
+
+@api.route('/service-requests/<public_id>/media', methods=['POST'])
+def register_service_request_media(public_id):
+    service_request, error = _find_draft(public_id)
+    if error:
+        return error
+    return _register_media(service_request)
+
+
+@api.route('/service-requests/<public_id>/media/<int:media_id>', methods=['DELETE'])
+def delete_service_request_media(public_id, media_id):
+    service_request, error = _find_draft(public_id)
+    if error:
+        return error
+    return _delete_media(service_request, media_id)
 
 
 @api.route('/service-requests/<public_id>/submit', methods=['POST'])
@@ -573,6 +598,26 @@ def _check_manual_address(address, name):
         raise InvalidRequest(f'{name}.map_url must be a link')
 
 
+def _manual_fields(data, service_type):
+    """What an admin types, creating or editing: the form rules, plus the district
+    and map link checked by hand. Returns (address, items, details, whatsapp)."""
+    address = validate_address(data.get('address'))
+    _check_manual_address(address, 'address')
+    if needs_items(service_type):
+        items = _validate_items(data.get('items'), service_type)
+        if not items:
+            raise InvalidRequest('at least one item is required')
+    else:
+        items = _validate_items(data.get('items') or [], service_type)
+    details = SERVICE_TYPES[service_type.code]['validate_details'](data.get('details'))
+    if details.get('destination'):
+        _check_manual_address(details['destination'], 'details.destination')
+    whatsapp = normalize_phone(data.get('whatsapp'))
+    if whatsapp is None:
+        raise InvalidRequest('a valid whatsapp number is required')
+    return address, items, details, whatsapp
+
+
 @api.route('/service-requests/manual', methods=['POST'])
 def create_manual_service_request():
     """Una solicitud que un admin anota a mano: el cliente la describió por
@@ -591,21 +636,8 @@ def create_manual_service_request():
     service_type = _get_service_type(data.get('service_type'))
     if service_type is None:
         raise InvalidRequest('unknown service_type')
-    address = validate_address(data.get('address'))
-    _check_manual_address(address, 'address')
-    if needs_items(service_type):
-        items = _validate_items(data.get('items'), service_type)
-        if not items:
-            raise InvalidRequest('at least one item is required')
-    else:
-        items = _validate_items(data.get('items') or [], service_type)
-    details = SERVICE_TYPES[service_type.code]['validate_details'](data.get('details'))
-    if details.get('destination'):
-        _check_manual_address(details['destination'], 'details.destination')
+    address, items, details, whatsapp = _manual_fields(data, service_type)
     preferred_date = validate_preferred_date(data.get('preferred_date'), allow_today=True)
-    whatsapp = normalize_phone(data.get('whatsapp'))
-    if whatsapp is None:
-        raise InvalidRequest('a valid whatsapp number is required')
 
     country_id = os.getenv('COUNTRY_ID')
     service_request = ServiceRequest(
@@ -635,6 +667,93 @@ def create_manual_service_request():
             current_app.logger.error(f'Service request notification error: {e}')
     return jsonify({'id': service_request.id, 'public_id': service_request.public_id,
                     'notified_carrier_ids': notified}), 201
+
+
+def _find_editable(service_request_id):
+    """The request an admin may still edit, locked so that a quotation chosen at
+    the same time cannot slip in between. Returns (request, error response).
+
+    A draft is the customer's, still filling it in. Once a quotation is chosen,
+    the carrier priced what it read: changing the job under it is not an edit."""
+    service_request = ServiceRequest.query.filter_by(id=service_request_id).with_for_update().first()
+    if service_request is None:
+        return None, _message('service request not found', 404)
+    if is_draft(service_request):
+        return None, _message('the customer is still filling in this request', 409)
+    if any(q.status == 'selected' for q in service_request.quotations):
+        return None, _message('a quotation was already chosen', 409)
+    return service_request, None
+
+
+@api.route('/service-requests/<int:service_request_id>/manual', methods=['PUT'])
+def edit_manual_service_request(service_request_id):
+    """An admin corrects a sent request (what the customer said over WhatsApp, a
+    wrong address). Internal: the backoffice-api calls it after checking the role.
+
+    The whole request is replaced, with the rules of the manual creation; the
+    service type stays. Nobody is told: the carriers that already quoted get the
+    link again from the detail when the change matters.
+    """
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    service_request, error = _find_editable(service_request_id)
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+
+    address, items, details, whatsapp = _manual_fields(data, service_request.service_type)
+    # The saved day is kept as is even if it already passed: fixing the address
+    # of last week's request should not ask for a new date.
+    saved_date = service_request.preferred_date.isoformat() if service_request.preferred_date else None
+    if data.get('preferred_date') == saved_date and saved_date is not None:
+        preferred_date = service_request.preferred_date
+    else:
+        preferred_date = validate_preferred_date(data.get('preferred_date'), allow_today=True)
+
+    _set_address(service_request, address)
+    _set_items(service_request, items)
+    service_request.details = details
+    service_request.preferred_date = preferred_date
+    service_request.whatsapp = whatsapp
+    try:
+        _check_submit(service_request, service_request.service_type)
+    except InvalidRequest:
+        db.session.rollback()
+        raise
+    db.session.commit()
+    return jsonify(_serialize(service_request)), 200
+
+
+@api.route('/service-requests/<int:service_request_id>/media/presign', methods=['POST'])
+def admin_presign_service_request_media(service_request_id):
+    """Photos and videos an admin adds to a sent request (the customer sent them
+    over WhatsApp). Internal, with the same rules as the customer form."""
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    service_request, error = _find_editable(service_request_id)
+    if error:
+        return error
+    return _presign_media(service_request)
+
+
+@api.route('/service-requests/<int:service_request_id>/media', methods=['POST'])
+def admin_register_service_request_media(service_request_id):
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    service_request, error = _find_editable(service_request_id)
+    if error:
+        return error
+    return _register_media(service_request)
+
+
+@api.route('/service-requests/<int:service_request_id>/media/<int:media_id>', methods=['DELETE'])
+def admin_delete_service_request_media(service_request_id, media_id):
+    if not is_internal_request():
+        return _message('forbidden', 403)
+    service_request, error = _find_editable(service_request_id)
+    if error:
+        return error
+    return _delete_media(service_request, media_id, check_rules=True)
 
 
 @api.route('/service-requests/<int:service_request_id>/notify-carriers', methods=['POST'])

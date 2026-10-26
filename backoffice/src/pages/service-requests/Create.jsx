@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import client from '../../api/client'
 import { PAINTING_LABELS } from '../../components/ServiceRequestView'
+import ServiceRequestMediaField from '../../components/ServiceRequestMediaField'
+import { uploadPendingMedia } from '../../lib/serviceRequestMedia'
 
 const MAX_ADVANCE_DAYS = 90
 
@@ -28,8 +30,11 @@ const EMPTY_DESTINATION = { street: '', interior: '', neighborhood: '', city: 'L
 
 // El API principal responde en inglés, pensado para quien programa; acá se avisa
 // qué falta con las palabras del formulario.
-function friendlyError(message) {
-  if (!message) return 'Error al crear el servicio'
+function friendlyError(message, isEdit) {
+  if (!message) return isEdit ? 'No se pudo guardar el servicio' : 'Error al crear el servicio'
+  if (message.includes('quotation was already chosen')) return 'Ya hay una cotización elegida: el servicio ya no se puede editar.'
+  if (message.includes('still filling')) return 'El cliente todavía está llenando este servicio: no se puede editar.'
+  if (message.includes('describe what to paint')) return 'Cuenta qué hay que pintar, o deja un video que lo explique.'
   if (message.includes('destination.map_url')) return 'Falta el link de Google Maps del destino (tiene que empezar con https://).'
   if (message.includes('destination.neighborhood')) return 'Falta el distrito del destino.'
   if (message.includes('destination')) return 'Falta la dirección de destino: algún mueble se desarma y se arma en otro lado.'
@@ -53,8 +58,43 @@ function Field({ label, hint, children, span = 1 }) {
   )
 }
 
+// Lo guardado, en la forma del formulario. El WhatsApp vuelve sin el +51.
+function formFromRequest(request) {
+  const destination = request.details?.destination
+  return {
+    form: {
+      whatsapp: (request.whatsapp || '').replace(/^\+51(?=\d{9}$)/, ''),
+      street: request.street || '', interior: request.interior || '', neighborhood: request.neighborhood || '',
+      city: request.city || '', mapUrl: request.map_url || '', preferredDate: request.preferred_date || '',
+      notifyCarriers: false,
+    },
+    items: request.items.length
+      ? request.items.map((i) => ({
+        ...newItem(), description: i.description, quantity: i.quantity, work: i.work || '', pack: Boolean(i.pack),
+        materials: i.materials.map((m) => m.code),
+      }))
+      : [newItem()],
+    destination: destination
+      ? {
+        street: destination.street || '', interior: destination.interior || '', neighborhood: destination.neighborhood || '',
+        city: destination.city || '', mapUrl: destination.map_url || '',
+      }
+      : EMPTY_DESTINATION,
+    painting: {
+      description: request.details?.description || '', area: request.details?.area || '', size: request.details?.size || '',
+      area_m2: request.details?.area_m2 ? String(request.details.area_m2) : '', paint_by: request.details?.paint_by || '',
+      wall_issues: request.details?.wall_issues || [],
+    },
+  }
+}
+
+// Crear (/service-requests/new) y editar (/service-requests/:id/edit) un servicio.
+// Editar reemplaza todo con las mismas reglas que crear; el servicio no cambia
+// de tipo y no se le avisa a nadie.
 export default function ServiceRequestCreate() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const isEdit = Boolean(id)
   const today = limaToday()
 
   const [serviceTypes, setServiceTypes] = useState([])
@@ -70,8 +110,31 @@ export default function ServiceRequestCreate() {
   const [painting, setPainting] = useState({ description: '', area: '', size: '', area_m2: '', paint_by: '', wall_issues: [] })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [savedMedia, setSavedMedia] = useState([])
+  const [pendingMedia, setPendingMedia] = useState([])
+  // Editar: lo que vino del servidor (fecha guardada, tipo, si se puede editar).
+  const [original, setOriginal] = useState(null)
+  const [loadError, setLoadError] = useState(null)
 
   useEffect(() => {
+    if (!isEdit) return
+    client.get(`/api/service-requests/${id}`)
+      .then(({ data }) => {
+        const request = data.service_request
+        const loaded = formFromRequest(request)
+        setOriginal(request)
+        setServiceCode(request.service_type?.code || '')
+        setForm(loaded.form)
+        setItems(loaded.items)
+        setDestination(loaded.destination)
+        setPainting(loaded.painting)
+        setSavedMedia(request.media)
+      })
+      .catch((err) => setLoadError(err.response?.status === 404 ? 'El servicio no existe.' : 'No se pudo cargar.'))
+  }, [id, isEdit])
+
+  useEffect(() => {
+    if (isEdit) return
     client.get('/api/service-types').then(({ data }) => {
       // Solo los que se piden con este formulario: la mudanza está en el catálogo
       // como servicio de las empresas, pero se pide por el flujo de órdenes.
@@ -79,7 +142,7 @@ export default function ServiceRequestCreate() {
       setServiceTypes(requestable)
       if (requestable.length === 1) setServiceCode(requestable[0].code)
     })
-  }, [])
+  }, [isEdit])
 
   // Los materiales salen del catálogo: agregar uno nuevo no pide tocar este formulario.
   useEffect(() => {
@@ -105,83 +168,161 @@ export default function ServiceRequestCreate() {
     materials: item.materials.includes(code) ? item.materials.filter((c) => c !== code) : [...item.materials, code],
   })
 
+  const deleteSavedMedia = async (mediaId) => {
+    try {
+      await client.delete(`/api/service-requests/${id}/media/${mediaId}`)
+      setSavedMedia((list) => list.filter((m) => m.id !== mediaId))
+    } catch (err) {
+      toast.error(friendlyError(err.response?.data?.message, true))
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
     const filled = items.filter((i) => i.description.trim())
     if (!serviceCode) return setError('Elige el servicio.')
-    // Acá no se suben videos: en pintura la descripción es obligatoria.
-    if (isPainting && !painting.description.trim()) return setError('Cuenta qué hay que pintar.')
+    // En pintura la descripción es obligatoria salvo que ya haya un video guardado
+    // que lo explique: los de la cola se suben recién después de guardar.
+    if (isPainting && !painting.description.trim() && !savedMedia.some((m) => m.media_type === 'video')) {
+      return setError('Cuenta qué hay que pintar.')
+    }
     if (!isPainting && filled.length === 0) return setError('Agrega al menos una cosa a la lista, con su descripción.')
     if (isAssembly && filled.some((i) => !i.work)) return setError('Elige qué hacer con cada mueble.')
 
     setSaving(true)
+    const body = {
+      whatsapp: form.whatsapp,
+      preferred_date: form.preferredDate,
+      address: {
+        street: form.street,
+        interior: form.interior,
+        neighborhood: form.neighborhood,
+        city: form.city,
+        state: original?.state || null,
+        country: original?.country || 'PE',
+        map_url: form.mapUrl,
+      },
+      ...(!isPainting && {
+        items: filled.map(({ description, quantity, materials: codes, work, pack }) => (isAssembly
+          ? { description, quantity, materials: pack ? codes : [], work, pack }
+          : { description, quantity, materials: codes })),
+      }),
+      ...(isPainting && {
+        details: {
+          description: painting.description,
+          area: painting.area || null,
+          size: painting.size || null,
+          paint_by: painting.paint_by || null,
+          area_m2: Number(painting.area_m2) > 0 ? Number(painting.area_m2) : null,
+          wall_issues: painting.wall_issues,
+        },
+      }),
+      ...(needsDestination && {
+        details: {
+          destination: {
+            street: destination.street,
+            interior: destination.interior,
+            neighborhood: destination.neighborhood,
+            city: destination.city,
+            country: 'PE',
+            map_url: destination.mapUrl,
+          },
+        },
+      }),
+    }
+
+    if (isEdit) {
+      try {
+        await client.put(`/api/service-requests/${id}`, body)
+      } catch (err) {
+        setError(friendlyError(err.response?.data?.message, true))
+        setSaving(false)
+        return
+      }
+      const { failed } = await uploadPendingMedia(id, pendingMedia, setPendingMedia)
+      if (failed.length) {
+        // Los datos ya se guardaron: quedan en pantalla los archivos con su error.
+        setError(`Se guardó, pero ${failed.length} archivo(s) no se subieron. Vuelve a guardar para reintentar.`)
+        client.get(`/api/service-requests/${id}`).then(({ data }) => setSavedMedia(data.service_request.media)).catch(() => {})
+        setSaving(false)
+        return
+      }
+      toast.success('Servicio guardado. No se le avisó a nadie.')
+      navigate(`/service-requests/${id}`)
+      return
+    }
+
+    // Con fotos en cola se avisa después de subirlas, para que el transportista
+    // las vea al abrir el link.
+    const notifyLater = form.notifyCarriers && pendingMedia.length > 0
+    let created
     try {
       const { data } = await client.post('/api/service-requests', {
+        ...body,
         service_type: serviceCode,
-        whatsapp: form.whatsapp,
-        preferred_date: form.preferredDate,
-        address: {
-          street: form.street,
-          interior: form.interior,
-          neighborhood: form.neighborhood,
-          city: form.city,
-          country: 'PE',
-          map_url: form.mapUrl,
-        },
-        ...(!isPainting && {
-          items: filled.map(({ description, quantity, materials: codes, work, pack }) => (isAssembly
-            ? { description, quantity, materials: pack ? codes : [], work, pack }
-            : { description, quantity, materials: codes })),
-        }),
-        ...(isPainting && {
-          details: {
-            description: painting.description,
-            area: painting.area || null,
-            size: painting.size || null,
-            paint_by: painting.paint_by || null,
-            area_m2: Number(painting.area_m2) > 0 ? Number(painting.area_m2) : null,
-            wall_issues: painting.wall_issues,
-          },
-        }),
-        ...(needsDestination && {
-          details: {
-            destination: {
-              street: destination.street,
-              interior: destination.interior,
-              neighborhood: destination.neighborhood,
-              city: destination.city,
-              country: 'PE',
-              map_url: destination.mapUrl,
-            },
-          },
-        }),
-        notify_carriers: form.notifyCarriers,
+        notify_carriers: form.notifyCarriers && !notifyLater,
       })
-      toast.success(data.notified_carrier_ids.length
-        ? `Servicio creado. Avisamos a ${data.notified_carrier_ids.length} transportista(s)`
-        : 'Servicio creado')
-      navigate(`/service-requests/${data.id}`)
+      created = data
     } catch (err) {
       setError(friendlyError(err.response?.data?.message))
       setSaving(false)
+      return
     }
+    const { failed } = await uploadPendingMedia(created.id, pendingMedia, setPendingMedia)
+    let notified = created.notified_carrier_ids
+    if (notifyLater) {
+      try {
+        const { data } = await client.post(`/api/service-requests/${created.id}/notify-carriers`)
+        notified = data.notified_carrier_ids
+      } catch {
+        toast.error('No se pudo avisar a los transportistas: usa "Reenviar a transportistas" en el detalle')
+      }
+    }
+    if (failed.length) toast.error(`${failed.length} archivo(s) no se subieron: agrégalos desde Editar`)
+    toast.success(notified.length
+      ? `Servicio creado. Avisamos a ${notified.length} transportista(s)`
+      : 'Servicio creado')
+    navigate(`/service-requests/${created.id}`)
   }
+
+  if (loadError) return <p className="py-10 text-center text-gray-500">{loadError}</p>
+  if (isEdit && !original) return <p className="py-10 text-center text-gray-400">Cargando...</p>
+  const notEditable = isEdit && (
+    (original.status === 'pending' && !original.submitted_at)
+      ? 'El cliente todavía está llenando este servicio: no se puede editar.'
+      : (original.quotations || []).some((q) => q.status === 'selected')
+        ? 'Ya hay una cotización elegida: el servicio ya no se puede editar. El transportista cotizó sobre lo que leyó.'
+        : null)
+  // Una fecha guardada que ya pasó se puede dejar como está.
+  const minDate = isEdit && original.preferred_date && original.preferred_date < today ? original.preferred_date : today
 
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Servicios</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo servicio</h1>
+        {isEdit
+          ? <Link to={`/service-requests/${id}`} className="text-teal-600 hover:underline text-sm">← Servicio #{id}</Link>
+          : <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Servicios</Link>}
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isEdit ? `Editar servicio #${id}` : 'Nuevo servicio'}
+        </h1>
+        {isEdit && original.service_type && (
+          <span className="rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-gray-600">{original.service_type.name}</span>
+        )}
       </div>
       <p className="text-sm text-gray-500 mb-4">
-        Para pedidos que el cliente describió por WhatsApp o llamada. Queda como enviada y se avisa a los transportistas.
+        {isEdit
+          ? 'Para corregir lo que dijo el cliente. No se le avisa a nadie: si el cambio es grande, reenvíale el link a los transportistas que ya cotizaron.'
+          : 'Para pedidos que el cliente describió por WhatsApp o llamada. Queda como enviada y se avisa a los transportistas.'}
       </p>
 
+      {notEditable ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">{notEditable}</div>
+      ) : (
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 space-y-6">
         {error && <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>}
 
-        {serviceTypes.length > 1 && (
+        {!isEdit && serviceTypes.length > 1 && (
           <Field label="Servicio *">
             <select required value={serviceCode} onChange={(e) => setServiceCode(e.target.value)} className="input">
               <option value="">Elige…</option>
@@ -196,7 +337,7 @@ export default function ServiceRequestCreate() {
           </Field>
           <Field label="Fecha deseada *" hint="Se puede pedir para hoy.">
             <input
-              required type="date" min={today} max={addDays(today, MAX_ADVANCE_DAYS)}
+              required type="date" min={minDate} max={addDays(today, MAX_ADVANCE_DAYS)}
               value={form.preferredDate} onChange={set('preferredDate')} className="input"
             />
           </Field>
@@ -381,12 +522,24 @@ export default function ServiceRequestCreate() {
           </div>
         )}
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={form.notifyCarriers} onChange={set('notifyCarriers')} className="w-4 h-4 accent-teal-600" />
-          <span className="text-sm">Avisar a los transportistas al crear</span>
-        </label>
-        {!form.notifyCarriers && (
-          <p className="text-xs text-gray-400 -mt-4">Podrás revisarla y enviarla después con "Reenviar a transportistas" en el detalle.</p>
+        <ServiceRequestMediaField
+          saved={savedMedia}
+          pending={pendingMedia}
+          setPending={setPendingMedia}
+          onDeleteSaved={isEdit ? deleteSavedMedia : null}
+          disabled={saving}
+        />
+
+        {!isEdit && (
+          <>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.notifyCarriers} onChange={set('notifyCarriers')} className="w-4 h-4 accent-teal-600" />
+              <span className="text-sm">Avisar a los transportistas al crear</span>
+            </label>
+            {!form.notifyCarriers && (
+              <p className="text-xs text-gray-400 -mt-4">Podrás revisarla y enviarla después con "Reenviar a transportistas" en el detalle.</p>
+            )}
+          </>
         )}
 
         <div className="flex gap-3">
@@ -394,11 +547,14 @@ export default function ServiceRequestCreate() {
             type="submit" disabled={saving}
             className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-2 rounded-lg disabled:opacity-60"
           >
-            {saving ? 'Creando…' : 'Crear servicio'}
+            {saving
+              ? (pendingMedia.some((m) => m.progress !== null) ? 'Subiendo archivos…' : 'Guardando…')
+              : isEdit ? 'Guardar cambios' : 'Crear servicio'}
           </button>
-          <Link to="/service-requests" className="text-sm text-gray-500 hover:underline self-center">Cancelar</Link>
+          <Link to={isEdit ? `/service-requests/${id}` : '/service-requests'} className="text-sm text-gray-500 hover:underline self-center">Cancelar</Link>
         </div>
       </form>
+      )}
     </div>
   )
 }

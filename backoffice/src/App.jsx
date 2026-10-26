@@ -213,6 +213,14 @@ export default function App() {
             }
           />
           <Route
+            path="service-requests/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <ServiceRequestCreate />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="service-requests/:id"
             element={
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>

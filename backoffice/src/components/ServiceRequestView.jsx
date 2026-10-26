@@ -47,7 +47,7 @@ function Lightbox({ media, onClose }) {
   )
 }
 
-function Thumb({ media }) {
+export function Thumb({ media }) {
   const [broken, setBroken] = useState(false)
   if (media.media_type === 'video') {
     // Sin controls aquí: el click abre el visor, donde sí se reproduce.
@@ -207,7 +207,7 @@ export default function ServiceRequestView({ request }) {
 
       <Card title={`Fotos y videos (${request.media.length})`}>
         {request.media.length === 0
-          ? <p className="text-sm text-gray-400">El cliente no subió fotos ni videos.</p>
+          ? <p className="text-sm text-gray-400">No hay fotos ni videos.</p>
           : (
             <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {request.media.map((m) => (

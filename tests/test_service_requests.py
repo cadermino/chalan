@@ -1710,3 +1710,138 @@ def test_an_admin_can_note_a_painting_request_without_items(client, painting, se
     assert response.status_code == 201, response.get_json()
     assert ServiceRequest.query.one().details == {'description': 'Fachada de 2 pisos', 'area': 'exterior'}
     assert manual(client, service_type='painting', items=None, details={}).status_code == 400
+
+
+# --- an admin edits a sent request ---------------------------------------------------------
+
+def edit(client, request_id, headers=True, **overrides):
+    body = {key: value for key, value in MANUAL.items() if key != 'service_type'}
+    return client.put(f'/api/v1/service-requests/{request_id}/manual', json={**body, **overrides},
+                      headers=internal_headers() if headers else {})
+
+
+def manual_id(client, **overrides):
+    response = manual(client, notify_carriers=False, **overrides)
+    assert response.status_code == 201, response.get_json()
+    return response.get_json()['id']
+
+
+def test_editing_requires_the_internal_token(client):
+    request_id = manual_id(client)
+
+    assert edit(client, request_id, headers=False).status_code == 403
+
+
+def test_an_admin_replaces_the_request_and_nobody_is_told(client, sent):
+    request_id = manual_id(client)
+    make_carrier()
+
+    response = edit(client, request_id, whatsapp='912345678', preferred_date='2026-10-05',
+                    address={**MANUAL['address'], 'street': 'Calle Las Flores 456', 'neighborhood': 'Surco'},
+                    items=[{'description': 'Mesa', 'quantity': 2, 'materials': ['carpet']},
+                           {'description': 'Cuadro', 'quantity': 1, 'materials': []}])
+
+    assert response.status_code == 200, response.get_json()
+    saved = db.session.get(ServiceRequest, request_id)
+    assert (saved.whatsapp, saved.street, saved.neighborhood) == ('+51912345678', 'Calle Las Flores 456', 'Surco')
+    assert saved.preferred_date.isoformat() == '2026-10-05'
+    assert [(i.description, i.quantity, [m.code for m in i.materials]) for i in saved.items] == [
+        ('Mesa', 2, ['carpet']), ('Cuadro', 1, [])]
+    assert sent['email'] == [] and sent['whatsapp'] == []
+
+
+def test_a_saved_day_that_already_passed_can_stay(client, monkeypatch):
+    request_id = manual_id(client)
+    monkeypatch.setattr('app.api.service_request.validation.now_lima',
+                        lambda: datetime(2026, 10, 9, 10, 0, tzinfo=LIMA))
+
+    assert edit(client, request_id).status_code == 200
+    assert edit(client, request_id, preferred_date='2026-10-07').status_code == 400
+
+
+@pytest.mark.parametrize('overrides', [
+    {'address': {**ADDRESS, 'map_url': 'maps.app.goo.gl/abc'}},
+    {'items': []},
+    {'whatsapp': '12345'},
+    {'preferred_date': '2026-10-04'},
+])
+def test_an_edit_keeps_the_form_rules_and_writes_nothing(client, overrides):
+    request_id = manual_id(client)
+
+    assert edit(client, request_id, **overrides).status_code == 400
+    saved = db.session.get(ServiceRequest, request_id)
+    assert saved.whatsapp == '+51987654321'
+    assert [i.description for i in saved.items] == ['Sofá']
+
+
+def test_a_draft_or_a_request_with_a_chosen_quotation_cannot_be_edited(client):
+    public_id = create_draft(client)
+    draft = ServiceRequest.query.filter_by(public_id=public_id).one()
+    assert edit(client, draft.id).status_code == 409
+
+    request_id = manual_id(client)
+    carrier = make_carrier()
+    quotation_id = quote(client, request_id, carrier.id).get_json()['id']
+    assert edit(client, request_id).status_code == 200
+    select(client, request_id, quotation_id)
+
+    assert edit(client, request_id).status_code == 409
+    assert edit(client, 999).status_code == 404
+
+
+def test_the_service_type_cannot_change(client, painting):
+    request_id = manual_id(client)
+
+    assert edit(client, request_id, service_type='painting').status_code == 200
+    assert db.session.get(ServiceRequest, request_id).service_type.code == 'packing'
+
+
+def admin_presign(client, request_id, content_type='image/jpeg', size_bytes=1024):
+    return client.post(f'/api/v1/service-requests/{request_id}/media/presign', headers=internal_headers(),
+                       json={'content_type': content_type, 'size_bytes': size_bytes})
+
+
+def test_an_admin_adds_and_removes_photos_of_a_sent_request(client, storage):
+    request_id = manual_id(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    assert client.post(f'/api/v1/service-requests/{request_id}/media/presign',
+                       json={'content_type': 'image/jpeg', 'size_bytes': 1024}).status_code == 403
+
+    key = admin_presign(client, request_id).get_json()['storage_key']
+    assert key.startswith(f'service-requests/{public_id}/')
+    storage.stored[key] = {'size': 2048, 'content_type': 'image/jpeg'}
+    response = client.post(f'/api/v1/service-requests/{request_id}/media', headers=internal_headers(),
+                           json={'storage_key': key})
+    assert response.status_code == 201
+    # The customer's own route still treats it as sent.
+    assert presign(client, public_id).status_code == 409
+
+    media_id = response.get_json()['id']
+    assert client.delete(f'/api/v1/service-requests/{request_id}/media/{media_id}',
+                         headers=internal_headers()).status_code == 204
+    assert storage.deleted == [key]
+    assert ServiceRequestMedia.query.count() == 0
+
+
+def test_photos_follow_the_edit_rule(client, storage):
+    request_id = manual_id(client)
+    carrier = make_carrier()
+    select(client, request_id, quote(client, request_id, carrier.id).get_json()['id'])
+
+    assert admin_presign(client, request_id).status_code == 409
+
+
+def test_a_painting_explained_only_in_its_video_keeps_it(client, storage, painting):
+    request_id = manual_id(client, service_type='painting', items=None, details={'description': 'Sala'})
+    db.session.add(ServiceRequestMedia(service_request_id=request_id, url='https://x/v.mp4',
+                                       storage_key='k-video', media_type='video'))
+    db.session.commit()
+    video_id = ServiceRequestMedia.query.one().id
+    assert edit(client, request_id, items=None, details={}).status_code == 200
+
+    response = client.delete(f'/api/v1/service-requests/{request_id}/media/{video_id}',
+                             headers=internal_headers())
+
+    assert response.status_code == 400
+    assert storage.deleted == []
+    assert ServiceRequestMedia.query.count() == 1
