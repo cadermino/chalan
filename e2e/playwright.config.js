@@ -13,12 +13,14 @@ module.exports = defineConfig({
   workers: 1,
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost',
-    headless: false,
+    // Sin ventana: no se roba el foco ni abre un Chrome encima de lo que estás
+    // haciendo. Para mirarlas, `npx playwright test --headed` (o `--ui`).
+    headless: true,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10000,
     launchOptions: {
-      // SLOWMO=3000 npx playwright test ... adds a delay (ms) after every
-      // Playwright action, so a human watching the headed browser can
+      // SLOWMO=3000 npx playwright test --headed ... adds a delay (ms) after
+      // every Playwright action, so a human watching the browser can
       // actually follow along instead of it flashing by. 0 by default.
       slowMo: process.env.SLOWMO ? Number(process.env.SLOWMO) : 0,
     },

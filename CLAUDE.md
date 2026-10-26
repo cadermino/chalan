@@ -92,7 +92,7 @@ cd backoffice && npm run build   # production build
 cd e2e && npx playwright test                    # run all tests
 cd e2e && npx playwright test tests/step-one.spec.js  # run single test
 ```
-Base URL defaults to `http://local.chalan.mx` (override with `BASE_URL` env var).
+Base URL defaults to `http://local.chalan.mx` (override with `BASE_URL` env var). They run headless; add `--headed` (with `SLOWMO=1000` to follow along) or `--ui` to watch them.
 
 ### Vue frontend (Vue 3, Vite, Pinia)
 - **Store**: one Pinia store, `useStore` (id `main`) in `frontend/src/store/index.js`. The old Vuex mutations are actions with the same name and payload (`setOrder({ section, field, value })`, `setCustomerData`...), and components map them with `mapState`/`mapActions(useStore, [...])`. `store/pinia.js` holds the single Pinia instance the router guards use. `utils/sessionTags.js` tags Inspectlet/Clarity through `$onAction`.
