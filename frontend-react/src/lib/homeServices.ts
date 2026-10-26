@@ -16,6 +16,8 @@ export const HOME_SERVICES: Record<
   {
     path: string
     name: string
+    // Código de lu_service_types: el `service` de los eventos de GA4.
+    code: string
     whatsappText: string
     formUrl?: string
     blogCta: { eyebrow: string; title: string; body: string }
@@ -24,6 +26,7 @@ export const HOME_SERVICES: Record<
   pintura: {
     path: '/pintores-a-domicilio',
     name: 'Pintores a domicilio',
+    code: 'painting',
     whatsappText: 'Hola, quiero cotizar un servicio de pintura',
     formUrl: '/pintura/cotizar',
     blogCta: {
@@ -35,6 +38,7 @@ export const HOME_SERVICES: Record<
   microcemento: {
     path: '/microcemento',
     name: 'Aplicación de microcemento',
+    code: 'microcement',
     whatsappText: 'Hola, quiero cotizar la aplicación de microcemento',
     blogCta: {
       eyebrow: '¿Quieres microcemento en tu casa?',
@@ -45,6 +49,7 @@ export const HOME_SERVICES: Record<
   porcelanato: {
     path: '/instalacion-de-porcelanato',
     name: 'Instalación de porcelanato y cerámica',
+    code: 'masonry',
     whatsappText: 'Hola, quiero cotizar la instalación de porcelanato o cerámica',
     blogCta: {
       eyebrow: '¿Necesitas quien lo instale?',
@@ -56,6 +61,7 @@ export const HOME_SERVICES: Record<
   departamentos: {
     path: '/reparacion-de-departamentos',
     name: 'Reparación de departamentos en alquiler',
+    code: 'apartment_repair',
     whatsappText: 'Hola, quiero agendar una visita técnica para mi departamento',
     blogCta: {
       eyebrow: '¿Tu departamento necesita arreglos?',

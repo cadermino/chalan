@@ -74,6 +74,29 @@ export function tagSession(key, value) {
   if (typeof window.clarity === 'function') window.clarity('set', key, String(value))
 }
 
+const sentLabels = new Set()
+
+// Etiqueta suelta, sin valor: varias se acumulan en la misma sesión (trabarse
+// primero en un campo y después en otro). Igual que tagSessionLabel del Vue.
+function tagSessionLabel(label) {
+  if (sentLabels.has(label)) return
+  sentLabels.add(label)
+  if (window.__insp && typeof window.__insp.push === 'function') window.__insp.push(['tagSession', label])
+  if (typeof window.clarity === 'function') window.clarity('set', label, '1')
+}
+
+// El cliente tocó "Siguiente" y no pudo pasar: qué faltaba (el nombre del
+// campo, nunca su valor), como step_one_blocked en el flujo de mudanza. Con
+// `network` o `server` el paso estaba bien y falló el guardado. En GA4 dice
+// en qué se traban; en Inspectlet y Clarity deja encontrar esas grabaciones.
+export function trackBlocked(service, step, missingFields) {
+  const fields = [].concat(missingFields)
+  track('service_request_blocked', { service, step, missing_field: fields[0], missing_count: fields.length })
+  tagSessionLabel(`${step}_blocked:${fields[0]}`)
+}
+
+export const saveFailure = (err) => (err?.response ? 'server' : 'network')
+
 // Los adblockers tumban gtag: envolverlo evita que un bloqueador rompa el formulario.
 export function track(event, params = {}) {
   if (typeof window.gtag !== 'function') return

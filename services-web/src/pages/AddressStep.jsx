@@ -4,7 +4,7 @@ import AddressFields from '../components/AddressFields'
 import StepNav from '../components/StepNav'
 import StepTracker from '../components/StepTracker'
 import { friendlyError } from '../api'
-import { track } from '../analytics'
+import { saveFailure, track, trackBlocked } from '../analytics'
 import { COPY, PATHS, SERVICE, whatsappUrl } from '../config'
 import { useRequest } from '../context/RequestContext'
 
@@ -23,6 +23,7 @@ function AddressForm() {
 
   const handleNext = async () => {
     if (!address.map_url) {
+      trackBlocked(SERVICE, 'address', 'map_url')
       setError('Elige tu dirección de la lista de sugerencias.')
       return
     }
@@ -31,6 +32,7 @@ function AddressForm() {
       await saveAddress(address, website)
       navigate(PATHS.items)
     } catch (err) {
+      trackBlocked(SERVICE, 'address', saveFailure(err))
       setError(friendlyError(err, 'No pudimos guardar la dirección. Inténtalo de nuevo.'))
     } finally {
       setSaving(false)

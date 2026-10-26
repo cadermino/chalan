@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import StepNav from '../components/StepNav'
 import StepTracker from '../components/StepTracker'
 import { friendlyError, getMaterials } from '../api'
-import { track } from '../analytics'
+import { saveFailure, track, trackBlocked } from '../analytics'
 import { COPY, PATHS, SERVICE, paintingFacts, workLabel } from '../config'
 import { useRequest } from '../context/RequestContext'
 import { MAX_ADVANCE_DAYS, dateLimits, formatDateLabel, isValidPreferredDate } from '../dates'
@@ -63,13 +63,17 @@ export default function ContactStep() {
     }
     setErrors(found)
     setSubmitError('')
-    if (Object.keys(found).length > 0) return
+    if (Object.keys(found).length > 0) {
+      trackBlocked(SERVICE, 'contact', Object.keys(found).map((key) => (key === 'date' ? 'preferred_date' : key)))
+      return
+    }
 
     setSending(true)
     try {
       const publicId = await submit({ whatsapp: draft.whatsapp, preferredDate: draft.preferredDate })
       navigate(PATHS.sent, { replace: true, state: { publicId } })
     } catch (err) {
+      trackBlocked(SERVICE, 'contact', saveFailure(err))
       setSubmitError(friendlyError(err, 'No pudimos enviar tu solicitud. Inténtalo de nuevo.'))
       setSending(false)
     }

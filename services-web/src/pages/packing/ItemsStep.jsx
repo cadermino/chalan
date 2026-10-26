@@ -5,7 +5,7 @@ import MediaUploader from '../../components/MediaUploader'
 import StepNav from '../../components/StepNav'
 import StepTracker from '../../components/StepTracker'
 import { friendlyError, getMaterials } from '../../api'
-import { track } from '../../analytics'
+import { saveFailure, track, trackBlocked } from '../../analytics'
 import { PATHS, SERVICE } from '../../config'
 import { newItem, useRequest } from '../../context/RequestContext'
 
@@ -37,6 +37,7 @@ export default function ItemsStep() {
       .map((item) => ({ ...item, description: item.description.trim() }))
       .filter((item) => item.description)
     if (filled.length === 0) {
+      trackBlocked(SERVICE, 'items', 'items')
       setError('Agrega al menos una cosa para embalar.')
       return
     }
@@ -45,6 +46,7 @@ export default function ItemsStep() {
       await saveItems(filled)
       navigate(PATHS.contact)
     } catch (err) {
+      trackBlocked(SERVICE, 'items', saveFailure(err))
       setError(friendlyError(err, 'No pudimos guardar la lista. Inténtalo de nuevo.'))
     } finally {
       setSaving(false)

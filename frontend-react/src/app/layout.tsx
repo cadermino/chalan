@@ -7,6 +7,7 @@ import { ChatWidget } from "@/components/ChatWidget";
 import { getAllPosts } from "@/lib/blog";
 import { NON_MOVING_PATHS } from "@/lib/homeServices";
 import { PageViewTracker } from "@/components/PageViewTracker";
+import { ServiceCtaTracker } from "@/components/ServiceCtaTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
 
@@ -73,6 +74,7 @@ export default function RootLayout({
           <ReferralCapture />
         </Suspense>
         <PageViewTracker />
+        <ServiceCtaTracker />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-indigo-950 focus:text-white"

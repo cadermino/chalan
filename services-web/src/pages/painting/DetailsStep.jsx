@@ -4,7 +4,7 @@ import MediaUploader from '../../components/MediaUploader'
 import StepNav from '../../components/StepNav'
 import StepTracker from '../../components/StepTracker'
 import { friendlyError } from '../../api'
-import { track } from '../../analytics'
+import { saveFailure, track, trackBlocked } from '../../analytics'
 import { COPY, PAINTING_AREAS, PAINTING_PAINT_BY, PAINTING_SIZES, PAINTING_WALL_ISSUES, PATHS, SERVICE } from '../../config'
 import { useRequest } from '../../context/RequestContext'
 
@@ -70,6 +70,7 @@ export default function DetailsStep() {
     // Un video donde lo cuenta hablando reemplaza al texto; sin ninguno de los dos
     // el pintor no sabe qué cotizar.
     if (!details.description.trim() && !hasVideo) {
+      trackBlocked(SERVICE, 'items', 'description')
       setError(COPY.emptyItems)
       return
     }
@@ -86,6 +87,7 @@ export default function DetailsStep() {
       })
       navigate(PATHS.contact)
     } catch (err) {
+      trackBlocked(SERVICE, 'items', saveFailure(err))
       setError(friendlyError(err, 'No pudimos guardar lo que contaste. Inténtalo de nuevo.'))
     } finally {
       setSaving(false)

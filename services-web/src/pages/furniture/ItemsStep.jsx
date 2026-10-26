@@ -6,7 +6,7 @@ import MediaUploader from '../../components/MediaUploader'
 import StepNav from '../../components/StepNav'
 import StepTracker from '../../components/StepTracker'
 import { friendlyError, getMaterials } from '../../api'
-import { track } from '../../analytics'
+import { saveFailure, track, trackBlocked } from '../../analytics'
 import { COPY, PATHS, SERVICE, whatsappUrl } from '../../config'
 import { EMPTY_ADDRESS, newItem, useRequest } from '../../context/RequestContext'
 
@@ -44,15 +44,18 @@ export default function ItemsStep() {
       .map((item) => ({ ...item, description: item.description.trim() }))
       .filter((item) => item.description)
     if (filled.length === 0) {
+      trackBlocked(SERVICE, 'items', 'items')
       setError(COPY.emptyItems)
       return
     }
     if (filled.some((item) => !item.work)) {
+      trackBlocked(SERVICE, 'items', 'work')
       setMissingWork(true)
       setError('Falta elegir qué hacer con algún mueble.')
       return
     }
     if (needsDestination && !destination.map_url) {
+      trackBlocked(SERVICE, 'items', 'destination_map_url')
       setDestinationError('Elige la dirección de la lista de sugerencias.')
       return
     }
@@ -61,6 +64,7 @@ export default function ItemsStep() {
       await saveItems(filled, needsDestination ? destination : null)
       navigate(PATHS.contact)
     } catch (err) {
+      trackBlocked(SERVICE, 'items', saveFailure(err))
       setError(friendlyError(err, 'No pudimos guardar la lista. Inténtalo de nuevo.'))
     } finally {
       setSaving(false)
