@@ -1774,11 +1774,45 @@ def test_an_edit_keeps_the_form_rules_and_writes_nothing(client, overrides):
     assert [i.description for i in saved.items] == ['Sofá']
 
 
-def test_a_draft_or_a_request_with_a_chosen_quotation_cannot_be_edited(client):
+def test_an_admin_completes_a_draft_and_sends_it_without_telling_anyone(client, sent, storage):
     public_id = create_draft(client)
     draft = ServiceRequest.query.filter_by(public_id=public_id).one()
-    assert edit(client, draft.id).status_code == 409
+    make_carrier()
+    assert client.post(f'/api/v1/service-requests/{draft.id}/notify-carriers',
+                       headers=internal_headers()).status_code == 409
 
+    response = edit(client, draft.id)
+
+    assert response.status_code == 200, response.get_json()
+    saved = db.session.get(ServiceRequest, draft.id)
+    assert saved.submitted_at is not None and saved.whatsapp == '+51987654321'
+    assert [i.description for i in saved.items] == ['Sofá']
+    assert sent['email'] == [] and sent['whatsapp'] == []
+    # The customer's form now treats it as sent, and the carriers can be told.
+    assert presign(client, public_id).status_code == 409
+    assert client.post(f'/api/v1/service-requests/{draft.id}/notify-carriers',
+                       headers=internal_headers()).status_code == 200
+
+
+def test_a_draft_is_sent_only_when_it_is_complete(client):
+    draft = ServiceRequest.query.filter_by(public_id=create_draft(client)).one()
+
+    assert edit(client, draft.id, items=[]).status_code == 400
+    assert db.session.get(ServiceRequest, draft.id).submitted_at is None
+
+
+def test_a_draft_with_a_day_that_already_passed_needs_a_new_one(client, monkeypatch):
+    public_id = create_draft(client)
+    fill(client, public_id)
+    draft = ServiceRequest.query.filter_by(public_id=public_id).one()
+    monkeypatch.setattr('app.api.service_request.validation.now_lima',
+                        lambda: datetime(2026, 10, 9, 10, 0, tzinfo=LIMA))
+
+    assert edit(client, draft.id).status_code == 400
+    assert edit(client, draft.id, preferred_date='2026-10-10').status_code == 200
+
+
+def test_a_request_with_a_chosen_quotation_cannot_be_edited(client):
     request_id = manual_id(client)
     carrier = make_carrier()
     quotation_id = quote(client, request_id, carrier.id).get_json()['id']

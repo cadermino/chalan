@@ -524,13 +524,14 @@ export default function ServiceRequestDetail() {
           <span className="rounded-full bg-gray-200 px-3 py-0.5 text-xs font-medium text-gray-700">Incompleto</span>
         )}
         <div className="ml-auto flex items-center gap-3">
-          {/* Mientras no haya una elegida: el transportista elegido cotizó sobre lo que leyó. */}
-          {!isDraft(request) && !request.quotations.some((q) => q.status === 'selected') && (
+          {/* Mientras no haya una elegida: el transportista elegido cotizó sobre lo que leyó.
+              Un borrador se completa por el cliente y queda enviado. */}
+          {!request.quotations.some((q) => q.status === 'selected') && (
             <Link
               to={`/service-requests/${request.id}/edit`}
               className="rounded-lg border border-teal-600 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50"
             >
-              Editar
+              {isDraft(request) ? 'Completar' : 'Editar'}
             </Link>
           )}
           {user?.role === 'superadmin' && <StatusEditor request={request} busy={busy} onSave={saveStatus} />}

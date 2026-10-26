@@ -673,13 +673,12 @@ def _find_editable(service_request_id):
     """The request an admin may still edit, locked so that a quotation chosen at
     the same time cannot slip in between. Returns (request, error response).
 
-    A draft is the customer's, still filling it in. Once a quotation is chosen,
-    the carrier priced what it read: changing the job under it is not an edit."""
+    A draft can be edited too: the admin completes it for a customer who got
+    stuck, and saving it sends it. Once a quotation is chosen, the carrier priced
+    what it read: changing the job under it is not an edit."""
     service_request = ServiceRequest.query.filter_by(id=service_request_id).with_for_update().first()
     if service_request is None:
         return None, _message('service request not found', 404)
-    if is_draft(service_request):
-        return None, _message('the customer is still filling in this request', 409)
     if any(q.status == 'selected' for q in service_request.quotations):
         return None, _message('a quotation was already chosen', 409)
     return service_request, None
@@ -693,6 +692,10 @@ def edit_manual_service_request(service_request_id):
     The whole request is replaced, with the rules of the manual creation; the
     service type stays. Nobody is told: the carriers that already quoted get the
     link again from the detail when the change matters.
+
+    A draft the customer left halfway is completed and sent (`submitted_at`).
+    Carriers are not told here either: the backoffice calls notify-carriers once
+    the photos are up, like a manual creation.
     """
     if not is_internal_request():
         return _message('forbidden', 403)
@@ -700,12 +703,14 @@ def edit_manual_service_request(service_request_id):
     if error:
         return error
     data = request.get_json(silent=True) or {}
+    was_draft = is_draft(service_request)
 
     address, items, details, whatsapp = _manual_fields(data, service_request.service_type)
     # The saved day is kept as is even if it already passed: fixing the address
-    # of last week's request should not ask for a new date.
+    # of last week's request should not ask for a new date. A draft being sent
+    # needs a day still to come, like the customer's submit.
     saved_date = service_request.preferred_date.isoformat() if service_request.preferred_date else None
-    if data.get('preferred_date') == saved_date and saved_date is not None:
+    if not was_draft and data.get('preferred_date') == saved_date and saved_date is not None:
         preferred_date = service_request.preferred_date
     else:
         preferred_date = validate_preferred_date(data.get('preferred_date'), allow_today=True)
@@ -720,6 +725,8 @@ def edit_manual_service_request(service_request_id):
     except InvalidRequest:
         db.session.rollback()
         raise
+    if was_draft:
+        service_request.submitted_at = datetime.utcnow()
     db.session.commit()
     return jsonify(_serialize(service_request)), 200
 
@@ -753,7 +760,8 @@ def admin_delete_service_request_media(service_request_id, media_id):
     service_request, error = _find_editable(service_request_id)
     if error:
         return error
-    return _delete_media(service_request, media_id, check_rules=True)
+    # A draft is incomplete anyway: its rules are checked when it is sent.
+    return _delete_media(service_request, media_id, check_rules=not is_draft(service_request))
 
 
 @api.route('/service-requests/<int:service_request_id>/notify-carriers', methods=['POST'])

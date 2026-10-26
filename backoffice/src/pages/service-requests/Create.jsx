@@ -33,7 +33,6 @@ const EMPTY_DESTINATION = { street: '', interior: '', neighborhood: '', city: 'L
 function friendlyError(message, isEdit) {
   if (!message) return isEdit ? 'No se pudo guardar el servicio' : 'Error al crear el servicio'
   if (message.includes('quotation was already chosen')) return 'Ya hay una cotización elegida: el servicio ya no se puede editar.'
-  if (message.includes('still filling')) return 'El cliente todavía está llenando este servicio: no se puede editar.'
   if (message.includes('describe what to paint')) return 'Cuenta qué hay que pintar, o deja un video que lo explique.'
   if (message.includes('destination.map_url')) return 'Falta el link de Google Maps del destino (tiene que empezar con https://).'
   if (message.includes('destination.neighborhood')) return 'Falta el distrito del destino.'
@@ -58,6 +57,9 @@ function Field({ label, hint, children, span = 1 }) {
   )
 }
 
+// Un borrador es lo que el cliente dejó a medias en el formulario.
+const isDraft = (request) => request.status === 'pending' && !request.submitted_at
+
 // Lo guardado, en la forma del formulario. El WhatsApp vuelve sin el +51.
 function formFromRequest(request) {
   const destination = request.details?.destination
@@ -66,7 +68,8 @@ function formFromRequest(request) {
       whatsapp: (request.whatsapp || '').replace(/^\+51(?=\d{9}$)/, ''),
       street: request.street || '', interior: request.interior || '', neighborhood: request.neighborhood || '',
       city: request.city || '', mapUrl: request.map_url || '', preferredDate: request.preferred_date || '',
-      notifyCarriers: false,
+      // Completar un borrador lo envía: como al crear, se avisa salvo que se desmarque.
+      notifyCarriers: isDraft(request),
     },
     items: request.items.length
       ? request.items.map((i) => ({
@@ -90,7 +93,8 @@ function formFromRequest(request) {
 
 // Crear (/service-requests/new) y editar (/service-requests/:id/edit) un servicio.
 // Editar reemplaza todo con las mismas reglas que crear; el servicio no cambia
-// de tipo y no se le avisa a nadie.
+// de tipo y no se le avisa a nadie. Editar un borrador es completarlo por el
+// cliente: al guardar queda enviado y, si se marca, se avisa a los transportistas.
 export default function ServiceRequestCreate() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -115,6 +119,7 @@ export default function ServiceRequestCreate() {
   // Editar: lo que vino del servidor (fecha guardada, tipo, si se puede editar).
   const [original, setOriginal] = useState(null)
   const [loadError, setLoadError] = useState(null)
+  const completing = Boolean(original && isDraft(original))
 
   useEffect(() => {
     if (!isEdit) return
@@ -243,12 +248,25 @@ export default function ServiceRequestCreate() {
       const { failed } = await uploadPendingMedia(id, pendingMedia, setPendingMedia)
       if (failed.length) {
         // Los datos ya se guardaron: quedan en pantalla los archivos con su error.
-        setError(`Se guardó, pero ${failed.length} archivo(s) no se subieron. Vuelve a guardar para reintentar.`)
+        // Un borrador completado avisa recién al reintentar, con las fotos arriba.
+        setError(`Se guardó, pero ${failed.length} archivo(s) no se subieron. Vuelve a guardar para reintentar${
+          completing && form.notifyCarriers ? ' y avisar a los transportistas' : ''}.`)
         client.get(`/api/service-requests/${id}`).then(({ data }) => setSavedMedia(data.service_request.media)).catch(() => {})
         setSaving(false)
         return
       }
-      toast.success('Servicio guardado. No se le avisó a nadie.')
+      if (!completing) {
+        toast.success('Servicio guardado. No se le avisó a nadie.')
+      } else if (form.notifyCarriers) {
+        try {
+          const { data } = await client.post(`/api/service-requests/${id}/notify-carriers`)
+          toast.success(`Servicio enviado. Avisamos a ${data.notified_carrier_ids.length} transportista(s)`)
+        } catch {
+          toast.error('Se envió, pero no se pudo avisar a los transportistas: usa "Reenviar a transportistas"')
+        }
+      } else {
+        toast.success('Servicio enviado, sin avisar a los transportistas.')
+      }
       navigate(`/service-requests/${id}`)
       return
     }
@@ -288,14 +306,12 @@ export default function ServiceRequestCreate() {
 
   if (loadError) return <p className="py-10 text-center text-gray-500">{loadError}</p>
   if (isEdit && !original) return <p className="py-10 text-center text-gray-400">Cargando...</p>
-  const notEditable = isEdit && (
-    (original.status === 'pending' && !original.submitted_at)
-      ? 'El cliente todavía está llenando este servicio: no se puede editar.'
-      : (original.quotations || []).some((q) => q.status === 'selected')
-        ? 'Ya hay una cotización elegida: el servicio ya no se puede editar. El transportista cotizó sobre lo que leyó.'
-        : null)
-  // Una fecha guardada que ya pasó se puede dejar como está.
-  const minDate = isEdit && original.preferred_date && original.preferred_date < today ? original.preferred_date : today
+  const notEditable = isEdit && (original.quotations || []).some((q) => q.status === 'selected')
+    && 'Ya hay una cotización elegida: el servicio ya no se puede editar. El transportista cotizó sobre lo que leyó.'
+  // Una fecha guardada que ya pasó se puede dejar como está, salvo en un borrador:
+  // al enviarlo tiene que ser desde hoy, como cuando lo envía el cliente.
+  const minDate = isEdit && !completing && original.preferred_date && original.preferred_date < today
+    ? original.preferred_date : today
 
   return (
     <div className="max-w-3xl">
@@ -304,16 +320,18 @@ export default function ServiceRequestCreate() {
           ? <Link to={`/service-requests/${id}`} className="text-teal-600 hover:underline text-sm">← Servicio #{id}</Link>
           : <Link to="/service-requests" className="text-teal-600 hover:underline text-sm">← Servicios</Link>}
         <h1 className="text-2xl font-bold text-gray-900">
-          {isEdit ? `Editar servicio #${id}` : 'Nuevo servicio'}
+          {completing ? `Completar servicio #${id}` : isEdit ? `Editar servicio #${id}` : 'Nuevo servicio'}
         </h1>
         {isEdit && original.service_type && (
           <span className="rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-gray-600">{original.service_type.name}</span>
         )}
       </div>
       <p className="text-sm text-gray-500 mb-4">
-        {isEdit
-          ? 'Para corregir lo que dijo el cliente. No se le avisa a nadie: si el cambio es grande, reenvíale el link a los transportistas que ya cotizaron.'
-          : 'Para pedidos que el cliente describió por WhatsApp o llamada. Queda como enviada y se avisa a los transportistas.'}
+        {completing
+          ? 'El cliente no terminó de llenarlo. Complétalo con lo que te dijo: al guardar queda enviado y su formulario ya no se puede cambiar.'
+          : isEdit
+            ? 'Para corregir lo que dijo el cliente. No se le avisa a nadie: si el cambio es grande, reenvíale el link a los transportistas que ya cotizaron.'
+            : 'Para pedidos que el cliente describió por WhatsApp o llamada. Queda como enviada y se avisa a los transportistas.'}
       </p>
 
       {notEditable ? (
@@ -530,11 +548,11 @@ export default function ServiceRequestCreate() {
           disabled={saving}
         />
 
-        {!isEdit && (
+        {(!isEdit || completing) && (
           <>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.notifyCarriers} onChange={set('notifyCarriers')} className="w-4 h-4 accent-teal-600" />
-              <span className="text-sm">Avisar a los transportistas al crear</span>
+              <span className="text-sm">Avisar a los transportistas al {completing ? 'enviar' : 'crear'}</span>
             </label>
             {!form.notifyCarriers && (
               <p className="text-xs text-gray-400 -mt-4">Podrás revisarla y enviarla después con "Reenviar a transportistas" en el detalle.</p>
@@ -549,7 +567,7 @@ export default function ServiceRequestCreate() {
           >
             {saving
               ? (pendingMedia.some((m) => m.progress !== null) ? 'Subiendo archivos…' : 'Guardando…')
-              : isEdit ? 'Guardar cambios' : 'Crear servicio'}
+              : completing ? 'Enviar servicio' : isEdit ? 'Guardar cambios' : 'Crear servicio'}
           </button>
           <Link to={isEdit ? `/service-requests/${id}` : '/service-requests'} className="text-sm text-gray-500 hover:underline self-center">Cancelar</Link>
         </div>
