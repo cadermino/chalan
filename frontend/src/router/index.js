@@ -5,7 +5,11 @@ import pinia from '../store/pinia';
 import countryData from '../countryData';
 import storage from '../utils/safeStorage';
 
-const store = useStore(pinia);
+// Se pide en el primer guard, no al importar: main.js importa este archivo antes
+// de app.use(pinia), y un store creado antes de eso nace sin los plugins
+// (sessionTagsPlugin), así que la orden y el cliente nunca llegaban a Inspectlet
+// ni a Clarity.
+let store;
 const country = import.meta.env.VUE_APP_COUNTRY;
 const HTTP_RESPONSE = {
   BAD_REQUEST: 400,
@@ -184,6 +188,7 @@ async function getOrderFromDataBase(to, next) {
 }
 
 router.beforeEach(async (to, from, next) => {
+  store = store || useStore(pinia);
   getDataFromLocalStorage();
   store.setNowDate();
   const alreadyNavigated = await getOrderFromDataBase(to, next);
