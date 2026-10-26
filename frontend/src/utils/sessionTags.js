@@ -6,6 +6,8 @@
 // Solo ids, nunca teléfono, email ni nombre: sin la base de Chalán un id no
 // dice quién es la persona, y así ninguna grabación queda ligada a datos
 // personales en un proveedor externo. Misma regla que utils/analytics.js.
+// La excepción es el link de cotizar (quotation.vue): ahí se etiqueta con el
+// nombre de la empresa transportista, que es un negocio y no un cliente.
 //
 // Los dos solo se cargan en producción (public/index.html), así que en local
 // `window.__insp` y `window.clarity` no existen y esto no hace nada.

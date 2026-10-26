@@ -551,6 +551,7 @@ import chalan from '../../api/chalan';
 import formatFloor from '../../utils/floor';
 import { formatParkingDistance } from '../../utils/parking';
 import { formatCargoWeight, formatLoadType } from '../../utils/loadTypes';
+import { tagSession, tagSessionLabel } from '../../utils/sessionTags';
 
 export default {
   name: 'quotation',
@@ -750,6 +751,8 @@ export default {
           if (response.status === 200) {
             this.orderData = response.data.order;
             this.carrierCompanyId = response.data.carrier_company_id;
+            tagSession('carrier_company_id', this.carrierCompanyId);
+            tagSession('carrier_company', response.data.carrier_company_name);
             this.orderDetails = this.orderData.order_details;
             this.quotations = this.orderData.quotations || [];
             this.services = this.orderData.services;
@@ -882,6 +885,7 @@ export default {
                 quotation_status_id: response.data.quotation_status_id,
               });
             }
+            tagSessionLabel('carrier_quoted');
             this.setViewsMessages({
               view: this.viewName,
               message: {

@@ -257,9 +257,12 @@ def order_detail():
             order_details['approximate_budget'] / (1 + commission_rate + platform_fee), 2
         )
 
+    company = db.session.get(CarrierCompanyModel, data['carrier_company_id'])
     return jsonify({
         'order': order_details,
         'carrier_company_id': data['carrier_company_id'],
+        # Para etiquetar la grabación de la visita (quotation.vue): es su propio nombre.
+        'carrier_company_name': company.name if company else None,
         'decline': decline_to_dict(find_order_decline(data['order_id'], data['carrier_company_id'])),
     }), 200
 

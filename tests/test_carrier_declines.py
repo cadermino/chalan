@@ -159,6 +159,12 @@ def test_the_carrier_page_reports_the_decline(client, order, carrier_company):
     assert client.get('/api/v1/orders/details', headers=headers).get_json()['decline']['reason'] == 'vehicle'
 
 
+def test_the_carrier_page_gets_its_company_name_to_tag_the_session(client, order, carrier_company):
+    headers = link_headers(order.id, carrier_company.id)
+
+    assert client.get('/api/v1/orders/details', headers=headers).get_json()['carrier_company_name'] == carrier_company.name
+
+
 def test_the_backoffice_declines_with_the_internal_token(client, order, carrier_company):
     res = decline(client, order.id, internal_headers(), carrier_company_id=carrier_company.id)
     assert res.status_code == 200
