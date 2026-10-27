@@ -3,3 +3,11 @@
 @tailwind components;
 
 @tailwind utilities;
+
+/* El placeholder de Tailwind 1 (gray-500); el preflight de la v3 usa gray-400. */
+@layer base {
+  input::placeholder,
+  textarea::placeholder {
+    color: theme('colors.gray.500');
+  }
+}
