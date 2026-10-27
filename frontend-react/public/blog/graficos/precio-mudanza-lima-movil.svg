@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 452" width="400" height="452" role="img" aria-label="Mudanza dentro de Lima en Chalán: precio mediano S/ 330; la mitad de las cotizaciones entre S/ 220 y S/ 390 (2026)." font-family="Inter, 'Inter Tight', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="400" height="452" rx="16" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="399" height="451" rx="16" fill="none" stroke="#e2e8f0"/>
+<text x="20" y="40" font-size="20" fill="#0f172a" font-weight="650" text-anchor="start">Cuánto cuesta una mudanza</text>
+<text x="20" y="66" font-size="20" fill="#0f172a" font-weight="650" text-anchor="start">dentro de Lima</text>
+<text x="20" y="94" font-size="14" fill="#475569" font-weight="400" text-anchor="start">43 cotizaciones de 23 solicitudes</text>
+<text x="20" y="114" font-size="14" fill="#475569" font-weight="400" text-anchor="start">de mudanza, de 7 transportistas.</text>
+<line x1="36" y1="222" x2="364" y2="222" stroke="#e2e8f0"/>
+<text x="36" y="256" font-size="13" fill="#64748b" font-weight="400" text-anchor="start">S/ 0</text>
+<text x="364" y="256" font-size="13" fill="#64748b" font-weight="400" text-anchor="end">S/ 600</text>
+<rect x="156.267" y="210" width="92.9333" height="24" rx="4" fill="#818cf8"/>
+<circle cx="216.4" cy="222" r="8" fill="#4f46e5" stroke="#ffffff" stroke-width="2"/>
+<text x="216.4" y="180" font-size="18" fill="#0f172a" font-weight="650" text-anchor="middle">S/ 330</text>
+<text x="216.4" y="198" font-size="12" fill="#475569" font-weight="400" text-anchor="middle">mediana</text>
+<text x="156.267" y="256" font-size="14" fill="#0f172a" font-weight="600" text-anchor="middle">S/ 220</text>
+<text x="249.2" y="256" font-size="14" fill="#0f172a" font-weight="600" text-anchor="middle">S/ 390</text>
+<rect x="36" y="288" width="12" height="12" rx="3" fill="#818cf8"/>
+<text x="54" y="298" font-size="13" fill="#475569" font-weight="400" text-anchor="start">La mitad de las cotizaciones</text>
+<circle cx="42" cy="316" r="6" fill="#4f46e5"/>
+<text x="54" y="320" font-size="13" fill="#475569" font-weight="400" text-anchor="start">Precio mediano</text>
+<line x1="20" y1="346" x2="380" y2="346" stroke="#e2e8f0"/>
+<text x="20" y="370" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Fuente: cotizaciones recibidas en Chalán.</text>
+<text x="20" y="388" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Abril–octubre 2026.</text>
+<text x="20" y="406" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Precio final, con todo incluido.</text>
+<text x="380" y="430" font-size="14" fill="#4f46e5" font-weight="700" text-anchor="end">chalan.pe</text>
+</svg>

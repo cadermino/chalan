@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 474" width="400" height="474" role="img" aria-label="En Chalán la primera cotización llegó en una mediana de 6 minutos: en 76% de las solicitudes en menos de 1 hora, 81% en menos de 6 horas y 92% en menos de 24 horas." font-family="Inter, 'Inter Tight', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="400" height="474" rx="16" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="399" height="473" rx="16" fill="none" stroke="#e2e8f0"/>
+<text x="20" y="40" font-size="20" fill="#0f172a" font-weight="650" text-anchor="start">La primera cotización</text>
+<text x="20" y="66" font-size="20" fill="#0f172a" font-weight="650" text-anchor="start">llega en minutos</text>
+<text x="20" y="94" font-size="14" fill="#475569" font-weight="400" text-anchor="start">Desde que avisamos a los transportistas.</text>
+<text x="20" y="114" font-size="14" fill="#475569" font-weight="400" text-anchor="start">37 solicitudes de mudanza.</text>
+<text x="20" y="190" font-size="48" fill="#0f172a" font-weight="650" text-anchor="start">6 min</text>
+<text x="152" y="174" font-size="14" fill="#475569" font-weight="400" text-anchor="start">tiempo mediano hasta</text>
+<text x="152" y="192" font-size="14" fill="#475569" font-weight="400" text-anchor="start">la primera cotización</text>
+<text x="20" y="230" font-size="15" fill="#0f172a" font-weight="500" text-anchor="start">En menos de 1 hora</text>
+<rect x="20" y="240" width="300" height="16" rx="4" fill="#e0e7ff"/>
+<path d="M20 240 H244 A4 4 0 0 1 248 244 V252 A4 4 0 0 1 244 256 H20 Z" fill="#4f46e5"/>
+<text x="330" y="253" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">76%</text>
+<text x="20" y="284" font-size="15" fill="#0f172a" font-weight="500" text-anchor="start">En menos de 6 horas</text>
+<rect x="20" y="294" width="300" height="16" rx="4" fill="#e0e7ff"/>
+<path d="M20 294 H259 A4 4 0 0 1 263 298 V306 A4 4 0 0 1 259 310 H20 Z" fill="#4f46e5"/>
+<text x="330" y="307" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">81%</text>
+<text x="20" y="338" font-size="15" fill="#0f172a" font-weight="500" text-anchor="start">En menos de 24 horas</text>
+<rect x="20" y="348" width="300" height="16" rx="4" fill="#e0e7ff"/>
+<path d="M20 348 H292 A4 4 0 0 1 296 352 V360 A4 4 0 0 1 292 364 H20 Z" fill="#4f46e5"/>
+<text x="330" y="361" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">92%</text>
+<line x1="20" y1="386" x2="380" y2="386" stroke="#e2e8f0"/>
+<text x="20" y="410" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Fuente: cotizaciones recibidas en Chalán.</text>
+<text x="20" y="428" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Abril–octubre 2026.</text>
+<text x="380" y="452" font-size="14" fill="#4f46e5" font-weight="700" text-anchor="end">chalan.pe</text>
+</svg>

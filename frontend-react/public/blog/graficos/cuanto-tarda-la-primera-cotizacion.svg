@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 316" width="720" height="316" role="img" aria-label="En Chalán la primera cotización llegó en una mediana de 6 minutos: en 76% de las solicitudes en menos de 1 hora, 81% en menos de 6 horas y 92% en menos de 24 horas." font-family="Inter, 'Inter Tight', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="720" height="316" rx="16" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="719" height="315" rx="16" fill="none" stroke="#e2e8f0"/>
+<text x="32" y="54" font-size="22" fill="#0f172a" font-weight="650" text-anchor="start">La primera cotización llega en minutos</text>
+<text x="32" y="84" font-size="14" fill="#475569" font-weight="400" text-anchor="start">Desde que avisamos a los transportistas. 37 solicitudes de mudanza.</text>
+<text x="32" y="172" font-size="56" fill="#0f172a" font-weight="650" text-anchor="start">6 min</text>
+<text x="32" y="200" font-size="14" fill="#475569" font-weight="400" text-anchor="start">tiempo mediano hasta</text>
+<text x="32" y="218" font-size="14" fill="#475569" font-weight="400" text-anchor="start">la primera cotización</text>
+<text x="398" y="147" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">En menos de 1 hora</text>
+<rect x="410" y="134" width="200" height="16" rx="4" fill="#e0e7ff"/>
+<path d="M410 134 H558 A4 4 0 0 1 562 138 V146 A4 4 0 0 1 558 150 H410 Z" fill="#4f46e5"/>
+<text x="620" y="147" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">76%</text>
+<text x="398" y="193" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">En menos de 6 horas</text>
+<rect x="410" y="180" width="200" height="16" rx="4" fill="#e0e7ff"/>
+<path d="M410 180 H568 A4 4 0 0 1 572 184 V192 A4 4 0 0 1 568 196 H410 Z" fill="#4f46e5"/>
+<text x="620" y="193" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">81%</text>
+<text x="398" y="239" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">En menos de 24 horas</text>
+<rect x="410" y="226" width="200" height="16" rx="4" fill="#e0e7ff"/>
+<path d="M410 226 H590 A4 4 0 0 1 594 230 V238 A4 4 0 0 1 590 242 H410 Z" fill="#4f46e5"/>
+<text x="620" y="239" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">92%</text>
+<line x1="32" y1="270" x2="688" y2="270" stroke="#e2e8f0"/>
+<text x="32" y="294" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Fuente: cotizaciones recibidas en Chalán. Abril–octubre 2026.</text>
+<text x="688" y="294" font-size="14" fill="#4f46e5" font-weight="700" text-anchor="end">chalan.pe</text>
+</svg>

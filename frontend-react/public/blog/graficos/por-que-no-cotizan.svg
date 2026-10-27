@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" width="720" height="400" role="img" aria-label="Motivos por los que un transportista no cotizó en Chalán: fecha ocupada 38%, zona 25%, vehículo 22%, otro 9%, presupuesto 6%." font-family="Inter, 'Inter Tight', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="720" height="400" rx="16" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="719" height="399" rx="16" fill="none" stroke="#e2e8f0"/>
+<text x="32" y="54" font-size="22" fill="#0f172a" font-weight="650" text-anchor="start">Por qué un transportista no cotiza tu mudanza</text>
+<text x="32" y="84" font-size="14" fill="#475569" font-weight="400" text-anchor="start">32 veces en que un transportista avisó que no podía tomar una mudanza en Chalán.</text>
+<text x="258" y="143" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">Ya tiene esa fecha ocupada</text>
+<path d="M270 126 H608 A4 4 0 0 1 612 130 V146 A4 4 0 0 1 608 150 H270 Z" fill="#4f46e5"/>
+<text x="622" y="143" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">38%</text>
+<text x="258" y="187" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">No trabaja en esa zona</text>
+<path d="M270 170 H491 A4 4 0 0 1 495 174 V190 A4 4 0 0 1 491 194 H270 Z" fill="#4f46e5"/>
+<text x="505" y="187" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">25%</text>
+<text x="258" y="231" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">No tiene el vehículo adecuado</text>
+<path d="M270 214 H464 A4 4 0 0 1 468 218 V234 A4 4 0 0 1 464 238 H270 Z" fill="#4f46e5"/>
+<text x="478" y="231" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">22%</text>
+<text x="258" y="275" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">Otro motivo</text>
+<path d="M270 258 H347 A4 4 0 0 1 351 262 V278 A4 4 0 0 1 347 282 H270 Z" fill="#4f46e5"/>
+<text x="361" y="275" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">9%</text>
+<text x="258" y="319" font-size="15" fill="#0f172a" font-weight="500" text-anchor="end">El presupuesto no le alcanza</text>
+<path d="M270 302 H320 A4 4 0 0 1 324 306 V322 A4 4 0 0 1 320 326 H270 Z" fill="#4f46e5"/>
+<text x="334" y="319" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">6%</text>
+<line x1="270" y1="114" x2="270" y2="338" stroke="#e2e8f0"/>
+<line x1="32" y1="354" x2="688" y2="354" stroke="#e2e8f0"/>
+<text x="32" y="378" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Fuente: avisos de transportistas en Chalán. 2026.</text>
+<text x="688" y="378" font-size="14" fill="#4f46e5" font-weight="700" text-anchor="end">chalan.pe</text>
+</svg>
