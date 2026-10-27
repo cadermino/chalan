@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
-    "googleapis": "^144.0.0",
+    "googleapis": "^188.0.0",
     "gray-matter": "^4.0.3",
     "next": "^15.5.28",
     "next-mdx-remote": "^6.0.0",
