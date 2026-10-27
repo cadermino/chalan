@@ -285,6 +285,8 @@ JWT signed with `SECRET_KEY`, payload: `{ carrier_company_id, order_id, exp (10 
 
 Migrations live in `migrations/versions/` and follow sequential numbering (`001_`, `002_`, etc.). They run inside the `flask` container. The backoffice-api does NOT have its own migrations — all schema changes go through the main API's Alembic setup since both apps share the same database.
 
+**Every new table must enable row level security in its own migration** (`ALTER TABLE <name> ENABLE ROW LEVEL SECURITY`, no policies). Production is a Supabase Postgres, which exposes `public` to its Data API (PostgREST); without RLS, anyone with the project's anon key could read and write the table, and Supabase's linter reports it as `rls_disabled_in_public`. Both apps connect as `postgres`, the tables' owner, which RLS does not apply to, so nothing else changes. Migration 038 did this for the tables created since 018; the older ones had it turned on by hand. Locally no table had RLS before 038.
+
 When writing migrations for tables that may already exist (e.g., created manually or by another process), use raw SQL with `IF NOT EXISTS` instead of `op.create_table()` to avoid `DuplicateTable` errors.
 
 ## Services per Company
