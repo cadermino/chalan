@@ -8,7 +8,8 @@ Cada gráfico sale en dos tamaños: el ancho (720 px) y uno angosto para celular
 (`-movil`, 400 px), porque a 720 px las etiquetas quedan ilegibles en un
 teléfono. El post los pone en un <picture>.
 
-Para actualizarlos, cambiar los números de abajo y correr:
+Los números salen de las consultas de scripts/blog_charts.sql. Para
+actualizarlos, cambiar los números de abajo y correr:
     python3 scripts/blog_charts.py public/blog/graficos
 """
 import os
