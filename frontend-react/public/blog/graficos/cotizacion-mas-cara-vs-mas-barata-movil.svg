@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 450" width="400" height="450" role="img" aria-label="Por cada S/ 100 de la cotización más barata, la más cara costó S/ 167 (mediana de 25 solicitudes de mudanza en Chalán, 2026)." font-family="Inter, 'Inter Tight', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+<rect width="400" height="450" rx="16" fill="#ffffff"/>
+<rect x="0.5" y="0.5" width="399" height="449" rx="16" fill="none" stroke="#e2e8f0"/>
+<text x="20" y="40" font-size="20" fill="#0f172a" font-weight="650" text-anchor="start">La cotización más cara costó</text>
+<text x="20" y="66" font-size="20" fill="#0f172a" font-weight="650" text-anchor="start">67% más que la más barata</text>
+<text x="20" y="94" font-size="14" fill="#475569" font-weight="400" text-anchor="start">Por cada S/ 100 que costó la más barata.</text>
+<text x="20" y="114" font-size="14" fill="#475569" font-weight="400" text-anchor="start">Mediana de 25 solicitudes de mudanza</text>
+<text x="20" y="134" font-size="14" fill="#475569" font-weight="400" text-anchor="start">con 2 o más cotizaciones.</text>
+<text x="20" y="188" font-size="15" fill="#0f172a" font-weight="500" text-anchor="start">La más barata</text>
+<path d="M20 196 H189.653 A4 4 0 0 1 193.653 200 V216 A4 4 0 0 1 189.653 220 H20 Z" fill="#818cf8"/>
+<text x="203.653" y="213" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">S/ 100</text>
+<text x="20" y="250" font-size="15" fill="#0f172a" font-weight="500" text-anchor="start">La más cara</text>
+<rect x="20" y="258" width="172.653" height="24" fill="#818cf8"/>
+<path d="M194.653 258 H306 A4 4 0 0 1 310 262 V278 A4 4 0 0 1 306 282 H194.653 Z" fill="#4f46e5"/>
+<text x="251.826" y="250" font-size="13" fill="#0f172a" font-weight="600" text-anchor="middle">+ S/ 67</text>
+<text x="320" y="275" font-size="15" fill="#0f172a" font-weight="600" text-anchor="start">S/ 167</text>
+<rect x="20" y="304" width="12" height="12" rx="3" fill="#818cf8"/>
+<text x="38" y="314" font-size="13" fill="#475569" font-weight="400" text-anchor="start">Precio de la más barata</text>
+<rect x="20" y="326" width="12" height="12" rx="3" fill="#4f46e5"/>
+<text x="38" y="336" font-size="13" fill="#475569" font-weight="400" text-anchor="start">Lo que costó de más la más cara</text>
+<line x1="20" y1="362" x2="380" y2="362" stroke="#e2e8f0"/>
+<text x="20" y="386" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Fuente: cotizaciones recibidas en Chalán.</text>
+<text x="20" y="404" font-size="12" fill="#64748b" font-weight="400" text-anchor="start">Abril–octubre 2026.</text>
+<text x="380" y="428" font-size="14" fill="#4f46e5" font-weight="700" text-anchor="end">chalan.pe</text>
+</svg>
