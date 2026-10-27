@@ -14,6 +14,8 @@ ENV NEXT_PUBLIC_CHAT_TENANT_ID=$NEXT_PUBLIC_CHAT_TENANT_ID
 ARG NEXT_PUBLIC_CHAT_API_URL
 ENV NEXT_PUBLIC_CHAT_API_URL=$NEXT_PUBLIC_CHAT_API_URL
 ENV NODE_OPTIONS=--max-old-space-size=4096
+# La revisión de tipos la hace `make deploy-peru` en local (ver next.config.mjs).
+ENV SKIP_TYPECHECK=1
 RUN npm run build
 
 FROM node:24-alpine

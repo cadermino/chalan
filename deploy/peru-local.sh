@@ -107,10 +107,11 @@ FROM=$(echo "$PLAN" | sed -n 's/.*from=\([0-9a-f]*\).*/\1/p')
 
 if [ "$SKIP_TESTS" -eq 0 ]; then
   CHANGED=$(git diff --name-only "$FROM" "$TARGET" 2>/dev/null || echo "app/ backoffice-api/")
-  RUN_MAIN=0; RUN_BO=0
+  RUN_MAIN=0; RUN_BO=0; RUN_NEXT=0
   echo "$CHANGED" | grep -qE '^(app|migrations|tests)/|^(chalan|config)\.py$' && RUN_MAIN=1
   echo "$CHANGED" | grep -q '^backoffice-api/' && RUN_BO=1
-  if [ "$RUN_MAIN" -eq 1 ] || [ "$RUN_BO" -eq 1 ]; then
+  echo "$CHANGED" | grep -q '^frontend-react/' && RUN_NEXT=1
+  if [ "$RUN_MAIN" -eq 1 ] || [ "$RUN_BO" -eq 1 ] || [ "$RUN_NEXT" -eq 1 ]; then
     say "Tests"
     if [ "$(git rev-parse HEAD)" != "$TARGET" ] || [ -n "$(git status --porcelain --untracked-files=no)" ]; then
       die "tu copia local no es origin/$BRANCH, así que los tests probarían otro código. Haz checkout de $BRANCH al día, o usa --skip-tests"
@@ -122,6 +123,11 @@ if [ "$SKIP_TESTS" -eq 0 ]; then
     if [ "$RUN_BO" -eq 1 ]; then
       docker-compose -f "$LOCAL_COMPOSE" exec -T backoffice-api python -m pytest -q \
         || die "fallan los tests del backoffice-api"
+    fi
+    # El build de Next en el servidor ya no revisa tipos (tardaba 26 minutos).
+    if [ "$RUN_NEXT" -eq 1 ]; then
+      [ -d frontend-react/node_modules ] || die "falta frontend-react/node_modules para revisar los tipos de Next: cd frontend-react && npm ci"
+      (cd frontend-react && npx --no-install tsc --noEmit) || die "fallan los tipos de Next (cd frontend-react && npx tsc --noEmit)"
     fi
   fi
 fi
