@@ -142,9 +142,13 @@
                   <span class="font-bold block mb-1">
                     Todavía no hay cotizaciones para tu mudanza
                   </span>
-                  Ya avisamos a los transportistas disponibles. Apenas alguno
-                  responda te escribimos por WhatsApp y correo con el enlace
-                  para verlas, así que puedes cerrar esta página.
+                  Ya avisamos a los transportistas disponibles.
+                  <template v-if="isSundayInLima">
+                    Como hoy es domingo, lo más probable es que te respondan
+                    mañana.
+                  </template>
+                  Apenas alguno responda te escribimos por WhatsApp y correo
+                  con el enlace para verlas, así que puedes cerrar esta página.
                 </span>
               </div>
             </div>
@@ -436,6 +440,13 @@ export default {
     ]),
     isStepComplete() {
       return this.steps[this.viewName].isComplete;
+    },
+    // Los domingos casi ningún transportista cotiza: sin esto el cliente espera
+    // una respuesta que llega recién el lunes. Domingo en Lima, no en el
+    // reloj del teléfono.
+    isSundayInLima() {
+      return new Intl.DateTimeFormat('en-US', { timeZone: 'America/Lima', weekday: 'short' })
+        .format(new Date()) === 'Sun';
     },
   },
 };
