@@ -1,15 +1,19 @@
 import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { track } from '../analytics'
+import { useRequest } from '../context/RequestContext'
 import { COPY, PATHS, SERVICE, whatsappUrl } from '../config'
 
 export default function Sent() {
   // Llega desde el último paso; al recargar se pierde y queda solo WhatsApp.
   const publicId = useLocation().state?.publicId
+  const { clearDraft } = useRequest()
 
+  // La solicitud ya se envió: volver atrás empieza una nueva.
   useEffect(() => {
+    clearDraft()
     track('service_request_step_view', { service: SERVICE, step: 'sent' })
-  }, [])
+  }, [clearDraft])
 
   return (
     <div className="py-10 text-center">

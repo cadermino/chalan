@@ -130,8 +130,10 @@ export function RequestProvider({ children }) {
     patch({ details: saved.details || {} })
   }, [draft.publicId, patch])
 
-  // Devuelve el public_id: el borrador se vacía, pero la pantalla de enviado
-  // lo necesita para el link a las cotizaciones.
+  // Devuelve el public_id, que la pantalla de enviado necesita para el link a
+  // las cotizaciones. El borrador lo vacía esa pantalla (`clearDraft`): React
+  // Router 7 navega dentro de un startTransition, así que vaciarlo acá se
+  // pintaba antes que la navegación y RequireStep mandaba a la dirección.
   const submit = useCallback(async ({ whatsapp, preferredDate }) => {
     const { publicId } = draft
     await submitRequest(publicId, {
@@ -140,9 +142,10 @@ export function RequestProvider({ children }) {
     })
     storage.remove(STORAGE_KEY)
     track('service_request_submitted', { service: SERVICE, items: draft.items.length, media: draft.media.length })
-    setDraft(EMPTY_DRAFT)
     return publicId
   }, [draft])
+
+  const clearDraft = useCallback(() => setDraft(EMPTY_DRAFT), [])
 
   const value = useMemo(() => ({
     draft,
@@ -156,7 +159,8 @@ export function RequestProvider({ children }) {
     saveItems,
     saveDetails,
     submit,
-  }), [draft, ready, patch, saveAddress, saveItems, saveDetails, submit])
+    clearDraft,
+  }), [draft, ready, patch, saveAddress, saveItems, saveDetails, submit, clearDraft])
 
   return <RequestContext.Provider value={value}>{children}</RequestContext.Provider>
 }
