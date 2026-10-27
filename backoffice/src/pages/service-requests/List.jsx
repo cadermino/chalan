@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import client from '../../api/client'
 import CopyButton from '../../components/CopyButton'
 import StatusIcon from '../../components/StatusIcon'
@@ -74,27 +75,32 @@ const canBulkCancel = (r) => r.status !== 'cancelled' && !r.deposit
 
 export default function ServiceRequestsList() {
   const [status, setStatus] = useState('pending')
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(() => new Set())
   // Cancelar no se deshace desde acá: pide un segundo clic, como en órdenes.
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [bulkResult, setBulkResult] = useState(null)
 
-  const load = () => {
-    setLoading(true)
-    return client.get('/api/service-requests', { params: status === 'all' ? {} : { status } })
-      .then(({ data }) => setRows(data.service_requests))
-      .finally(() => setLoading(false))
-  }
+  // Cada filtro tiene su entrada en el caché, como en órdenes: con useEffect,
+  // la respuesta de Pendiente que llegaba después de hacer clic en Completado
+  // pisaba la tabla. staleTime 0 porque el detalle cambia el estado (reserva,
+  // saldo) sin tocar este caché: al volver se pinta lo guardado y se revalida.
+  const queryClient = useQueryClient()
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['service-requests', status],
+    queryFn: ({ signal }) => client
+      .get('/api/service-requests', { params: status === 'all' ? {} : { status }, signal })
+      .then(({ data }) => data.service_requests),
+    staleTime: 0,
+  })
+  const rows = data ?? []
+  const loading = isPending && !isError
 
   // La selección es de lo que se está viendo: al cambiar de filtro las filas
   // marcadas dejan de estar a la vista, y no se cancela lo que no se ve.
   useEffect(() => {
     setSelected(new Set())
     setConfirmingCancel(false)
-    load()
   }, [status])
 
   const selectableIds = rows.filter(canBulkCancel).map((r) => r.id)
@@ -122,7 +128,7 @@ export default function ServiceRequestsList() {
       const { data } = await client.post('/api/service-requests/bulk-cancel', { service_request_ids: [...selected] })
       setBulkResult({ type: 'success', ...data })
       setSelected(new Set())
-      await load()
+      await queryClient.invalidateQueries({ queryKey: ['service-requests'] })
     } catch (err) {
       setBulkResult({ type: 'error', message: err.response?.data?.message || 'No se pudieron cancelar los servicios' })
     } finally {
@@ -333,7 +339,10 @@ export default function ServiceRequestsList() {
               {loading && (
                 <tr><td colSpan={columns} className="px-4 py-8 text-center text-gray-400">Cargando...</td></tr>
               )}
-              {!loading && rows.length === 0 && (
+              {isError && (
+                <tr><td colSpan={columns} className="px-4 py-8 text-center text-red-600">No se pudieron cargar los servicios</td></tr>
+              )}
+              {!loading && !isError && rows.length === 0 && (
                 <tr><td colSpan={columns} className="px-4 py-8 text-center text-gray-400">No hay servicios</td></tr>
               )}
             </tbody>
