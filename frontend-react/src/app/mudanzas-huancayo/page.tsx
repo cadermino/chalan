@@ -48,7 +48,7 @@ const localBusinessJsonLd = {
 };
 
 const faqs = [
-  { q: "¿Cuánto cuesta una mudanza en Huancayo?", a: "Depende de la distancia y el tamaño del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
+  { q: "¿Cuánto cuesta una mudanza en Huancayo?", a: "Entre Huancayo y Lima, la mayoría de las cotizaciones que recibieron nuestros clientes en 2026 estuvo entre S/ 1,350 y S/ 1,650, y alguna mudanza chica salió desde unos S/ 700. Dentro de Huancayo depende de la distancia y del vehículo. Con Chalán puedes cotizar gratis y comparar precios al instante." },
   { q: "¿Hacen mudanzas de Huancayo a Lima?", a: "Sí, realizamos mudanzas de larga distancia entre Huancayo y Lima por la carretera central." },
   { q: "¿Operan en todo el Valle del Mantaro?", a: "Sí, cubrimos Huancayo, El Tambo, Chilca, Concepción, Jauja, Chupaca y alrededores." },
   { q: "¿Los transportistas ayudan a cargar?", a: "Sí, nuestros chalanes incluyen ayudantes para cargar y descargar tus pertenencias." },
@@ -182,7 +182,7 @@ export default function MudanzasHuancayo() {
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {[
-              { route: "Huancayo → Lima", detail: "~7 horas por carretera central" },
+              { route: "Huancayo → Lima", detail: "~7 horas por carretera central · S/ 1,350 – S/ 1,650 la mayoría" },
               { route: "Huancayo → El Tambo", detail: "Mudanza local, ~15 min" },
               { route: "Huancayo → Chilca", detail: "Mudanza local, ~10 min" },
               { route: "Huancayo → Concepción", detail: "~30 min por la ruta del Mantaro" },
