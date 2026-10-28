@@ -9,6 +9,7 @@ from flask import jsonify, g, current_app, request
 from . import api
 from .decorators import login_required
 from .. import carrier_prospects
+from ..address import district_of
 from ..order_access import make_token as make_order_access_token
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
@@ -144,25 +145,27 @@ def _paginate(query, page, per_page):
     }
 
 
-def _street_without_number(street):
-    """Strips the house/building number so a carrier can't go straight to the
-    customer's door before winning the job through the platform. Cuts at the
-    first digit run (e.g. "Av. Larco 1301" -> "Av. Larco"); street names that
-    themselves start with a number (rare) will be over-trimmed."""
-    if not street:
-        return street
-    return re.split(r'\s*\d', street, maxsplit=1)[0].strip(' ,') or street
-
-
 def _address_payload(addr, is_admin, reveal_full):
+    """La dirección que ve cada uno. Una empresa, antes de que la mudanza sea
+    suya, solo ve el distrito: antes veía la calle sin el número, y con eso ya
+    podía ir a buscar al cliente por fuera de la plataforma. Como en el link de
+    servicios (_district_only)."""
     if addr is None:
         return None
     if is_admin:
         return addr.to_dict_full()
     data = addr.to_dict()
-    if not reveal_full:
-        data['street'] = _street_without_number(data['street'])
-    return data
+    if reveal_full:
+        return {**data, 'address_hidden': False}
+    return {**data, 'street': None, 'neighborhood': district_of(data), 'address_hidden': True}
+
+
+def _is_theirs(quotation, order):
+    """La mudanza es de esta empresa: eligieron su cotización y quedó agendada
+    (con la reserva yapeada, si se pedía). Elegida pero con el yapeo en
+    revisión todavía no: la orden sigue pendiente."""
+    return (quotation is not None and quotation.quotation_status_id == QUOTATION_STATUS_SELECTED
+            and order.order_status_id in (2, 3))
 
 
 def _internal_token():
@@ -496,7 +499,7 @@ def list_pending_orders():
     for order in all_sent_orders:
         has_quotation = order.id in own_quotation_by_order
         own_quotation = own_quotation_by_order.get(order.id)
-        reveal_full_address = own_quotation is not None and own_quotation.quotation_status_id == QUOTATION_STATUS_SELECTED
+        reveal_full_address = _is_theirs(own_quotation, order)
         details = list(order.order_details)
         origin = next((d for d in details if d.type == 'carry_from'), None)
         destination = next((d for d in details if d.type == 'deliver_to'), None)
@@ -867,7 +870,7 @@ def get_order(order_id):
     decline = OrderCarrierDecline.query.filter_by(
         order_id=order_id, carrier_company_id=company_id
     ).first() if company_id is not None else None
-    reveal_full_address = existing_quotation is not None and existing_quotation.quotation_status_id == QUOTATION_STATUS_SELECTED
+    reveal_full_address = _is_theirs(existing_quotation, order)
 
     quotation_url = None
     if company_id is not None:

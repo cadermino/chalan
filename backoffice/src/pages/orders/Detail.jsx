@@ -272,7 +272,14 @@ function AddressCard({ title, addr }) {
   return (
     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
       <p className="text-xs font-bold text-teal-600 uppercase tracking-wide">{title}</p>
-      <Field label="Calle" value={addr.street} />
+      {addr.address_hidden
+        ? (
+          <div>
+            <Field label="Distrito" value={addr.neighborhood || addr.city} />
+            <p className="mt-1 text-xs text-gray-400">La dirección exacta te la damos cuando el cliente agende contigo.</p>
+          </div>
+        )
+        : <Field label="Calle" value={addr.street} />}
       <div className="grid grid-cols-2 gap-3">
         <Field label="Piso" value={addr.floor_number} />
         {hasFullDetails && <Field label="Interior / Dpto." value={addr.interior_number} />}

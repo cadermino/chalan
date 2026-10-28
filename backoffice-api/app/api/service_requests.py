@@ -1,7 +1,6 @@
 import json
 import os
 import pathlib
-import re
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -13,6 +12,7 @@ from sqlalchemy import func
 from . import api
 from .decorators import admin_required, login_required
 from .orders import _internal_headers
+from ..address import district_of
 from .. import db
 from ..models import (ROLE_SUPERADMIN, CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestCarrierDecline, ServiceRequestItem,
@@ -454,24 +454,6 @@ def bulk_cancel_service_requests():
 # una solo ven el distrito, como el correo de "nueva solicitud"; la elegida
 # recibe la dirección junto con el WhatsApp del cliente.
 EXACT_ADDRESS_FIELDS = ('street', 'interior', 'map_url')
-
-
-_NOT_A_DISTRICT = re.compile(r'^(per[uú]|lima|callao|provincia de lima)$', re.IGNORECASE)
-_POSTAL_CODE = re.compile(r'\b\d{5}\b')
-
-
-def district_of(address):
-    """El distrito de una dirección: `neighborhood` (el de Google) o, si vino
-    vacío, el tramo del texto de Google con el código postal ("Calle 123,
-    Barranco 15063"), o la ciudad. Mismo criterio que backoffice/src/lib/district.js."""
-    if address.get('neighborhood'):
-        return address['neighborhood']
-    parts = [p.strip() for p in (address.get('street') or '').split(',') if p.strip()][1:]
-    with_zip = next((p for p in parts if _POSTAL_CODE.search(p)), None)
-    if with_zip:
-        return _POSTAL_CODE.sub('', with_zip).strip()
-    named = next((p for p in reversed(parts) if not _NOT_A_DISTRICT.match(p) and not re.search(r'\d', p)), None)
-    return named or address.get('city')
 
 
 def _hide_exact_address(address):
