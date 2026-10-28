@@ -1099,3 +1099,68 @@ def test_the_admin_gets_a_share_link_for_a_sent_request(client, admin, submitted
     # El mismo token que lee el API principal (sal service-media).
     token = path.removeprefix('/v/')
     assert URLSafeTimedSerializer(SECRET, salt='service-media').loads(token) == submitted.id
+
+
+# --- cotizaciones de contactos de Google Maps, cargadas por el admin -----------------------
+
+@pytest.fixture
+def quoted(monkeypatch):
+    seen = []
+
+    def fake_post(url, json, headers, timeout):
+        seen.append({'url': url, 'json': json})
+        return FakeResponse(201, {'quotation': {'id': len(seen)}})
+    monkeypatch.setattr('app.api.service_requests.requests.post', fake_post)
+    return seen
+
+
+def add_contact_quote(client, headers, service_request, **body):
+    payload = {'name': 'Armado de Muebles fast', 'phone': '918 032 470', 'amount': 150,
+               'note': 'Voy con un ayudante', **body}
+    return client.post(f'/api/service-requests/{service_request.id}/contact-quotations', headers=headers,
+                       json=payload)
+
+
+def test_a_contacts_quote_creates_an_inactive_company_and_sends_the_quote(client, admin, submitted, quoted):
+    res = add_contact_quote(client, admin, submitted)
+
+    assert res.status_code == 201
+    company = db.session.get(CarrierCompany, res.get_json()['carrier_company_id'])
+    assert (company.name, company.phone, company.active) == ('Armado de Muebles fast', '918032470', 0)
+    # NOT NULL en Postgres (SQLite no lo exige): sin esto falla solo en la base real.
+    assert (company.rfc, company.email, company.address) == ('', '', '')
+    assert [t.code for t in company.service_types] == [submitted.service_type.code]
+    assert quoted[0]['url'].endswith(f'/api/v1/service-requests/{submitted.id}/quotations')
+    assert quoted[0]['json'] == {'carrier_company_id': company.id, 'amount': 150, 'note': 'Voy con un ayudante'}
+
+
+def test_the_same_phone_quotes_again_as_the_same_company(client, admin, submitted, quoted):
+    first = add_contact_quote(client, admin, submitted).get_json()['carrier_company_id']
+    second = add_contact_quote(client, admin, submitted, phone='+51 918-032-470', amount=140).get_json()[
+        'carrier_company_id']
+
+    assert first == second
+    assert CarrierCompany.query.filter_by(phone='918032470').count() == 1
+    assert quoted[1]['json']['amount'] == 140
+
+
+def test_a_registered_company_is_used_as_it_is(client, admin, submitted, quoted, packing):
+    registered = make_carrier(packing, name='Registrada SAC')
+    registered.phone = '987654321'
+    db.session.commit()
+
+    res = add_contact_quote(client, admin, submitted, name='Otro nombre', phone='987654321')
+
+    assert res.get_json()['carrier_company_id'] == registered.id
+    assert db.session.get(CarrierCompany, registered.id).active == 1
+
+
+@pytest.mark.parametrize('body', [{'name': ''}, {'phone': '12345'}])
+def test_a_contact_quote_needs_a_name_and_a_phone(client, admin, submitted, quoted, body):
+    assert add_contact_quote(client, admin, submitted, **body).status_code == 400
+    assert quoted == []
+
+
+def test_only_admins_add_contact_quotes(client, submitted, quoted):
+    carrier_user = make_user('carrier_company', suffix='q')
+    assert add_contact_quote(client, carrier_user, submitted).status_code == 403

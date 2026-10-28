@@ -15,7 +15,8 @@ from .orders import _internal_headers
 from ..address import district_of
 from ..service_media import make_token as make_media_token
 from .. import db
-from ..models import (ROLE_SUPERADMIN, CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
+from ..models import (ROLE_SUPERADMIN, LIMA_DEPARTMENT_CODE, CarrierCompany, CarrierCompanyDepartment,
+                      CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestCarrierDecline, ServiceRequestItem,
                       ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
                       ServiceMaterial, ServiceType, _iso, _money)
@@ -658,6 +659,67 @@ def service_request_carrier_cash(service_request_id):
 
 
 SERVICE_PROSPECTS = pathlib.Path(__file__).resolve().parent.parent / 'resources' / 'service_prospects.json'
+
+
+def _company_by_phone(digits):
+    """La empresa con ese WhatsApp (los últimos 9 dígitos), registrada o no."""
+    for company in CarrierCompany.query.filter(CarrierCompany.phone.isnot(None)).all():
+        if ''.join(ch for ch in company.phone if ch.isdigit())[-9:] == digits:
+            return company
+    return None
+
+
+@api.route('/service-requests/<int:service_request_id>/contact-quotations', methods=['POST'])
+@admin_required
+def add_contact_quotation(service_request_id):
+    """La cotización de alguien que no es empresa de la plataforma (un contacto de
+    Google Maps que respondió por WhatsApp), cargada por el admin con su precio y
+    su comentario para el cliente.
+
+    Toda cotización tiene que ser de una empresa: de ahí salen el nombre que ve el
+    cliente, el WhatsApp que se le muestra al confirmarse y el link de "¡Te
+    eligieron!". Si el teléfono no es de ninguna, se crea inactiva (no recibe
+    otros pedidos) con este servicio marcado; si ya existe, se usa esa, así que
+    volver a cargarla corrige su precio. Lo demás es lo mismo que cuando una
+    empresa cotiza desde su link.
+    """
+    service_request = db.session.get(ServiceRequest, service_request_id)
+    if service_request is None:
+        return jsonify({'message': 'service request not found'}), 404
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    digits = ''.join(ch for ch in str(data.get('phone') or '') if ch.isdigit())[-9:]
+    if not name or len(digits) != 9:
+        return jsonify({'message': 'name and a 9-digit phone are required'}), 400
+
+    company = _company_by_phone(digits)
+    if company is None:
+        company = CarrierCompany(
+            name=name[:45],
+            phone=digits,
+            # NOT NULL en la base (con '' por defecto, pero SQLAlchemy manda NULL).
+            rfc='', email='', address='',
+            active=0,
+            description=f'Contacto de Google Maps: entró al cargar su cotización del servicio #{service_request.id}.',
+        )
+        company.service_types = [service_request.service_type] if service_request.service_type else []
+        company.departments = [CarrierCompanyDepartment(department_code=LIMA_DEPARTMENT_CODE)]
+        db.session.add(company)
+        db.session.commit()
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/service-requests/{service_request.id}/quotations',
+            json={'carrier_company_id': company.id, 'amount': data.get('amount'), 'note': data.get('note')},
+            headers=_internal_headers(),
+            timeout=15,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the quotation service'}), 502
+    if res.status_code not in (200, 201, 400, 404, 409):
+        return jsonify({'message': 'failed to save the quotation'}), 502
+    return jsonify({**res.json(), 'carrier_company_id': company.id}), res.status_code
 
 
 @api.route('/service-prospects/<code>', methods=['GET'])

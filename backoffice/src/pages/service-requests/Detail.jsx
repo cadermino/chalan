@@ -590,7 +590,7 @@ export default function ServiceRequestDetail() {
 
       {/* Mientras nadie fue elegido: a quién más invitar a cotizar. */}
       {request.status !== 'cancelled' && !request.quotations.some((q) => q.status === 'selected') && (
-        <ServiceProspects request={request} />
+        <ServiceProspects request={request} onSaved={load} />
       )}
 
       <Card title="Transportistas" className="mt-4">
