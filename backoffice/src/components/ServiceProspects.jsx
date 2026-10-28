@@ -35,7 +35,7 @@ export function serviceMessage(request) {
     ...request.items.map((item) => itemLine(item, isAssembly)),
     request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
     '',
-    'Tú cotizas tu precio y lo cobras completo. ¿Te interesa?',
+    '¿Puedes ese día? Si es así, pásanos tu precio y coordinamos.',
   ]
   return lines.filter((line) => line !== false && line !== null && line !== undefined).join('\n')
 }
