@@ -52,10 +52,11 @@ test.describe('Checkout via the Step-three payment modal', () => {
 
     // El dashboard leía quotation.amount en crudo, sin el fee, así que
     // mostraba menos de lo que la persona acababa de aceptar. Que las dos
-    // pantallas digan lo mismo es la invariante que se rompió.
-    const dashboardAmount = page.locator(`td:has-text("${acceptedAmount}")`);
-    await expect(dashboardAmount).toBeVisible({ timeout: 15000 });
-    await expect(page.locator(`td:text-is("${RAW_QUOTATION}")`)).toHaveCount(0);
+    // pantallas digan lo mismo es la invariante que se rompió. El modal y la
+    // tarjeta formatean distinto (PEN 495 / S/ 495.00): se compara el número.
+    const card = page.locator('[role="status"]', { hasText: 'Estamos verificando tu yapeo' });
+    await expect(card).toContainText(`${EXPECTED_TOTAL}.00`, { timeout: 15000 });
+    await expect(card).not.toContainText(`por S/ ${RAW_QUOTATION}.00`);
 
     // Las filas de pago tienen que reconstruir el total: si el reparto entre
     // reserva y efectivo se descuadra, la plata registrada deja de coincidir

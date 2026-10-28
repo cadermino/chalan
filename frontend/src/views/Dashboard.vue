@@ -45,8 +45,9 @@
           class="rounded-lg border border-yellow-400 bg-yellow-100 p-5 text-sm">
           <p class="font-semibold text-base">Estamos verificando tu yapeo</p>
           <p class="mt-1 text-gray-800">
-            Elegiste a {{ order.carrier_company_name }} para el {{ date }}. Recibimos tu número de
-            operación {{ order.reservation.reference }} por {{ money(order.reservation.amount) }}.
+            Elegiste a {{ order.carrier_company_name }} para el {{ date }}, por
+            {{ money(order.total_amount) }}. Tu yapeo de
+            {{ money(order.reservation.amount) }} (operación {{ order.reservation.reference }}) está en revisión.
             Cuando lo confirmemos te avisamos por correo y {{ order.carrier_company_name }} recibe el pedido.
           </p>
         </div>
