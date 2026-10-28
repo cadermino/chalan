@@ -27,6 +27,9 @@
 #   deploy/peru.sh --services "flask-api nginx"   fuerza esos servicios
 #   deploy/peru.sh --all           fuerza todos
 #   deploy/peru.sh --rollback      vuelve al deploy anterior (imágenes y commit)
+#   deploy/peru.sh --prebuilt nextjs   no construye esos servicios: usa la imagen
+#                  chalan-prebuilt/<servicio>:<commit> que peru-local.sh construyó en
+#                  la laptop y subió (el build de Next ya no entra en 924 MB de RAM)
 set -Eeuo pipefail
 
 REPO_DIR=${REPO_DIR:-/home/ubuntu/chalan}
@@ -55,6 +58,7 @@ HEALTH_PATHS=(
 DRY_RUN=0
 FORCE_ALL=0
 FORCED_SERVICES=""
+PREBUILT=""
 ROLLBACK=0
 
 usage() { sed -n '2,/^set -E/p' "$0" | sed '$d; s/^# \{0,1\}//'; }
@@ -65,6 +69,7 @@ while [ $# -gt 0 ]; do
     --all) FORCE_ALL=1 ;;
     --services) FORCED_SERVICES=${2:?--services necesita una lista}; shift ;;
     --rollback) ROLLBACK=1 ;;
+    --prebuilt) PREBUILT=${2:?--prebuilt necesita una lista}; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Opción desconocida: $1" >&2; usage; exit 2 ;;
   esac
@@ -259,10 +264,12 @@ if [ "${#TO_DEPLOY[@]}" -eq 0 ]; then
   log "Nada que desplegar."
   exit 0
 fi
-case " ${TO_DEPLOY[*]} " in
-  *" nextjs "*|*" nginx "*)
-    [ "$SWAP_ON" -eq 1 ] || block "no hay swap activo: el build de nextjs/nginx muere por OOM con ~924 MB de RAM (ver /etc/fstab, /swapfile)" ;;
-esac
+is_prebuilt() { case " $PREBUILT " in *" $1 "*) return 0 ;; esac; return 1; }
+for svc in nextjs nginx; do
+  case " ${TO_DEPLOY[*]} " in *" $svc "*) ;; *) continue ;; esac
+  is_prebuilt "$svc" && continue
+  [ "$SWAP_ON" -eq 1 ] || block "no hay swap activo: el build de $svc muere por OOM con ~924 MB de RAM (ver /etc/fstab, /swapfile)"
+done
 
 [ "$DRY_RUN" -eq 1 ] && exit 0
 
@@ -287,8 +294,19 @@ log "Guardando las imágenes actuales"
 for svc in "${TO_DEPLOY[@]}"; do save_previous_image "$svc"; done
 
 for svc in "${TO_DEPLOY[@]}"; do
-  log "Build $svc"
-  compose build "$svc" || abort_before_restart "falló el build de $svc"
+  if is_prebuilt "$svc"; then
+    # Construida en la laptop para este mismo commit; se le pone el nombre que
+    # usa compose (<proyecto>-<servicio>), como si la hubiera construido acá.
+    prebuilt="chalan-prebuilt/$svc:${NEW:0:12}"
+    log "Imagen de $svc construida en la laptop ($prebuilt)"
+    "${DOCKER[@]}" image inspect "$prebuilt" >/dev/null 2>&1 \
+      || abort_before_restart "no está la imagen $prebuilt (¿origin/$BRANCH cambió mientras se subía?)"
+    "${DOCKER[@]}" tag "$prebuilt" "$(basename "$REPO_DIR")-$svc:latest"
+    "${DOCKER[@]}" rmi "$prebuilt" >/dev/null
+  else
+    log "Build $svc"
+    compose build "$svc" || abort_before_restart "falló el build de $svc"
+  fi
   BUILT+=("$svc")
   log "  Disco libre: $(free_disk_gb) GB"
 done
@@ -323,7 +341,10 @@ if ! check_health; then
 fi
 
 # Borra solo las imágenes sin nombre (las viejas que reemplazó este build). Las
-# chalan-prev/* se quedan para --rollback hasta el próximo deploy.
+# chalan-prev/* se quedan para --rollback hasta el próximo deploy. Las
+# chalan-prebuilt/* que hayan quedado de un deploy cortado ya no sirven.
+"${DOCKER[@]}" images --format '{{.Repository}}:{{.Tag}}' | grep '^chalan-prebuilt/' \
+  | xargs -r "${DOCKER[@]}" rmi >/dev/null || true
 "${DOCKER[@]}" image prune -f >/dev/null
 # La caché de build no la borra lo anterior y en este disco de 16 GB llegó a
 # 4 GB y bloqueó un deploy. Se queda la de la última semana, que es la que

@@ -12,9 +12,13 @@
 #     db-backup.yml) y espera a que termine bien. Si el deploy falla o se cancela
 #     y lo repites, reutiliza ese backup (mismo commit destino, mismo punto de
 #     partida del servidor, menos de BACKUP_MAX_AGE_H horas) en vez de hacer otro.
+#   - Si el plan trae nextjs, construye su imagen acá (linux/amd64, desde una copia
+#     limpia de origin/master) y la sube por SSH: en el servidor, con 924 MB de RAM,
+#     el build de Next se quedaba trabado en el swap. Necesita Docker corriendo.
 #
 # Opciones propias: --yes (no pregunta), --skip-tests, --skip-backup,
-# --new-backup (fuerza un backup nuevo aunque haya uno reutilizable).
+# --new-backup (fuerza un backup nuevo aunque haya uno reutilizable),
+# --build-on-server (construye nextjs en el servidor, como antes).
 # Las demás (--dry-run, --services "...", --all, --rollback) pasan a deploy/peru.sh.
 #
 # Escrito para el bash 3.2 de macOS: sin arrays asociativos ni ${var,,}.
@@ -32,6 +36,7 @@ YES=0
 SKIP_TESTS=0
 SKIP_BACKUP=0
 NEW_BACKUP=0
+BUILD_ON_SERVER=0
 DRY_RUN=0
 ROLLBACK=0
 PASS=()
@@ -41,6 +46,7 @@ while [ $# -gt 0 ]; do
     --skip-tests) SKIP_TESTS=1 ;;
     --skip-backup) SKIP_BACKUP=1 ;;
     --new-backup) NEW_BACKUP=1 ;;
+    --build-on-server) BUILD_ON_SERVER=1 ;;
     --dry-run) DRY_RUN=1; PASS+=("$1") ;;
     --rollback) ROLLBACK=1; PASS+=("$1") ;;
     --services) PASS+=("$1" "${2:?--services necesita una lista}"); shift ;;
@@ -83,6 +89,38 @@ quote_args() {
   echo "$out"
 }
 
+# Construye la imagen de nextjs para el commit que se despliega y la deja en el
+# servidor como chalan-prebuilt/nextjs:<commit>, que es lo que busca peru.sh.
+# Las NEXT_PUBLIC_* quedan dentro del bundle: se leen del .env.prod del servidor
+# para no tener otra copia que se desactualice. No se imprimen.
+build_nextjs_here() {
+  local image="chalan-prebuilt/nextjs:${TARGET:0:12}" wt line key val
+  local args=()
+  docker info >/dev/null 2>&1 || die "Docker no está corriendo en esta laptop (o usa --build-on-server)"
+  say "Build de nextjs en esta laptop (linux/amd64)"
+  while IFS= read -r line; do
+    key=${line%%=*}; val=${line#*=}
+    val=${val%\"}; val=${val#\"}; val=${val%\'}; val=${val#\'}
+    args+=(--build-arg "$key=$val")
+  done < <(ssh "$HOST" "grep -E '^NEXT_PUBLIC_(PLACES_API_KEY|CHAT_TENANT_ID|CHAT_API_URL)=' $REMOTE_DIR/.env.prod" || true)
+  # El mismo valor por defecto que el compose de Perú.
+  case " ${args[*]-} " in *NEXT_PUBLIC_CHAT_API_URL=*) ;; *)
+    args+=(--build-arg NEXT_PUBLIC_CHAT_API_URL=https://api.automajob.com/chat/message) ;;
+  esac
+  wt=$(mktemp -d /tmp/chalan-build.XXXXXX)
+  git worktree add -q --detach "$wt" "$TARGET"
+  if ! docker buildx build --platform linux/amd64 -f "$wt/Dockerfile.peru.prod" \
+      "${args[@]}" -t "$image" --load "$wt"; then
+    git worktree remove --force "$wt"
+    die "falló el build de nextjs"
+  fi
+  git worktree remove --force "$wt"
+  say "Subiendo la imagen al servidor"
+  docker save "$image" | gzip -1 | ssh "$HOST" "gunzip | sudo docker load" \
+    || die "no se pudo subir la imagen de nextjs"
+  docker image rm "$image" >/dev/null
+}
+
 if [ "$ROLLBACK" -eq 1 ]; then
   say "Rollback en el servidor"
   remote "--dry-run --rollback"
@@ -90,6 +128,9 @@ if [ "$ROLLBACK" -eq 1 ]; then
   remote "--rollback"
   exit 0
 fi
+
+# El servidor no construye nextjs si viene en el plan: lo hace esta laptop.
+[ "$BUILD_ON_SERVER" -eq 0 ] && PASS+=(--prebuilt nextjs)
 
 say "Plan (dry-run en el servidor)"
 PLAN_OUTPUT=$(remote "--dry-run$(quote_args ${PASS[@]+"${PASS[@]}"})") || { echo "$PLAN_OUTPUT"; die "el plan falló"; }
@@ -166,6 +207,10 @@ if [ "$MIGRATE" = "1" ] && [ "$SKIP_BACKUP" -eq 0 ]; then
 fi
 
 confirm "¿Desplegar ${TARGET:0:7} en chalan.pe ($SERVICES)?" || die "cancelado"
+
+case ",$SERVICES," in
+  *,nextjs,*) [ "$BUILD_ON_SERVER" -eq 0 ] && build_nextjs_here ;;
+esac
 
 say "Deploy"
 remote "$(quote_args ${PASS[@]+"${PASS[@]}"})"
