@@ -55,10 +55,12 @@ function fromServer(data) {
 }
 
 // Si el segundo paso está hecho. Pintura y porcelanato no tienen lista: basta
-// con contarlo, o con un video que lo explique (misma regla que _check_described).
+// con contarlo, o con un video que lo explique, y los m² (misma regla que
+// _check_described).
 export function itemsDone(draft) {
   if (DESCRIBED) {
-    return Boolean(draft.details.description) || draft.media.some((m) => m.media_type === 'video')
+    return Boolean(draft.details.area_m2)
+      && (Boolean(draft.details.description) || draft.media.some((m) => m.media_type === 'video'))
   }
   return draft.items.length > 0
 }

@@ -124,8 +124,12 @@ def validate_painting_details(details):
 
 
 def _check_described(service_request, what):
-    """Whoever quotes needs to know the job: written, or told in a video."""
-    if (service_request.details or {}).get('description'):
+    """Whoever quotes needs to know the job: written, or told in a video, and
+    how many m² (both are quoted per m²; without it the quotes do not compare)."""
+    details = service_request.details or {}
+    if not details.get('area_m2'):
+        raise InvalidRequest('details.area_m2 is required')
+    if details.get('description'):
         return
     if any(m.media_type == 'video' for m in service_request.media):
         return

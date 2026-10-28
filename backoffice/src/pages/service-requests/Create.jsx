@@ -222,6 +222,9 @@ export default function ServiceRequestCreate() {
     if (isTiling && !tiling.description.trim() && !savedMedia.some((m) => m.media_type === 'video')) {
       return setError('Cuenta qué hay que instalar.')
     }
+    // Pintura y porcelanato se cotizan por m²: el API no los envía sin ellos.
+    if (isPainting && !(Number(painting.area_m2) > 0)) return setError('Pon los metros de pared (aproximados).')
+    if (isTiling && !(Number(tiling.area_m2) > 0)) return setError('Pon los metros cuadrados (aproximados).')
     if (!isDescribed && filled.length === 0) return setError('Agrega al menos una cosa a la lista, con su descripción.')
     if (isAssembly && filled.some((i) => !i.work)) return setError('Elige qué hacer con cada mueble.')
 
@@ -442,9 +445,9 @@ export default function ServiceRequestCreate() {
                   </select>
                 </Field>
               ))}
-              <Field label="Metros de pared">
+              <Field label="Metros de pared *">
                 <input
-                  type="number" min={1} max={5000} value={painting.area_m2}
+                  required type="number" min={1} max={5000} value={painting.area_m2}
                   onChange={setPaint('area_m2')} className="input" placeholder="Ej. 60"
                 />
               </Field>
@@ -489,9 +492,9 @@ export default function ServiceRequestCreate() {
                   </select>
                 </Field>
               ))}
-              <Field label="Metros cuadrados">
+              <Field label="Metros cuadrados *">
                 <input
-                  type="number" min={1} max={2000} value={tiling.area_m2}
+                  required type="number" min={1} max={2000} value={tiling.area_m2}
                   onChange={setTile('area_m2')} className="input" placeholder="Ej. 35"
                 />
               </Field>

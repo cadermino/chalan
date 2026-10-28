@@ -1681,7 +1681,7 @@ def test_a_painting_request_is_sent_with_a_description_and_no_list(client, paint
 
 
 def test_without_a_description_a_video_is_enough(client, painting):
-    public_id = painting_draft(client, {'area': 'exterior'})
+    public_id = painting_draft(client, {'area': 'exterior', 'area_m2': 80})
 
     assert submit(client, public_id, preferred_date=TOMORROW).status_code == 400
 
@@ -1718,10 +1718,11 @@ def test_blank_painting_answers_are_dropped(client, painting):
 
 def test_an_admin_can_note_a_painting_request_without_items(client, painting, sent):
     response = manual(client, service_type='painting', items=None,
-                      details={'description': 'Fachada de 2 pisos', 'area': 'exterior'})
+                      details={'description': 'Fachada de 2 pisos', 'area': 'exterior', 'area_m2': 120})
 
     assert response.status_code == 201, response.get_json()
-    assert ServiceRequest.query.one().details == {'description': 'Fachada de 2 pisos', 'area': 'exterior'}
+    assert ServiceRequest.query.one().details == {'description': 'Fachada de 2 pisos', 'area': 'exterior',
+                                                  'area_m2': 120}
     assert manual(client, service_type='painting', items=None, details={}).status_code == 400
 
 
@@ -1880,12 +1881,12 @@ def test_photos_follow_the_edit_rule(client, storage):
 
 
 def test_a_painting_explained_only_in_its_video_keeps_it(client, storage, painting):
-    request_id = manual_id(client, service_type='painting', items=None, details={'description': 'Sala'})
+    request_id = manual_id(client, service_type='painting', items=None, details={'description': 'Sala', 'area_m2': 30})
     db.session.add(ServiceRequestMedia(service_request_id=request_id, url='https://x/v.mp4',
                                        storage_key='k-video', media_type='video'))
     db.session.commit()
     video_id = ServiceRequestMedia.query.one().id
-    assert edit(client, request_id, items=None, details={}).status_code == 200
+    assert edit(client, request_id, items=None, details={'area_m2': 30}).status_code == 200
 
     response = client.delete(f'/api/v1/service-requests/{request_id}/media/{video_id}',
                              headers=internal_headers())
@@ -2058,3 +2059,19 @@ def test_the_share_link_carries_what_to_do_without_phones_or_addresses(client, s
     assert body['destination_district'] == 'San Isidro'
     assert body['items'] == [{'description': 'Ropero, cel [número oculto]', 'quantity': 1, 'work': 'both', 'pack': True}]
     assert 'Calle Secreta' not in str(body)
+
+
+
+@pytest.mark.parametrize('service_type, fixture', [('painting', 'painting'), ('masonry', 'tiling')])
+def test_painting_and_tiles_need_the_m2_to_be_sent(client, request, service_type, fixture):
+    request.getfixturevalue(fixture)
+    public_id = create_draft(client, service_type=service_type)
+    client.patch(f'/api/v1/service-requests/{public_id}', json={'details': {'description': 'La sala'}})
+
+    response = submit(client, public_id, preferred_date=TOMORROW)
+
+    assert response.status_code == 400
+    assert 'area_m2' in response.get_json()['message']
+
+    client.patch(f'/api/v1/service-requests/{public_id}', json={'details': {'description': 'La sala', 'area_m2': 25}})
+    assert submit(client, public_id, preferred_date=TOMORROW).status_code == 200

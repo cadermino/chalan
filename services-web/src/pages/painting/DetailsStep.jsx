@@ -20,6 +20,7 @@ export default function DetailsStep() {
   const [m2, setM2] = useState(draft.details.area_m2 ? String(draft.details.area_m2) : '')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [m2Error, setM2Error] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -45,6 +46,12 @@ export default function DetailsStep() {
       return
     }
     const area = Number(m2)
+    // Se cotiza por m²: sin ellos las cotizaciones no se pueden comparar.
+    if (!Number.isInteger(area) || area <= 0) {
+      trackBlocked(SERVICE, 'items', 'area_m2')
+      setM2Error('Pon los metros cuadrados, aunque sean aproximados.')
+      return
+    }
     setSaving(true)
     try {
       await saveDetails({
@@ -92,6 +99,27 @@ export default function DetailsStep() {
         </p>
       </div>
 
+      <div className="mt-6">
+        <label htmlFor="painting-m2" className="mb-1 block text-sm font-semibold text-inkStrong">
+          Metros cuadrados de pared <span className="text-danger">*</span>
+        </label>
+        <input
+          id="painting-m2"
+          type="number"
+          inputMode="numeric"
+          min="1"
+          max="5000"
+          className={`field w-40 ${m2Error ? 'border-danger' : ''}`}
+          placeholder="Ej. 60"
+          value={m2}
+          onChange={(event) => { setM2Error(''); setM2(event.target.value.replace(/\D/g, '').slice(0, 4)) }}
+        />
+        <p className="mt-1 text-xs text-mute">
+          Aproximado está bien: suma el largo de las paredes y multiplícalo por el alto (unos 2,40 m). Si también es el techo, súmalo.
+        </p>
+        {m2Error && <p role="alert" className="mt-1 text-sm text-danger">{m2Error}</p>}
+      </div>
+
       <h2 className="mb-2 mt-8 text-lg font-semibold text-inkStrong">Fotos o videos</h2>
       <MediaUploader
         publicId={draft.publicId}
@@ -119,22 +147,6 @@ export default function DetailsStep() {
             </Chip>
           ))}
         </Question>
-        <div>
-          <label htmlFor="painting-m2" className="mb-1 block text-sm font-semibold text-inkStrong">
-            Metros cuadrados de pared, si los sabes
-          </label>
-          <input
-            id="painting-m2"
-            type="number"
-            inputMode="numeric"
-            min="1"
-            max="5000"
-            className="field w-40"
-            placeholder="Ej. 60"
-            value={m2}
-            onChange={(event) => setM2(event.target.value.replace(/\D/g, '').slice(0, 4))}
-          />
-        </div>
         <Question title="¿La pintura la compras tú o la incluye el pintor?">
           {PAINTING_PAINT_BY.map((o) => (
             <Chip key={o.code} name="paint_by" checked={details.paint_by === o.code} onToggle={() => pick('paint_by', o.code)}>
