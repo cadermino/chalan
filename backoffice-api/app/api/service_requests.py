@@ -355,9 +355,10 @@ def get_service_request(service_request_id):
         'declines': [d.to_dict() for d in declines],
         'payments': [p.to_dict() for p in service_request.payments],
         'customer_quotations_path': _customer_quotations_path(service_request),
-        # Para mandar las fotos y videos por WhatsApp sin la dirección ni el
-        # public_id (los contactos de Google Maps no tienen link de empresa).
-        'media_share_path': f'/v/{make_media_token(service_request)}' if service_request.media else None,
+        # El pedido con sus fotos para mandar por WhatsApp a quien va a cotizar,
+        # sin la dirección ni el public_id (los contactos de Google Maps no
+        # tienen link de empresa). Un borrador no se comparte.
+        'share_path': None if _is_draft(service_request) else f'/v/{make_media_token(service_request)}',
         'links': [
             {
                 'id': c.id,

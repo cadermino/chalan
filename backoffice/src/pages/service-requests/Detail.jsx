@@ -544,12 +544,12 @@ export default function ServiceRequestDetail() {
       {/* Cliente — el mismo bloque que en el detalle de una orden */}
       <Card title="Cliente" className="mb-4">
         <ClientContact phone={request.whatsapp} emptyText="Aún no dejó su WhatsApp (no terminó el formulario)." />
-        {request.media_share_path && (
+        {request.share_path && (
           <div className="mt-4 border-t border-gray-100 pt-4">
             <CopyRow
-              title="Link de fotos y videos"
-              hint="Para mandarlos por WhatsApp a quien vaya a cotizar: sin la dirección ni los datos del cliente. Vence en 30 días."
-              text={`${window.location.origin}${request.media_share_path}`}
+              title="Link del pedido para cotizar"
+              hint="Lo que hay que hacer, el distrito, la fecha y las fotos, para mandarlo por WhatsApp a quien vaya a cotizar. Sin la dirección ni los datos del cliente. Vence en 30 días."
+              text={`${window.location.origin}${request.share_path}`}
             />
           </div>
         )}

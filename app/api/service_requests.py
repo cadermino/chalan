@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from datetime import datetime
 
@@ -489,12 +490,21 @@ def _register_media(service_request):
     return jsonify(_serialize_media(media)), 201
 
 
+# Teléfonos que el cliente haya escrito en el texto libre ("llamar al 987 654 321"):
+# esta página la ve cualquiera con el link.
+_PHONE_IN_TEXT = re.compile(r'\+?\d(?:[\s.-]?\d){6,}')
+
+
+def _without_phones(text):
+    return _PHONE_IN_TEXT.sub('[número oculto]', text) if text else text
+
+
 @api.route('/service-media/<token>', methods=['GET'])
 def get_shared_service_media(token):
-    """Las fotos y videos de un servicio para mandar por WhatsApp (chalan.pe/v/<token>).
-
-    Solo el servicio, el distrito, la fecha y los archivos: ni la calle, ni el
-    cliente, ni el public_id. Ver service_request/media_share.py.
+    """El pedido para mandar por WhatsApp a quien va a cotizar (chalan.pe/v/<token>):
+    el servicio, el distrito (y el de destino en armado), la fecha, lo que hay que
+    hacer y las fotos y videos. Ni la calle, ni el cliente, ni el public_id, y los
+    teléfonos escritos en el texto quedan tapados. Ver service_request/media_share.py.
     """
     service_request_id, problem = read_media_token(token)
     if problem == 'expired':
@@ -502,10 +512,19 @@ def get_shared_service_media(token):
     service_request = db.session.get(ServiceRequest, service_request_id) if service_request_id else None
     if service_request is None or is_draft(service_request):
         return _message('not found', 404)
+    details = dict(service_request.details or {})
+    destination = details.pop('destination', None) or {}
+    if details.get('description'):
+        details['description'] = _without_phones(details['description'])
     return jsonify({
         'service': service_request.service_type.name if service_request.service_type else None,
+        'service_code': service_request.service_type.code if service_request.service_type else None,
         'district': service_request.neighborhood or service_request.city,
+        'destination_district': destination.get('neighborhood') or destination.get('city'),
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
+        'items': [{'description': _without_phones(i.description), 'quantity': i.quantity, 'work': i.work,
+                   'pack': i.pack} for i in service_request.items],
+        'details': details,
         'media': [{'url': m.url, 'media_type': m.media_type, 'content_type': m.content_type}
                   for m in service_request.media],
     }), 200

@@ -3,16 +3,23 @@ import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { getApiBase } from '@/lib/api'
 import { whatsappUrl } from '@/lib/homeServices'
+import { WORK_LABELS, serviceFacts } from '@/lib/serviceLabels'
 
-// Las fotos y videos de un servicio, para mandarlos por WhatsApp a quien va a
-// cotizar (el backoffice copia este link). Sin la dirección, sin datos del
-// cliente y sin el public_id: el token es otro, y vence a los 30 días. El API
-// es GET /api/v1/service-media/<token> (app/api/service_request/media_share.py).
+// El pedido de un servicio para mandarlo por WhatsApp a quien va a cotizar (el
+// backoffice copia este link): qué hay que hacer, el distrito, la fecha y las
+// fotos y videos. Sin la dirección, sin datos del cliente y sin el public_id: el
+// token es otro, y vence a los 30 días; los teléfonos que el cliente escribió
+// llegan tapados. El API es GET /api/v1/service-media/<token>
+// (app/api/service_request/media_share.py).
 
 type SharedMedia = {
   service: string | null
+  service_code: string | null
   district: string | null
+  destination_district: string | null
   preferred_date: string | null
+  items: { description: string; quantity: number; work: string | null; pack: boolean | null }[]
+  details: Record<string, unknown> & { description?: string }
   media: { url: string; media_type: 'image' | 'video'; content_type: string | null }[]
 }
 
@@ -49,19 +56,21 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const { token } = await params
   const result = await getShared(token)
   if (result.status !== 'ok') {
-    return { title: 'Fotos y videos | Chalán', robots: { index: false, follow: false } }
+    return { title: 'Pedido para cotizar | Chalán', robots: { index: false, follow: false } }
   }
   const { data } = result
   const firstPhoto = data.media.find((m) => m.media_type === 'image')?.url
-  const count = data.media.length
-  const description = `${count} ${count === 1 ? 'foto o video' : 'fotos y videos'} para cotizar${
-    formatDay(data.preferred_date) ? `, para el ${formatDay(data.preferred_date)}` : ''}.`
+  const day = formatDay(data.preferred_date)
+  const what = data.details.description
+    || data.items.map((i) => `${i.quantity} × ${i.description}`).join(', ')
+  const description = [day && `Para el ${day}.`, what && `${what.slice(0, 140)}${what.length > 140 ? '…' : ''}`]
+    .filter(Boolean).join(' ') || 'Pedido para cotizar.'
   return {
     title: `${headline(data)} | Chalán`,
     description,
     robots: { index: false, follow: false },
     openGraph: {
-      title: `${headline(data)}: fotos y videos`,
+      title: `${headline(data)}: pedido para cotizar`,
       description,
       siteName: 'Chalán',
       type: 'website',
@@ -82,11 +91,11 @@ export default async function SharedServiceMedia({ params }: { params: Promise<{
           {result.status !== 'ok' ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
               <h1 className="text-xl font-semibold text-gray-900">
-                {result.status === 'expired' ? 'Este link ya venció' : 'No encontramos estas fotos'}
+                {result.status === 'expired' ? 'Este link ya venció' : 'No encontramos este pedido'}
               </h1>
-              <p className="mt-2 text-gray-600">Escríbenos por WhatsApp y te las volvemos a mandar.</p>
+              <p className="mt-2 text-gray-600">Escríbenos por WhatsApp y te lo volvemos a mandar.</p>
               <a
-                href={whatsappUrl('Hola, el link de las fotos del pedido no me abre')}
+                href={whatsappUrl('Hola, el link del pedido no me abre')}
                 className="mt-6 inline-flex rounded-xl bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700"
               >
                 Escribir por WhatsApp
@@ -104,16 +113,61 @@ export default async function SharedServiceMedia({ params }: { params: Promise<{
 
 function SharedBody({ data }: { data: SharedMedia }) {
   const day = formatDay(data.preferred_date)
+  const isAssembly = data.service_code === 'furniture_assembly'
+  const facts = serviceFacts(data.service_code, data.details)
   return (
     <>
-      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Fotos y videos del pedido</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Pedido para cotizar</p>
       <h1 className="mt-2 text-3xl font-bold text-gray-900">{headline(data)}</h1>
       {day && <p className="mt-1 text-gray-600 first-letter:uppercase">{day}</p>}
+      {data.destination_district && (
+        <p className="mt-1 text-gray-600">Se arman en {data.destination_district}.</p>
+      )}
 
+      {(data.details.description || facts.length > 0) && (
+        <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Qué hay que hacer</h2>
+          {data.details.description && (
+            <p className="mt-2 whitespace-pre-line text-gray-900">{data.details.description}</p>
+          )}
+          {facts.length > 0 && (
+            <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+              {facts.map(([label, value]) => (
+                <div key={label} className="flex gap-2">
+                  <dt className="text-gray-500">{label}:</dt>
+                  <dd className="text-gray-900">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </section>
+      )}
+
+      {data.items.length > 0 && (
+        <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            {isAssembly ? 'Muebles' : 'Qué hay'} ({data.items.length})
+          </h2>
+          <ul className="mt-2 divide-y divide-gray-100">
+            {data.items.map((item, index) => (
+              <li key={index} className="flex justify-between gap-3 py-2 text-sm">
+                <span className="text-gray-900">{item.quantity} × {item.description}</span>
+                {isAssembly && (
+                  <span className="shrink-0 text-gray-500">
+                    {[item.work && WORK_LABELS[item.work], item.pack && 'con embalaje'].filter(Boolean).join(', ')}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">Fotos y videos</h2>
       {data.media.length === 0 ? (
-        <p className="mt-8 text-gray-600">Este pedido no tiene fotos ni videos.</p>
+        <p className="mt-2 text-gray-600">El cliente no subió fotos ni videos.</p>
       ) : (
-        <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ul className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.media.map((m) => (
             <li key={m.url} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
               {m.media_type === 'video' ? (
@@ -139,7 +193,7 @@ function SharedBody({ data }: { data: SharedMedia }) {
         <p className="font-semibold text-gray-900">¿Puedes hacerlo?</p>
         <p className="mt-1 text-sm text-gray-600">Respóndenos por WhatsApp con tu precio y coordinamos.</p>
         <a
-          href={whatsappUrl(`Hola, vi las fotos del pedido de ${(data.service || 'servicio').toLowerCase()}${
+          href={whatsappUrl(`Hola, vi el pedido de ${(data.service || 'servicio').toLowerCase()}${
             data.district ? ` en ${data.district}` : ''} y quiero cotizar`)}
           className="mt-4 inline-flex rounded-xl bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700"
         >

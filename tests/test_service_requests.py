@@ -2036,3 +2036,25 @@ def test_move_service_media_takes_old_files_out_of_the_public_id_folder(app, cli
     assert media.storage_key == media_prefix(service_request) + 'abc.jpg'
     assert media.url == f'https://bucket.example/{media.storage_key}'
     assert storage.deleted == [old_key]
+
+
+
+def test_the_share_link_carries_what_to_do_without_phones_or_addresses(client, storage):
+    service_request, token = shared_request(client, storage)
+    service_request.submitted_at = datetime(2026, 10, 5, 12, 0)
+    service_request.neighborhood = 'Miraflores'
+    service_request.details = {
+        'description': 'Sala y comedor. Llamar al 987 654 321 antes de ir.',
+        'destination': {'street': 'Calle Secreta 99', 'neighborhood': 'San Isidro'},
+    }
+    from app.models import ServiceRequestItem
+    db.session.add(ServiceRequestItem(service_request_id=service_request.id, description='Ropero, cel 912345678',
+                                      quantity=1, work='both', pack=True))
+    db.session.commit()
+
+    body = client.get(f'/api/v1/service-media/{token}').get_json()
+
+    assert body['details'] == {'description': 'Sala y comedor. Llamar al [número oculto] antes de ir.'}
+    assert body['destination_district'] == 'San Isidro'
+    assert body['items'] == [{'description': 'Ropero, cel [número oculto]', 'quantity': 1, 'work': 'both', 'pack': True}]
+    assert 'Calle Secreta' not in str(body)

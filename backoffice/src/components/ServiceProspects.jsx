@@ -26,14 +26,28 @@ function describedLines(request) {
   return describedFacts(code, request.details || {}).map(([label, value]) => `${label}: ${value}`)
 }
 
+const GREETING = 'Hola, te escribimos de Chalán (chalan.pe), una plataforma de mudanzas y servicios para el hogar en Lima.'
+const CLOSING = '¿Puedes ese día? Si es así, pásanos tu precio y coordinamos.'
+
 export function serviceMessage(request) {
   const isAssembly = request.service_type?.code === 'furniture_assembly'
   const service = (request.service_type?.name || 'un servicio').toLowerCase()
   const district = districtOf(request)
   const destination = request.details?.destination
+  // Con el link (chalan.pe/v/…) el detalle y las fotos van en la página: el
+  // mensaje queda corto, que en WhatsApp se lee mejor.
+  if (request.share_path) {
+    return [
+      `${GREETING} Tenemos un cliente que necesita ${service}${district ? ` en ${district}` : ''}`
+        + ` para el ${formatDay(request.preferred_date)}.`,
+      '',
+      `Todo el detalle y las fotos: ${window.location.origin}${request.share_path}`,
+      '',
+      CLOSING,
+    ].join('\n')
+  }
   const lines = [
-    'Hola, te escribimos de Chalán (chalan.pe), una plataforma de mudanzas y servicios para el hogar en Lima. '
-      + `Tenemos un cliente que necesita ${service} y buscamos quién lo haga:`,
+    `${GREETING} Tenemos un cliente que necesita ${service} y buscamos quién lo haga:`,
     '',
     `Fecha: ${formatDay(request.preferred_date)}`,
     district && `Distrito: ${district}`,
@@ -43,12 +57,9 @@ export function serviceMessage(request) {
     // Pintura y porcelanato no tienen lista: lo que contó el cliente y sus respuestas.
     request.details?.description && `Qué hay que hacer: ${request.details.description}`,
     ...describedLines(request),
-    // El link de chalan.pe/v/…: muestra los archivos sin la dirección ni el public_id.
-    request.media_share_path
-      ? `Fotos y videos: ${window.location.origin}${request.media_share_path}`
-      : request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
+    request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
     '',
-    '¿Puedes ese día? Si es así, pásanos tu precio y coordinamos.',
+    CLOSING,
   ]
   return lines.filter((line) => line !== false && line !== null && line !== undefined).join('\n')
 }
