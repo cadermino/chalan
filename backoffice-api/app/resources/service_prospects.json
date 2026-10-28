@@ -1,0 +1,15 @@
+{
+  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas.",
+  "furniture_assembly": [
+    {"name": "Armado de Muebles fast", "phone": "918 032 470", "rating": 5.0, "reviews": 148, "address": "Av. San Luis 3171, San Borja", "does": "Solo armado de muebles (armadofast.com)"},
+    {"name": "Especialistas en Armados", "phone": "920 021 277", "rating": 5.0, "reviews": 60, "address": "Av. Gran Pajatén, San Juan de Lurigancho", "does": "Solo armado de muebles"},
+    {"name": "Carpintería Maderas Perú", "phone": "934 798 794", "rating": 4.9, "reviews": 82, "address": "Asoc. Viv. La Inmaculada", "does": "Carpintero, arreglos"},
+    {"name": "Muebles Pegaso", "phone": "947 242 177", "rating": 4.5, "reviews": 57, "address": "", "does": "Muebles e instalación"},
+    {"name": "Carpinteros Furniture Diseños y Acabados", "phone": "939 304 317", "rating": 4.9, "reviews": 32, "address": "", "does": "Carpintero"},
+    {"name": "Carpintero, Melaminero, Ebanista", "phone": "972 207 030", "rating": 4.9, "reviews": 29, "address": "Lizardo Montero 1044", "does": "Melamina a medida"},
+    {"name": "MaestroADomicilio.com", "phone": "924 167 911", "rating": 5.0, "reviews": 26, "address": "", "does": "Servicios generales a domicilio"},
+    {"name": "Líneas 3D – Servicios Melamina", "phone": "956 255 984", "rating": 4.8, "reviews": 18, "address": "Alcedo 190", "does": "Melamina, también da cursos"},
+    {"name": "Carpintería Vargas", "phone": "995 051 414", "rating": 4.0, "reviews": 17, "address": "Urb. Los Próceres, Santiago de Surco", "does": "Carpintero"},
+    {"name": "Carpintero a Domicilio Melamina", "phone": "939 966 333", "rating": 4.7, "reviews": 12, "address": "Av. Paseo de la República 4395", "does": "Carpintero a domicilio"}
+  ]
+}

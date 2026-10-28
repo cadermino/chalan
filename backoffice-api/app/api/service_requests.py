@@ -1,4 +1,6 @@
+import json
 import os
+import pathlib
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -625,3 +627,22 @@ def service_request_carrier_cash(service_request_id):
     """El cliente le pagó al transportista en el lugar (POST): la solicitud queda
     completada. DELETE lo deshace si se registró por error."""
     return _forward_payment(request.method, f'/service-requests/{service_request_id}/carrier-cash')
+
+
+SERVICE_PROSPECTS = pathlib.Path(__file__).resolve().parent.parent / 'resources' / 'service_prospects.json'
+
+
+@api.route('/service-prospects/<code>', methods=['GET'])
+@admin_required
+def service_prospects(code):
+    """Negocios de Google Maps que hacen un servicio, para invitarlos a cotizar.
+
+    Como los transportistas fuera de Lima: contactos en frío, no empresas de la
+    plataforma. La lista la arma el equipo a mano en
+    `resources/service_prospects.json`, por código de servicio; un servicio sin
+    lista devuelve una vacía.
+    """
+    data = json.loads(SERVICE_PROSPECTS.read_text(encoding='utf-8'))
+    prospects = data.get(code) if not code.startswith('_') else None
+    return jsonify({'prospects': prospects if isinstance(prospects, list) else []}), 200
+

@@ -1024,3 +1024,23 @@ def test_recording_payments_requires_an_admin_role(client, submitted, monkeypatc
     assert client.post(f'/api/service-requests/{submitted.id}/reservation', json={}, headers=headers).status_code == 403
     assert client.post(f'/api/service-requests/{submitted.id}/carrier-cash', headers=headers).status_code == 403
     assert calls == []
+
+
+def test_admins_get_the_google_maps_assemblers_to_invite(client, admin):
+    res = client.get('/api/service-prospects/furniture_assembly', headers=admin)
+
+    assert res.status_code == 200
+    prospects = res.get_json()['prospects']
+    assert len(prospects) == 10
+    assert {'name', 'phone', 'rating', 'reviews'} <= set(prospects[0])
+
+
+def test_a_service_without_a_list_gets_none(client, admin):
+    assert client.get('/api/service-prospects/painting', headers=admin).get_json() == {'prospects': []}
+    assert client.get('/api/service-prospects/_source', headers=admin).get_json() == {'prospects': []}
+
+
+def test_only_admins_see_the_prospects(client):
+    url = '/api/service-prospects/furniture_assembly'
+    assert client.get(url, headers=make_user('carrier_company', suffix='p')).status_code == 403
+    assert client.get(url).status_code == 401

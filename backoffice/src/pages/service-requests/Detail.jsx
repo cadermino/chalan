@@ -7,6 +7,7 @@ import ClientContact from '../../components/ClientContact'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
+import ServiceProspects from '../../components/ServiceProspects'
 import { useAuth } from '../../contexts/AuthContext'
 
 // El link se arma con el origen actual, así sirve igual en local y en producción.
@@ -575,6 +576,11 @@ export default function ServiceRequestDetail() {
       <div className="mt-4">
         <DeclinesList declines={request.declines} />
       </div>
+
+      {/* Mientras nadie fue elegido: a quién más invitar a cotizar. */}
+      {request.status !== 'cancelled' && !request.quotations.some((q) => q.status === 'selected') && (
+        <ServiceProspects request={request} />
+      )}
 
       <Card title="Transportistas" className="mt-4">
         {request.links.length === 0
