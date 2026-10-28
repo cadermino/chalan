@@ -21,6 +21,7 @@ const FORM_SERVICES: Record<string, string> = {
   '/embalaje/cotizar': 'packing',
   '/armado/cotizar': 'furniture_assembly',
   '/pintura/cotizar': 'painting',
+  '/porcelanato/cotizar': 'masonry',
 }
 
 const LANDING_SERVICES: Record<string, string> = {

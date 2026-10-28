@@ -1044,3 +1044,10 @@ def test_only_admins_see_the_prospects(client):
     url = '/api/service-prospects/furniture_assembly'
     assert client.get(url, headers=make_user('carrier_company', suffix='p')).status_code == 403
     assert client.get(url).status_code == 401
+
+
+def test_admins_get_the_tile_installers_to_invite(client, admin):
+    prospects = client.get('/api/service-prospects/masonry', headers=admin).get_json()['prospects']
+
+    assert len(prospects) == 8
+    assert all(p['phone'] for p in prospects)

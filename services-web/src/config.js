@@ -58,6 +58,23 @@ const FLOWS = {
     // Pintar dura varios días: se paga al final, no "el día del servicio".
     payDay: 'al terminar el trabajo',
   },
+  masonry: {
+    basePath: '/porcelanato/cotizar',
+    itemsSlug: 'que-instalamos',
+    title: 'Cotiza la instalación de porcelanato | Chalán',
+    header: 'Porcelanato y cerámica',
+    steps: ['Dirección', 'Qué instalamos', 'Fecha y contacto'],
+    addressTitle: '¿Dónde hay que instalar?',
+    addressLead: 'La dirección del depa o la casa.',
+    itemsSummary: 'Qué instalamos',
+    emptyItems: 'Cuéntanos qué hay que instalar, o sube un video explicándolo.',
+    dateHint: 'Para un piso completo te recomendamos pedirlo con unos días de anticipación.',
+    whatsappAsk: 'Hola, quiero cotizar la instalación de porcelanato o cerámica',
+    whatsappSent: 'Hola, acabo de enviar una solicitud de instalación de porcelanato',
+    quotesFrom: 'los instaladores',
+    // Como pintura, dura varios días.
+    payDay: 'al terminar el trabajo',
+  },
 }
 
 const [SERVICE_CODE, FLOW] = Object.entries(FLOWS).find(
@@ -65,6 +82,9 @@ const [SERVICE_CODE, FLOW] = Object.entries(FLOWS).find(
 ) || ['packing', FLOWS.packing]
 
 export const SERVICE = SERVICE_CODE
+// Servicios sin lista de cosas: se cuentan con palabras o en un video, más
+// unas respuestas opcionales en `details` (needs_items: False en el API).
+export const DESCRIBED = ['painting', 'masonry'].includes(SERVICE_CODE)
 export const COPY = FLOW
 export const BASE_PATH = FLOW.basePath
 export const PATHS = {
@@ -110,6 +130,61 @@ export const PAINTING_WALL_ISSUES = [
 ]
 const labelOf = (list, code) => list.find((o) => o.code === code)?.label
 
+// Las preguntas de porcelanato y cerámica, todas opcionales; los codes los valida
+// el API principal (TILING_* en app/api/service_request/types.py).
+export const TILING_MATERIALS = [
+  { code: 'porcelain', label: 'Porcelanato' },
+  { code: 'ceramic', label: 'Cerámica' },
+  { code: 'unsure', label: 'Aún no sé' },
+]
+export const TILING_SURFACES = [
+  { code: 'floor', label: 'Piso' },
+  { code: 'wall', label: 'Pared' },
+  { code: 'both', label: 'Piso y pared' },
+]
+export const TILING_ROOMS = [
+  { code: 'living', label: 'Sala y comedor' },
+  { code: 'bedrooms', label: 'Dormitorios' },
+  { code: 'kitchen', label: 'Cocina' },
+  { code: 'bathrooms', label: 'Baños' },
+  { code: 'terrace', label: 'Terraza o patio' },
+  { code: 'stairs', label: 'Escaleras' },
+]
+export const TILING_SIZES = [
+  { code: '60x60', label: '60×60 o más chico' },
+  { code: '60x120', label: '60×120 o más grande' },
+  { code: 'other', label: 'Otro o no sé' },
+]
+export const TILING_REMOVE_OLD = [
+  { code: 'yes', label: 'Sí, hay que sacar el piso actual' },
+  { code: 'no', label: 'No, el piso está libre' },
+]
+export const TILING_SCREED = [
+  { code: 'yes', label: 'Sí' },
+  { code: 'no', label: 'No' },
+  { code: 'unsure', label: 'No sé' },
+]
+export const TILING_TILES_BY = [
+  { code: 'customer', label: 'Lo compro yo' },
+  { code: 'installer', label: 'Que lo incluya el instalador' },
+  { code: 'unsure', label: 'No sé, que me recomienden' },
+]
+
+// "Porcelanato · Piso · Sala y comedor, cocina · 35 m² · 60×120 o más grande · ..."
+export function tilingFacts(details = {}) {
+  const rooms = (details.rooms || []).map((c) => labelOf(TILING_ROOMS, c)?.toLowerCase())
+  return [
+    labelOf(TILING_MATERIALS, details.material),
+    labelOf(TILING_SURFACES, details.surface),
+    rooms.length ? rooms.join(', ') : null,
+    details.area_m2 ? `${details.area_m2} m²` : null,
+    details.tile_size ? `Formato: ${labelOf(TILING_SIZES, details.tile_size)?.toLowerCase()}` : null,
+    details.remove_old === 'yes' ? 'Hay que sacar el piso actual' : null,
+    details.screed ? `Contrapiso o nivelación: ${labelOf(TILING_SCREED, details.screed)?.toLowerCase()}` : null,
+    details.tiles_by ? `Material: ${labelOf(TILING_TILES_BY, details.tiles_by)?.toLowerCase()}` : null,
+  ].filter(Boolean).join(' · ')
+}
+
 // Las respuestas en una línea, para los resúmenes: "Interior · 2 a 3 ambientes · 45 m²".
 export function paintingFacts(details = {}) {
   const issues = (details.wall_issues || []).map((c) => labelOf(PAINTING_WALL_ISSUES, c)?.toLowerCase())
@@ -120,4 +195,9 @@ export function paintingFacts(details = {}) {
     details.paint_by ? `Pintura: ${labelOf(PAINTING_PAINT_BY, details.paint_by)?.toLowerCase()}` : null,
     issues.length ? `Paredes: ${issues.join(', ')}` : null,
   ].filter(Boolean).join(' · ')
+}
+
+// La línea de resumen del servicio que se cuenta con palabras.
+export function describedFacts(details) {
+  return SERVICE_CODE === 'masonry' ? tilingFacts(details) : paintingFacts(details)
 }

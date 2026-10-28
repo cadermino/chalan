@@ -1886,3 +1886,67 @@ def test_a_painting_explained_only_in_its_video_keeps_it(client, storage, painti
     assert response.status_code == 400
     assert storage.deleted == []
     assert ServiceRequestMedia.query.count() == 1
+
+
+# --- porcelanato y cerámica (masonry): like painting, plus the answers that move the m² price ---
+
+@pytest.fixture
+def tiling(app):
+    tiling = ServiceType(code='masonry', name='Instalación de porcelanato y cerámica', requestable=1)
+    db.session.add(tiling)
+    db.session.commit()
+    return tiling
+
+
+def tiling_draft(client, details=None):
+    public_id = create_draft(client, service_type='masonry')
+    if details is not None:
+        response = client.patch(f'/api/v1/service-requests/{public_id}', json={'details': details})
+        assert response.status_code == 200, response.get_json()
+    return public_id
+
+
+def test_a_tile_request_is_sent_with_its_answers_and_no_list(client, tiling, sent):
+    public_id = tiling_draft(client, {
+        'description': '  Sala y cocina, sacar la cerámica vieja  ', 'material': 'porcelain', 'surface': 'floor',
+        'rooms': ['kitchen', 'living'], 'area_m2': 35, 'tile_size': '60x120', 'remove_old': 'yes',
+        'screed': 'unsure', 'tiles_by': 'customer',
+    })
+
+    response = submit(client, public_id, preferred_date=TOMORROW)
+
+    assert response.status_code == 200, response.get_json()
+    saved = ServiceRequest.query.one()
+    assert saved.details == {
+        'description': 'Sala y cocina, sacar la cerámica vieja', 'material': 'porcelain', 'surface': 'floor',
+        'tile_size': '60x120', 'remove_old': 'yes', 'screed': 'unsure', 'tiles_by': 'customer',
+        'area_m2': 35, 'rooms': ['living', 'kitchen'],
+    }
+    assert saved.items == []
+
+
+def test_a_tile_request_needs_a_description_or_a_video(client, tiling):
+    public_id = tiling_draft(client, {'material': 'ceramic', 'area_m2': 20})
+
+    response = submit(client, public_id, preferred_date=TOMORROW)
+
+    assert response.status_code == 400
+    assert 'install' in response.get_json()['message']
+
+
+@pytest.mark.parametrize('details', [
+    {'material': 'marble'}, {'surface': 'roof'}, {'rooms': ['garage']}, {'rooms': 'kitchen'},
+    {'tile_size': '30x30'}, {'remove_old': 'maybe'}, {'screed': 'si'}, {'tiles_by': 'store'},
+    {'area_m2': 2001}, {'area_m2': '20'},
+])
+def test_invalid_tile_answers_are_rejected(client, tiling, details):
+    public_id = tiling_draft(client)
+
+    response = client.patch(f'/api/v1/service-requests/{public_id}', json={'details': details})
+
+    assert response.status_code == 400
+
+
+def test_the_tile_form_lives_at_its_own_path(client, tiling):
+    from app.api.service_request.types import SERVICE_TYPES
+    assert SERVICE_TYPES['masonry']['form_path'] == '/porcelanato/cotizar'

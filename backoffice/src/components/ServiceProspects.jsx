@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import client from '../api/client'
 import Card from './Card'
 import CopyButton from './CopyButton'
-import { formatDay } from './ServiceRequestView'
+import { describedFacts, formatDay } from './ServiceRequestView'
 
 // Negocios de Google Maps que hacen este servicio (armadores, por ahora), para
 // cuando no hay empresas en la plataforma que lo tomen. Como NearbyCarriers en
@@ -19,6 +19,12 @@ function itemLine(item, isAssembly) {
   return `• ${item.quantity} × ${item.description}${work}${pack}`
 }
 
+function describedLines(request) {
+  const code = request.service_type?.code
+  if (!['painting', 'masonry'].includes(code)) return []
+  return describedFacts(code, request.details || {}).map(([label, value]) => `${label}: ${value}`)
+}
+
 export function serviceMessage(request) {
   const isAssembly = request.service_type?.code === 'furniture_assembly'
   const service = (request.service_type?.name || 'un servicio').toLowerCase()
@@ -33,6 +39,9 @@ export function serviceMessage(request) {
     destination && `Se arman en: ${destination.neighborhood || destination.city || 'otro distrito'}`,
     request.items.length > 0 && `${isAssembly ? 'Muebles' : 'Qué hay'}:`,
     ...request.items.map((item) => itemLine(item, isAssembly)),
+    // Pintura y porcelanato no tienen lista: lo que contó el cliente y sus respuestas.
+    request.details?.description && `Qué hay que hacer: ${request.details.description}`,
+    ...describedLines(request),
     request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
     '',
     '¿Puedes ese día? Si es así, pásanos tu precio y coordinamos.',

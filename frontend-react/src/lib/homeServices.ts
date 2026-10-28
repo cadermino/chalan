@@ -1,7 +1,7 @@
 // Servicios a domicilio de las landings con ServiceLanding. Lo usan sus landings
 // y el llamado al final de sus posts del blog, así el texto del WhatsApp y la
 // ruta viven en un solo lugar. Los que tienen formulario en services-web llevan
-// `formUrl` (pintura): ahí el botón principal es el formulario y WhatsApp queda
+// `formUrl` (pintura, porcelanato): ahí el botón principal es el formulario y WhatsApp queda
 // de segunda opción. Los demás se cotizan solo por WhatsApp.
 
 export const WHATSAPP_NUMBER = '51972643007'
@@ -51,10 +51,11 @@ export const HOME_SERVICES: Record<
     name: 'Instalación de porcelanato y cerámica',
     code: 'masonry',
     whatsappText: 'Hola, quiero cotizar la instalación de porcelanato o cerámica',
+    formUrl: '/porcelanato/cotizar',
     blogCta: {
       eyebrow: '¿Necesitas quien lo instale?',
-      title: 'Cotiza la instalación por WhatsApp',
-      body: 'Mándanos fotos del ambiente, los metros y el formato de las piezas. Te respondemos con el precio.',
+      title: 'Cotiza la instalación en 2 minutos',
+      body: 'Cuéntanos qué hay que instalar o súbenos un video del ambiente. Los instaladores te cotizan y eliges. Lima, Callao y Huancayo.',
     },
   },
   // Se cotiza con visita técnica (sin costo), no con precio por m².

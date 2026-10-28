@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import client from '../../api/client'
-import { PAINTING_LABELS } from '../../components/ServiceRequestView'
+import { PAINTING_LABELS, TILING_LABELS } from '../../components/ServiceRequestView'
 import ServiceRequestMediaField from '../../components/ServiceRequestMediaField'
 import { uploadPendingMedia } from '../../lib/serviceRequestMedia'
 
@@ -61,6 +61,17 @@ function Field({ label, hint, children, span = 1 }) {
 const isDraft = (request) => request.status === 'pending' && !request.submitted_at
 
 // Lo guardado, en la forma del formulario. El WhatsApp vuelve sin el +51.
+// Porcelanato y cerámica (`masonry`): como pintura, sin lista; las respuestas que
+// mueven el precio por m² son todas opcionales.
+const TILING_CHOICES = ['material', 'surface', 'tile_size', 'remove_old', 'screed', 'tiles_by']
+const TILING_CHOICE_LABELS = {
+  material: 'Material', surface: 'Dónde', tile_size: 'Formato', remove_old: 'Sacar el piso actual',
+  screed: 'Contrapiso o nivelar', tiles_by: 'Quién compra',
+}
+const EMPTY_TILING = {
+  description: '', area_m2: '', rooms: [], ...Object.fromEntries(TILING_CHOICES.map((key) => [key, ''])),
+}
+
 function formFromRequest(request) {
   const destination = request.details?.destination
   return {
@@ -88,6 +99,13 @@ function formFromRequest(request) {
       area_m2: request.details?.area_m2 ? String(request.details.area_m2) : '', paint_by: request.details?.paint_by || '',
       wall_issues: request.details?.wall_issues || [],
     },
+    tiling: {
+      ...EMPTY_TILING,
+      ...Object.fromEntries(TILING_CHOICES.map((key) => [key, request.details?.[key] || ''])),
+      description: request.details?.description || '',
+      area_m2: request.details?.area_m2 ? String(request.details.area_m2) : '',
+      rooms: request.details?.rooms || [],
+    },
   }
 }
 
@@ -112,6 +130,7 @@ export default function ServiceRequestCreate() {
   const [destination, setDestination] = useState(EMPTY_DESTINATION)
   // Pintura no tiene lista: qué pintar y las respuestas rápidas (todas opcionales).
   const [painting, setPainting] = useState({ description: '', area: '', size: '', area_m2: '', paint_by: '', wall_issues: [] })
+  const [tiling, setTiling] = useState(EMPTY_TILING)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [savedMedia, setSavedMedia] = useState([])
@@ -133,6 +152,7 @@ export default function ServiceRequestCreate() {
         setItems(loaded.items)
         setDestination(loaded.destination)
         setPainting(loaded.painting)
+        setTiling(loaded.tiling)
         setSavedMedia(request.media)
       })
       .catch((err) => setLoadError(err.response?.status === 404 ? 'El servicio no existe.' : 'No se pudo cargar.'))
@@ -159,6 +179,13 @@ export default function ServiceRequestCreate() {
   // materiales de embalaje) y, si alguno se arma en otro lado, el destino.
   const isAssembly = serviceCode === 'furniture_assembly'
   const isPainting = serviceCode === 'painting'
+  const isTiling = serviceCode === 'masonry'
+  // Sin lista de cosas: se cuenta con palabras (o en un video).
+  const isDescribed = isPainting || isTiling
+  const setTile = (key) => (e) => setTiling((t) => ({ ...t, [key]: e.target.value }))
+  const toggleRoom = (code) => setTiling((t) => ({
+    ...t, rooms: t.rooms.includes(code) ? t.rooms.filter((c) => c !== code) : [...t.rooms, code],
+  }))
   const setPaint = (key) => (e) => setPainting((p) => ({ ...p, [key]: e.target.value }))
   const toggleIssue = (code) => setPainting((p) => ({
     ...p,
@@ -192,7 +219,10 @@ export default function ServiceRequestCreate() {
     if (isPainting && !painting.description.trim() && !savedMedia.some((m) => m.media_type === 'video')) {
       return setError('Cuenta qué hay que pintar.')
     }
-    if (!isPainting && filled.length === 0) return setError('Agrega al menos una cosa a la lista, con su descripción.')
+    if (isTiling && !tiling.description.trim() && !savedMedia.some((m) => m.media_type === 'video')) {
+      return setError('Cuenta qué hay que instalar.')
+    }
+    if (!isDescribed && filled.length === 0) return setError('Agrega al menos una cosa a la lista, con su descripción.')
     if (isAssembly && filled.some((i) => !i.work)) return setError('Elige qué hacer con cada mueble.')
 
     setSaving(true)
@@ -208,7 +238,7 @@ export default function ServiceRequestCreate() {
         country: original?.country || 'PE',
         map_url: form.mapUrl,
       },
-      ...(!isPainting && {
+      ...(!isDescribed && {
         items: filled.map(({ description, quantity, materials: codes, work, pack }) => (isAssembly
           ? { description, quantity, materials: pack ? codes : [], work, pack }
           : { description, quantity, materials: codes })),
@@ -221,6 +251,14 @@ export default function ServiceRequestCreate() {
           paint_by: painting.paint_by || null,
           area_m2: Number(painting.area_m2) > 0 ? Number(painting.area_m2) : null,
           wall_issues: painting.wall_issues,
+        },
+      }),
+      ...(isTiling && {
+        details: {
+          description: tiling.description,
+          ...Object.fromEntries(TILING_CHOICES.map((key) => [key, tiling[key] || null])),
+          rooms: tiling.rooms,
+          area_m2: Number(tiling.area_m2) > 0 ? Number(tiling.area_m2) : null,
         },
       }),
       ...(needsDestination && {
@@ -432,7 +470,54 @@ export default function ServiceRequestCreate() {
           </div>
         )}
 
-        {!isPainting && (
+        {isTiling && (
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">Qué hay que instalar</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Descripción *" span={2} hint="Lo que contó el cliente: ambientes, metros, si hay que sacar el piso.">
+                <textarea
+                  required rows={4} maxLength={2000} value={tiling.description}
+                  onChange={setTile('description')} className="input"
+                  placeholder="Ej. Porcelanato en sala, comedor y cocina, unos 35 m². Sacar la cerámica actual."
+                />
+              </Field>
+              {TILING_CHOICES.map((key) => (
+                <Field key={key} label={TILING_CHOICE_LABELS[key]}>
+                  <select value={tiling[key]} onChange={setTile(key)} className="input">
+                    <option value="">No dijo</option>
+                    {Object.entries(TILING_LABELS[key]).map(([code, text]) => <option key={code} value={code}>{text}</option>)}
+                  </select>
+                </Field>
+              ))}
+              <Field label="Metros cuadrados">
+                <input
+                  type="number" min={1} max={2000} value={tiling.area_m2}
+                  onChange={setTile('area_m2')} className="input" placeholder="Ej. 35"
+                />
+              </Field>
+              <Field label="Ambientes" span={2}>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(TILING_LABELS.rooms).map(([code, text]) => {
+                    const checked = tiling.rooms.includes(code)
+                    return (
+                      <label
+                        key={code}
+                        className={`cursor-pointer select-none rounded-full border px-3 py-1 text-xs ${
+                          checked ? 'border-teal-600 bg-teal-50 text-teal-800' : 'border-gray-300 text-gray-500 hover:border-gray-400'
+                        }`}
+                      >
+                        <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleRoom(code)} />
+                        {checked ? '✓ ' : ''}{text}
+                      </label>
+                    )
+                  })}
+                </div>
+              </Field>
+            </div>
+          </div>
+        )}
+
+        {!isDescribed && (
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">
             {isAssembly ? 'Muebles' : 'Qué hay que embalar'}

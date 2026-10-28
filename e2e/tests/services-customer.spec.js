@@ -204,3 +204,50 @@ test.describe('A painting customer, start to finish', () => {
     await expect(admin.getByText('45 m²')).toBeVisible();
   });
 });
+
+// Porcelanato y cerámica (`masonry`): como pintura, se cuenta con palabras, más
+// las respuestas que mueven el precio por m². No se envía: en local hay una
+// empresa de prueba con el servicio marcado y un correo real, y enviar la
+// avisaría. El envío lo cubren los tests del API (test_a_tile_request_...).
+test.describe('A tile installation customer', () => {
+  const TILE_FORM = '/porcelanato/cotizar';
+
+  test('the landing sends them to the form, WhatsApp stays as a second option', async ({ page }) => {
+    await page.goto('/instalacion-de-porcelanato', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('main a[href="/porcelanato/cotizar"]').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Prefiero escribir por WhatsApp' })).toHaveAttribute('href', /wa\.me/);
+  });
+
+  test('tells what to install and sees it summed up before sending', async ({ page }) => {
+    await mockGooglePlaces(page);
+
+    await page.goto(TILE_FORM, { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: '¿Dónde hay que instalar?' })).toBeVisible();
+    await pickAddress(page, 'Av. Pardo 610, Miraflores, Lima, Perú');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    // Sin descripción ni video no avanza.
+    await expect(page.getByRole('heading', { name: '¿Qué quieres instalar?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByRole('alert')).toContainText('Cuéntanos qué hay que instalar');
+
+    await page.fill('#tiling-description', 'Porcelanato en sala y cocina. Sacar la cerámica actual.');
+    await page.getByText('Porcelanato', { exact: true }).click();
+    await page.getByText('Piso', { exact: true }).click();
+    await page.getByText('Sala y comedor', { exact: true }).click();
+    await page.getByText('Cocina', { exact: true }).click();
+    await page.fill('#tiling-m2', '35');
+    await page.getByText('60×120 o más grande', { exact: true }).click();
+    await page.getByText('Sí, hay que sacar el piso actual', { exact: true }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await expect(page.getByText('Porcelanato en sala y cocina. Sacar la cerámica actual.')).toBeVisible();
+    await expect(page.getByText(
+      'Porcelanato · Piso · sala y comedor, cocina · 35 m² · Formato: 60×120 o más grande · Hay que sacar el piso actual',
+    )).toBeVisible();
+
+    await page.evaluate(() => localStorage.removeItem('chalan_masonry_request'));
+  });
+});

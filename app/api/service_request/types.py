@@ -78,9 +78,11 @@ def _choice(details, key, choices):
     return value
 
 
-def validate_painting_details(details):
-    """Every field is optional here: what is required (a description, or a
-    video that explains it) is checked on submit, once the media is in."""
+def _described_details(details, max_m2, choices, lists=()):
+    """The details of a service told in words instead of a list: an optional
+    description, an optional area in m², single choices and multiple choices.
+    Every field is optional here: what is required (a description, or a video
+    that explains it) is checked on submit, once the media is in."""
     if details is None:
         return {}
     if not isinstance(details, dict):
@@ -95,30 +97,70 @@ def validate_painting_details(details):
             raise InvalidRequest(f'details.description must be at most {PAINTING_DESCRIPTION_MAX} characters')
         if description:
             cleaned['description'] = description
-    for key, choices in (('area', PAINTING_AREAS), ('size', PAINTING_SIZES), ('paint_by', PAINTING_PAINT_BY)):
-        value = _choice(details, key, choices)
+    for key, options in choices:
+        value = _choice(details, key, options)
         if value is not None:
             cleaned[key] = value
     m2 = details.get('area_m2')
     if m2 not in (None, ''):
-        if isinstance(m2, bool) or not isinstance(m2, int) or not 1 <= m2 <= PAINTING_M2_MAX:
-            raise InvalidRequest(f'details.area_m2 must be a whole number from 1 to {PAINTING_M2_MAX}')
+        if isinstance(m2, bool) or not isinstance(m2, int) or not 1 <= m2 <= max_m2:
+            raise InvalidRequest(f'details.area_m2 must be a whole number from 1 to {max_m2}')
         cleaned['area_m2'] = m2
-    issues = details.get('wall_issues')
-    if issues not in (None, []):
-        if not isinstance(issues, list) or any(i not in PAINTING_WALL_ISSUES for i in issues):
-            raise InvalidRequest(f'details.wall_issues must be a list of: {", ".join(PAINTING_WALL_ISSUES)}')
-        cleaned['wall_issues'] = [i for i in PAINTING_WALL_ISSUES if i in issues]
+    for key, options in lists:
+        values = details.get(key)
+        if values not in (None, []):
+            if not isinstance(values, list) or any(v not in options for v in values):
+                raise InvalidRequest(f'details.{key} must be a list of: {", ".join(options)}')
+            cleaned[key] = [v for v in options if v in values]
     return cleaned
 
 
-def check_painting_submit(service_request):
-    """The painter needs to know what to paint: written, or told in a video."""
+def validate_painting_details(details):
+    return _described_details(
+        details, PAINTING_M2_MAX,
+        choices=(('area', PAINTING_AREAS), ('size', PAINTING_SIZES), ('paint_by', PAINTING_PAINT_BY)),
+        lists=(('wall_issues', PAINTING_WALL_ISSUES),),
+    )
+
+
+def _check_described(service_request, what):
+    """Whoever quotes needs to know the job: written, or told in a video."""
     if (service_request.details or {}).get('description'):
         return
     if any(m.media_type == 'video' for m in service_request.media):
         return
-    raise InvalidRequest('describe what to paint, or upload a video explaining it')
+    raise InvalidRequest(f'describe what to {what}, or upload a video explaining it')
+
+
+def check_painting_submit(service_request):
+    _check_described(service_request, 'paint')
+
+
+# Tile installation (porcelanato y cerámica), code `masonry`: like painting, told
+# in words or a video, plus optional answers that move the price per m² (format,
+# removing the old floor, levelling). Labels in services-web config.js and the
+# backoffice TILING_LABELS.
+TILING_MATERIALS = ('porcelain', 'ceramic', 'unsure')
+TILING_SURFACES = ('floor', 'wall', 'both')
+TILING_ROOMS = ('living', 'bedrooms', 'kitchen', 'bathrooms', 'terrace', 'stairs')
+TILING_SIZES = ('60x60', '60x120', 'other')
+TILING_REMOVE_OLD = ('yes', 'no')
+TILING_SCREED = ('yes', 'no', 'unsure')
+TILING_TILES_BY = ('customer', 'installer', 'unsure')
+TILING_M2_MAX = 2000
+
+
+def validate_tiling_details(details):
+    return _described_details(
+        details, TILING_M2_MAX,
+        choices=(('material', TILING_MATERIALS), ('surface', TILING_SURFACES), ('tile_size', TILING_SIZES),
+                 ('remove_old', TILING_REMOVE_OLD), ('screed', TILING_SCREED), ('tiles_by', TILING_TILES_BY)),
+        lists=(('rooms', TILING_ROOMS),),
+    )
+
+
+def check_tiling_submit(service_request):
+    _check_described(service_request, 'install')
 
 
 # Code (lu_service_types.code) -> what is specific to that service. A new
@@ -145,6 +187,12 @@ SERVICE_TYPES = {
         'form_path': '/pintura/cotizar',
         'validate_details': validate_painting_details,
         'check_submit': check_painting_submit,
+        'needs_items': False,
+    },
+    'masonry': {
+        'form_path': '/porcelanato/cotizar',
+        'validate_details': validate_tiling_details,
+        'check_submit': check_tiling_submit,
         'needs_items': False,
     },
 }

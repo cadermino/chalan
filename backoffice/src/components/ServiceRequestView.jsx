@@ -97,18 +97,50 @@ export const PAINTING_LABELS = {
   wall_issues: { humidity: 'Humedad', cracks: 'Rajaduras', putty: 'Necesitan empaste' },
 }
 
-function PaintingDetails({ details, media }) {
-  const facts = [
+// Las de porcelanato y cerámica (`masonry`). Codes: TILING_* en
+// app/api/service_request/types.py; las mismas etiquetas que services-web.
+export const TILING_LABELS = {
+  material: { porcelain: 'Porcelanato', ceramic: 'Cerámica', unsure: 'Aún no sabe' },
+  surface: { floor: 'Piso', wall: 'Pared', both: 'Piso y pared' },
+  rooms: {
+    living: 'Sala y comedor', bedrooms: 'Dormitorios', kitchen: 'Cocina', bathrooms: 'Baños',
+    terrace: 'Terraza o patio', stairs: 'Escaleras',
+  },
+  tile_size: { '60x60': '60×60 o más chico', '60x120': '60×120 o más grande', other: 'Otro o no sabe' },
+  remove_old: { yes: 'Sí', no: 'No, el piso está libre' },
+  screed: { yes: 'Sí', no: 'No', unsure: 'No sabe' },
+  tiles_by: { customer: 'Lo compra el cliente', installer: 'Lo incluye el instalador', unsure: 'No sabe, que le recomienden' },
+}
+
+// Las respuestas de un servicio que se cuenta con palabras, en [etiqueta, valor].
+export function describedFacts(code, details = {}) {
+  if (code === 'masonry') {
+    return [
+      ['Material', TILING_LABELS.material[details.material]],
+      ['Dónde', TILING_LABELS.surface[details.surface]],
+      ['Ambientes', (details.rooms || []).map((c) => TILING_LABELS.rooms[c]).join(', ') || null],
+      ['Metros', details.area_m2 ? `${details.area_m2} m²` : null],
+      ['Formato', TILING_LABELS.tile_size[details.tile_size]],
+      ['Sacar el piso actual', TILING_LABELS.remove_old[details.remove_old]],
+      ['Contrapiso o nivelar', TILING_LABELS.screed[details.screed]],
+      ['Quién compra', TILING_LABELS.tiles_by[details.tiles_by]],
+    ].filter(([, value]) => value)
+  }
+  return [
     ['Dónde', PAINTING_LABELS.area[details.area]],
     ['Cuánto', PAINTING_LABELS.size[details.size]],
     ['Metros de pared', details.area_m2 ? `${details.area_m2} m²` : null],
     ['Pintura', PAINTING_LABELS.paint_by[details.paint_by]],
     ['Paredes', (details.wall_issues || []).map((c) => PAINTING_LABELS.wall_issues[c]).join(', ') || null],
   ].filter(([, value]) => value)
+}
+
+function DescribedDetails({ code, details, media }) {
+  const facts = describedFacts(code, details)
   const hasVideo = media.some((m) => m.media_type === 'video')
 
   return (
-    <Card title="Qué hay que pintar">
+    <Card title={code === 'masonry' ? 'Qué hay que instalar' : 'Qué hay que pintar'}>
       {details.description
         ? <p className="whitespace-pre-line text-sm text-gray-900">{details.description}</p>
         : <p className="text-sm text-gray-500">{hasVideo ? 'Lo explica en el video.' : 'Sin descripción.'}</p>}
@@ -131,8 +163,8 @@ export default function ServiceRequestView({ request }) {
   // Armado de muebles: cada mueble dice qué hacer y si se embala, y los que se
   // desarman y arman van a una segunda dirección.
   const isAssembly = request.service_type?.code === 'furniture_assembly'
-  // Pintura no tiene lista: lo que pide va en details (o en un video).
-  const isPainting = request.service_type?.code === 'painting'
+  // Pintura y porcelanato no tienen lista: lo que piden va en details (o en un video).
+  const isDescribed = ['painting', 'masonry'].includes(request.service_type?.code)
   const destination = request.details?.destination
 
   return (
@@ -170,9 +202,11 @@ export default function ServiceRequestView({ request }) {
         </Card>
       )}
 
-      {isPainting && <PaintingDetails details={request.details || {}} media={request.media} />}
+      {isDescribed && (
+        <DescribedDetails code={request.service_type?.code} details={request.details || {}} media={request.media} />
+      )}
 
-      {!isPainting && (
+      {!isDescribed && (
       <Card title={`${isAssembly ? 'Muebles' : 'Qué hay que embalar'} (${request.items.length})`}>
         <div className="relative overflow-x-auto">
           <table className="w-full text-sm">

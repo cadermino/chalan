@@ -8,6 +8,7 @@ import AddressStep from './pages/AddressStep'
 import PackingItemsStep from './pages/packing/ItemsStep'
 import FurnitureItemsStep from './pages/furniture/ItemsStep'
 import PaintingDetailsStep from './pages/painting/DetailsStep'
+import TilingDetailsStep from './pages/tiling/DetailsStep'
 import ContactStep from './pages/ContactStep'
 import Sent from './pages/Sent'
 import Quotations from './pages/Quotations'
@@ -16,6 +17,7 @@ import Quotations from './pages/Quotations'
 const ItemsStep = {
   furniture_assembly: FurnitureItemsStep,
   painting: PaintingDetailsStep,
+  masonry: TilingDetailsStep,
 }[SERVICE] || PackingItemsStep
 
 // Equivalente a `requiresPreviousComplete` del router del flujo de mudanza: no se

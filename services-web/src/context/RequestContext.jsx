@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createRequest, getRequest, submitRequest, updateRequest } from '../api'
-import { SERVICE } from '../config'
+import { DESCRIBED, SERVICE } from '../config'
 import storage from '../storage'
 import { tagSession, track } from '../analytics'
 
@@ -46,7 +46,7 @@ function fromServer(data) {
     address: toForm(data.address),
     items: (data.items || []).map((item) => newItem({ ...item, pack: Boolean(item.pack) })),
     destination: destination ? toForm(destination) : null,
-    details: SERVICE === 'painting' ? (data.details || {}) : {},
+    details: DESCRIBED ? (data.details || {}) : {},
     media: data.media || [],
     preferredDate: data.preferred_date || '',
     // El servidor guarda +51987654321; el campo muestra solo los 9 dígitos.
@@ -54,10 +54,10 @@ function fromServer(data) {
   }
 }
 
-// Si el segundo paso está hecho. Pintura no tiene lista: basta con contar qué
-// pintar, o con un video que lo explique (misma regla que check_painting_submit).
+// Si el segundo paso está hecho. Pintura y porcelanato no tienen lista: basta
+// con contarlo, o con un video que lo explique (misma regla que _check_described).
 export function itemsDone(draft) {
-  if (SERVICE === 'painting') {
+  if (DESCRIBED) {
     return Boolean(draft.details.description) || draft.media.some((m) => m.media_type === 'video')
   }
   return draft.items.length > 0

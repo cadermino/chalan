@@ -1,15 +1,151 @@
 {
-  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas.",
+  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas. Para masonry (porcelanato y cerámica): instalación de porcelanato Lima, maestro de obra acabados a domicilio Lima, remodelación de baños y cocinas Lima, remodelaciones y acabados de departamentos Lima; casi no hay instaladores con reseñas, así que entran contratistas y albañiles.",
   "furniture_assembly": [
-    {"name": "Armado de Muebles fast", "phone": "918 032 470", "rating": 5.0, "reviews": 148, "address": "Av. San Luis 3171, San Borja", "does": "Solo armado de muebles (armadofast.com)"},
-    {"name": "Especialistas en Armados", "phone": "920 021 277", "rating": 5.0, "reviews": 60, "address": "Av. Gran Pajatén, San Juan de Lurigancho", "does": "Solo armado de muebles"},
-    {"name": "Carpintería Maderas Perú", "phone": "934 798 794", "rating": 4.9, "reviews": 82, "address": "Asoc. Viv. La Inmaculada", "does": "Carpintero, arreglos"},
-    {"name": "Muebles Pegaso", "phone": "947 242 177", "rating": 4.5, "reviews": 57, "address": "", "does": "Muebles e instalación"},
-    {"name": "Carpinteros Furniture Diseños y Acabados", "phone": "939 304 317", "rating": 4.9, "reviews": 32, "address": "", "does": "Carpintero"},
-    {"name": "Carpintero, Melaminero, Ebanista", "phone": "972 207 030", "rating": 4.9, "reviews": 29, "address": "Lizardo Montero 1044", "does": "Melamina a medida"},
-    {"name": "MaestroADomicilio.com", "phone": "924 167 911", "rating": 5.0, "reviews": 26, "address": "", "does": "Servicios generales a domicilio"},
-    {"name": "Líneas 3D – Servicios Melamina", "phone": "956 255 984", "rating": 4.8, "reviews": 18, "address": "Alcedo 190", "does": "Melamina, también da cursos"},
-    {"name": "Carpintería Vargas", "phone": "995 051 414", "rating": 4.0, "reviews": 17, "address": "Urb. Los Próceres, Santiago de Surco", "does": "Carpintero"},
-    {"name": "Carpintero a Domicilio Melamina", "phone": "939 966 333", "rating": 4.7, "reviews": 12, "address": "Av. Paseo de la República 4395", "does": "Carpintero a domicilio"}
+    {
+      "name": "Armado de Muebles fast",
+      "phone": "918 032 470",
+      "rating": 5.0,
+      "reviews": 148,
+      "address": "Av. San Luis 3171, San Borja",
+      "does": "Solo armado de muebles (armadofast.com)"
+    },
+    {
+      "name": "Especialistas en Armados",
+      "phone": "920 021 277",
+      "rating": 5.0,
+      "reviews": 60,
+      "address": "Av. Gran Pajatén, San Juan de Lurigancho",
+      "does": "Solo armado de muebles"
+    },
+    {
+      "name": "Carpintería Maderas Perú",
+      "phone": "934 798 794",
+      "rating": 4.9,
+      "reviews": 82,
+      "address": "Asoc. Viv. La Inmaculada",
+      "does": "Carpintero, arreglos"
+    },
+    {
+      "name": "Muebles Pegaso",
+      "phone": "947 242 177",
+      "rating": 4.5,
+      "reviews": 57,
+      "address": "",
+      "does": "Muebles e instalación"
+    },
+    {
+      "name": "Carpinteros Furniture Diseños y Acabados",
+      "phone": "939 304 317",
+      "rating": 4.9,
+      "reviews": 32,
+      "address": "",
+      "does": "Carpintero"
+    },
+    {
+      "name": "Carpintero, Melaminero, Ebanista",
+      "phone": "972 207 030",
+      "rating": 4.9,
+      "reviews": 29,
+      "address": "Lizardo Montero 1044",
+      "does": "Melamina a medida"
+    },
+    {
+      "name": "MaestroADomicilio.com",
+      "phone": "924 167 911",
+      "rating": 5.0,
+      "reviews": 26,
+      "address": "",
+      "does": "Servicios generales a domicilio"
+    },
+    {
+      "name": "Líneas 3D – Servicios Melamina",
+      "phone": "956 255 984",
+      "rating": 4.8,
+      "reviews": 18,
+      "address": "Alcedo 190",
+      "does": "Melamina, también da cursos"
+    },
+    {
+      "name": "Carpintería Vargas",
+      "phone": "995 051 414",
+      "rating": 4.0,
+      "reviews": 17,
+      "address": "Urb. Los Próceres, Santiago de Surco",
+      "does": "Carpintero"
+    },
+    {
+      "name": "Carpintero a Domicilio Melamina",
+      "phone": "939 966 333",
+      "rating": 4.7,
+      "reviews": 12,
+      "address": "Av. Paseo de la República 4395",
+      "does": "Carpintero a domicilio"
+    }
+  ],
+  "masonry": [
+    {
+      "name": "VSOS Ingeniería y Servicios Generales",
+      "phone": "926 923 066",
+      "rating": 5.0,
+      "reviews": 105,
+      "address": "Doña Catalina 417",
+      "does": "Contratista general (vsosingenieria.com)"
+    },
+    {
+      "name": "Albañiles TS",
+      "phone": "924 101 933",
+      "rating": 5.0,
+      "reviews": 33,
+      "address": "A.H. Horacio Zeballos Gámez Mz. K Lt. 6, Sector F",
+      "does": "Albañiles"
+    },
+    {
+      "name": "MaestroADomicilio.com",
+      "phone": "924 167 911",
+      "rating": 5.0,
+      "reviews": 26,
+      "address": "Bregante 147A",
+      "does": "Servicios generales a domicilio"
+    },
+    {
+      "name": "Maestro Albañil en Lima – Alejandro",
+      "phone": "983 869 417",
+      "rating": 4.9,
+      "reviews": 24,
+      "address": "",
+      "does": "Albañil"
+    },
+    {
+      "name": "Chavín Engineering & Construction",
+      "phone": "01 349 6502",
+      "rating": 4.4,
+      "reviews": 22,
+      "address": "Alameda del Corregidor 124",
+      "does": "Constructora (teléfono fijo)"
+    },
+    {
+      "name": "Construcciones y Remodelaciones con Drywall",
+      "phone": "923 592 392",
+      "rating": 5.0,
+      "reviews": 15,
+      "address": "Jr. Federico Gallese Taricchi 493",
+      "does": "Remodelaciones y drywall"
+    },
+    {
+      "name": "D'Palma Contratistas",
+      "phone": "995 010 509",
+      "rating": 5.0,
+      "reviews": 11,
+      "address": "Av. Paseo de la República 4523",
+      "does": "Constructora"
+    },
+    {
+      "name": "Maestro albañil y enchapador de porcelanato",
+      "phone": "989 762 962",
+      "rating": 5.0,
+      "reviews": 4,
+      "address": "San Juan de Miraflores",
+      "does": "Enchapador de porcelanato y mayólica (pocas reseñas)"
+    }
   ]
 }

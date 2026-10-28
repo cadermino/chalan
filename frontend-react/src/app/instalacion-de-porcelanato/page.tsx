@@ -96,8 +96,9 @@ export default function InstalacionDePorcelanato() {
         </>
       }
       heroSub="Pisos de departamentos y casas, con zócalo y fragua. Y si hace falta, contrapiso y albañilería."
-      ctaBody="Mándanos fotos del ambiente, los metros y el formato de las piezas. Te respondemos con el precio por WhatsApp."
+      ctaBody="Cuéntanos qué hay que instalar, o súbenos un video del ambiente. Los instaladores te cotizan y eliges."
       whatsappText={service.whatsappText}
+      formUrl={service.formUrl}
       prices={PRICES}
       priceUnit="por m²"
       pricesTitle={<>Precios de instalación<br />por metro cuadrado.</>}
@@ -157,14 +158,14 @@ export default function InstalacionDePorcelanato() {
       steps={[
         {
           n: '01',
-          title: 'Mándanos fotos y medidas',
-          body: 'Por WhatsApp: fotos del ambiente, los metros y el formato de las piezas.',
+          title: 'Cuéntanos qué instalar',
+          body: 'En el formulario: escríbelo o sube un video del ambiente. Si sabes los metros, el formato de las piezas o si hay que sacar el piso actual, mejor.',
           icon: 'chat',
         },
         {
           n: '02',
-          title: 'Te cotizamos y agendamos',
-          body: 'Te confirmamos el precio, cuánto material comprar y coordinamos los días de trabajo.',
+          title: 'Comparas y agendas',
+          body: 'Te llegan las cotizaciones por WhatsApp, eliges una y reservas con Yape. El resto se paga al terminar.',
           icon: 'cal',
         },
         {
@@ -177,8 +178,8 @@ export default function InstalacionDePorcelanato() {
       faq={FAQ}
       final={{
         eyebrow: 'Agenda tu instalación',
-        title: <>Pisos nuevos, bien nivelados.<br /><em>Cotiza por WhatsApp.</em></>,
-        lede: 'Mándanos fotos del ambiente y los metros. Te respondemos con el precio y agendamos.',
+        title: <>Pisos nuevos, bien nivelados.<br /><em>Cotiza en 2 minutos.</em></>,
+        lede: 'Cuéntanos qué instalar o súbenos un video. Te llegan las cotizaciones y eliges.',
       }}
       service={{
         name: 'Instalación de porcelanato y cerámica',

@@ -3,43 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import MediaUploader from '../../components/MediaUploader'
 import StepNav from '../../components/StepNav'
 import StepTracker from '../../components/StepTracker'
+import { Chip, Question } from '../../components/Choices'
 import { friendlyError } from '../../api'
 import { saveFailure, track, trackBlocked } from '../../analytics'
 import { COPY, PAINTING_AREAS, PAINTING_PAINT_BY, PAINTING_SIZES, PAINTING_WALL_ISSUES, PATHS, SERVICE } from '../../config'
 import { useRequest } from '../../context/RequestContext'
 
 const DESCRIPTION_MAX = 2000
-
-// Una opción de las preguntas rápidas. `multiple`: casilla; si no, se elige una
-// y tocarla otra vez la desmarca (todas son opcionales).
-function Chip({ checked, onToggle, multiple, name, children }) {
-  return (
-    <label
-      className={`cursor-pointer select-none rounded-full border px-3 py-1.5 text-sm focus-within:ring-1 focus-within:ring-accent ${
-        checked ? 'border-accent bg-accentSoft text-inkStrong' : 'border-line text-inkSoft hover:border-lineStrong'
-      }`}
-    >
-      <input
-        type={multiple ? 'checkbox' : 'radio'}
-        name={name}
-        className="sr-only"
-        checked={checked}
-        onChange={() => {}}
-        onClick={onToggle}
-      />
-      {checked ? '✓ ' : ''}{children}
-    </label>
-  )
-}
-
-function Question({ title, children }) {
-  return (
-    <fieldset>
-      <legend className="mb-2 text-sm font-semibold text-inkStrong">{title}</legend>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </fieldset>
-  )
-}
 
 export default function DetailsStep() {
   const { draft, saveDetails, addMedia, removeMedia } = useRequest()
