@@ -43,7 +43,10 @@ export function serviceMessage(request) {
     // Pintura y porcelanato no tienen lista: lo que contó el cliente y sus respuestas.
     request.details?.description && `Qué hay que hacer: ${request.details.description}`,
     ...describedLines(request),
-    request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
+    // El link de chalan.pe/v/…: muestra los archivos sin la dirección ni el public_id.
+    request.media_share_path
+      ? `Fotos y videos: ${window.location.origin}${request.media_share_path}`
+      : request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
     '',
     '¿Puedes ese día? Si es así, pásanos tu precio y coordinamos.',
   ]

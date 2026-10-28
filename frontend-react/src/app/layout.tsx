@@ -57,6 +57,8 @@ export const metadata: Metadata = {
 const chatHiddenPaths = [
   ...NON_MOVING_PATHS,
   "/transportistas",
+  // Fotos y videos de un servicio que se mandan a quien va a cotizar.
+  "/v",
   ...getAllPosts()
     .filter((post) => post.cta || post.category === "Transportistas")
     .map((post) => `/blog/${post.slug}`),

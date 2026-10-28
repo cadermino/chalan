@@ -13,6 +13,7 @@ from . import api
 from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from ..address import district_of
+from ..service_media import make_token as make_media_token
 from .. import db
 from ..models import (ROLE_SUPERADMIN, CarrierCompany, CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestCarrierDecline, ServiceRequestItem,
@@ -354,6 +355,9 @@ def get_service_request(service_request_id):
         'declines': [d.to_dict() for d in declines],
         'payments': [p.to_dict() for p in service_request.payments],
         'customer_quotations_path': _customer_quotations_path(service_request),
+        # Para mandar las fotos y videos por WhatsApp sin la dirección ni el
+        # public_id (los contactos de Google Maps no tienen link de empresa).
+        'media_share_path': f'/v/{make_media_token(service_request)}' if service_request.media else None,
         'links': [
             {
                 'id': c.id,

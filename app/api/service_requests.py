@@ -18,6 +18,7 @@ from .service_request.quotations import (
     platform_fee_rate, record_carrier_cash, record_reservation, register_reservation, resolve_reservation,
     save_quotation, select_quotation, split_total, undo_carrier_cash,
 )
+from .service_request.media_share import legacy_prefix, media_prefix, read_token as read_media_token
 from .service_request.statuses import CANCELLED, PENDING, is_draft
 from .service_request.types import SERVICE_TYPES, needs_items
 from .service_request.validation import (
@@ -436,7 +437,7 @@ def _presign_media(service_request):
     if len(service_request.media) >= MAX_MEDIA:
         raise InvalidRequest(f'at most {MAX_MEDIA} files are allowed')
 
-    storage_key = f'service-requests/{service_request.public_id}/{uuid.uuid4().hex}.{extension}'
+    storage_key = f'{media_prefix(service_request)}{uuid.uuid4().hex}.{extension}'
     upload = get_storage().presigned_post(
         storage_key, content_type, MEDIA_MAX_BYTES[media_type])
     return jsonify({'upload': upload, 'storage_key': storage_key}), 200
@@ -445,11 +446,11 @@ def _presign_media(service_request):
 def _register_media(service_request):
     data = request.get_json(silent=True) or {}
     storage_key = data.get('storage_key')
-    prefix = f'service-requests/{service_request.public_id}/'
     # The key must be one this request was given: another request's file, or a
     # path that climbs out of the prefix, is not registrable here.
-    if (not isinstance(storage_key, str) or not storage_key.startswith(prefix)
-            or '/' in storage_key[len(prefix):] or '..' in storage_key):
+    prefix = next((p for p in (media_prefix(service_request), legacy_prefix(service_request))
+                   if isinstance(storage_key, str) and storage_key.startswith(p)), None)
+    if prefix is None or '/' in storage_key[len(prefix):] or '..' in storage_key:
         raise InvalidRequest('invalid storage_key')
 
     existing = ServiceRequestMedia.query.filter_by(
@@ -486,6 +487,28 @@ def _register_media(service_request):
     db.session.add(media)
     db.session.commit()
     return jsonify(_serialize_media(media)), 201
+
+
+@api.route('/service-media/<token>', methods=['GET'])
+def get_shared_service_media(token):
+    """Las fotos y videos de un servicio para mandar por WhatsApp (chalan.pe/v/<token>).
+
+    Solo el servicio, el distrito, la fecha y los archivos: ni la calle, ni el
+    cliente, ni el public_id. Ver service_request/media_share.py.
+    """
+    service_request_id, problem = read_media_token(token)
+    if problem == 'expired':
+        return _message('link expired', 410)
+    service_request = db.session.get(ServiceRequest, service_request_id) if service_request_id else None
+    if service_request is None or is_draft(service_request):
+        return _message('not found', 404)
+    return jsonify({
+        'service': service_request.service_type.name if service_request.service_type else None,
+        'district': service_request.neighborhood or service_request.city,
+        'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
+        'media': [{'url': m.url, 'media_type': m.media_type, 'content_type': m.content_type}
+                  for m in service_request.media],
+    }), 200
 
 
 def _delete_media(service_request, media_id, check_rules=False):

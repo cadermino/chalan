@@ -37,6 +37,10 @@ class FakeStorage:
     def delete(self, key):
         self.deleted.append(key)
 
+    def copy(self, source, destination):
+        self.stored[destination] = self.stored.get(source)
+        self.copied = getattr(self, 'copied', []) + [(source, destination)]
+
     def public_url(self, key):
         return f'https://bucket.example/{key}'
 
@@ -570,7 +574,9 @@ def test_presign_returns_a_key_under_the_request_prefix(client, storage):
 
     assert response.status_code == 200
     data = response.get_json()
-    assert data['storage_key'].startswith(f'service-requests/{public_id}/')
+    # La carpeta sale del public_id firmado: el link de un archivo no lo revela.
+    assert data['storage_key'].startswith('service-requests/')
+    assert public_id not in data['storage_key']
     assert data['storage_key'].endswith('.mov')
     assert data['upload']['url'] == 'https://bucket.example'
 
@@ -1849,7 +1855,8 @@ def test_an_admin_adds_and_removes_photos_of_a_sent_request(client, storage):
                        json={'content_type': 'image/jpeg', 'size_bytes': 1024}).status_code == 403
 
     key = admin_presign(client, request_id).get_json()['storage_key']
-    assert key.startswith(f'service-requests/{public_id}/')
+    # Same folder as the customer's, which does not reveal the public_id.
+    assert key.startswith('service-requests/') and public_id not in key
     storage.stored[key] = {'size': 2048, 'content_type': 'image/jpeg'}
     response = client.post(f'/api/v1/service-requests/{request_id}/media', headers=internal_headers(),
                            json={'storage_key': key})
@@ -1950,3 +1957,82 @@ def test_invalid_tile_answers_are_rejected(client, tiling, details):
 def test_the_tile_form_lives_at_its_own_path(client, tiling):
     from app.api.service_request.types import SERVICE_TYPES
     assert SERVICE_TYPES['masonry']['form_path'] == '/porcelanato/cotizar'
+
+
+
+# --- archivos sin el public_id, y el link para compartirlos ---------------------------------
+
+def test_new_files_go_to_a_folder_that_does_not_reveal_the_public_id(client, storage):
+    from app.api.service_request.media_share import media_prefix
+    public_id = create_draft(client)
+    request_row = ServiceRequest.query.one()
+
+    key = presign(client, public_id).get_json()['storage_key']
+
+    assert key.startswith(media_prefix(request_row)) and public_id not in key
+
+
+def test_a_file_uploaded_to_the_old_folder_can_still_be_registered(client, storage):
+    public_id = create_draft(client)
+    key = f'service-requests/{public_id}/abc.jpg'
+    storage.stored[key] = {'size': 2048, 'content_type': 'image/jpeg'}
+
+    response = client.post(f'/api/v1/service-requests/{public_id}/media', json={'storage_key': key})
+
+    assert response.status_code == 201
+
+
+def shared_request(client, storage):
+    from app.api.service_request.media_share import make_token
+    public_id = create_draft(client)
+    key = presign(client, public_id, 'video/mp4', 4096).get_json()['storage_key']
+    storage.stored[key] = {'size': 4096, 'content_type': 'video/mp4'}
+    client.post(f'/api/v1/service-requests/{public_id}/media', json={'storage_key': key})
+    service_request = ServiceRequest.query.one()
+    return service_request, make_token(service_request)
+
+
+def test_the_share_link_shows_the_files_and_the_district_only(client, storage):
+    service_request, token = shared_request(client, storage)
+    service_request.submitted_at = datetime(2026, 10, 5, 12, 0)
+    service_request.neighborhood = 'Miraflores'
+    db.session.commit()
+
+    response = client.get(f'/api/v1/service-media/{token}')
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['district'] == 'Miraflores'
+    assert [m['media_type'] for m in body['media']] == ['video']
+    text = response.get_data(as_text=True)
+    assert service_request.public_id not in text and (service_request.street or 'x' * 40) not in text
+
+
+def test_a_draft_or_a_bad_token_is_not_shared(client, storage):
+    _, token = shared_request(client, storage)
+
+    assert client.get(f'/api/v1/service-media/{token}').status_code == 404
+    assert client.get('/api/v1/service-media/no-sirve').status_code == 404
+
+
+def test_move_service_media_takes_old_files_out_of_the_public_id_folder(app, client, storage, monkeypatch):
+    from app.api.service_request.media_share import media_prefix
+    monkeypatch.setattr('app.commands.get_storage', lambda: storage)
+    public_id = create_draft(client)
+    service_request = ServiceRequest.query.one()
+    old_key = f'service-requests/{public_id}/abc.jpg'
+    storage.stored[old_key] = {'size': 10, 'content_type': 'image/jpeg'}
+    db.session.add(ServiceRequestMedia(service_request_id=service_request.id, url=f'https://bucket.example/{old_key}',
+                                       storage_key=old_key, media_type='image'))
+    db.session.commit()
+
+    dry = app.test_cli_runner().invoke(args=['move-service-media'])
+    assert '1 archivos' in dry.output and ServiceRequestMedia.query.one().storage_key == old_key
+
+    result = app.test_cli_runner().invoke(args=['move-service-media', '--apply'])
+
+    media = ServiceRequestMedia.query.one()
+    assert result.exit_code == 0, result.output
+    assert media.storage_key == media_prefix(service_request) + 'abc.jpg'
+    assert media.url == f'https://bucket.example/{media.storage_key}'
+    assert storage.deleted == [old_key]

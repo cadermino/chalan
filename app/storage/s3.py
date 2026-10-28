@@ -63,6 +63,13 @@ class S3Storage(StorageBackend):
             raise
         return {'size': response['ContentLength'], 'content_type': response.get('ContentType')}
 
+    def copy(self, source, destination):
+        bucket = self._get_bucket()
+        self._get_client().copy_object(
+            Bucket=bucket, Key=destination, CopySource={'Bucket': bucket, 'Key': source},
+            MetadataDirective='COPY',
+        )
+
     def delete(self, filename):
         client = self._get_client()
         bucket = self._get_bucket()

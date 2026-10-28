@@ -1088,3 +1088,21 @@ def test_a_request_without_district_still_shows_one_on_the_carrier_link(client, 
     data = public_get(client, submitted, carrier).get_json()['service_request']
 
     assert (data['street'], data['neighborhood']) == (None, 'San Isidro')
+
+
+def test_the_admin_gets_a_share_link_for_the_photos_only_when_there_are_some(client, admin, submitted):
+    from itsdangerous import URLSafeTimedSerializer
+    from app.models import ServiceRequestMedia
+
+    assert client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request'][
+        'media_share_path'] is None
+
+    db.session.add(ServiceRequestMedia(service_request_id=submitted.id, url='https://x/v.mp4',
+                                       storage_key='k', media_type='video'))
+    db.session.commit()
+    path = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request'][
+        'media_share_path']
+
+    # El mismo token que lee el API principal (sal service-media).
+    token = path.removeprefix('/v/')
+    assert URLSafeTimedSerializer(SECRET, salt='service-media').loads(token) == submitted.id

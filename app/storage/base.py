@@ -37,3 +37,8 @@ class StorageBackend(ABC):
     def head(self, filename):
         """Real size and content type of a stored file, or None if it is not there."""
         pass
+
+    @abstractmethod
+    def copy(self, source, destination):
+        """Copy a stored file to another key, keeping its content type."""
+        pass
