@@ -5,6 +5,7 @@ import steps from './steps';
 import chalan from '../api/chalan';
 import storage from '../utils/safeStorage';
 import { needsCargoWeight } from '../utils/loadTypes';
+import { ORDER_SECTIONS, DRAFT_SAVED_AT } from '../utils/orderDraft';
 
 const isEmpty = arr => !arr.length;
 
@@ -65,22 +66,9 @@ function checkCompleteStep(state) {
     }
   });
 }
-// Las mutations de Vuex quedaron como actions con el mismo nombre y la misma
-// firma (setOrder, setCustomerData...): los componentes las siguen llamando
-// igual, y utils/sessionTags.js las escucha con $onAction.
-export const useStore = defineStore('main', {
-  state: () => ({
-    FB: undefined,
-    nowDate: '',
-    steps,
-    customer: {
-      email: null,
-      customer_id: null,
-      customer_name: null,
-      mobile_phone: null,
-      token: null,
-      picture: null,
-    },
+// El pedido vacío: el estado inicial, y a lo que vuelve discardOrderDraft.
+function emptyOrder() {
+  return {
     currentOrder: {
       created_date: null,
       order_id: null,
@@ -132,6 +120,26 @@ export const useStore = defineStore('main', {
       packaging: null,
       cargo: null,
     },
+  };
+}
+
+// Las mutations de Vuex quedaron como actions con el mismo nombre y la misma
+// firma (setOrder, setCustomerData...): los componentes las siguen llamando
+// igual, y utils/sessionTags.js las escucha con $onAction.
+export const useStore = defineStore('main', {
+  state: () => ({
+    FB: undefined,
+    nowDate: '',
+    steps,
+    customer: {
+      email: null,
+      customer_id: null,
+      customer_name: null,
+      mobile_phone: null,
+      token: null,
+      picture: null,
+    },
+    ...emptyOrder(),
     viewsMessages: {
       'step-one': null,
       'step-two': null,
@@ -206,6 +214,9 @@ export const useStore = defineStore('main', {
     setOrder(payload) {
       this[payload.section][payload.field] = payload.value;
       storage.setItem(payload.section, JSON.stringify(this[payload.section]));
+      if (ORDER_SECTIONS.includes(payload.section)) {
+        storage.setItem(DRAFT_SAVED_AT, String(Date.now()));
+      }
       this.formValidationMessages[payload.field] = null;
       checkCompleteStep(this);
     },
@@ -315,6 +326,28 @@ export const useStore = defineStore('main', {
       this.setOrder({ section: 'services', field: 'packaging', value: packaging ? '1' : '0' });
       this.setOrder({ section: 'services', field: 'cargo', value: cargo ? '1' : '0' });
       return true;
+    },
+    // Deja el pedido vacío para empezar otro (ver utils/orderDraft.js). La
+    // sesión del cliente no se toca. El tipo de carga se queda: el widget de la
+    // web lo escribe sobre lo guardado justo antes de abrir el paso 1.
+    discardOrderDraft() {
+      let loadType = null;
+      try {
+        loadType = (JSON.parse(storage.getItem('currentOrder') || 'null') || {}).load_type || null;
+      } catch (e) {
+        loadType = null;
+      }
+      const empty = emptyOrder();
+      ORDER_SECTIONS.forEach((section) => {
+        Object.assign(this[section], empty[section]);
+        storage.removeItem(section);
+      });
+      storage.removeItem(DRAFT_SAVED_AT);
+      if (loadType) {
+        this.currentOrder.load_type = loadType;
+        storage.setItem('currentOrder', JSON.stringify(this.currentOrder));
+      }
+      checkCompleteStep(this);
     },
     logout() {
       if (this.FB) {

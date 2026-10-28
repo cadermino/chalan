@@ -437,6 +437,60 @@ def test_internal_caller_with_the_edit_flag_writes(client, customer):
     assert db.session.get(Order, order_id).comments == '1 sofa, 3 cajas'
 
 
+def _scheduled_order(client, customer):
+    order_id = _create_order(client, customer)
+    db.session.get(Order, order_id).order_status_id = OrderStatus.in_progress()
+    db.session.commit()
+    return order_id
+
+
+def test_the_steps_cannot_rewrite_an_order_that_is_no_longer_pending(client, customer):
+    # El cliente que vuelve con su mudanza anterior en el localStorage: al
+    # empezar otra, el paso 1 mandaba el PUT de la vieja y le ponía las
+    # direcciones nuevas a una mudanza ya agendada.
+    order_id = _scheduled_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=True),
+        headers=_auth(customer),
+    )
+
+    assert res.status_code == 409
+    assert res.get_json()['reason'] == 'not_pending'
+    order = db.session.get(Order, order_id)
+    assert order.comments is None
+    assert order.order_status_id == OrderStatus.in_progress()
+
+
+def test_resending_a_scheduled_order_without_the_edit_flag_still_works(client, customer):
+    # El modal de pago reenvía la orden justo después de que checkout-cash la
+    # pasó a en curso; ese PUT no escribe datos y no tiene que fallar.
+    order_id = _scheduled_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=False),
+        headers=_auth(customer),
+    )
+
+    assert res.status_code == 200
+    assert res.get_json()['written'] == 'customer_link'
+
+
+def test_the_backoffice_can_still_correct_a_scheduled_order(client, customer):
+    order_id = _scheduled_order(client, customer)
+
+    res = client.put(
+        f'/api/v1/order/{order_id}',
+        json=_route_update_payload(edited_by_customer=True),
+        headers=_internal_auth(),
+    )
+
+    assert res.status_code == 200
+    assert db.session.get(Order, order_id).comments == '1 sofa, 3 cajas'
+
+
 def _checkout_setup(monkeypatch, carrier_company, required):
     """Entorno común de los tests de checkout. Devuelve la lista de correos enviados."""
     from app.api.order import order as order_module

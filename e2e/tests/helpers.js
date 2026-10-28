@@ -641,6 +641,7 @@ module.exports = {
   getServiceRequestPublicId,
   cleanupSeededServiceRequests,
   getOrderIdFromStore,
+  psql,
   mockGooglePlaces,
   selectMockAddress,
   selectMockAutocompleteAddress,

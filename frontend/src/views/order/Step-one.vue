@@ -471,6 +471,14 @@ const fieldElementIds = {
   to_has_elevator: 'to-has-elevator',
 };
 
+// Respuestas del PUT que dicen que la orden guardada ya no es de este pedido.
+const ORPHANED_ORDER_STATUSES = [403, 404, 409];
+const SAVED_ORDER_FIELDS = [
+  'order_id', 'order_status_id', 'quotation_id', 'amount', 'carrier_company_id',
+  'vehicle_picture', 'vehicle_brand', 'vehicle_model', 'vehicle_weight',
+  'vehicle_description', 'payment_method',
+];
+
 export default {
   name: 'step-one',
   data() {
@@ -596,6 +604,52 @@ export default {
         this.setOrder({ section: 'currentOrder', field, value: '' });
       });
     },
+    createOrder() {
+      const referralCode = document.cookie.split('; ')
+        .find(c => c.startsWith('chalan_ref='))?.split('=')[1] || null;
+      const payload = {
+        order: this.currentOrder,
+        orderDetailsOrigin: this.orderDetailsOrigin,
+        orderDetailsDestination: this.orderDetailsDestination,
+        services: this.services,
+        // El API pone de dueño al customer_id que llegue. Con la sesión vencida
+        // (dura 24 horas) quedaba de un cliente que no podía editarla, y el PUT
+        // del paso 2 daba 403. Sin sesión va sin dueño, como la de alguien
+        // nuevo: el paso de contacto o el login la ligan después.
+        customer: this.isUserLogged ? this.customer : { customer_id: null },
+        referral_code: referralCode,
+      };
+      chalan.createOrder(payload)
+        .then((response) => {
+          if (response.status === 201) {
+            this.setOrder({ section: 'currentOrder', field: 'order_id', value: response.data.order_id });
+            this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId.pending });
+            track('order_created', {
+              order_id: response.data.order_id,
+              ref_code: referralCode,
+              load_type: this.loadType,
+            });
+            this.proceedToStepTwo();
+          }
+        })
+        .catch(() => {
+          this.setViewsMessages({
+            view: this.viewName,
+            message: {
+              type: 'error',
+              text: 'Hubo un error, intenta después de recargar la página',
+            },
+          });
+          this.setLoader(false);
+        });
+    },
+    // Lo que era de la orden guardada (id, estado, la cotización elegida); las
+    // direcciones y lo demás que se escribió en este paso se quedan.
+    forgetSavedOrder() {
+      SAVED_ORDER_FIELDS.forEach((field) => {
+        this.setOrder({ section: 'currentOrder', field, value: null });
+      });
+    },
     missingFields() {
       return this.steps[this.viewName].requisites
         .filter(field => this.formValidationMessages[field]);
@@ -620,39 +674,7 @@ export default {
           this.removeSelectedProduct();
         }
         if (!this.currentOrder.order_id) {
-          const referralCode = document.cookie.split('; ')
-            .find(c => c.startsWith('chalan_ref='))?.split('=')[1] || null;
-          const payload = {
-            order: this.currentOrder,
-            orderDetailsOrigin: this.orderDetailsOrigin,
-            orderDetailsDestination: this.orderDetailsDestination,
-            services: this.services,
-            customer: this.customer,
-            referral_code: referralCode,
-          };
-          chalan.createOrder(payload)
-            .then((response) => {
-              if (response.status === 201) {
-                this.setOrder({ section: 'currentOrder', field: 'order_id', value: response.data.order_id });
-                this.setOrder({ section: 'currentOrder', field: 'order_status_id', value: this.orderStatusId.pending });
-                track('order_created', {
-                  order_id: response.data.order_id,
-                  ref_code: referralCode,
-                  load_type: this.loadType,
-                });
-                this.proceedToStepTwo();
-              }
-            })
-            .catch(() => {
-              this.setViewsMessages({
-                view: this.viewName,
-                message: {
-                  type: 'error',
-                  text: 'Hubo un error, intenta después de recargar la página',
-                },
-              });
-              this.setLoader(false);
-            });
+          this.createOrder();
         } else {
           const payload = {
             order: this.currentOrder,
@@ -672,7 +694,15 @@ export default {
                 this.proceedToStepTwo();
               }
             })
-            .catch(() => {
+            .catch((error) => {
+              // La orden guardada ya no se puede editar: agendada (409), borrada
+              // (404) o de una sesión que venció (403). Recargar no lo arreglaba;
+              // lo que el cliente escribió va a una orden nueva.
+              if (ORPHANED_ORDER_STATUSES.includes(error.response?.status)) {
+                this.forgetSavedOrder();
+                this.createOrder();
+                return;
+              }
               this.setViewsMessages({
                 view: this.viewName,
                 message: {
@@ -749,6 +779,7 @@ export default {
       'viewsMessages',
       'steps',
       'loading',
+      'isUserLogged',
     ]),
     isSameAddress() {
       const stepOneRequisites = { ...this.orderDetailsOrigin, ...this.orderDetailsDestination };

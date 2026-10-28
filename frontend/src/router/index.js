@@ -4,6 +4,7 @@ import { useStore } from '../store/index';
 import pinia from '../store/pinia';
 import countryData from '../countryData';
 import storage from '../utils/safeStorage';
+import { staleDraftReason } from '../utils/orderDraft';
 
 // Se pide en el primer guard, no al importar: main.js importa este archivo antes
 // de app.use(pinia), y un store creado antes de eso nace sin los plugins
@@ -189,6 +190,11 @@ async function getOrderFromDataBase(to, next) {
 
 router.beforeEach(async (to, from, next) => {
   store = store || useStore(pinia);
+  // El paso 1 es donde empieza una mudanza: lo guardado de una anterior (ya
+  // agendada, con la fecha pasada o abandonada hace días) no se restaura.
+  if (to.name === 'step-one' && staleDraftReason(storage)) {
+    store.discardOrderDraft();
+  }
   getDataFromLocalStorage();
   store.setNowDate();
   const alreadyNavigated = await getOrderFromDataBase(to, next);

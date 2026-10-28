@@ -157,6 +157,19 @@ def update_order(order_id):
             'message': 'internal callers must send orderEditedByCustomer'
         }), 400
 
+    # Los pasos 1 y 2 solo editan una mudanza que todavía se está cotizando. Un
+    # cliente que volvía semanas después traía en el localStorage el pedido ya
+    # agendado, y al empezar otro el paso 1 reescribía ese: direcciones nuevas
+    # sobre una mudanza hecha y sus cotizaciones canceladas. El resto de los PUT
+    # (login, paso 3, modal de pago) no escriben datos y siguen pasando; el
+    # backoffice corrige órdenes en cualquier estado.
+    if (order_data.get('orderEditedByCustomer') and not internal
+            and db_order.order_status_id != OrderStatus.pending()):
+        return jsonify({
+            'message': 'the order is no longer pending',
+            'reason': 'not_pending',
+        }), 409
+
     address_changed = AddressesStep(order_id).has_changed(order_data)
     belongings_changed = BelongingsAppointmentDateStep(order_id).has_changed(order_data)
     data_changed = address_changed or belongings_changed

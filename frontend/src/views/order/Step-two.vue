@@ -439,6 +439,7 @@ export default {
       'setOrder',
       'setViewsMessages',
       'setLoader',
+      'discardOrderDraft',
     ]),
     handlePhotoSelect(event) {
       const files = Array.from(event.target.files);
@@ -631,8 +632,22 @@ export default {
               }).catch(() => {});
             }
           })
-          .catch(() => {
+          .catch((error) => {
             this.setLoader(false);
+            // La orden guardada ya estaba agendada (utils/orderDraft.js): no se
+            // edita, se empieza una mudanza nueva desde el paso 1.
+            if (error.response?.status === 409) {
+              this.discardOrderDraft();
+              this.setViewsMessages({
+                view: 'step-one',
+                message: {
+                  text: 'Esa mudanza ya estaba agendada. Cuéntanos los datos de la nueva.',
+                  type: 'info',
+                },
+              });
+              this.$router.push({ name: 'step-one' }).catch(() => {});
+              return;
+            }
             this.setViewsMessages({
               view: this.viewName,
               message: {
