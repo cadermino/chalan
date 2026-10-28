@@ -199,13 +199,21 @@ def get_service_request(public_id):
     return jsonify(_serialize(service_request)), 200
 
 
+def _public_name(company):
+    """El nombre que ve el cliente: el de quien contesta, para un contacto que
+    cargó el admin (con el del negocio lo buscaría en Google), o el de la empresa."""
+    if company is None:
+        return None
+    return company.contact_name or company.name
+
+
 def _customer_quotation(quotation, rate):
     """Lo que ve el cliente: el total (el congelado si ya la eligieron) y cómo se
     reparte entre la reserva y lo que paga en el lugar. Nunca el teléfono."""
     total, reservation, on_site = split_total(quotation, rate)
     return {
         'id': quotation.id,
-        'carrier_name': quotation.carrier_company.name if quotation.carrier_company else None,
+        'carrier_name': _public_name(quotation.carrier_company),
         'total_amount': float(total),
         'reservation_amount': float(reservation),
         'on_site_amount': float(on_site),
@@ -238,7 +246,7 @@ def _carrier_contact(service_request):
     if quotation is None or quotation.carrier_company is None:
         return None
     contact = contact_details(service_request, quotation.carrier_company)
-    return {'name': quotation.carrier_company.name, 'phone': contact['carrier_phone'],
+    return {'name': _public_name(quotation.carrier_company), 'phone': contact['carrier_phone'],
             'whatsapp_url': contact['carrier_whatsapp_url']}
 
 

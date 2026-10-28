@@ -86,6 +86,9 @@ def _quotation_for_admin(quotation, current_rate):
     """La cotizacion con su total para el cliente: el congelado si ya fue elegida,
     y si no el que saldria hoy con la comision vigente."""
     data = quotation.to_dict()
+    # El nombre que ve el cliente, si no es el de la empresa (contactos cargados a mano).
+    company = quotation.carrier_company
+    data['carrier_contact_name'] = company.contact_name if company is not None else None
     if quotation.status == 'selected' and quotation.total_amount is not None:
         data['total_amount'] = _money(quotation.total_amount)
     else:
@@ -682,20 +685,31 @@ def add_contact_quotation(service_request_id):
     otros pedidos) con este servicio marcado; si ya existe, se usa esa, así que
     volver a cargarla corrige su precio. Lo demás es lo mismo que cuando una
     empresa cotiza desde su link.
+
+    `contact_name` es la persona que contesta el WhatsApp: es lo que ve el cliente
+    (con el nombre del negocio lo buscaría en Google). `name`, el del negocio, es
+    opcional y queda para el admin. A una empresa registrada no se le cambia nada:
+    el cliente la sigue viendo por su nombre.
     """
     service_request = db.session.get(ServiceRequest, service_request_id)
     if service_request is None:
         return jsonify({'message': 'service request not found'}), 404
     data = request.get_json(silent=True) or {}
-    name = (data.get('name') or '').strip()
+    contact_name = (data.get('contact_name') or '').strip()[:60]
+    name = (data.get('name') or '').strip() or contact_name
     digits = ''.join(ch for ch in str(data.get('phone') or '') if ch.isdigit())[-9:]
-    if not name or len(digits) != 9:
-        return jsonify({'message': 'name and a 9-digit phone are required'}), 400
+    if not contact_name or len(digits) != 9:
+        return jsonify({'message': 'contact_name and a 9-digit phone are required'}), 400
 
     company = _company_by_phone(digits)
+    if company is not None and not company.active:
+        # Otra persona puede contestar la próxima vez: el cliente ve la última.
+        company.contact_name = contact_name
+        db.session.commit()
     if company is None:
         company = CarrierCompany(
             name=name[:45],
+            contact_name=contact_name,
             phone=digits,
             # NOT NULL en la base (con '' por defecto, pero SQLAlchemy manda NULL).
             rfc='', email='', address='',

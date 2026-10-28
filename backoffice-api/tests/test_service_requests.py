@@ -1115,7 +1115,7 @@ def quoted(monkeypatch):
 
 
 def add_contact_quote(client, headers, service_request, **body):
-    payload = {'name': 'Armado de Muebles fast', 'phone': '918 032 470', 'amount': 150,
+    payload = {'name': 'Armado de Muebles fast', 'contact_name': 'Jorge', 'phone': '918 032 470', 'amount': 150,
                'note': 'Voy con un ayudante', **body}
     return client.post(f'/api/service-requests/{service_request.id}/contact-quotations', headers=headers,
                        json=payload)
@@ -1126,7 +1126,8 @@ def test_a_contacts_quote_creates_an_inactive_company_and_sends_the_quote(client
 
     assert res.status_code == 201
     company = db.session.get(CarrierCompany, res.get_json()['carrier_company_id'])
-    assert (company.name, company.phone, company.active) == ('Armado de Muebles fast', '918032470', 0)
+    assert (company.name, company.contact_name, company.phone, company.active) == (
+        'Armado de Muebles fast', 'Jorge', '918032470', 0)
     # NOT NULL en Postgres (SQLite no lo exige): sin esto falla solo en la base real.
     assert (company.rfc, company.email, company.address) == ('', '', '')
     assert [t.code for t in company.service_types] == [submitted.service_type.code]
@@ -1152,10 +1153,11 @@ def test_a_registered_company_is_used_as_it_is(client, admin, submitted, quoted,
     res = add_contact_quote(client, admin, submitted, name='Otro nombre', phone='987654321')
 
     assert res.get_json()['carrier_company_id'] == registered.id
-    assert db.session.get(CarrierCompany, registered.id).active == 1
+    company = db.session.get(CarrierCompany, registered.id)
+    assert (company.active, company.contact_name) == (1, None)
 
 
-@pytest.mark.parametrize('body', [{'name': ''}, {'phone': '12345'}])
+@pytest.mark.parametrize('body', [{'contact_name': ''}, {'phone': '12345'}])
 def test_a_contact_quote_needs_a_name_and_a_phone(client, admin, submitted, quoted, body):
     assert add_contact_quote(client, admin, submitted, **body).status_code == 400
     assert quoted == []
@@ -1164,3 +1166,13 @@ def test_a_contact_quote_needs_a_name_and_a_phone(client, admin, submitted, quot
 def test_only_admins_add_contact_quotes(client, submitted, quoted):
     carrier_user = make_user('carrier_company', suffix='q')
     assert add_contact_quote(client, carrier_user, submitted).status_code == 403
+
+
+
+def test_without_a_business_name_the_contact_is_the_company_and_the_latest_contact_wins(
+        client, admin, submitted, quoted):
+    first = add_contact_quote(client, admin, submitted, name='', contact_name='Rosa').get_json()['carrier_company_id']
+    add_contact_quote(client, admin, submitted, name='', contact_name='Luis')
+
+    company = db.session.get(CarrierCompany, first)
+    assert (company.name, company.contact_name) == ('Rosa', 'Luis')

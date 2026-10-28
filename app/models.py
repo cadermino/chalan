@@ -18,6 +18,9 @@ class CarrierCompany(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	country_id = db.Column(db.Integer, db.ForeignKey("lu_country.id"), nullable=True)
 	name = db.Column(db.String(45))
+	# Lo que ve el cliente en vez de `name` cuando está: el nombre de quien
+	# contesta, para los contactos que cargó el admin (migración 040).
+	contact_name = db.Column(db.String(60))
 	description = db.Column(db.String(2000))
 	rfc = db.Column(db.String(12))
 	email = db.Column(db.String(45))

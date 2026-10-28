@@ -2075,3 +2075,20 @@ def test_painting_and_tiles_need_the_m2_to_be_sent(client, request, service_type
 
     client.patch(f'/api/v1/service-requests/{public_id}', json={'details': {'description': 'La sala', 'area_m2': 25}})
     assert submit(client, public_id, preferred_date=TOMORROW).status_code == 200
+
+
+def test_the_customer_sees_the_contacts_name_and_not_the_business(client):
+    # Un contacto de Google Maps que cargó el admin: con el nombre del negocio el
+    # cliente lo buscaría en Google y lo contrataría por fuera.
+    service_request, carrier, quotation_id = submitted_with_quote(client, carrier_name='Armado de Muebles fast')
+    carrier.contact_name = 'Jorge'
+    db.session.commit()
+
+    body = customer_quotations(client, service_request.public_id).get_json()
+
+    assert [q['carrier_name'] for q in body['quotations']] == ['Jorge']
+    assert 'Armado de Muebles fast' not in str(body)
+
+    choose(client, service_request.public_id, quotation_id)
+    contact = customer_quotations(client, service_request.public_id).get_json()['carrier_contact']
+    assert contact['name'] == 'Jorge'

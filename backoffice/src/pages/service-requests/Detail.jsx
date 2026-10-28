@@ -47,6 +47,9 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900">
                           {q.carrier_company_name}
+                          {q.carrier_contact_name && (
+                            <span className="ml-2 text-xs font-normal text-gray-500">el cliente ve «{q.carrier_contact_name}»</span>
+                          )}
                           {isSelected && (
                             <span className="ml-2 rounded-full bg-teal-600 px-2 py-0.5 text-xs text-white">
                               {q.selected_by_customer ? 'Elegida por el cliente' : 'Elegida'}

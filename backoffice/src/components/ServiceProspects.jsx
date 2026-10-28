@@ -69,7 +69,9 @@ export function serviceMessage(request) {
 // cliente. Por detrás se crea su empresa (inactiva) si no existe:
 // backoffice-api contact-quotations.
 function ContactQuoteForm({ request, contact, onSaved, onCancel }) {
-  const [form, setForm] = useState({ name: contact?.name || '', phone: contact?.phone || '', amount: '', note: '' })
+  const [form, setForm] = useState({
+    name: contact?.name || '', contactName: '', phone: contact?.phone || '', amount: '', note: '',
+  })
   const [saving, setSaving] = useState(false)
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -78,7 +80,8 @@ function ContactQuoteForm({ request, contact, onSaved, onCancel }) {
     setSaving(true)
     try {
       await client.post(`/api/service-requests/${request.id}/contact-quotations`, {
-        name: form.name, phone: form.phone, amount: Number(form.amount), note: form.note.trim() || null,
+        name: form.name, contact_name: form.contactName, phone: form.phone,
+        amount: Number(form.amount), note: form.note.trim() || null,
       })
       toast.success('Cotización agregada: el cliente ya la ve')
       onSaved()
@@ -93,9 +96,19 @@ function ContactQuoteForm({ request, contact, onSaved, onCancel }) {
 
   return (
     <form onSubmit={save} className="mt-2 space-y-2 rounded-lg border border-teal-200 bg-teal-50/40 p-3">
+      <div>
+        <label className="text-xs text-gray-500">Nombre de quien te contesta *</label>
+        <input
+          required maxLength={60} value={form.contactName} onChange={set('contactName')}
+          className="input" placeholder="Ej. Jorge"
+        />
+        <p className="text-xs text-gray-400">
+          Es lo que ve el cliente. El nombre del negocio no: lo buscaría en Google y lo contrataría por fuera.
+        </p>
+      </div>
       {!contact && (
         <div className="grid grid-cols-2 gap-2">
-          <input required placeholder="Nombre" maxLength={45} value={form.name} onChange={set('name')} className="input" />
+          <input placeholder="Negocio (solo lo ves tú)" maxLength={45} value={form.name} onChange={set('name')} className="input" />
           <input required placeholder="WhatsApp (9 dígitos)" value={form.phone} onChange={set('phone')} className="input" />
         </div>
       )}
