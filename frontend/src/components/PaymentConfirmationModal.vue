@@ -209,7 +209,6 @@ export default {
       'setCustomerData',
       'setViewsMessages',
       'setLoader',
-      'discardOrderDraft',
     ]),
     async confirmCashCheckout() {
       // Cae al teléfono del perfil: con el campo oculto `phone` puede seguir en
@@ -296,9 +295,6 @@ export default {
             type: 'success',
           },
         });
-        // Ya está agendada: vive en la base y se abre con su link. La próxima
-        // mudanza empieza de cero en vez de editar esta (utils/orderDraft.js).
-        this.discardOrderDraft();
         this.$router.push({ name: 'dashboard' }).catch(() => {});
       } catch (error) {
         this.setLoader(false);

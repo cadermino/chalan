@@ -272,6 +272,9 @@ export const useStore = defineStore('main', {
         vehicle: { weight: currentOrder.vehicle_weight } = {},
         vehicle: { description: currentOrder.vehicle_description } = {},
       } = order.data.order);
+      // La base no la trae: sin esto quedaba la de otra orden agendada antes,
+      // y el paso 1 tomaba a esta por agendada (utils/orderDraft.js).
+      currentOrder.payment_method = null;
       Object.keys(currentOrder).forEach((key) => {
         this.setOrder({ section: 'currentOrder', field: key, value: currentOrder[key] });
       });

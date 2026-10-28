@@ -32,6 +32,12 @@ export function staleDraftReason(storage, now = new Date()) {
   if (order.order_id && order.order_status_id && Number(order.order_status_id) !== PENDING) {
     return 'not_pending';
   }
+  // El modal de pago la escribe al agendar; el estado en curso solo lo guarda
+  // la base. No se borra ahí mismo porque volver al paso 3 a confirmar otra vez
+  // la misma cotización tiene que seguir funcionando.
+  if (order.order_id && order.payment_method) {
+    return 'scheduled';
+  }
   // appointment_date es 'YYYY-MM-DD HH:00:00' en hora de Lima.
   if (order.appointment_date && String(order.appointment_date).slice(0, 10) < localDay(now)) {
     return 'date_passed';

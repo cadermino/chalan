@@ -75,6 +75,17 @@ test.describe('Lo guardado de una mudanza anterior', () => {
     expect((await storedOrder(page)).order_id ?? null).toBeNull();
   });
 
+  test('una mudanza recién agendada en este navegador tampoco', async ({ page }) => {
+    // El estado en curso solo queda en la base; el navegador sabe que se agendó
+    // porque el modal de pago guardó la forma de pago.
+    await returnWithDraft(page, {
+      order: { order_id: 999006, order_status_id: ORDER_STATUS.pending, payment_method: 'cash' },
+      savedAt: Date.now() - DAY,
+    });
+
+    await expect(page.locator('#address-from-street')).toHaveValue('');
+  });
+
   test('un borrador sin tocar hace más de 5 días se descarta, pero no el tipo de carga', async ({ page }) => {
     await returnWithDraft(page, {
       order: { order_id: 999002, order_status_id: ORDER_STATUS.pending, load_type: 'cargo' },
