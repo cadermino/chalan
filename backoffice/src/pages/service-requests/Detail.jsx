@@ -8,6 +8,7 @@ import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
 import ServiceProspects from '../../components/ServiceProspects'
+import { districtOf } from '../../lib/district'
 import { useAuth } from '../../contexts/AuthContext'
 
 // El link se arma con el origen actual, así sirve igual en local y en producción.
@@ -18,7 +19,8 @@ function carrierUrl(token) {
 // Mensaje listo para pegarle al cliente por WhatsApp, con el total que ya incluye la comisión.
 function customerMessage(request, quotation) {
   const service = (request.service_type?.name || 'servicio').toLowerCase()
-  const where = request.neighborhood ? ` en ${request.neighborhood}` : ''
+  const district = districtOf(request)
+  const where = district ? ` en ${district}` : ''
   return `Hola, tenemos tu cotización de ${service} para el ${formatDay(request.preferred_date)}${where}: ${formatMoney(quotation.total_amount)}. ¿Confirmamos?`
 }
 

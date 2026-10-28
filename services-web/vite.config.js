@@ -1,5 +1,8 @@
+import { readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { SHARE, SHARE_IMAGE } from './src/share.js'
 
 // Los archivos del build viven bajo /services-web/ (así nginx puede mandar solo
 // esa ruta y las del formulario a este contenedor), pero las pantallas se ven
@@ -17,8 +20,39 @@ function formRoutesFallback() {
   }
 }
 
+// Un HTML por servicio, con su título y su vista previa al compartir (WhatsApp
+// no ejecuta JavaScript y antes todos los links se veían como embalaje). nginx
+// (services-web/nginx.conf) entrega <slug>.html en /<slug>/; index.html queda
+// genérico para cualquier otra ruta.
+function sharePages() {
+  const meta = ({ title, description }) => [
+    `<title>${title}</title>`,
+    `<meta name="description" content="${description}" />`,
+    `<meta property="og:title" content="${title}" />`,
+    `<meta property="og:description" content="${description}" />`,
+    '<meta property="og:type" content="website" />',
+    '<meta property="og:site_name" content="Chalán" />',
+    `<meta property="og:image" content="${SHARE_IMAGE}" />`,
+  ].join('\n    ')
+  return {
+    name: 'share-pages',
+    apply: 'build',
+    // Sobre el index.html ya escrito: es el que nombra los bundles con su hash.
+    writeBundle(options) {
+      const html = readFileSync(join(options.dir, 'index.html'), 'utf8')
+      const withMeta = (page) => html
+        .replace(/<title>[\s\S]*?<\/title>/, '')
+        .replace(/<meta name="description"[^>]*>/, '')
+        .replace('</head>', `  ${meta(page)}\n  </head>`)
+      for (const page of Object.values(SHARE)) {
+        writeFileSync(join(options.dir, `${page.slug}.html`), withMeta(page))
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), formRoutesFallback()],
+  plugins: [react(), formRoutesFallback(), sharePages()],
   base: '/services-web/',
   // Los navegadores que apuntaba Vite 5 ('modules'). Vite 8 apunta por
   // defecto a Safari 16.4 y dejaría fuera iPhones que todavía se usan.

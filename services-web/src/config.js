@@ -1,3 +1,5 @@
+import { SHARE } from './share'
+
 // Mismo número que usan las landings (/embalaje-profesional, /armado-de-muebles).
 export const WHATSAPP_NUMBER = '51972643007'
 
@@ -12,7 +14,7 @@ const FLOWS = {
   packing: {
     basePath: '/embalaje/cotizar',
     itemsSlug: 'que-embalamos',
-    title: 'Cotiza tu embalaje | Chalán',
+    title: SHARE.packing.title,
     header: 'Embalaje profesional',
     steps: ['Dirección', 'Qué embalamos', 'Fecha y contacto'],
     addressTitle: '¿Dónde hay que embalar?',
@@ -28,7 +30,7 @@ const FLOWS = {
   furniture_assembly: {
     basePath: '/armado/cotizar',
     itemsSlug: 'muebles',
-    title: 'Cotiza el armado de tus muebles | Chalán',
+    title: SHARE.furniture_assembly.title,
     header: 'Armado de muebles',
     steps: ['Dirección', 'Muebles', 'Fecha y contacto'],
     addressTitle: '¿Dónde están los muebles?',
@@ -44,7 +46,7 @@ const FLOWS = {
   painting: {
     basePath: '/pintura/cotizar',
     itemsSlug: 'que-pintamos',
-    title: 'Cotiza la pintura de tu casa | Chalán',
+    title: SHARE.painting.title,
     header: 'Pintura a domicilio',
     steps: ['Dirección', 'Qué pintamos', 'Fecha y contacto'],
     addressTitle: '¿Dónde hay que pintar?',
@@ -61,7 +63,7 @@ const FLOWS = {
   masonry: {
     basePath: '/porcelanato/cotizar',
     itemsSlug: 'que-instalamos',
-    title: 'Cotiza la instalación de porcelanato | Chalán',
+    title: SHARE.masonry.title,
     header: 'Porcelanato y cerámica',
     steps: ['Dirección', 'Qué instalamos', 'Fecha y contacto'],
     addressTitle: '¿Dónde hay que instalar?',

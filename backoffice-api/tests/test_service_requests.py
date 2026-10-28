@@ -266,7 +266,10 @@ def test_carrier_view_shows_the_request_without_the_customers_whatsapp(client, s
     data = res.get_json()['service_request']
     assert data['carrier_company_name'] == 'Ofrece SAC'
     assert data['preferred_date'] == '2026-10-20'
-    assert data['street'] == 'Av. Javier Prado 123'
+    # Antes de que la elijan, solo el distrito (llega a todas las empresas del servicio).
+    assert (data['street'], data['map_url'], data['neighborhood']) == (None, None, 'San Isidro')
+    assert data['address_hidden'] is True
+    assert 'Javier Prado' not in res.get_data(as_text=True)
     assert [(i['description'], i['quantity'], [m['code'] for m in i['materials']]) for i in data['items']] == [
         ('Sofá', 2, ['stretch_film']), ('TV', 1, ['cardboard_sheet', 'stretch_film'])]
     assert data['materials_summary'][1] == {'code': 'stretch_film', 'name': 'Film', 'items': 2, 'quantity': 3}
@@ -1051,3 +1054,37 @@ def test_admins_get_the_tile_installers_to_invite(client, admin):
 
     assert len(prospects) == 8
     assert all(p['phone'] for p in prospects)
+
+
+def test_only_the_chosen_carrier_sees_the_exact_address(client, submitted, packing):
+    winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
+    make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    make_quotation(submitted, loser, 280)
+
+    chosen = public_get(client, submitted, winner).get_json()['service_request']
+    other = public_get(client, submitted, loser).get_json()['service_request']
+
+    assert (chosen['street'], chosen['address_hidden']) == ('Av. Javier Prado 123', False)
+    assert (other['street'], other['neighborhood'], other['address_hidden']) == (None, 'San Isidro', True)
+
+
+@pytest.mark.parametrize('address, district', [
+    ({'neighborhood': 'Miraflores', 'street': 'Av. Larco 345, Miraflores, Lima, Perú'}, 'Miraflores'),
+    ({'street': 'Batta Isola, Barranco 15063', 'city': 'Lima'}, 'Barranco'),
+    ({'street': 'Av. Pardo 610, Miraflores, Lima, Perú', 'city': 'Lima'}, 'Miraflores'),
+    ({'street': 'Av. Arequipa 2450', 'city': 'Lima'}, 'Lima'),
+])
+def test_the_district_comes_from_google_or_from_the_address_text(address, district):
+    from app.api.service_requests import district_of
+    assert district_of(address) == district
+
+
+def test_a_request_without_district_still_shows_one_on_the_carrier_link(client, submitted, packing):
+    submitted.neighborhood = None
+    submitted.street = 'Av. Javier Prado 123, San Isidro 15036, Perú'
+    db.session.commit()
+    carrier = make_carrier(packing, name='Ofrece SAC')
+
+    data = public_get(client, submitted, carrier).get_json()['service_request']
+
+    assert (data['street'], data['neighborhood']) == (None, 'San Isidro')

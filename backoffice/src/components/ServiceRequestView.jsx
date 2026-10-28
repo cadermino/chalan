@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Card from './Card'
+import { districtOf } from '../lib/district'
 
 // 'YYYY-MM-DD' -> 'sábado 20 de octubre'. Se arma desde las partes y se formatea en
 // UTC: new Date('2026-10-20') se lee como UTC y en Lima mostraría el día anterior.
@@ -72,6 +73,15 @@ function MaterialChips({ materials, empty }) {
 
 function AddressBlock({ address }) {
   const line = [address.street, address.interior].filter(Boolean).join(' · ')
+  // El link de las empresas no trae la calle hasta que el trabajo es suyo.
+  if (!line) {
+    return (
+      <>
+        <p className="font-medium text-gray-900">{districtOf(address) || '—'}</p>
+        <p className="text-sm text-gray-500">La dirección exacta te la damos cuando el cliente te elija.</p>
+      </>
+    )
+  }
   return (
     <>
       <p className="font-medium text-gray-900">{line || '—'}</p>
@@ -178,12 +188,12 @@ export default function ServiceRequestView({ request }) {
         </p>
       </div>
 
-      <Card title={destination ? 'Dirección (dónde se desarman)' : 'Dirección'}>
+      <Card title={`${request.address_hidden ? 'Distrito' : 'Dirección'}${destination ? ' (dónde se desarman)' : ''}`}>
         <AddressBlock address={request} />
       </Card>
 
       {destination && (
-        <Card title="Destino (dónde se arman)">
+        <Card title={`${request.address_hidden ? 'Distrito de destino' : 'Destino'} (dónde se arman)`}>
           <AddressBlock address={destination} />
           <p className="mt-2 text-xs text-gray-400">El traslado de los muebles no está incluido.</p>
         </Card>

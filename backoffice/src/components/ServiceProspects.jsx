@@ -3,6 +3,7 @@ import client from '../api/client'
 import Card from './Card'
 import CopyButton from './CopyButton'
 import { describedFacts, formatDay } from './ServiceRequestView'
+import { districtOf } from '../lib/district'
 
 // Negocios de Google Maps que hacen este servicio (armadores, por ahora), para
 // cuando no hay empresas en la plataforma que lo tomen. Como NearbyCarriers en
@@ -28,7 +29,7 @@ function describedLines(request) {
 export function serviceMessage(request) {
   const isAssembly = request.service_type?.code === 'furniture_assembly'
   const service = (request.service_type?.name || 'un servicio').toLowerCase()
-  const district = request.neighborhood || request.city
+  const district = districtOf(request)
   const destination = request.details?.destination
   const lines = [
     'Hola, te escribimos de Chalán (chalan.pe), una plataforma de mudanzas y servicios para el hogar en Lima. '
@@ -36,7 +37,7 @@ export function serviceMessage(request) {
     '',
     `Fecha: ${formatDay(request.preferred_date)}`,
     district && `Distrito: ${district}`,
-    destination && `Se arman en: ${destination.neighborhood || destination.city || 'otro distrito'}`,
+    destination && `Se arman en: ${districtOf(destination) || 'otro distrito'}`,
     request.items.length > 0 && `${isAssembly ? 'Muebles' : 'Qué hay'}:`,
     ...request.items.map((item) => itemLine(item, isAssembly)),
     // Pintura y porcelanato no tienen lista: lo que contó el cliente y sus respuestas.
