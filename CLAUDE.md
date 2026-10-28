@@ -117,6 +117,7 @@ Peru deploys go through `make deploy-peru` (plan only: `make deploy-peru-plan`, 
 - **Auth**: JWT tokens (PyJWT) for both customer and admin APIs, validated via decorators in `app/api/decorators.py` and `backoffice-api/app/api/decorators.py`
 - **Config**: Environment-driven via `.env.dev` / `.env.prod` files; `config.py` maps `FLASK_ENV` to config classes
 - **Payments**: cash only (`PUT /api/v1/order/checkout-cash/:order_id`), which creates a `payments` row and emails carrier + customer. Stripe was removed; the `lu_payment_type` row `stripe` and `payments.reference` stay for historical rows. Culqi is the planned gateway for Peru
+- **Customer dashboard** (`views/Dashboard.vue`, where scheduling lands): the last order as a card, like the services quotations page. It shows the total, the reservation, the balance to pay the carrier on the day, and the carrier's WhatsApp only once the move is confirmed (in progress or completed); while the yapeo is being verified there is no contact. `GET /api/v1/customer/<id>/orders` adds `status`, `total_amount`, `carrier_amount`, `reservation`, `carrier_cash_status` and `carrier_contact`, and answers 403 to a token of another customer (before, any session read anyone's last order).
 - **Storage**: S3-backed file uploads via factory pattern (`app/storage/factory.py`)
 - **Serialization**: Marshmallow schemas defined alongside models in `app/models.py`
 - **Two deployment targets**: Mexico (`Dockerfile.prod`) and Peru (`Dockerfile.peru.prod`) with timezone and domain differences
