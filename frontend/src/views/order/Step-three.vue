@@ -439,11 +439,16 @@ export default {
     },
   },
   computed: {
-    // De menor a mayor precio; con el mismo precio, la que llegó primero.
+    // De menor a mayor precio. En empate gana la mejor puntuada, después la
+    // de más evaluaciones, y si no, la que llegó primero. Las puntuaciones
+    // llegan después que las cotizaciones: el orden se rehace cuando cargan.
     sortedQuotations() {
-      return [...this.quotationsList].sort(
-        (a, b) => a.total_amount - b.total_amount || a.id - b.id,
-      );
+      return [...this.quotationsList].sort((a, b) => (
+        a.total_amount - b.total_amount
+        || this.getCompanyRating(b.carrier_company_id) - this.getCompanyRating(a.carrier_company_id)
+        || this.getCompanyReviewCount(b.carrier_company_id) - this.getCompanyReviewCount(a.carrier_company_id)
+        || a.id - b.id
+      ));
     },
     ...mapState(useStore, [
       'currentOrder',
