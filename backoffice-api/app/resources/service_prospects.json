@@ -1,5 +1,5 @@
 {
-  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas. Para masonry (porcelanato y cerámica): instalación de porcelanato Lima, maestro de obra acabados a domicilio Lima, remodelación de baños y cocinas Lima, remodelaciones y acabados de departamentos Lima; casi no hay instaladores con reseñas, así que entran contratistas y albañiles.",
+  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas. Para masonry (porcelanato y cerámica): instalación de porcelanato Lima, maestro de obra acabados a domicilio Lima, remodelación de baños y cocinas Lima, remodelaciones y acabados de departamentos Lima; casi no hay instaladores con reseñas, así que entran contratistas y albañiles. Para microcement (2026-10-29): aplicación de microcemento Lima, aplicador de microcemento Lima, microcemento baños y pisos Lima, cemento pulido y microcemento a domicilio Lima, pisos epóxicos y microcemento Lima, revestimientos decorativos microcemento instalación Lima; casi todos son fábricas o tiendas de texturas que también aplican, y pocos llegan a 10 reseñas, así que entran con menos. Se dejaron fuera los que solo venden y los que solo tienen teléfono fijo (Increte Systems).",
   "furniture_assembly": [
     {
       "name": "Armado de Muebles fast",
@@ -146,6 +146,72 @@
       "reviews": 4,
       "address": "San Juan de Miraflores",
       "does": "Enchapador de porcelanato y mayólica (pocas reseñas)"
+    }
+  ],
+  "microcement": [
+    {
+      "name": "MICROCEMENTO ARGEMA",
+      "phone": "998 360 587",
+      "rating": 5.0,
+      "reviews": 12,
+      "address": "Ca. Schell 319",
+      "does": "Contratista de revestimientos: microcemento (microcementoargema.pe)"
+    },
+    {
+      "name": "REVEAD",
+      "phone": "981 112 867",
+      "rating": 4.0,
+      "reviews": 10,
+      "address": "Av. Reducto 949",
+      "does": "Fabrican e instalan microcemento, estuco y granalla (revead.com)"
+    },
+    {
+      "name": "Master Decor Perú",
+      "phone": "990 304 042",
+      "rating": 3.6,
+      "reviews": 18,
+      "address": "Av. Benjamín Franklin 193",
+      "does": "Contratista de revestimientos decorativos (masterdecor.pe)"
+    },
+    {
+      "name": "ARTEXTURA",
+      "phone": "981 306 675",
+      "rating": 4.6,
+      "reviews": 28,
+      "address": "Av. Santa Gertrudis 561",
+      "does": "Tienda de texturas, con instalación (artextura.com)"
+    },
+    {
+      "name": "Construtextura",
+      "phone": "917 141 161",
+      "rating": 4.7,
+      "reviews": 11,
+      "address": "Av. Gerardo Unger 899",
+      "does": "Acabados decorativos: venta y aplicación (construtexturaperu.com)"
+    },
+    {
+      "name": "Leven Revestimientos",
+      "phone": "915 089 799",
+      "rating": 5.0,
+      "reviews": 13,
+      "address": "Av. Alberto del Campo 409, San Isidro",
+      "does": "Texturas y revestimientos, con showroom"
+    },
+    {
+      "name": "Microcemento SAC",
+      "phone": "905 466 552",
+      "rating": 5.0,
+      "reviews": 7,
+      "address": "C. Macchu Picchu 149",
+      "does": "Fabricante de microcemento (microcemento.com); preguntar si aplica"
+    },
+    {
+      "name": "Epoximania",
+      "phone": "980 481 743",
+      "rating": 5.0,
+      "reviews": 1,
+      "address": "Av. Los Próceres 1387",
+      "does": "Pisos epóxicos y microcemento, los instalan (epoximaniaperu.com)"
     }
   ]
 }

@@ -1056,6 +1056,13 @@ def test_admins_get_the_tile_installers_to_invite(client, admin):
     assert all(p['phone'] for p in prospects)
 
 
+def test_admins_get_the_microcement_applicators_to_invite(client, admin):
+    prospects = client.get('/api/service-prospects/microcement', headers=admin).get_json()['prospects']
+
+    assert len(prospects) == 8
+    assert all(p['phone'] for p in prospects)
+
+
 def test_only_the_chosen_carrier_sees_the_exact_address(client, submitted, packing):
     winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
     make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
