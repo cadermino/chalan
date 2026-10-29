@@ -1170,6 +1170,18 @@ def test_a_contact_quote_needs_a_name_and_a_phone(client, admin, submitted, quot
     assert quoted == []
 
 
+def test_the_admin_detail_says_whose_phone_each_quote_is(client, admin, submitted, packing):
+    company = make_carrier(packing, name='Contacto Maps')
+    company.phone = '+51 918-032-470'
+    db.session.commit()
+    make_quotation(submitted, company, 150)
+
+    quotations = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request'][
+        'quotations']
+
+    assert [q['carrier_phone'] for q in quotations] == ['918032470']
+
+
 def test_only_admins_add_contact_quotes(client, submitted, quoted):
     carrier_user = make_user('carrier_company', suffix='q')
     assert add_contact_quote(client, carrier_user, submitted).status_code == 403

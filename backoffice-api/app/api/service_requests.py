@@ -90,6 +90,9 @@ def _quotation_for_admin(quotation, current_rate):
     # El nombre que ve el cliente, si no es el de la empresa (contactos cargados a mano).
     company = quotation.carrier_company
     data['carrier_contact_name'] = company.contact_name if company is not None else None
+    # Para reconocer, en los contactos de Google Maps, a quién ya se le cargó su precio.
+    digits = ''.join(ch for ch in (company.phone or '') if ch.isdigit()) if company is not None else ''
+    data['carrier_phone'] = digits[-9:] or None
     if quotation.status == 'selected' and quotation.total_amount is not None:
         data['total_amount'] = _money(quotation.total_amount)
     else:

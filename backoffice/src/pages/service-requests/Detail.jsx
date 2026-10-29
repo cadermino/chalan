@@ -641,7 +641,7 @@ export default function ServiceRequestDetail() {
             <ul className="divide-y divide-gray-100">
               {request.links.map((link) => (
                 <li key={link.id} className="flex items-center justify-between gap-3 py-2">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900">{link.name}</p>
                     <p className="text-xs text-gray-400">
                       {link.notified ? `Avisado ${formatTimestamp(notifiedAt[link.id])}` : 'Sin avisar'}

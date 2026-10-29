@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import client from '../api/client'
 import Card from './Card'
 import CopyButton from './CopyButton'
-import { DESCRIBED_CODES, describedFacts, formatDay } from './ServiceRequestView'
+import { DESCRIBED_CODES, describedFacts, formatDay, formatMoney } from './ServiceRequestView'
 import { districtOf } from '../lib/district'
 
 // Negocios de Google Maps que hacen este servicio (armadores, por ahora), para
@@ -158,11 +158,17 @@ export default function ServiceProspects({ request, onSaved }) {
 
   if (prospects.length === 0 && !canQuote) return null
   const saved = () => { setQuoting(null); onSaved() }
+  // La cotización que ya se le cargó a cada contacto, por los últimos 9 dígitos de
+  // su teléfono (como la busca contact-quotations).
+  const quoteOf = (phone) => {
+    const digits = phone.replace(/\D/g, '').slice(-9)
+    return request.quotations.find((q) => q.carrier_phone === digits && q.status !== 'cancelled')
+  }
 
   return (
     <Card title={prospects.length ? `Contactos de Google Maps (${prospects.length})` : 'Cotización de un contacto'} className="mt-4">
       {prospects.length > 0 && (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <p className="text-xs text-gray-400">
             No están en la plataforma. Copia el número, escríbeles desde el WhatsApp de Chalán y pégales el mensaje.
             Si te mandan su precio, cárgalo con «Agregar su cotización» y el cliente lo ve en sus cotizaciones.
@@ -172,38 +178,59 @@ export default function ServiceProspects({ request, onSaved }) {
       )}
       {prospects.length > 0 && (
         <ul className="mt-3 divide-y divide-gray-100">
-          {prospects.map((p) => (
-            <li key={p.phone} className="py-2.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-900">{p.name}</p>
-                  <p className="truncate text-xs text-gray-500">
-                    {[`★ ${Number(p.rating).toFixed(1)} (${p.reviews})`, p.does].filter(Boolean).join(' · ')}
-                  </p>
-                  <p className="truncate text-xs text-gray-400">{[p.phone, p.address].filter(Boolean).join(' · ')}</p>
+          {prospects.map((p) => {
+            const quote = quoteOf(p.phone)
+            return (
+              <li key={p.phone} className="py-2.5">
+                {/* En el celular los botones van debajo: al lado no dejaban leer el nombre. */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 sm:truncate">{p.name}</p>
+                    <p className="text-xs text-gray-500 sm:truncate">
+                      {[`★ ${Number(p.rating).toFixed(1)} (${p.reviews})`, p.does].filter(Boolean).join(' · ')}
+                    </p>
+                    <p className="text-xs text-gray-400 sm:truncate">{[p.phone, p.address].filter(Boolean).join(' · ')}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${p.address || 'Lima'}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-teal-600 hover:underline"
+                    >
+                      Mapa
+                    </a>
+                    {quote
+                      ? (
+                        <>
+                          <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800">
+                            ✓ Cotización enviada · {formatMoney(quote.amount)}
+                          </span>
+                          {canQuote && quoting !== p.phone && (
+                            <button type="button" onClick={() => setQuoting(p.phone)} className="text-xs text-gray-500 hover:underline">
+                              Corregir
+                            </button>
+                          )}
+                        </>
+                      )
+                      : (
+                        <>
+                          <CopyButton text={p.phone.replace(/\s/g, '')} label="Copiar número" />
+                          {canQuote && quoting !== p.phone && (
+                            <button type="button" onClick={() => setQuoting(p.phone)} className="text-xs text-teal-700 hover:underline">
+                              Agregar su cotización
+                            </button>
+                          )}
+                        </>
+                      )}
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name} ${p.address || 'Lima'}`)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-teal-600 hover:underline"
-                  >
-                    Mapa
-                  </a>
-                  <CopyButton text={p.phone.replace(/\s/g, '')} label="Copiar número" />
-                  {canQuote && quoting !== p.phone && (
-                    <button type="button" onClick={() => setQuoting(p.phone)} className="text-xs text-teal-700 hover:underline">
-                      Agregar su cotización
-                    </button>
-                  )}
-                </div>
-              </div>
-              {quoting === p.phone && (
-                <ContactQuoteForm request={request} contact={p} onSaved={saved} onCancel={() => setQuoting(null)} />
-              )}
-            </li>
-          ))}
+                {quoting === p.phone && (
+                  <ContactQuoteForm request={request} contact={p} onSaved={saved} onCancel={() => setQuoting(null)} />
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
       {canQuote && (
