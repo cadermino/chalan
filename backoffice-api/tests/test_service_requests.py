@@ -1059,7 +1059,7 @@ def test_admins_get_the_tile_installers_to_invite(client, admin):
 def test_admins_get_the_microcement_applicators_to_invite(client, admin):
     prospects = client.get('/api/service-prospects/microcement', headers=admin).get_json()['prospects']
 
-    assert len(prospects) == 8
+    assert len(prospects) == 7
     assert all(p['phone'] for p in prospects)
 
 
