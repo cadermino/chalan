@@ -167,6 +167,32 @@ def check_tiling_submit(service_request):
     _check_described(service_request, 'install')
 
 
+# Microcement (application, not the product): like tiles, told in words or a
+# video, plus optional answers that move the price per m². What is underneath
+# matters most (it goes on top of tiles without demolishing, if they are firm),
+# and whether the applicator brings the material (labour only vs all-in).
+# Labels in services-web config.js and the backoffice MICROCEMENT_LABELS.
+MICROCEMENT_SURFACES = ('floor', 'wall', 'both')
+MICROCEMENT_ROOMS = ('bathrooms', 'kitchen', 'living', 'bedrooms', 'countertops', 'stairs', 'terrace', 'facade')
+MICROCEMENT_BASES = ('tiles', 'cement', 'plaster', 'unsure')
+MICROCEMENT_BASE_ISSUES = ('loose', 'cracks', 'humidity')
+MICROCEMENT_MATERIAL_BY = ('customer', 'applicator', 'unsure')
+MICROCEMENT_M2_MAX = 2000
+
+
+def validate_microcement_details(details):
+    return _described_details(
+        details, MICROCEMENT_M2_MAX,
+        choices=(('surface', MICROCEMENT_SURFACES), ('base', MICROCEMENT_BASES),
+                 ('material_by', MICROCEMENT_MATERIAL_BY)),
+        lists=(('rooms', MICROCEMENT_ROOMS), ('base_issues', MICROCEMENT_BASE_ISSUES)),
+    )
+
+
+def check_microcement_submit(service_request):
+    _check_described(service_request, 'apply')
+
+
 # Code (lu_service_types.code) -> what is specific to that service. A new
 # service is a row in lu_service_types plus an entry here; no migration.
 #
@@ -197,6 +223,12 @@ SERVICE_TYPES = {
         'form_path': '/porcelanato/cotizar',
         'validate_details': validate_tiling_details,
         'check_submit': check_tiling_submit,
+        'needs_items': False,
+    },
+    'microcement': {
+        'form_path': '/microcemento/cotizar',
+        'validate_details': validate_microcement_details,
+        'check_submit': check_microcement_submit,
         'needs_items': False,
     },
 }

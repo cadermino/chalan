@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import client from '../api/client'
 import Card from './Card'
 import CopyButton from './CopyButton'
-import { describedFacts, formatDay } from './ServiceRequestView'
+import { DESCRIBED_CODES, describedFacts, formatDay } from './ServiceRequestView'
 import { districtOf } from '../lib/district'
 
 // Negocios de Google Maps que hacen este servicio (armadores, por ahora), para
@@ -23,7 +23,7 @@ function itemLine(item, isAssembly) {
 
 function describedLines(request) {
   const code = request.service_type?.code
-  if (!['painting', 'masonry'].includes(code)) return []
+  if (!DESCRIBED_CODES.includes(code)) return []
   return describedFacts(code, request.details || {}).map(([label, value]) => `${label}: ${value}`)
 }
 

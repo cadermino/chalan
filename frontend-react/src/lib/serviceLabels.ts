@@ -30,6 +30,23 @@ const TILING: Record<string, Record<string, string>> = {
   tiles_by: { customer: 'Lo compra el cliente', installer: 'Lo incluye el instalador', unsure: 'El cliente no sabe aún' },
 }
 
+const MICROCEMENT: Record<string, Record<string, string>> = {
+  surface: { floor: 'Piso', wall: 'Pared', both: 'Piso y pared' },
+  rooms: {
+    bathrooms: 'Baños y duchas', kitchen: 'Cocina', living: 'Sala y comedor', bedrooms: 'Dormitorios',
+    countertops: 'Mesadas', stairs: 'Escaleras', terrace: 'Terraza o patio', facade: 'Fachada',
+  },
+  base: {
+    tiles: 'Cerámica, mayólica o porcelanato', cement: 'Cemento o contrapiso', plaster: 'Pared tarrajeada o pintada',
+    unsure: 'Otro o no sabe',
+  },
+  base_issues: { loose: 'Piezas sueltas o huecas', cracks: 'Rajaduras', humidity: 'Humedad' },
+  material_by: {
+    customer: 'Lo compra el cliente (solo mano de obra)', applicator: 'A todo costo, lo incluye el aplicador',
+    unsure: 'El cliente no sabe aún',
+  },
+}
+
 type Details = Record<string, unknown>
 
 const one = (labels: Record<string, string>, value: unknown) => (typeof value === 'string' ? labels[value] : undefined)
@@ -37,8 +54,18 @@ const many = (labels: Record<string, string>, value: unknown) =>
   (Array.isArray(value) ? value.map((v) => labels[v]).filter(Boolean).join(', ') : '') || undefined
 const m2 = (value: unknown) => (typeof value === 'number' ? `${value} m²` : undefined)
 
-// Las respuestas opcionales de pintura y porcelanato, como [etiqueta, valor].
+// Las respuestas opcionales de pintura, porcelanato y microcemento, como [etiqueta, valor].
 export function serviceFacts(code: string | null, details: Details): [string, string][] {
+  if (code === 'microcement') {
+    return ([
+      ['Dónde', one(MICROCEMENT.surface, details.surface)],
+      ['Ambientes', many(MICROCEMENT.rooms, details.rooms)],
+      ['Metros', m2(details.area_m2)],
+      ['Qué hay ahora', one(MICROCEMENT.base, details.base)],
+      ['La base tiene', many(MICROCEMENT.base_issues, details.base_issues)],
+      ['Material', one(MICROCEMENT.material_by, details.material_by)],
+    ] as [string, string | undefined][]).filter((f): f is [string, string] => Boolean(f[1]))
+  }
   const facts: [string, string | undefined][] = code === 'masonry'
     ? [
       ['Material', one(TILING.material, details.material)],

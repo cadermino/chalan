@@ -6,14 +6,14 @@ import { SHARE, SHARE_IMAGE } from './src/share.js'
 
 // Los archivos del build viven bajo /services-web/ (así nginx puede mandar solo
 // esa ruta y las del formulario a este contenedor), pero las pantallas se ven
-// en /embalaje/cotizar/*, /armado/cotizar/*, /pintura/cotizar/* y /porcelanato/cotizar/*. El servidor de desarrollo solo conoce la base, así
-// que sin esto una URL del formulario daría 404 al recargar.
+// en /embalaje/cotizar/*, /armado/cotizar/*, /pintura/cotizar/*, /porcelanato/cotizar/*
+// y /microcemento/cotizar/*. El servidor de desarrollo solo conoce la base, así que sin esto una URL del formulario daría 404 al recargar.
 function formRoutesFallback() {
   return {
     name: 'form-routes-fallback',
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
-        if (req.url && /^\/(embalaje|armado|pintura|porcelanato)\//.test(req.url)) req.url = '/services-web/'
+        if (req.url && /^\/(embalaje|armado|pintura|porcelanato|microcemento)\//.test(req.url)) req.url = '/services-web/'
         next()
       })
     },

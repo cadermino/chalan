@@ -27,4 +27,9 @@ export const SHARE = {
     title: 'Cotiza la instalación de porcelanato | Chalán',
     description: 'Cuéntanos qué hay que instalar o súbenos un video, y te llegan cotizaciones de instaladores de porcelanato y cerámica. Lima, Callao y Huancayo.',
   },
+  microcement: {
+    slug: 'microcemento',
+    title: 'Cotiza la aplicación de microcemento | Chalán',
+    description: 'Cuéntanos dónde va el microcemento o súbenos un video, y te llegan cotizaciones de aplicadores. Lima, Callao y Huancayo.',
+  },
 }

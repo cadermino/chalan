@@ -1962,6 +1962,68 @@ def test_the_tile_form_lives_at_its_own_path(client, tiling):
     assert SERVICE_TYPES['masonry']['form_path'] == '/porcelanato/cotizar'
 
 
+# --- microcemento: like tiles, plus what is underneath and who brings the material ---
+
+@pytest.fixture
+def microcement(app):
+    microcement = ServiceType(code='microcement', name='Aplicación de microcemento', requestable=1)
+    db.session.add(microcement)
+    db.session.commit()
+    return microcement
+
+
+def microcement_draft(client, details=None):
+    public_id = create_draft(client, service_type='microcement')
+    if details is not None:
+        response = client.patch(f'/api/v1/service-requests/{public_id}', json={'details': details})
+        assert response.status_code == 200, response.get_json()
+    return public_id
+
+
+def test_a_microcement_request_is_sent_with_its_answers_and_no_list(client, microcement, sent):
+    public_id = microcement_draft(client, {
+        'description': '  Baño completo, sobre la mayólica  ', 'surface': 'both', 'rooms': ['kitchen', 'bathrooms'],
+        'area_m2': 18, 'base': 'tiles', 'base_issues': ['humidity', 'loose'], 'material_by': 'applicator',
+    })
+
+    response = submit(client, public_id, preferred_date=TOMORROW)
+
+    assert response.status_code == 200, response.get_json()
+    saved = ServiceRequest.query.one()
+    assert saved.details == {
+        'description': 'Baño completo, sobre la mayólica', 'surface': 'both', 'base': 'tiles',
+        'material_by': 'applicator', 'area_m2': 18, 'rooms': ['bathrooms', 'kitchen'],
+        'base_issues': ['loose', 'humidity'],
+    }
+    assert saved.items == []
+
+
+def test_a_microcement_request_needs_a_description_or_a_video(client, microcement):
+    public_id = microcement_draft(client, {'surface': 'floor', 'area_m2': 20})
+
+    response = submit(client, public_id, preferred_date=TOMORROW)
+
+    assert response.status_code == 400
+    assert 'apply' in response.get_json()['message']
+
+
+@pytest.mark.parametrize('details', [
+    {'surface': 'roof'}, {'rooms': ['garage']}, {'rooms': 'kitchen'}, {'base': 'wood'},
+    {'base_issues': ['mold']}, {'material_by': 'store'}, {'area_m2': 2001}, {'area_m2': '20'},
+])
+def test_invalid_microcement_answers_are_rejected(client, microcement, details):
+    public_id = microcement_draft(client)
+
+    response = client.patch(f'/api/v1/service-requests/{public_id}', json={'details': details})
+
+    assert response.status_code == 400
+
+
+def test_the_microcement_form_lives_at_its_own_path(client, microcement):
+    from app.api.service_request.types import SERVICE_TYPES
+    assert SERVICE_TYPES['microcement']['form_path'] == '/microcemento/cotizar'
+
+
 
 # --- archivos sin el public_id, y el link para compartirlos ---------------------------------
 
@@ -2064,8 +2126,10 @@ def test_the_share_link_carries_what_to_do_without_phones_or_addresses(client, s
 
 
 
-@pytest.mark.parametrize('service_type, fixture', [('painting', 'painting'), ('masonry', 'tiling')])
-def test_painting_and_tiles_need_the_m2_to_be_sent(client, request, service_type, fixture):
+@pytest.mark.parametrize('service_type, fixture', [
+    ('painting', 'painting'), ('masonry', 'tiling'), ('microcement', 'microcement'),
+])
+def test_painting_tiles_and_microcement_need_the_m2_to_be_sent(client, request, service_type, fixture):
     request.getfixturevalue(fixture)
     public_id = create_draft(client, service_type=service_type)
     client.patch(f'/api/v1/service-requests/{public_id}', json={'details': {'description': 'La sala'}})

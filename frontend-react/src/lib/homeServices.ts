@@ -1,8 +1,8 @@
 // Servicios a domicilio de las landings con ServiceLanding. Lo usan sus landings
 // y el llamado al final de sus posts del blog, así el texto del WhatsApp y la
 // ruta viven en un solo lugar. Los que tienen formulario en services-web llevan
-// `formUrl` (pintura, porcelanato): ahí el botón principal es el formulario y WhatsApp queda
-// de segunda opción. Los demás se cotizan solo por WhatsApp.
+// `formUrl` (pintura, porcelanato, microcemento): ahí el botón principal es el
+// formulario y WhatsApp queda de segunda opción. Los demás se cotizan solo por WhatsApp.
 
 export const WHATSAPP_NUMBER = '51972643007'
 
@@ -40,10 +40,11 @@ export const HOME_SERVICES: Record<
     name: 'Aplicación de microcemento',
     code: 'microcement',
     whatsappText: 'Hola, quiero cotizar la aplicación de microcemento',
+    formUrl: '/microcemento/cotizar',
     blogCta: {
       eyebrow: '¿Quieres microcemento en tu casa?',
-      title: 'Cotiza la aplicación por WhatsApp',
-      body: 'Mándanos fotos de la superficie (piso, pared o baño), qué material tiene hoy y los metros. Te respondemos con el precio.',
+      title: 'Cotiza la aplicación en 2 minutos',
+      body: 'Cuéntanos dónde va (piso, pared o baño) o súbenos un video de la superficie. Los aplicadores te cotizan y eliges. Lima, Callao y Huancayo.',
     },
   },
   porcelanato: {

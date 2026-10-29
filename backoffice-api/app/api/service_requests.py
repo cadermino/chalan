@@ -38,7 +38,7 @@ MATERIALS_FROM = {'furniture_assembly': 'packing'}
 # Dónde vive cada formulario en services-web; la página de cotizaciones del
 # cliente es <ruta>/cotizaciones/<public_id>. Espejo de `form_path` en ese mismo archivo.
 FORM_PATHS = {'packing': '/embalaje/cotizar', 'furniture_assembly': '/armado/cotizar', 'painting': '/pintura/cotizar',
-              'masonry': '/porcelanato/cotizar'}
+              'masonry': '/porcelanato/cotizar', 'microcement': '/microcemento/cotizar'}
 
 
 def _generate_token(service_request_id, carrier_company_id):

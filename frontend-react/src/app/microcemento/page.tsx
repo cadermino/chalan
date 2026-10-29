@@ -109,8 +109,9 @@ export default function Microcemento() {
         </>
       }
       heroSub="Baños, pisos, paredes y cocinas sin juntas. También sobre la mayólica que ya tienes, sin romper."
-      ctaBody="Mándanos fotos de la superficie, qué material tiene hoy y los metros. Te respondemos con el precio por WhatsApp."
+      ctaBody="Cuéntanos dónde va y qué hay hoy, o súbenos un video de la superficie. Los aplicadores te cotizan y eliges."
       whatsappText={service.whatsappText}
+      formUrl={service.formUrl}
       prices={PRICES}
       priceUnit="por m²"
       pricesTitle={<>Precios de microcemento<br />por metro cuadrado.</>}
@@ -178,14 +179,14 @@ export default function Microcemento() {
       steps={[
         {
           n: '01',
-          title: 'Mándanos fotos y medidas',
-          body: 'Por WhatsApp: fotos de la superficie, qué material tiene hoy y los metros.',
+          title: 'Cuéntanos dónde va',
+          body: 'En el formulario: escríbelo o sube un video de la superficie. Si sabes los metros, qué hay hoy y si quieres el material incluido, mejor.',
           icon: 'chat',
         },
         {
           n: '02',
-          title: 'Te cotizamos y agendamos',
-          body: 'Te confirmamos el precio, con o sin material, y coordinamos los días de trabajo.',
+          title: 'Comparas y agendas',
+          body: 'Te llegan las cotizaciones por WhatsApp, con o sin material, eliges una y reservas con Yape. El resto se paga al terminar.',
           icon: 'cal',
         },
         {
@@ -198,8 +199,8 @@ export default function Microcemento() {
       faq={FAQ}
       final={{
         eyebrow: 'Agenda tu microcemento',
-        title: <>Sin juntas, sin demoler.<br /><em>Cotiza por WhatsApp.</em></>,
-        lede: 'Mándanos fotos de la superficie y los metros. Te respondemos con el precio y agendamos.',
+        title: <>Sin juntas, sin demoler.<br /><em>Cotiza en 2 minutos.</em></>,
+        lede: 'Cuéntanos dónde va o súbenos un video. Te llegan las cotizaciones y eliges.',
       }}
       service={{
         name: 'Aplicación de microcemento',

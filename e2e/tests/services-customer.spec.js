@@ -256,3 +256,49 @@ test.describe('A tile installation customer', () => {
     await page.evaluate(() => localStorage.removeItem('chalan_masonry_request'));
   });
 });
+
+// Microcemento: como porcelanato, más qué hay debajo y si el material va
+// incluido. Tampoco se envía, por la misma empresa de prueba (lo cubren los
+// tests del API, test_a_microcement_request_...).
+test.describe('A microcement customer', () => {
+  const MICROCEMENT_FORM = '/microcemento/cotizar';
+
+  test('the landing sends them to the form, WhatsApp stays as a second option', async ({ page }) => {
+    await page.goto('/microcemento', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('main a[href="/microcemento/cotizar"]').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Prefiero escribir por WhatsApp' })).toHaveAttribute('href', /wa\.me/);
+  });
+
+  test('tells where it goes and sees it summed up before sending', async ({ page }) => {
+    await mockGooglePlaces(page);
+
+    await page.goto(MICROCEMENT_FORM, { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { name: '¿Dónde hay que aplicar el microcemento?' })).toBeVisible();
+    await pickAddress(page, 'Av. Pardo 610, Miraflores, Lima, Perú');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    // Sin descripción ni video no avanza.
+    await expect(page.getByRole('heading', { name: '¿Dónde va el microcemento?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByRole('alert')).toContainText('Cuéntanos dónde va el microcemento');
+
+    await page.fill('#microcement-description', 'El baño completo, sobre la mayólica que está.');
+    await page.getByText('Piso y pared', { exact: true }).click();
+    await page.getByText('Baños y duchas', { exact: true }).click();
+    await page.fill('#microcement-m2', '18');
+    await page.getByText('Cerámica, mayólica o porcelanato', { exact: true }).click();
+    await page.getByText('Humedad', { exact: true }).click();
+    await page.getByText('A todo costo, que lo incluya el aplicador', { exact: true }).click();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await expect(page.getByText('El baño completo, sobre la mayólica que está.')).toBeVisible();
+    await expect(page.getByText(
+      'Piso y pared · baños y duchas · 18 m² · Hoy: cerámica, mayólica o porcelanato · Base: humedad · '
+      + 'Material: a todo costo, que lo incluya el aplicador',
+    )).toBeVisible();
+
+    await page.evaluate(() => localStorage.removeItem('chalan_microcement_request'));
+  });
+});

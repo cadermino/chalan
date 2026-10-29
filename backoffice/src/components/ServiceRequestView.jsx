@@ -122,6 +122,33 @@ export const TILING_LABELS = {
   tiles_by: { customer: 'Lo compra el cliente', installer: 'Lo incluye el instalador', unsure: 'No sabe, que le recomienden' },
 }
 
+// Las de microcemento. Codes: MICROCEMENT_* en app/api/service_request/types.py;
+// las mismas etiquetas que services-web.
+export const MICROCEMENT_LABELS = {
+  surface: { floor: 'Piso', wall: 'Pared', both: 'Piso y pared' },
+  rooms: {
+    bathrooms: 'Baños y duchas', kitchen: 'Cocina', living: 'Sala y comedor', bedrooms: 'Dormitorios',
+    countertops: 'Mesadas', stairs: 'Escaleras', terrace: 'Terraza o patio', facade: 'Fachada',
+  },
+  base: {
+    tiles: 'Cerámica, mayólica o porcelanato', cement: 'Cemento o contrapiso', plaster: 'Pared tarrajeada o pintada',
+    unsure: 'Otro o no sabe',
+  },
+  base_issues: { loose: 'Piezas sueltas o huecas', cracks: 'Rajaduras', humidity: 'Humedad' },
+  material_by: {
+    customer: 'Lo compra el cliente (solo mano de obra)', applicator: 'A todo costo, lo incluye el aplicador',
+    unsure: 'No sabe, que le recomienden',
+  },
+}
+
+// Los servicios sin lista: lo que piden va en details (o en un video).
+export const DESCRIBED_CODES = ['painting', 'masonry', 'microcement']
+const DESCRIBED_TITLES = {
+  painting: 'Qué hay que pintar', masonry: 'Qué hay que instalar', microcement: 'Dónde va el microcemento',
+}
+
+const several = (labels, codes) => (codes || []).map((c) => labels[c]).join(', ') || null
+
 // Las respuestas de un servicio que se cuenta con palabras, en [etiqueta, valor].
 export function describedFacts(code, details = {}) {
   if (code === 'masonry') {
@@ -134,6 +161,16 @@ export function describedFacts(code, details = {}) {
       ['Sacar el piso actual', TILING_LABELS.remove_old[details.remove_old]],
       ['Contrapiso o nivelar', TILING_LABELS.screed[details.screed]],
       ['Quién compra', TILING_LABELS.tiles_by[details.tiles_by]],
+    ].filter(([, value]) => value)
+  }
+  if (code === 'microcement') {
+    return [
+      ['Dónde', MICROCEMENT_LABELS.surface[details.surface]],
+      ['Ambientes', several(MICROCEMENT_LABELS.rooms, details.rooms)],
+      ['Metros', details.area_m2 ? `${details.area_m2} m²` : null],
+      ['Qué hay ahora', MICROCEMENT_LABELS.base[details.base]],
+      ['La base tiene', several(MICROCEMENT_LABELS.base_issues, details.base_issues)],
+      ['Material', MICROCEMENT_LABELS.material_by[details.material_by]],
     ].filter(([, value]) => value)
   }
   return [
@@ -150,7 +187,7 @@ function DescribedDetails({ code, details, media }) {
   const hasVideo = media.some((m) => m.media_type === 'video')
 
   return (
-    <Card title={code === 'masonry' ? 'Qué hay que instalar' : 'Qué hay que pintar'}>
+    <Card title={DESCRIBED_TITLES[code]}>
       {details.description
         ? <p className="whitespace-pre-line text-sm text-gray-900">{details.description}</p>
         : <p className="text-sm text-gray-500">{hasVideo ? 'Lo explica en el video.' : 'Sin descripción.'}</p>}
@@ -173,8 +210,7 @@ export default function ServiceRequestView({ request }) {
   // Armado de muebles: cada mueble dice qué hacer y si se embala, y los que se
   // desarman y arman van a una segunda dirección.
   const isAssembly = request.service_type?.code === 'furniture_assembly'
-  // Pintura y porcelanato no tienen lista: lo que piden va en details (o en un video).
-  const isDescribed = ['painting', 'masonry'].includes(request.service_type?.code)
+  const isDescribed = DESCRIBED_CODES.includes(request.service_type?.code)
   const destination = request.details?.destination
 
   return (

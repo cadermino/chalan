@@ -77,6 +77,23 @@ const FLOWS = {
     // Como pintura, dura varios días.
     payDay: 'al terminar el trabajo',
   },
+  microcement: {
+    basePath: '/microcemento/cotizar',
+    itemsSlug: 'donde-va',
+    title: SHARE.microcement.title,
+    header: 'Aplicación de microcemento',
+    steps: ['Dirección', 'Dónde va', 'Fecha y contacto'],
+    addressTitle: '¿Dónde hay que aplicar el microcemento?',
+    addressLead: 'La dirección del depa o la casa.',
+    itemsSummary: 'Dónde va',
+    emptyItems: 'Cuéntanos dónde va el microcemento, o sube un video explicándolo.',
+    dateHint: 'Lleva varias capas y días de secado: te recomendamos pedirlo con unos días de anticipación.',
+    whatsappAsk: 'Hola, quiero cotizar la aplicación de microcemento',
+    whatsappSent: 'Hola, acabo de enviar una solicitud de microcemento',
+    quotesFrom: 'los aplicadores',
+    // Capas y secado: varios días, como pintura.
+    payDay: 'al terminar el trabajo',
+  },
 }
 
 const [SERVICE_CODE, FLOW] = Object.entries(FLOWS).find(
@@ -86,7 +103,7 @@ const [SERVICE_CODE, FLOW] = Object.entries(FLOWS).find(
 export const SERVICE = SERVICE_CODE
 // Servicios sin lista de cosas: se cuentan con palabras o en un video, más
 // unas respuestas opcionales en `details` (needs_items: False en el API).
-export const DESCRIBED = ['painting', 'masonry'].includes(SERVICE_CODE)
+export const DESCRIBED = ['painting', 'masonry', 'microcement'].includes(SERVICE_CODE)
 export const COPY = FLOW
 export const BASE_PATH = FLOW.basePath
 export const PATHS = {
@@ -187,6 +204,54 @@ export function tilingFacts(details = {}) {
   ].filter(Boolean).join(' · ')
 }
 
+// Las preguntas de microcemento, todas opcionales; los codes los valida el API
+// principal (MICROCEMENT_* en app/api/service_request/types.py).
+export const MICROCEMENT_SURFACES = [
+  { code: 'floor', label: 'Piso' },
+  { code: 'wall', label: 'Pared' },
+  { code: 'both', label: 'Piso y pared' },
+]
+export const MICROCEMENT_ROOMS = [
+  { code: 'bathrooms', label: 'Baños y duchas' },
+  { code: 'kitchen', label: 'Cocina' },
+  { code: 'living', label: 'Sala y comedor' },
+  { code: 'bedrooms', label: 'Dormitorios' },
+  { code: 'countertops', label: 'Mesadas' },
+  { code: 'stairs', label: 'Escaleras' },
+  { code: 'terrace', label: 'Terraza o patio' },
+  { code: 'facade', label: 'Fachada' },
+]
+export const MICROCEMENT_BASES = [
+  { code: 'tiles', label: 'Cerámica, mayólica o porcelanato' },
+  { code: 'cement', label: 'Cemento o contrapiso' },
+  { code: 'plaster', label: 'Pared tarrajeada o pintada' },
+  { code: 'unsure', label: 'Otro o no sé' },
+]
+export const MICROCEMENT_BASE_ISSUES = [
+  { code: 'loose', label: 'Piezas sueltas o que suenan huecas' },
+  { code: 'cracks', label: 'Rajaduras' },
+  { code: 'humidity', label: 'Humedad' },
+]
+export const MICROCEMENT_MATERIAL_BY = [
+  { code: 'customer', label: 'Lo compro yo (solo mano de obra)' },
+  { code: 'applicator', label: 'A todo costo, que lo incluya el aplicador' },
+  { code: 'unsure', label: 'No sé, que me recomienden' },
+]
+
+// "Piso y pared · Baños y duchas, cocina · 18 m² · Sobre cerámica, mayólica o porcelanato · ..."
+export function microcementFacts(details = {}) {
+  const rooms = (details.rooms || []).map((c) => labelOf(MICROCEMENT_ROOMS, c)?.toLowerCase())
+  const issues = (details.base_issues || []).map((c) => labelOf(MICROCEMENT_BASE_ISSUES, c)?.toLowerCase())
+  return [
+    labelOf(MICROCEMENT_SURFACES, details.surface),
+    rooms.length ? rooms.join(', ') : null,
+    details.area_m2 ? `${details.area_m2} m²` : null,
+    details.base ? `Hoy: ${labelOf(MICROCEMENT_BASES, details.base)?.toLowerCase()}` : null,
+    issues.length ? `Base: ${issues.join(', ')}` : null,
+    details.material_by ? `Material: ${labelOf(MICROCEMENT_MATERIAL_BY, details.material_by)?.toLowerCase()}` : null,
+  ].filter(Boolean).join(' · ')
+}
+
 // Las respuestas en una línea, para los resúmenes: "Interior · 2 a 3 ambientes · 45 m²".
 export function paintingFacts(details = {}) {
   const issues = (details.wall_issues || []).map((c) => labelOf(PAINTING_WALL_ISSUES, c)?.toLowerCase())
@@ -201,5 +266,7 @@ export function paintingFacts(details = {}) {
 
 // La línea de resumen del servicio que se cuenta con palabras.
 export function describedFacts(details) {
-  return SERVICE_CODE === 'masonry' ? tilingFacts(details) : paintingFacts(details)
+  if (SERVICE_CODE === 'masonry') return tilingFacts(details)
+  if (SERVICE_CODE === 'microcement') return microcementFacts(details)
+  return paintingFacts(details)
 }

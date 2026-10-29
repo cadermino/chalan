@@ -37,8 +37,9 @@ export interface PostMeta {
   // Qué llamado cierra el post. Sin valor: el cotizador de mudanza (o el
   // registro de transportistas, que se decide por categoría). "embalaje":
   // el formulario de /embalaje/cotizar, para los posts de embalaje, que
-  // están repartidos en varias categorías. Los servicios a domicilio sin
-  // formulario (pintura, microcemento, porcelanato) cierran con su WhatsApp.
+  // están repartidos en varias categorías. Los servicios a domicilio
+  // (pintura, microcemento, porcelanato) cierran con su caja de HOME_SERVICES:
+  // el formulario primero y WhatsApp de segunda opción.
   cta?: PostCta;
   // Qué viene marcado en el cotizador que cierra el post ("cargo" en los de
   // fletes). Sin valor: mudanza.
