@@ -8,14 +8,22 @@
           <p class="text-center font-bold mb-10" id="text-header" v-if="quotationsList.length > 0">
             Elige la cotización adecuada para tu mudanza <span class="text-red-500">*</span>
           </p>
-          <div class="flex flex-wrap mb-4" v-if="quotationsList.length > 0">
-            <div v-for="(quotation, index) in quotationsList"
+          <!-- Una columna, de la más barata a la más cara: en dos columnas el
+               comentario del transportista desalineaba las tarjetas. -->
+          <div class="mb-4" v-if="quotationsList.length > 0">
+            <div v-for="(quotation, index) in sortedQuotations"
               v-bind:value="index"
-              v-bind:key="index"
-              class="w-full my-5 md:w-1/2 px-3">
-              <div :class="(selectedQuotation.id == quotation.id) ? 'bg-gray-200' : ''"
-                class="w-full border-l border-r border-b border-t border-gray-400
-                  rounded">
+              v-bind:key="quotation.id"
+              class="w-full my-5 px-3">
+              <div :class="[
+                  (selectedQuotation.id == quotation.id) ? 'bg-gray-200' : '',
+                  isBestOption(index) ? 'border-green-500 border-2' : 'border border-gray-400',
+                ]"
+                class="w-full rounded">
+                <div v-if="isBestOption(index)"
+                  class="bg-green-500 text-white text-sm font-bold px-4 py-1 rounded-t">
+                  Mejor opción
+                </div>
                 <div class="w-full
                   p-4
                   flex
@@ -245,6 +253,10 @@ export default {
     countryData: Object,
   },
   methods: {
+    // La más barata, solo cuando hay con qué compararla.
+    isBestOption(index) {
+      return index === 0 && this.sortedQuotations.length > 1;
+    },
     // Cómo viaja la carga según fotos del camión. No la carrocería de la
     // tarjeta SUNARP: un furgón inscrito puede tener barandas hoy.
     cargoCoverLabel(cargoCover) {
@@ -427,6 +439,12 @@ export default {
     },
   },
   computed: {
+    // De menor a mayor precio; con el mismo precio, la que llegó primero.
+    sortedQuotations() {
+      return [...this.quotationsList].sort(
+        (a, b) => a.total_amount - b.total_amount || a.id - b.id,
+      );
+    },
     ...mapState(useStore, [
       'currentOrder',
       'customer',
