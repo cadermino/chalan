@@ -5,8 +5,13 @@
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
           <ViewsMessages :view-name="viewName"/>
-          <p class="text-center font-bold mb-10" id="text-header" v-if="quotationsList.length > 0">
+          <p class="text-center font-bold mb-2" id="text-header" v-if="quotationsList.length > 0">
             Elige la cotización adecuada para tu mudanza <span class="text-red-500">*</span>
+          </p>
+          <!-- En el celular solo entra la primera tarjeta: así se sabe que hay más abajo. -->
+          <p class="text-center text-gray-700 mb-8" id="quotations-count" v-if="quotationsList.length > 0">
+            <span class="font-bold">{{ quotationsCountLabel }}</span>
+            <span v-if="quotationsList.length > 1"> · de la más barata a la más cara</span>
           </p>
           <!-- Una columna, de la más barata a la más cara: en dos columnas el
                comentario del transportista desalineaba las tarjetas. -->
@@ -442,6 +447,10 @@ export default {
     // De menor a mayor precio. En empate gana la mejor puntuada, después la
     // de más evaluaciones, y si no, la que llegó primero. Las puntuaciones
     // llegan después que las cotizaciones: el orden se rehace cuando cargan.
+    quotationsCountLabel() {
+      const count = this.quotationsList.length;
+      return count === 1 ? 'Tienes 1 cotización' : `Tienes ${count} cotizaciones`;
+    },
     sortedQuotations() {
       return [...this.quotationsList].sort((a, b) => (
         a.total_amount - b.total_amount
