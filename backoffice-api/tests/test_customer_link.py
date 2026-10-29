@@ -6,11 +6,12 @@ misma sal, la misma clave y [order_id, customer_id].
 """
 from datetime import datetime
 
+import jwt
 import pytest
 from itsdangerous import URLSafeTimedSerializer
 
 from app import db
-from app.models import Customer, Order
+from app.models import CarrierCompany, Customer, Order, Quotation
 from tests.test_service_requests import SECRET, admin, make_user  # noqa: F401
 
 
@@ -86,3 +87,20 @@ def test_creating_a_customer_sends_no_password_and_the_internal_token(client, mo
     assert sent['url'].endswith('/api/auth/register')
     assert 'password' not in sent['json']
     assert sent['headers']['Authorization'].startswith('Bearer ')
+
+
+def test_the_review_link_is_marked_as_a_review(client, admin, customer):
+    # El API principal solo acepta como reseña un token con purpose=review: el
+    # link de cotizar del transportista trae order_id y carrier_company_id.
+    order = make_order(customer.id, status=3)
+    company = CarrierCompany(name='Gana SAC', rfc='', email='', address='', active=1)
+    db.session.add(company)
+    db.session.commit()
+    db.session.add(Quotation(order_id=order.id, carrier_company_id=company.id, amount=300, quotation_status_id=2))
+    db.session.commit()
+
+    res = client.get(f'/api/orders/{order.id}/review-link', headers=admin)
+
+    payload = jwt.decode(res.get_json()['token'], SECRET, algorithms=['HS256'])
+    assert payload['purpose'] == 'review'
+    assert (payload['order_id'], payload['customer_id'], payload['carrier_company_id']) == (order.id, customer.id, company.id)

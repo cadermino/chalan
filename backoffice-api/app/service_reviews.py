@@ -29,6 +29,7 @@ def review_path(service_request):
         return None
     now = datetime.now(timezone.utc)
     token = jwt.encode({
+        'purpose': 'review',
         'service_request_id': service_request.id,
         'carrier_company_id': quotation.carrier_company_id,
         'exp': now + REVIEW_TTL,

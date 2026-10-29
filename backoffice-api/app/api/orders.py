@@ -198,7 +198,10 @@ def _generate_quotation_token(carrier_company_id, order_id):
 
 
 def _generate_review_token(order_id, customer_id, carrier_company_id):
+    # `purpose` lo separa de los links de cotizar, que traen order_id y
+    # carrier_company_id con la misma firma (_read_review_token del API principal).
     payload = {
+        'purpose': 'review',
         'order_id': order_id,
         'customer_id': customer_id,
         'carrier_company_id': carrier_company_id,

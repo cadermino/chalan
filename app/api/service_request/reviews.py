@@ -2,8 +2,9 @@
 
 El token es un JWT con el SECRET_KEY, como el de las mudanzas
 (`_generate_review_token` en backoffice-api orders.py), pero con
-`service_request_id` en vez de `order_id`: así /reviews/verify y /reviews
-saben cuál es. backoffice-api `app/service_reviews.py` hace el mismo token:
+`service_request_id` en vez de `order_id`, y `purpose: review`: el link del
+transportista también trae `service_request_id` y la misma firma, y sin eso
+la empresa elegida podría calificarse sola (_read_review_token en reviews.py). backoffice-api `app/service_reviews.py` hace el mismo token:
 si cambia uno, cambian los dos."""
 from datetime import datetime, timedelta, timezone
 
@@ -29,6 +30,7 @@ def make_review_token(service_request):
         return None
     now = datetime.now(timezone.utc)
     payload = {
+        'purpose': 'review',
         'service_request_id': service_request.id,
         'carrier_company_id': quotation.carrier_company_id,
         'exp': now + REVIEW_TTL,

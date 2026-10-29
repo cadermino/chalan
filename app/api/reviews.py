@@ -3,27 +3,69 @@ import jwt
 from flask import jsonify, request, current_app
 from . import api
 from .. import db
-from ..models import Review, ReviewSchema, Order, CarrierCompany, Customer, CarrierCompanySchema, ServiceRequest
+from ..models import (Review, ReviewSchema, Order, CarrierCompany, Customer, CarrierCompanySchema, Quotations,
+                      ServiceRequest)
+from .order.order_status import OrderStatus
+from .quotation.quotation_status import QuotationStatus
 from .service_request.reviews import reviewed_quotation
 from .service_requests import _public_name
 from sqlalchemy import func
 
 
-def _verify_review_token(token):
-    try:
-        return jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-    except jwt.InvalidTokenError:
-        return None
+REVIEW_PURPOSE = 'review'
 
 
 def _service_review_target(token_data):
     """El servicio y la empresa de un token de servicio, mientras el link valga:
     el servicio sigue completado y la elegida es de esa empresa."""
-    service_request = db.session.get(ServiceRequest, token_data['service_request_id'])
+    service_request = db.session.get(ServiceRequest, token_data.get('service_request_id'))
     quotation = reviewed_quotation(service_request)
     if quotation is None or quotation.carrier_company_id != token_data.get('carrier_company_id'):
         return None, None
     return service_request, quotation.carrier_company
+
+
+def _order_review_target(token_data):
+    """La orden y la empresa de un token de mudanza, si coinciden con lo que
+    pasó: la orden es de ese cliente, está completada y la elegida es de esa
+    empresa. Los links de cotizar de los transportistas traen order_id y
+    carrier_company_id pero no customer_id."""
+    order = db.session.get(Order, token_data.get('order_id'))
+    if order is None or not order.customer_id or order.customer_id != token_data.get('customer_id'):
+        return None, None
+    if order.order_status_id != OrderStatus.completed():
+        return None, None
+    selected = Quotations.query.filter_by(order_id=order.id, quotation_status_id=QuotationStatus.Selected()).first()
+    if selected is None or selected.carrier_company_id != token_data.get('carrier_company_id'):
+        return None, None
+    return order, db.session.get(CarrierCompany, selected.carrier_company_id)
+
+
+def _read_review_token(token):
+    """Lo que reseña un link: ('service', solicitud, empresa) u ('order', orden,
+    empresa), o None.
+
+    Los JWT de las dos apps (links de cotizar, sesiones, el token interno) se
+    firman con el mismo SECRET_KEY, así que una firma buena no basta: el link de
+    reseña lleva `purpose: review`. Los de mudanza que se mandaron antes de eso
+    no lo traen y valen mientras coincidan con la orden (_order_review_target)."""
+    if not isinstance(token, str) or not token:
+        return None
+    try:
+        data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+    except jwt.InvalidTokenError:
+        return None
+    purpose = data.get('purpose')
+    if 'service_request_id' in data:
+        # El link del transportista de un servicio también trae service_request_id.
+        if purpose != REVIEW_PURPOSE:
+            return None
+        service_request, carrier = _service_review_target(data)
+        return ('service', service_request, carrier) if service_request else None
+    if purpose not in (None, REVIEW_PURPOSE):
+        return None
+    order, carrier = _order_review_target(data)
+    return ('order', order, carrier) if order else None
 
 
 def _short_name(first, last=None):
@@ -49,10 +91,11 @@ def _review_fields(data):
         missing = 'rating' if 'rating' not in data else 'comment'
         return None, (jsonify({'error': f'Campo requerido: {missing}'}), 400)
     rating = data['rating']
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
+    if not isinstance(rating, int) or isinstance(rating, bool) or rating < 1 or rating > 5:
         return None, (jsonify({'error': 'La calificación debe ser entre 1 y 5'}), 400)
     platform_rating = data.get('platform_rating')
-    if platform_rating is not None and (not isinstance(platform_rating, int) or platform_rating < 1 or platform_rating > 5):
+    if platform_rating is not None and (not isinstance(platform_rating, int) or isinstance(platform_rating, bool)
+                                        or platform_rating < 1 or platform_rating > 5):
         return None, (jsonify({'error': 'La calificación de la plataforma debe ser entre 1 y 5'}), 400)
     comment = data['comment'] if isinstance(data['comment'], str) else ''
     platform_comment = data.get('platform_comment') if isinstance(data.get('platform_comment'), str) else None
@@ -64,122 +107,58 @@ def _review_fields(data):
     }, None
 
 
-def _create_service_review(token_data, data):
-    service_request, carrier = _service_review_target(token_data)
-    if service_request is None:
-        return jsonify({'error': 'Link inválido o expirado'}), 400
-    fields, error = _review_fields(data)
-    if error:
-        return error
-    if Review.query.filter_by(service_request_id=service_request.id).first():
-        return jsonify({'error': 'Ya publicaste una reseña para este servicio'}), 409
-    review = Review(service_request_id=service_request.id, carrier_company_id=carrier.id, **fields)
-    db.session.add(review)
-    db.session.commit()
-    return jsonify({'message': 'Reseña publicada exitosamente', 'id': review.id}), 201
+def _existing_review(kind, subject):
+    if kind == 'service':
+        return Review.query.filter_by(service_request_id=subject.id).first()
+    return Review.query.filter_by(order_id=subject.id, customer_id=subject.customer_id).first()
 
 
 @api.route('/reviews/verify/<token>', methods=['GET'])
 def verify_review_token(token):
-    token_data = _verify_review_token(token)
-    if token_data is None:
+    target = _read_review_token(token)
+    if target is None:
         return jsonify({'error': 'Link inválido o expirado'}), 400
+    kind, subject, carrier = target
 
-    if 'service_request_id' in token_data:
-        service_request, carrier = _service_review_target(token_data)
-        if service_request is None:
-            return jsonify({'error': 'Link inválido o expirado'}), 400
+    if kind == 'service':
         return jsonify({
-            'service_request_id': service_request.id,
+            'service_request_id': subject.id,
             'carrier_company_id': carrier.id,
             # A un contacto que cargó el admin se lo nombra por quien contesta.
             'carrier_company_name': _public_name(carrier),
-            'service_name': service_request.service_type.name if service_request.service_type else None,
-            'already_reviewed': Review.query.filter_by(service_request_id=service_request.id).first() is not None,
+            'service_name': subject.service_type.name if subject.service_type else None,
+            'already_reviewed': _existing_review(kind, subject) is not None,
         }), 200
 
-    order = db.session.get(Order, token_data['order_id'])
-    carrier = db.session.get(CarrierCompany, token_data['carrier_company_id'])
-    if not order or not carrier:
-        return jsonify({'error': 'Orden no encontrada'}), 404
-
-    existing = Review.query.filter_by(
-        order_id=token_data['order_id'],
-        customer_id=token_data['customer_id']
-    ).first()
-
     return jsonify({
-        'order_id': order.id,
+        'order_id': subject.id,
         'carrier_company_id': carrier.id,
         'carrier_company_name': carrier.name,
-        'already_reviewed': existing is not None,
+        'already_reviewed': _existing_review(kind, subject) is not None,
     }), 200
 
 
 @api.route('/reviews', methods=['POST'])
 def create_review():
-    data = request.get_json()
+    """Solo con el link de reseña: antes, sin token bastaba mandar order_id y
+    carrier_company_id para reseñar cualquier orden."""
+    data = request.get_json(silent=True) or {}
+    target = _read_review_token(data.get('token'))
+    if target is None:
+        return jsonify({'error': 'Link inválido o expirado'}), 400
+    kind, subject, carrier = target
 
-    token = data.get('token')
-    if token:
-        token_data = _verify_review_token(token)
-        if token_data is None:
-            return jsonify({'error': 'Link inválido o expirado'}), 400
-        if 'service_request_id' in token_data:
-            return _create_service_review(token_data, data)
-        data = {
-            **data,
-            'order_id': token_data['order_id'],
-            'carrier_company_id': token_data['carrier_company_id'],
-        }
+    fields, error = _review_fields(data)
+    if error:
+        return error
+    if _existing_review(kind, subject):
+        what = 'este servicio' if kind == 'service' else 'esta orden'
+        return jsonify({'error': f'Ya publicaste una reseña para {what}'}), 409
 
-    # Validate required fields
-    required = ['order_id', 'carrier_company_id', 'rating', 'comment']
-    for field in required:
-        if field not in data:
-            return jsonify({'error': f'Campo requerido: {field}'}), 400
-
-    rating = data['rating']
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return jsonify({'error': 'La calificación debe ser entre 1 y 5'}), 400
-
-    platform_rating = data.get('platform_rating')
-    if platform_rating is not None and (not isinstance(platform_rating, int) or platform_rating < 1 or platform_rating > 5):
-        return jsonify({'error': 'La calificación de la plataforma debe ser entre 1 y 5'}), 400
-
-    platform_comment = data.get('platform_comment')
-
-    # Verify the order exists
-    order = db.session.get(Order, data['order_id'])
-    if not order:
-        return jsonify({'error': 'Orden no encontrada'}), 404
-
-    # Verify the carrier company exists
-    carrier = db.session.get(CarrierCompany, data['carrier_company_id'])
-    if not carrier:
-        return jsonify({'error': 'Empresa no encontrada'}), 404
-
-    # Verify order belongs to a customer
-    if not order.customer_id:
-        return jsonify({'error': 'Orden sin cliente asociado'}), 400
-
-    # Check if review already exists for this order+customer
-    existing = Review.query.filter_by(
-        order_id=data['order_id'],
-        customer_id=order.customer_id
-    ).first()
-    if existing:
-        return jsonify({'error': 'Ya publicaste una reseña para esta orden'}), 409
-
-    review = Review(
-        order_id=data['order_id'],
-        customer_id=order.customer_id,
-        carrier_company_id=data['carrier_company_id'],
-        rating=rating,
-        comment=data['comment'][:1000],
-        platform_rating=platform_rating,
-        platform_comment=platform_comment[:1000] if platform_comment else None,
-    )
+    if kind == 'service':
+        review = Review(service_request_id=subject.id, carrier_company_id=carrier.id, **fields)
+    else:
+        review = Review(order_id=subject.id, customer_id=subject.customer_id, carrier_company_id=carrier.id, **fields)
     db.session.add(review)
     db.session.commit()
 

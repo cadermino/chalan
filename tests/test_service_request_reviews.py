@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import jwt
 import pytest
 
 from app import db
@@ -158,3 +159,14 @@ def test_a_registered_company_shows_its_service_reviews_with_the_customers_short
     assert page['total_reviews'] == 1
     assert page['reviews'][0]['customer_name'] == 'Carla R.'
     assert recent[0]['customer_name'] == 'Carla R.'
+
+
+def test_the_carriers_link_cannot_review_its_own_job(app, client, packing, contact):
+    # El link del transportista trae service_request_id y carrier_company_id, con la misma firma.
+    service_request = make_request(packing, contact)
+    carrier_link = jwt.encode({'purpose': 'service_request', 'service_request_id': service_request.id,
+                               'carrier_company_id': contact.id}, app.config['SECRET_KEY'], algorithm='HS256')
+
+    assert client.get(f'/api/v1/reviews/verify/{carrier_link}').status_code == 400
+    assert review(client, carrier_link).status_code == 400
+    assert Review.query.count() == 0

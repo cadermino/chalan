@@ -1221,6 +1221,7 @@ def test_a_completed_service_has_a_review_link_for_the_chosen_company(client, ad
     token = data['review_path'].removeprefix('/reviews/submit/')
     payload = jwt.decode(token, client.application.config['SECRET_KEY'], algorithms=['HS256'])
     assert (payload['service_request_id'], payload['carrier_company_id']) == (submitted.id, carrier.id)
+    assert payload['purpose'] == 'review'
     assert data['review'] is None
 
 
