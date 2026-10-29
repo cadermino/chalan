@@ -1,5 +1,5 @@
 {
-  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas. Para masonry (porcelanato y cerámica): instalación de porcelanato Lima, maestro de obra acabados a domicilio Lima, remodelación de baños y cocinas Lima, remodelaciones y acabados de departamentos Lima; casi no hay instaladores con reseñas, así que entran contratistas y albañiles. Para microcement (2026-10-29): aplicación de microcemento Lima, aplicador de microcemento Lima, microcemento baños y pisos Lima, cemento pulido y microcemento a domicilio Lima, pisos epóxicos y microcemento Lima, revestimientos decorativos microcemento instalación Lima; casi todos son fábricas o tiendas de texturas que también aplican, y pocos llegan a 10 reseñas, así que entran con menos. Microcemento Argema ya es proveedor de Chalán (2026-10-29). Se dejaron fuera los que solo venden y los que solo tienen teléfono fijo (Increte Systems).",
+  "_source": "Google Maps, buscado a mano el 2026-10-28 (armado de muebles Lima, instalación de muebles a domicilio Lima, carpintero a domicilio armado de muebles Lima). Negocios con 10 reseñas o más; sin tiendas, ferreterías ni fábricas. Para masonry (porcelanato y cerámica): instalación de porcelanato Lima, maestro de obra acabados a domicilio Lima, remodelación de baños y cocinas Lima, remodelaciones y acabados de departamentos Lima; casi no hay instaladores con reseñas, así que entran contratistas y albañiles. Para microcement (2026-10-29): aplicación de microcemento Lima, aplicador de microcemento Lima, microcemento baños y pisos Lima, cemento pulido y microcemento a domicilio Lima, pisos epóxicos y microcemento Lima, revestimientos decorativos microcemento instalación Lima; casi todos son fábricas o tiendas de texturas que también aplican, y pocos llegan a 10 reseñas, así que entran con menos. Microcemento Argema ya es proveedor de Chalán (2026-10-29). Se dejaron fuera los que solo venden. Ninguna lista lleva teléfonos fijos: se les escribe por WhatsApp (por eso salieron Increte Systems y, el 2026-10-29, Chavín Engineering & Construction).",
   "furniture_assembly": [
     {
       "name": "Armado de Muebles fast",
@@ -114,14 +114,6 @@
       "reviews": 24,
       "address": "",
       "does": "Albañil"
-    },
-    {
-      "name": "Chavín Engineering & Construction",
-      "phone": "01 349 6502",
-      "rating": 4.4,
-      "reviews": 22,
-      "address": "Alameda del Corregidor 124",
-      "does": "Constructora (teléfono fijo)"
     },
     {
       "name": "Construcciones y Remodelaciones con Drywall",

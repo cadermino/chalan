@@ -1052,8 +1052,16 @@ def test_only_admins_see_the_prospects(client):
 def test_admins_get_the_tile_installers_to_invite(client, admin):
     prospects = client.get('/api/service-prospects/masonry', headers=admin).get_json()['prospects']
 
-    assert len(prospects) == 8
+    assert len(prospects) == 7
     assert all(p['phone'] for p in prospects)
+
+
+def test_every_contact_has_a_mobile_to_write_to_on_whatsapp(client, admin):
+    # Se les escribe por WhatsApp: un fijo (01 ...) no sirve.
+    for code in ('furniture_assembly', 'masonry', 'microcement'):
+        prospects = client.get(f'/api/service-prospects/{code}', headers=admin).get_json()['prospects']
+        digits = [''.join(ch for ch in p['phone'] if ch.isdigit())[-9:] for p in prospects]
+        assert all(len(d) == 9 and d.startswith('9') for d in digits), code
 
 
 def test_admins_get_the_microcement_applicators_to_invite(client, admin):
