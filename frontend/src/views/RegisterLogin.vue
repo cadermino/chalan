@@ -22,7 +22,6 @@ import { useStore } from '@/store';
 import Login from '@/components/Login.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import Tracker from '@/components/Tracker.vue';
-import chalan from '../api/chalan';
 
 export default {
   name: 'register-login',
@@ -54,80 +53,30 @@ export default {
   ],
   methods: {
     ...mapActions(useStore, [
-      'addDataToLocalStorage',
-      'fetchLastPendingOrder',
+      'attachDraftAfterLogin',
     ]),
     ...mapActions(useStore, [
       'setViewsMessages',
       'setLoader',
     ]),
     updateOrder() {
-      if (this.currentOrder.order_id) {
-        const payload = {
-          order: this.currentOrder,
-          orderDetailsOrigin: this.orderDetailsOrigin,
-          orderDetailsDestination: this.orderDetailsDestination,
-          services: this.services,
-          customer: this.customer,
-        };
-        chalan.updateOrder(payload)
-          .then((response) => {
-            if (response.status === 200) {
-              this.setLoader(false);
-              this.addDataToLocalStorage([
-                'currentOrder',
-                'orderDetailsOrigin',
-                'orderDetailsDestination',
-                'services',
-                'customer',
-              ]);
-              this.$router.push(this.redirect);
-            }
-          })
-          .catch(() => {
-            this.setLoader(false);
-            this.setViewsMessages({
-              view: this.viewName,
-              message: {
-                text: 'Hubo un error, intenta después de recargar la página',
-                type: 'error',
-              },
-            });
+      this.attachDraftAfterLogin()
+        .then(({ discarded }) => {
+          this.setLoader(false);
+          // La orden del borrador no era suya: su panel muestra la última que sí.
+          this.$router.push(discarded ? '/dashboard' : this.redirect).catch(() => {});
+        })
+        .catch(() => {
+          this.setLoader(false);
+          this.setViewsMessages({
+            view: this.viewName,
+            message: { text: 'Hubo un error, intenta después de recargar la página', type: 'error' },
           });
-      } else {
-        this.fetchLastPendingOrder()
-          .then(() => {
-            this.addDataToLocalStorage([
-              'currentOrder',
-              'orderDetailsOrigin',
-              'orderDetailsDestination',
-              'services',
-              'customer',
-            ]);
-            this.setLoader(false);
-            this.$router.push(this.redirect);
-          })
-          .catch(() => {
-            this.addDataToLocalStorage([
-              'currentOrder',
-              'orderDetailsOrigin',
-              'orderDetailsDestination',
-              'services',
-              'customer',
-            ]);
-            this.setLoader(false);
-            this.$router.push(this.redirect);
-          });
-      }
+        });
     },
   },
   computed: {
     ...mapState(useStore, [
-      'currentOrder',
-      'customer',
-      'orderDetailsDestination',
-      'orderDetailsOrigin',
-      'services',
       'viewsMessages',
     ]),
     ...mapState(useStore, [

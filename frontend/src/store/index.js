@@ -236,6 +236,40 @@ export const useStore = defineStore('main', {
     setLoader(value) {
       this.loading = value;
     },
+    // Al loguearse (o registrarse), el borrador del navegador pasa a ser de quien
+    // entró. Si no puede (es de otra cuenta, ya no existe o ya no está pendiente:
+    // 403, 404, 409) se descarta y se carga su última orden pendiente, como si no
+    // hubiera borrador. Antes el login quedaba en "Hubo un error" y recargar no
+    // servía: el borrador seguía en localStorage. `discarded` le dice a la
+    // pantalla que no vuelva a la orden descartada.
+    async attachDraftAfterLogin() {
+      const sections = ['currentOrder', 'orderDetailsOrigin', 'orderDetailsDestination', 'services', 'customer'];
+      let discarded = false;
+      if (this.currentOrder.order_id) {
+        try {
+          await chalan.updateOrder({
+            order: this.currentOrder,
+            orderDetailsOrigin: this.orderDetailsOrigin,
+            orderDetailsDestination: this.orderDetailsDestination,
+            services: this.services,
+            customer: this.customer,
+          });
+          this.addDataToLocalStorage(sections);
+          return { discarded };
+        } catch (error) {
+          if (![403, 404, 409].includes(error?.response?.status)) throw error;
+          this.discardOrderDraft();
+          discarded = true;
+        }
+      }
+      try {
+        await this.fetchLastPendingOrder();
+      } catch (e) {
+        // Sin orden pendiente que cargar: sigue sin borrador.
+      }
+      this.addDataToLocalStorage(sections);
+      return { discarded };
+    },
     async fetchLastPendingOrder() {
       const payload = {
         token: this.customer.token,
