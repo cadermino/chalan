@@ -59,6 +59,8 @@ const chatHiddenPaths = [
   "/transportistas",
   // Fotos y videos de un servicio que se mandan a quien va a cotizar.
   "/v",
+  // La reseña (de una mudanza o de un servicio ya hecho): el chat de cotizar distrae.
+  "/reviews/submit",
   ...getAllPosts()
     .filter((post) => post.cta || post.category === "Transportistas")
     .map((post) => `/blog/${post.slug}`),

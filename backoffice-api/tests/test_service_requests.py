@@ -1198,3 +1198,51 @@ def test_the_admin_sees_the_customers_name_and_email(client, admin, submitted):
     data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
 
     assert (data['customer_name'], data['customer_email']) == ('Carla', 'carla@example.com')
+
+
+@pytest.fixture
+def reviews_table(app):
+    # `reviews` es del API principal y no tiene modelo aquí.
+    db.session.execute(db.text(
+        'CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY, service_request_id INTEGER, '
+        'carrier_company_id INTEGER, rating INTEGER, comment TEXT, platform_rating INTEGER, '
+        'platform_comment TEXT, created_date TEXT)'))
+    db.session.commit()
+
+
+def test_a_completed_service_has_a_review_link_for_the_chosen_company(client, admin, submitted, packing, reviews_table):
+    carrier = make_carrier(packing, name='Gana SAC')
+    make_quotation(submitted, carrier, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'completed'
+    db.session.commit()
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    token = data['review_path'].removeprefix('/reviews/submit/')
+    payload = jwt.decode(token, client.application.config['SECRET_KEY'], algorithms=['HS256'])
+    assert (payload['service_request_id'], payload['carrier_company_id']) == (submitted.id, carrier.id)
+    assert data['review'] is None
+
+
+def test_the_admin_sees_the_review_the_customer_left(client, admin, submitted, packing, reviews_table):
+    carrier = make_carrier(packing, name='Gana SAC')
+    make_quotation(submitted, carrier, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'completed'
+    db.session.execute(db.text(
+        "INSERT INTO reviews (service_request_id, carrier_company_id, rating, comment, created_date) "
+        "VALUES (:sr, :c, 5, 'Muy cuidadosos', '2026-10-29')"), {'sr': submitted.id, 'c': carrier.id})
+    db.session.commit()
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert (data['review']['rating'], data['review']['comment']) == (5, 'Muy cuidadosos')
+
+
+def test_a_service_that_is_not_completed_has_no_review_link(client, admin, submitted, packing):
+    make_quotation(submitted, make_carrier(packing, name='Gana SAC'), 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'in_progress'
+    db.session.commit()
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert (data['review_path'], data['review']) == (None, None)

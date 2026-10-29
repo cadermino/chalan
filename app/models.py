@@ -266,8 +266,11 @@ class Vehicle(db.Model):
 class Review(db.Model):
 	__tablename__ = 'reviews'
 	id = db.Column(db.Integer, primary_key=True)
-	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
-	customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=False)
+	# Una mudanza (order_id + customer_id) o un servicio (service_request_id, sin
+	# cuenta de cliente): migración 042.
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id'))
+	customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'))
+	service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'), unique=True)
 	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id'), nullable=False)
 	rating = db.Column(db.Integer, nullable=False)
 	comment = db.Column(db.String(1000))
@@ -278,6 +281,7 @@ class Review(db.Model):
 	order = db.relationship("Order", backref="reviews")
 	customer = db.relationship("Customer", backref="reviews")
 	carrier_company = db.relationship("CarrierCompany", backref="reviews")
+	service_request = db.relationship("ServiceRequest")
 
 class OrderImage(db.Model):
 	__tablename__ = 'order_images'

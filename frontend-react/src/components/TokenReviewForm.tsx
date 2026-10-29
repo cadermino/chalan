@@ -48,6 +48,8 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
   const [loading, setLoading] = useState(true);
   const [verifyError, setVerifyError] = useState("");
   const [carrierName, setCarrierName] = useState("");
+  // Solo en el link de un servicio (embalaje, armado...): sin él es una mudanza.
+  const [serviceName, setServiceName] = useState<string | null>(null);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
 
   const [rating, setRating] = useState(0);
@@ -65,6 +67,7 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Link inválido o expirado");
         setCarrierName(data.carrier_company_name);
+        setServiceName(data.service_name ?? null);
         setAlreadyReviewed(data.already_reviewed);
       })
       .catch((err) =>
@@ -128,7 +131,7 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
     const googleText = platformComment.trim() || comment.trim();
 
     const openGoogleReview = () => {
-      track("google_review_click", { with_comment: Boolean(googleText) });
+      track("google_review_click", { with_comment: Boolean(googleText), kind: serviceName ? "service" : "move" });
       if (!googleText) return;
       navigator.clipboard?.writeText(googleText).then(() => setCopied(true)).catch(() => {});
     };
@@ -136,7 +139,9 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
     return (
       <div className="text-center py-4 space-y-4">
         <p className="text-green-600 font-medium">
-          {success ? "¡Gracias por tu reseña!" : "Ya publicaste una reseña para esta orden."}
+          {success
+            ? "¡Gracias por tu reseña!"
+            : `Ya publicaste una reseña para ${serviceName ? "este servicio" : "esta orden"}.`}
         </p>
 
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -166,7 +171,8 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-sm text-gray-600">
         Cuéntanos cómo fue tu experiencia con{" "}
-        <span className="font-semibold">{carrierName}</span>.
+        <span className="font-semibold">{carrierName}</span>
+        {serviceName && <> en tu servicio de {serviceName.toLowerCase()}</>}.
       </p>
 
       <div>
@@ -180,7 +186,7 @@ export function TokenReviewForm({ token }: TokenReviewFormProps) {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
-          placeholder="¿Cómo fue tu experiencia con la mudanza?"
+          placeholder={serviceName ? "¿Cómo fue el trabajo? ¿Llegaron a tiempo, lo hicieron con cuidado?" : "¿Cómo fue tu experiencia con la mudanza?"}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
       </div>

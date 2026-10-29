@@ -14,6 +14,7 @@ from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from ..address import district_of
 from ..service_media import make_token as make_media_token
+from ..service_reviews import review_of, review_path
 from .. import db
 from ..models import (ROLE_SUPERADMIN, LIMA_DEPARTMENT_CODE, CarrierCompany, CarrierCompanyDepartment,
                       CarrierCompanyServiceType, ServiceRequest,
@@ -364,6 +365,10 @@ def get_service_request(service_request_id):
         # sin la dirección ni el public_id (los contactos de Google Maps no
         # tienen link de empresa). Un borrador no se comparte.
         'share_path': None if _is_draft(service_request) else f'/v/{make_media_token(service_request)}',
+        # Completado: el link para que el cliente califique a quien lo hizo, y lo
+        # que calificó si ya lo hizo.
+        'review_path': review_path(service_request),
+        'review': review_of(service_request),
         'links': [
             {
                 'id': c.id,

@@ -3,7 +3,9 @@ import jwt
 from flask import jsonify, request, current_app
 from . import api
 from .. import db
-from ..models import Review, ReviewSchema, Order, CarrierCompany, Customer, CarrierCompanySchema
+from ..models import Review, ReviewSchema, Order, CarrierCompany, Customer, CarrierCompanySchema, ServiceRequest
+from .service_request.reviews import reviewed_quotation
+from .service_requests import _public_name
 from sqlalchemy import func
 
 
@@ -14,11 +16,87 @@ def _verify_review_token(token):
         return None
 
 
+def _service_review_target(token_data):
+    """El servicio y la empresa de un token de servicio, mientras el link valga:
+    el servicio sigue completado y la elegida es de esa empresa."""
+    service_request = db.session.get(ServiceRequest, token_data['service_request_id'])
+    quotation = reviewed_quotation(service_request)
+    if quotation is None or quotation.carrier_company_id != token_data.get('carrier_company_id'):
+        return None, None
+    return service_request, quotation.carrier_company
+
+
+def _short_name(first, last=None):
+    """'Carla R.': lo que se publica del cliente."""
+    words = (first or '').split()
+    if last:
+        words = words[:1] + last.split()[:1]
+    if not words:
+        return 'Anónimo'
+    return f'{words[0]} {words[1][0]}.' if len(words) > 1 else words[0]
+
+
+def _reviewer_name(review):
+    if review.service_request_id:
+        return _short_name(review.service_request.customer_name if review.service_request else None)
+    customer = db.session.get(Customer, review.customer_id) if review.customer_id else None
+    return _short_name(customer.name, customer.paternal_last_name) if customer else 'Anónimo'
+
+
+def _review_fields(data):
+    """Calificación y comentarios, validados igual para mudanzas y servicios."""
+    if 'rating' not in data or 'comment' not in data:
+        missing = 'rating' if 'rating' not in data else 'comment'
+        return None, (jsonify({'error': f'Campo requerido: {missing}'}), 400)
+    rating = data['rating']
+    if not isinstance(rating, int) or rating < 1 or rating > 5:
+        return None, (jsonify({'error': 'La calificación debe ser entre 1 y 5'}), 400)
+    platform_rating = data.get('platform_rating')
+    if platform_rating is not None and (not isinstance(platform_rating, int) or platform_rating < 1 or platform_rating > 5):
+        return None, (jsonify({'error': 'La calificación de la plataforma debe ser entre 1 y 5'}), 400)
+    comment = data['comment'] if isinstance(data['comment'], str) else ''
+    platform_comment = data.get('platform_comment') if isinstance(data.get('platform_comment'), str) else None
+    return {
+        'rating': rating,
+        'comment': comment[:1000],
+        'platform_rating': platform_rating,
+        'platform_comment': platform_comment[:1000] if platform_comment else None,
+    }, None
+
+
+def _create_service_review(token_data, data):
+    service_request, carrier = _service_review_target(token_data)
+    if service_request is None:
+        return jsonify({'error': 'Link inválido o expirado'}), 400
+    fields, error = _review_fields(data)
+    if error:
+        return error
+    if Review.query.filter_by(service_request_id=service_request.id).first():
+        return jsonify({'error': 'Ya publicaste una reseña para este servicio'}), 409
+    review = Review(service_request_id=service_request.id, carrier_company_id=carrier.id, **fields)
+    db.session.add(review)
+    db.session.commit()
+    return jsonify({'message': 'Reseña publicada exitosamente', 'id': review.id}), 201
+
+
 @api.route('/reviews/verify/<token>', methods=['GET'])
 def verify_review_token(token):
     token_data = _verify_review_token(token)
     if token_data is None:
         return jsonify({'error': 'Link inválido o expirado'}), 400
+
+    if 'service_request_id' in token_data:
+        service_request, carrier = _service_review_target(token_data)
+        if service_request is None:
+            return jsonify({'error': 'Link inválido o expirado'}), 400
+        return jsonify({
+            'service_request_id': service_request.id,
+            'carrier_company_id': carrier.id,
+            # A un contacto que cargó el admin se lo nombra por quien contesta.
+            'carrier_company_name': _public_name(carrier),
+            'service_name': service_request.service_type.name if service_request.service_type else None,
+            'already_reviewed': Review.query.filter_by(service_request_id=service_request.id).first() is not None,
+        }), 200
 
     order = db.session.get(Order, token_data['order_id'])
     carrier = db.session.get(CarrierCompany, token_data['carrier_company_id'])
@@ -47,6 +125,8 @@ def create_review():
         token_data = _verify_review_token(token)
         if token_data is None:
             return jsonify({'error': 'Link inválido o expirado'}), 400
+        if 'service_request_id' in token_data:
+            return _create_service_review(token_data, data)
         data = {
             **data,
             'order_id': token_data['order_id'],
@@ -109,7 +189,9 @@ def create_review():
 @api.route('/reviews/company/<int:company_id>', methods=['GET'])
 def get_company_reviews(company_id):
     carrier = db.session.get(CarrierCompany, company_id)
-    if not carrier:
+    # Una inactiva (un contacto que cargó el admin) no tiene ficha pública: su
+    # nombre de negocio es justo lo que el cliente no tiene que ver.
+    if not carrier or not carrier.active:
         return jsonify({'error': 'Empresa no encontrada'}), 404
 
     reviews = Review.query.filter_by(carrier_company_id=company_id)\
@@ -120,12 +202,11 @@ def get_company_reviews(company_id):
 
     reviews_data = []
     for r in reviews:
-        customer = db.session.get(Customer, r.customer_id)
         reviews_data.append({
             'id': r.id,
             'rating': r.rating,
             'comment': r.comment,
-            'customer_name': f"{customer.name} {customer.paternal_last_name[0]}." if customer and customer.paternal_last_name else (customer.name if customer else "Anónimo"),
+            'customer_name': _reviewer_name(r),
             'created_date': r.created_date.isoformat() if r.created_date else None,
         })
 
@@ -210,17 +291,20 @@ def get_all_companies_with_ratings():
 
 @api.route('/reviews/recent', methods=['GET'])
 def get_recent_reviews():
-    reviews = Review.query.order_by(Review.created_date.desc()).limit(10).all()
+    # Solo de empresas activas: cada una enlaza a su ficha, y la de un contacto
+    # inactivo no es pública.
+    reviews = Review.query.join(CarrierCompany, Review.carrier_company_id == CarrierCompany.id)\
+        .filter(CarrierCompany.active == 1)\
+        .order_by(Review.created_date.desc()).limit(10).all()
 
     reviews_data = []
     for r in reviews:
-        customer = db.session.get(Customer, r.customer_id)
         carrier = db.session.get(CarrierCompany, r.carrier_company_id)
         reviews_data.append({
             'id': r.id,
             'rating': r.rating,
             'comment': r.comment,
-            'customer_name': f"{customer.name} {customer.paternal_last_name[0]}." if customer and customer.paternal_last_name else (customer.name if customer else "Anónimo"),
+            'customer_name': _reviewer_name(r),
             'carrier_company_name': carrier.name if carrier else "Desconocida",
             'carrier_company_id': r.carrier_company_id,
             'created_date': r.created_date.isoformat() if r.created_date else None,

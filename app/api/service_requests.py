@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 
 from flask import current_app, jsonify, request
+from sqlalchemy import func
 
 from . import api
 from .decorators import is_internal_request
@@ -19,6 +20,7 @@ from .service_request.quotations import (
     platform_fee_rate, record_carrier_cash, record_reservation, register_reservation, resolve_reservation,
     save_quotation, select_quotation, split_total, undo_carrier_cash,
 )
+from .service_request.reviews import review_path
 from .service_request.media_share import legacy_prefix, media_prefix, read_token as read_media_token
 from .service_request.statuses import CANCELLED, PENDING, is_draft
 from .service_request.types import SERVICE_TYPES, needs_items
@@ -28,7 +30,7 @@ from .service_request.validation import (
 )
 from .whatsapp import normalize_phone
 from .. import db
-from ..models import (ServiceMaterial, ServiceRequest, ServiceRequestItem, ServiceRequestMedia,
+from ..models import (Review, ServiceMaterial, ServiceRequest, ServiceRequestItem, ServiceRequestMedia,
                       ServiceRequestQuotation, ServiceType)
 from ..storage import get_storage
 
@@ -209,13 +211,25 @@ def _public_name(company):
     return company.contact_name or company.name
 
 
-def _customer_quotation(quotation, rate):
+def _ratings(company_ids):
+    """{empresa: {average, count}} de sus reseñas, de mudanzas y servicios."""
+    if not company_ids:
+        return {}
+    rows = db.session.query(Review.carrier_company_id, func.avg(Review.rating), func.count(Review.id))\
+        .filter(Review.carrier_company_id.in_(company_ids))\
+        .group_by(Review.carrier_company_id).all()
+    return {company_id: {'average': round(float(average), 1), 'count': count} for company_id, average, count in rows}
+
+
+def _customer_quotation(quotation, rate, ratings=None):
     """Lo que ve el cliente: el total (el congelado si ya la eligieron) y cómo se
-    reparte entre la reserva y lo que paga en el lugar. Nunca el teléfono."""
+    reparte entre la reserva y lo que paga en el lugar, y la calificación de
+    quien cotiza. Nunca el teléfono."""
     total, reservation, on_site = split_total(quotation, rate)
     return {
         'id': quotation.id,
         'carrier_name': _public_name(quotation.carrier_company),
+        'rating': (ratings or {}).get(quotation.carrier_company_id),
         'total_amount': float(total),
         'reservation_amount': float(reservation),
         'on_site_amount': float(on_site),
@@ -266,6 +280,7 @@ def get_customer_quotations(public_id):
         return _message('service request not found', 404)
     rate = platform_fee_rate()
     quotations = sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
+    ratings = _ratings({q.carrier_company_id for q in quotations})
     return jsonify({
         'id': service_request.id,
         'service_type': {'code': service_request.service_type.code, 'name': service_request.service_type.name},
@@ -283,7 +298,10 @@ def get_customer_quotations(public_id):
         'reservation_required': yape_reservation_required(),
         'reservation': _customer_reservation(service_request),
         'carrier_contact': _carrier_contact(service_request),
-        'quotations': [_customer_quotation(q, rate) for q in quotations],
+        'quotations': [_customer_quotation(q, rate, ratings) for q in quotations],
+        # Con el servicio completado, el link para calificar a quien lo hizo.
+        'review_path': review_path(service_request),
+        'reviewed': Review.query.filter_by(service_request_id=service_request.id).first() is not None,
     }), 200
 
 

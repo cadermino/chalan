@@ -27,6 +27,12 @@ function QuotationCard({ quotation, lowest, canChoose, onChoose }) {
               <span className="ml-2 rounded-full border border-accent px-2 py-0.5 text-xs text-accent">Más barata</span>
             )}
           </p>
+          {quotation.rating && (
+            <p className="mt-0.5 text-sm text-inkSoft">
+              <span className="text-amber-500">★</span> {quotation.rating.average.toFixed(1)}
+              {' · '}{quotation.rating.count} {quotation.rating.count === 1 ? 'reseña' : 'reseñas'}
+            </p>
+          )}
           {quotation.note && <p className="mt-1 text-sm text-inkSoft">“{quotation.note}”</p>}
         </div>
         <p className="shrink-0 text-xl font-semibold text-inkStrong">{money(quotation.total_amount)}</p>
@@ -41,7 +47,7 @@ function QuotationCard({ quotation, lowest, canChoose, onChoose }) {
 }
 
 // Cómo quedó la elegida: esperando que Chalán encuentre el yapeo, o agendada.
-function SelectedStatus({ selected, reservation, contact, date, onCorrect }) {
+function SelectedStatus({ selected, reservation, contact, date, done, onCorrect }) {
   if (reservation?.status === 'pending') {
     return (
       <div role="status" className="mt-6 rounded-lg border border-line bg-paper2 p-4 text-sm">
@@ -60,8 +66,11 @@ function SelectedStatus({ selected, reservation, contact, date, onCorrect }) {
   return (
     <div role="status" className="mt-6 rounded-lg border border-accent bg-accentSoft p-4 text-sm">
       <p className="font-semibold text-inkStrong">
-        ¡Listo! Tu servicio con {selected.carrier_name} quedó agendado{date ? ` para el ${date}` : ''}.
+        {done
+          ? `Tu servicio con ${selected.carrier_name} está terminado.`
+          : `¡Listo! Tu servicio con ${selected.carrier_name} quedó agendado${date ? ` para el ${date}` : ''}.`}
       </p>
+      {!done && (
       <p className="mt-1 text-inkSoft">
         {reservation?.status === 'paid'
           ? `Ya yapeaste ${money(reservation.amount)}. ${capitalize(COPY.payDay)} le pagas ${money(selected.on_site_amount)} a ${selected.carrier_name}.`
@@ -70,6 +79,7 @@ function SelectedStatus({ selected, reservation, contact, date, onCorrect }) {
           ? ` Coordina la hora directo con ${contact.name}.`
           : ' Te escribimos por WhatsApp para coordinar la hora.'}
       </p>
+      )}
       {contact?.phone && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <p className="text-inkStrong">WhatsApp de {contact.name}: <span className="font-semibold">{contact.phone}</span></p>
@@ -80,6 +90,31 @@ function SelectedStatus({ selected, reservation, contact, date, onCorrect }) {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// Con el trabajo terminado: calificar a quien lo hizo (la página de reseña, en
+// el sitio de Next, después ofrece la de Google).
+function ReviewInvite({ name, path, reviewed }) {
+  if (reviewed) {
+    return (
+      <div role="status" className="mt-6 rounded-lg border border-line bg-paper2 p-4 text-sm text-inkStrong">
+        Gracias por calificar a {name}.
+      </div>
+    )
+  }
+  return (
+    <div className="mt-6 rounded-lg border border-accent bg-accentSoft p-4 text-sm">
+      <p className="font-semibold text-inkStrong">¿Cómo te fue con {name}?</p>
+      <p className="mt-1 text-inkSoft">Tu reseña ayuda a otros clientes a elegir.</p>
+      <a
+        className="btn-primary mt-3"
+        href={path}
+        onClick={() => track('service_review_click', { service: SERVICE })}
+      >
+        Calificar a {name}
+      </a>
     </div>
   )
 }
@@ -195,12 +230,17 @@ export default function Quotations() {
         </div>
       )}
 
+      {selected && data.review_path && (
+        <ReviewInvite name={selected.carrier_name} path={data.review_path} reviewed={data.reviewed} />
+      )}
+
       {selected && !cancelled && (
         <SelectedStatus
           selected={selected}
           reservation={reservation}
           contact={data.carrier_contact}
           date={date}
+          done={data.status === 'completed'}
           onCorrect={() => setModal({ quotation: selected, correcting: true })}
         />
       )}

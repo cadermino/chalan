@@ -576,6 +576,29 @@ export default function ServiceRequestDetail() {
             />
           </div>
         )}
+        {request.review && (
+          <div className="mt-4 border-t border-gray-100 pt-4 text-sm">
+            <p className="font-medium text-gray-900">
+              Reseña del cliente <span className="text-amber-500">{'★'.repeat(request.review.rating)}</span>
+              <span className="text-gray-300">{'★'.repeat(5 - request.review.rating)}</span>
+            </p>
+            {request.review.comment && <p className="mt-1 text-gray-700">“{request.review.comment}”</p>}
+            {request.review.platform_rating && (
+              <p className="mt-1 text-gray-500">
+                Chalán: {request.review.platform_rating}/5{request.review.platform_comment ? ` · “${request.review.platform_comment}”` : ''}
+              </p>
+            )}
+          </div>
+        )}
+        {request.review_path && !request.review && (
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <CopyRow
+              title="Link de reseña"
+              hint="Para que califique a quien hizo el trabajo. Después le ofrece dejar una reseña de Chalán en Google. Vence en 30 días."
+              text={`${window.location.origin}${request.review_path}`}
+            />
+          </div>
+        )}
       </Card>
 
       <ServiceRequestView request={request} />
