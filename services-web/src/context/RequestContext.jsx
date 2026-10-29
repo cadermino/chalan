@@ -21,6 +21,8 @@ const EMPTY_DRAFT = {
   media: [],
   preferredDate: '',
   whatsapp: '',
+  customerName: '',
+  customerEmail: '',
 }
 
 // React necesita una key estable por fila; el servidor no devuelve ids de item.
@@ -51,6 +53,8 @@ function fromServer(data) {
     preferredDate: data.preferred_date || '',
     // El servidor guarda +51987654321; el campo muestra solo los 9 dígitos.
     whatsapp: (data.whatsapp || '').replace(/^\+51/, ''),
+    customerName: data.customer_name || '',
+    customerEmail: data.customer_email || '',
   }
 }
 
@@ -136,11 +140,13 @@ export function RequestProvider({ children }) {
   // las cotizaciones. El borrador lo vacía esa pantalla (`clearDraft`): React
   // Router 7 navega dentro de un startTransition, así que vaciarlo acá se
   // pintaba antes que la navegación y RequireStep mandaba a la dirección.
-  const submit = useCallback(async ({ whatsapp, preferredDate }) => {
+  const submit = useCallback(async ({ whatsapp, preferredDate, customerName, customerEmail }) => {
     const { publicId } = draft
     await submitRequest(publicId, {
       whatsapp,
       preferred_date: preferredDate,
+      customer_name: customerName,
+      customer_email: customerEmail,
     })
     storage.remove(STORAGE_KEY)
     track('service_request_submitted', { service: SERVICE, items: draft.items.length, media: draft.media.length })
@@ -155,6 +161,8 @@ export function RequestProvider({ children }) {
     setItems: (items) => patch({ items }),
     setPreferredDate: (preferredDate) => patch({ preferredDate }),
     setWhatsapp: (whatsapp) => patch({ whatsapp }),
+    setCustomerName: (customerName) => patch({ customerName }),
+    setCustomerEmail: (customerEmail) => patch({ customerEmail }),
     addMedia: (media) => setDraft((c) => ({ ...c, media: [...c.media, media] })),
     removeMedia: (id) => setDraft((c) => ({ ...c, media: c.media.filter((m) => m.id !== id) })),
     saveAddress,

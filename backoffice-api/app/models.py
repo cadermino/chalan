@@ -636,6 +636,9 @@ class ServiceRequest(db.Model):
     country_id = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), nullable=False, server_default='pending')  # pending | in_progress | completed | cancelled
     whatsapp = db.Column(db.String(20))
+    # Pedidos al enviar (migración 041); vacíos en los de antes.
+    customer_name = db.Column(db.String(60))
+    customer_email = db.Column(db.String(255))
     preferred_date = db.Column(db.Date)
     street = db.Column(db.String(200))
     interior = db.Column(db.String(100))
@@ -682,7 +685,8 @@ class ServiceRequest(db.Model):
         }
 
     def to_dict_full(self):
-        return {**self.to_dict(), 'public_id': self.public_id, 'whatsapp': self.whatsapp}
+        return {**self.to_dict(), 'public_id': self.public_id, 'whatsapp': self.whatsapp,
+                'customer_name': self.customer_name, 'customer_email': self.customer_email}
 
 
 class ServiceRequestItem(db.Model):

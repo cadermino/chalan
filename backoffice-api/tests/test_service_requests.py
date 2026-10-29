@@ -1176,3 +1176,25 @@ def test_without_a_business_name_the_contact_is_the_company_and_the_latest_conta
 
     company = db.session.get(CarrierCompany, first)
     assert (company.name, company.contact_name) == ('Rosa', 'Luis')
+
+
+
+def test_the_chosen_carrier_sees_the_customers_name_with_the_whatsapp(client, submitted, packing):
+    submitted.customer_name = 'Carla'
+    db.session.commit()
+    winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
+    make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    make_quotation(submitted, loser, 280)
+
+    assert public_get(client, submitted, winner).get_json()['service_request']['customer_contact']['name'] == 'Carla'
+    assert public_get(client, submitted, loser).get_json()['service_request']['customer_contact'] is None
+    assert 'Carla' not in str(public_get(client, submitted, loser).get_json())
+
+
+def test_the_admin_sees_the_customers_name_and_email(client, admin, submitted):
+    submitted.customer_name, submitted.customer_email = 'Carla', 'carla@example.com'
+    db.session.commit()
+
+    data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
+
+    assert (data['customer_name'], data['customer_email']) == ('Carla', 'carla@example.com')

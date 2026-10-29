@@ -69,6 +69,7 @@ test.describe('A packing customer, start to finish', () => {
 
     await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
     await page.fill('#preferred-date', inTwoDaysInLima());
+    await page.fill('#customer-name', 'Carla');
     await page.fill('#whatsapp', whatsapp);
     await page.getByRole('button', { name: 'Enviar solicitud' }).click();
 
@@ -179,6 +180,7 @@ test.describe('A painting customer, start to finish', () => {
     await expect(page.getByText('Interior · 2 a 3 ambientes · 45 m² · Pintura: que la incluya el pintor · Paredes: humedad'))
       .toBeVisible();
     await page.fill('#preferred-date', inTwoDaysInLima());
+    await page.fill('#customer-name', 'Carla');
     await page.fill('#whatsapp', whatsapp);
     await page.getByRole('button', { name: 'Enviar solicitud' }).click();
 

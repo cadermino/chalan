@@ -23,8 +23,8 @@ from .service_request.media_share import legacy_prefix, media_prefix, read_token
 from .service_request.statuses import CANCELLED, PENDING, is_draft
 from .service_request.types import SERVICE_TYPES, needs_items
 from .service_request.validation import (
-    MAX_MEDIA, InvalidRequest, validate_address, validate_items,
-    validate_media_upload, validate_preferred_date, MEDIA_MAX_BYTES,
+    MAX_MEDIA, InvalidRequest, validate_address, validate_customer_email, validate_customer_name,
+    validate_items, validate_media_upload, validate_preferred_date, MEDIA_MAX_BYTES,
 )
 from .whatsapp import normalize_phone
 from .. import db
@@ -109,6 +109,8 @@ def _serialize(service_request):
         'address': _address_dict(service_request),
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
         'whatsapp': service_request.whatsapp,
+        'customer_name': service_request.customer_name,
+        'customer_email': service_request.customer_email,
         'details': service_request.details or {},
         'items': [
             {
@@ -628,10 +630,14 @@ def submit_service_request(public_id):
     whatsapp = normalize_phone(data.get('whatsapp'))
     if whatsapp is None:
         raise InvalidRequest('a valid whatsapp number is required')
+    customer_name = validate_customer_name(data.get('customer_name'))
+    customer_email = validate_customer_email(data.get('customer_email'))
 
     _set_address(service_request, address)
     service_request.preferred_date = preferred_date
     service_request.whatsapp = whatsapp
+    service_request.customer_name = customer_name
+    service_request.customer_email = customer_email
     service_request.submitted_at = datetime.utcnow()
     db.session.commit()
 
@@ -654,7 +660,7 @@ def _check_manual_address(address, name):
 
 def _manual_fields(data, service_type):
     """What an admin types, creating or editing: the form rules, plus the district
-    and map link checked by hand. Returns (address, items, details, whatsapp)."""
+    and map link checked by hand. Returns (address, items, details, whatsapp, name, email)."""
     address = validate_address(data.get('address'))
     _check_manual_address(address, 'address')
     if needs_items(service_type):
@@ -669,7 +675,9 @@ def _manual_fields(data, service_type):
     whatsapp = normalize_phone(data.get('whatsapp'))
     if whatsapp is None:
         raise InvalidRequest('a valid whatsapp number is required')
-    return address, items, details, whatsapp
+    name = validate_customer_name(data.get('customer_name'))
+    email = validate_customer_email(data.get('customer_email'))
+    return address, items, details, whatsapp, name, email
 
 
 @api.route('/service-requests/manual', methods=['POST'])
@@ -690,7 +698,7 @@ def create_manual_service_request():
     service_type = _get_service_type(data.get('service_type'))
     if service_type is None:
         raise InvalidRequest('unknown service_type')
-    address, items, details, whatsapp = _manual_fields(data, service_type)
+    address, items, details, whatsapp, customer_name, customer_email = _manual_fields(data, service_type)
     preferred_date = validate_preferred_date(data.get('preferred_date'), allow_today=True)
 
     country_id = os.getenv('COUNTRY_ID')
@@ -700,6 +708,8 @@ def create_manual_service_request():
         country_id=int(country_id) if country_id else None,
         status=PENDING,
         whatsapp=whatsapp,
+        customer_name=customer_name,
+        customer_email=customer_email,
         preferred_date=preferred_date,
         submitted_at=datetime.utcnow(),
         details=details,
@@ -759,7 +769,7 @@ def edit_manual_service_request(service_request_id):
     data = request.get_json(silent=True) or {}
     was_draft = is_draft(service_request)
 
-    address, items, details, whatsapp = _manual_fields(data, service_request.service_type)
+    address, items, details, whatsapp, customer_name, customer_email = _manual_fields(data, service_request.service_type)
     # The saved day is kept as is even if it already passed: fixing the address
     # of last week's request should not ask for a new date. A draft being sent
     # needs a day still to come, like the customer's submit.
@@ -774,6 +784,8 @@ def edit_manual_service_request(service_request_id):
     service_request.details = details
     service_request.preferred_date = preferred_date
     service_request.whatsapp = whatsapp
+    service_request.customer_name = customer_name
+    service_request.customer_email = customer_email
     try:
         _check_submit(service_request, service_request.service_type)
     except InvalidRequest:

@@ -42,6 +42,8 @@ function friendlyError(message, isEdit) {
   if (message.includes('neighborhood')) return 'Falta el distrito.'
   if (message.includes('address.street')) return 'Falta la dirección.'
   if (message.includes('whatsapp')) return 'El WhatsApp del cliente no es válido.'
+  if (message.includes('customer_name')) return 'Falta el nombre del cliente (hasta 60 letras).'
+  if (message.includes('customer_email')) return 'El correo del cliente no es válido; déjalo vacío si no lo tienes.'
   if (message.includes('preferred_date')) return `La fecha tiene que ser desde hoy y hasta dentro de ${MAX_ADVANCE_DAYS} días.`
   if (message.includes('at least one item') || message.includes('items')) return 'Agrega al menos una cosa a la lista, con su descripción.'
   return message
@@ -77,6 +79,7 @@ function formFromRequest(request) {
   return {
     form: {
       whatsapp: (request.whatsapp || '').replace(/^\+51(?=\d{9}$)/, ''),
+      customerName: request.customer_name || '', customerEmail: request.customer_email || '',
       street: request.street || '', interior: request.interior || '', neighborhood: request.neighborhood || '',
       city: request.city || '', mapUrl: request.map_url || '', preferredDate: request.preferred_date || '',
       // Completar un borrador lo envía: como al crear, se avisa salvo que se desmarque.
@@ -123,7 +126,7 @@ export default function ServiceRequestCreate() {
   const [serviceCode, setServiceCode] = useState('')
   const [materials, setMaterials] = useState([])
   const [form, setForm] = useState({
-    whatsapp: '', street: '', interior: '', neighborhood: '', city: 'Lima', mapUrl: '',
+    whatsapp: '', customerName: '', customerEmail: '', street: '', interior: '', neighborhood: '', city: 'Lima', mapUrl: '',
     preferredDate: '', notifyCarriers: true,
   })
   const [items, setItems] = useState([newItem()])
@@ -231,6 +234,8 @@ export default function ServiceRequestCreate() {
     setSaving(true)
     const body = {
       whatsapp: form.whatsapp,
+      customer_name: form.customerName,
+      customer_email: form.customerEmail,
       preferred_date: form.preferredDate,
       address: {
         street: form.street,
@@ -389,6 +394,15 @@ export default function ServiceRequestCreate() {
             </select>
           </Field>
         )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Nombre del cliente *" hint="Cómo le escribimos; lo ve quien lo elige.">
+            <input required maxLength={60} value={form.customerName} onChange={set('customerName')} className="input" />
+          </Field>
+          <Field label="Correo del cliente" hint="Opcional.">
+            <input type="email" maxLength={255} value={form.customerEmail} onChange={set('customerEmail')} className="input" />
+          </Field>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="WhatsApp del cliente *" hint="9 dígitos; se guarda con +51. Con este número se enlaza al cliente.">

@@ -118,6 +118,7 @@ def fill(client, public_id, items=None, preferred_date=TOMORROW):
 
 def submit(client, public_id, **body):
     body.setdefault('whatsapp', '987654321')
+    body.setdefault('customer_name', 'Carla')
     return client.post(f'/api/v1/service-requests/{public_id}/submit', json=body)
 
 
@@ -702,6 +703,7 @@ MANUAL = {
     'address': {**ADDRESS, 'map_url': 'https://maps.app.goo.gl/abc123'},
     'preferred_date': TOMORROW,
     'whatsapp': '987654321',
+    'customer_name': 'Carla',
     'items': [{'description': 'Sofá', 'quantity': 1, 'materials': ['stretch_film']}],
 }
 
@@ -2092,3 +2094,43 @@ def test_the_customer_sees_the_contacts_name_and_not_the_business(client):
     choose(client, service_request.public_id, quotation_id)
     contact = customer_quotations(client, service_request.public_id).get_json()['carrier_contact']
     assert contact['name'] == 'Jorge'
+
+
+
+# --- nombre (obligatorio) y correo (opcional) del cliente -----------------------------------
+
+def test_the_customer_sends_their_name_and_optionally_an_email(client):
+    public_id = create_draft(client)
+    fill(client, public_id)
+
+    response = submit(client, public_id, customer_name='  Carla   Pérez ', customer_email=' Carla@Gmail.com ')
+
+    assert response.status_code == 200, response.get_json()
+    saved = ServiceRequest.query.one()
+    assert (saved.customer_name, saved.customer_email) == ('Carla Pérez', 'carla@gmail.com')
+
+
+@pytest.mark.parametrize('body', [{'customer_name': ''}, {'customer_name': '   '}, {'customer_name': 'x' * 61},
+                                  {'customer_email': 'no-es-correo'}])
+def test_a_request_without_a_name_or_with_a_bad_email_is_not_sent(client, body):
+    public_id = create_draft(client)
+    fill(client, public_id)
+
+    assert submit(client, public_id, **body).status_code == 400
+    assert ServiceRequest.query.one().submitted_at is None
+
+
+def test_the_email_is_optional(client):
+    public_id = create_draft(client)
+    fill(client, public_id)
+
+    assert submit(client, public_id, customer_email='').status_code == 200
+    assert ServiceRequest.query.one().customer_email is None
+
+
+def test_an_admin_records_the_customers_name(client):
+    request_id = manual_id(client, customer_name='Rosa', customer_email='rosa@example.com')
+
+    saved = db.session.get(ServiceRequest, request_id)
+    assert (saved.customer_name, saved.customer_email) == ('Rosa', 'rosa@example.com')
+    assert manual(client, customer_name='').status_code == 400

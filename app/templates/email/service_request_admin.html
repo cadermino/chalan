@@ -81,7 +81,9 @@
                 </tr>
                 <tr>
                   <td class="bodycopy" style="padding: 0 0 15px 0;">
+                    {% if customer_name %}Cliente: <strong>{{customer_name}}</strong><br/>{% endif %}
                     WhatsApp del cliente: <strong>{{whatsapp}}</strong><br/>
+                    {% if customer_email %}Correo: <strong>{{customer_email}}</strong><br/>{% endif %}
                     {% if neighborhood %}Distrito: <strong>{{neighborhood}}</strong><br/>{% endif %}
                     {% if preferred_date %}Fecha deseada: <strong>{{preferred_date}}</strong><br/>{% endif %}
                     {% if needs_items %}

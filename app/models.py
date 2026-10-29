@@ -345,6 +345,9 @@ class ServiceRequest(db.Model):
 	country_id = db.Column(db.Integer, db.ForeignKey('lu_country.id'), nullable=True)
 	status = db.Column(db.String(20), nullable=False, server_default='pending')  # pending | in_progress | completed | cancelled (service_request/statuses.py)
 	whatsapp = db.Column(db.String(20))
+	# Pedidos al enviar (migración 041); vacíos en los de antes.
+	customer_name = db.Column(db.String(60))
+	customer_email = db.Column(db.String(255))
 	preferred_date = db.Column(db.Date)
 	street = db.Column(db.String(200))
 	interior = db.Column(db.String(100))

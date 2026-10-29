@@ -128,6 +128,8 @@ def _notify_admin(service_request, service_name, notified_names):
                 bcc=[],
                 service_name=service_name,
                 whatsapp=service_request.whatsapp,
+                customer_name=service_request.customer_name,
+                customer_email=service_request.customer_email,
                 neighborhood=service_request.neighborhood,
                 preferred_date=_date_label(service_request),
                 items_count=len(service_request.items),
@@ -238,6 +240,7 @@ def contact_details(service_request, carrier):
     arma si el teléfono se puede normalizar; si no, queda el número a secas."""
     street = ', '.join(filter(None, [service_request.street, service_request.interior]))
     return {
+        'customer_name': service_request.customer_name or None,
         'customer_phone': service_request.whatsapp or None,
         'customer_whatsapp_url': _whatsapp_url(service_request.whatsapp),
         'customer_address': street or None,

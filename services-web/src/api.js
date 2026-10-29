@@ -81,6 +81,8 @@ export function friendlyError(err, fallback) {
     return 'Elige una fecha válida: desde mañana y hasta dentro de 90 días.'
   }
   if (message.includes('whatsapp')) return 'Revisa tu número de WhatsApp.'
+  if (message.includes('customer_name')) return 'Escribe tu nombre.'
+  if (message.includes('customer_email')) return 'Revisa tu correo, o déjalo vacío.'
   if (message.includes('destination')) return 'Revisa la dirección de destino: elígela de la lista de sugerencias.'
   if (message.includes('item') || message.includes('what to paint')) return COPY.emptyItems
   if (message.includes('address')) return 'Revisa la dirección: elígela de la lista de sugerencias.'

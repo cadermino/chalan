@@ -138,6 +138,7 @@ def test_packing_requests_ignore_the_assembly_fields(client):
 MANUAL = {
     'service_type': 'furniture_assembly',
     'whatsapp': '987654321',
+    'customer_name': 'Carla',
     'preferred_date': TOMORROW,
     'address': {**ADDRESS, 'map_url': 'https://maps.app.goo.gl/abc'},
     'items': [{'description': 'Ropero', 'quantity': 1, 'work': 'both', 'pack': True}],

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -155,3 +156,31 @@ def validate_media_upload(content_type, size_bytes):
         limit_mb = MEDIA_MAX_BYTES[media_type] // (1024 * 1024)
         raise InvalidRequest(f'{media_type} too large (max {limit_mb}MB)')
     return media_type, extension
+
+
+CUSTOMER_NAME_MAX = 60
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+
+def validate_customer_name(value):
+    """The customer's first name: required, to know whom the carrier writes to."""
+    if not isinstance(value, str) or not value.strip():
+        raise InvalidRequest('customer_name is required')
+    name = ' '.join(value.split())
+    if len(name) > CUSTOMER_NAME_MAX:
+        raise InvalidRequest(f'customer_name must be at most {CUSTOMER_NAME_MAX} characters')
+    return name
+
+
+def validate_customer_email(value):
+    """Optional for now: blank is None, anything else must look like an email."""
+    if value in (None, ''):
+        return None
+    if not isinstance(value, str):
+        raise InvalidRequest('customer_email must be text')
+    email = value.strip().lower()
+    if not email:
+        return None
+    if len(email) > 255 or not EMAIL_RE.match(email):
+        raise InvalidRequest('customer_email is not a valid email')
+    return email

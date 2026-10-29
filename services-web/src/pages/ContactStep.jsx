@@ -15,6 +15,12 @@ function nineDigits(raw) {
   return digits.slice(0, 9)
 }
 
+// La misma regla que EMAIL_RE del API (service_request/validation.py).
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+// Los campos como los llama el API, para service_request_blocked.
+const FIELD_NAMES = { date: 'preferred_date', name: 'customer_name', email: 'customer_email' }
+
 // Lo que va después de "2 × Ropero" en el resumen. En embalaje, los materiales;
 // en armado, qué se hace y si se embala.
 function itemDetail(item, materialNames) {
@@ -37,7 +43,7 @@ function SummaryRow({ title, editTo, children }) {
 }
 
 export default function ContactStep() {
-  const { draft, setPreferredDate, setWhatsapp, submit } = useRequest()
+  const { draft, setPreferredDate, setWhatsapp, setCustomerName, setCustomerEmail, submit } = useRequest()
   const navigate = useNavigate()
   const [materialNames, setMaterialNames] = useState({})
   const [errors, setErrors] = useState({})
@@ -58,19 +64,31 @@ export default function ContactStep() {
     if (!isValidPreferredDate(draft.preferredDate)) {
       found.date = `Elige un día desde mañana y hasta dentro de ${MAX_ADVANCE_DAYS} días.`
     }
+    if (!draft.customerName.trim()) {
+      found.name = 'Escribe tu nombre, para saber a quién le escribimos.'
+    }
     if (!/^9\d{8}$/.test(draft.whatsapp)) {
       found.whatsapp = 'Escribe tu número de 9 dígitos, empieza con 9.'
+    }
+    // El correo es opcional: solo se avisa si escribió uno que no sirve.
+    if (draft.customerEmail.trim() && !EMAIL_RE.test(draft.customerEmail.trim())) {
+      found.email = 'Revisa tu correo, o déjalo vacío.'
     }
     setErrors(found)
     setSubmitError('')
     if (Object.keys(found).length > 0) {
-      trackBlocked(SERVICE, 'contact', Object.keys(found).map((key) => (key === 'date' ? 'preferred_date' : key)))
+      trackBlocked(SERVICE, 'contact', Object.keys(found).map((key) => FIELD_NAMES[key] || key))
       return
     }
 
     setSending(true)
     try {
-      const publicId = await submit({ whatsapp: draft.whatsapp, preferredDate: draft.preferredDate })
+      const publicId = await submit({
+        whatsapp: draft.whatsapp,
+        preferredDate: draft.preferredDate,
+        customerName: draft.customerName.trim(),
+        customerEmail: draft.customerEmail.trim(),
+      })
       navigate(PATHS.sent, { replace: true, state: { publicId } })
     } catch (err) {
       trackBlocked(SERVICE, 'contact', saveFailure(err))
@@ -109,6 +127,24 @@ export default function ContactStep() {
         </div>
 
         <div>
+          <label htmlFor="customer-name" className="mb-1 block text-sm font-semibold text-inkStrong">
+            Tu nombre <span className="text-danger">*</span>
+          </label>
+          <input
+            id="customer-name"
+            type="text"
+            autoComplete="given-name"
+            maxLength={60}
+            className={`field ${errors.name ? 'border-danger' : ''}`}
+            placeholder="Ej. Carla"
+            data-clarity-mask="true"
+            value={draft.customerName}
+            onChange={(event) => { setErrors((e) => ({ ...e, name: '' })); setCustomerName(event.target.value) }}
+          />
+          {errors.name && <p role="alert" className="mt-1 text-sm text-danger">{errors.name}</p>}
+        </div>
+
+        <div>
           <label htmlFor="whatsapp" className="mb-1 block text-sm font-semibold text-inkStrong">
             Tu WhatsApp <span className="text-danger">*</span>
           </label>
@@ -128,6 +164,26 @@ export default function ContactStep() {
           </div>
           <p className="mt-1 text-xs text-mute">Te escribiremos por aquí con las cotizaciones.</p>
           {errors.whatsapp && <p role="alert" className="mt-1 text-sm text-danger">{errors.whatsapp}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="customer-email" className="mb-1 block text-sm font-semibold text-inkStrong">
+            Tu correo <span className="font-normal text-mute">(opcional)</span>
+          </label>
+          <input
+            id="customer-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            maxLength={255}
+            className={`field ${errors.email ? 'border-danger' : ''}`}
+            placeholder="tucorreo@gmail.com"
+            data-clarity-mask="true"
+            value={draft.customerEmail}
+            onChange={(event) => { setErrors((e) => ({ ...e, email: '' })); setCustomerEmail(event.target.value) }}
+          />
+          <p className="mt-1 text-xs text-mute">Por si no logramos ubicarte por WhatsApp.</p>
+          {errors.email && <p role="alert" className="mt-1 text-sm text-danger">{errors.email}</p>}
         </div>
       </div>
 

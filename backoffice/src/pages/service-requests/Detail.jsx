@@ -21,7 +21,8 @@ function customerMessage(request, quotation) {
   const service = (request.service_type?.name || 'servicio').toLowerCase()
   const district = districtOf(request)
   const where = district ? ` en ${district}` : ''
-  return `Hola, tenemos tu cotización de ${service} para el ${formatDay(request.preferred_date)}${where}: ${formatMoney(quotation.total_amount)}. ¿Confirmamos?`
+  const hello = request.customer_name ? `Hola ${request.customer_name.split(' ')[0]}` : 'Hola'
+  return `${hello}, tenemos tu cotización de ${service} para el ${formatDay(request.preferred_date)}${where}: ${formatMoney(quotation.total_amount)}. ¿Confirmamos?`
 }
 
 function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
@@ -546,7 +547,17 @@ export default function ServiceRequestDetail() {
 
       {/* Cliente — el mismo bloque que en el detalle de una orden */}
       <Card title="Cliente" className="mb-4">
-        <ClientContact phone={request.whatsapp} emptyText="Aún no dejó su WhatsApp (no terminó el formulario)." />
+        <ClientContact
+          name={request.customer_name}
+          phone={request.whatsapp}
+          emptyText="Aún no dejó su WhatsApp (no terminó el formulario)."
+        />
+        {request.customer_email && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-700">
+            <span>{request.customer_email}</span>
+            <CopyButton text={request.customer_email} label="Copiar correo" />
+          </div>
+        )}
         {request.share_path && (
           <div className="mt-4 border-t border-gray-100 pt-4">
             <CopyRow

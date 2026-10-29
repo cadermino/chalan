@@ -255,7 +255,7 @@ export default function ServiceRequestsList() {
                 </th>
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-left">Servicio</th>
-                <th className="px-4 py-3 text-left">WhatsApp</th>
+                <th className="px-4 py-3 text-left">Cliente</th>
                 <th className="px-4 py-3 text-left">Fecha deseada</th>
                 <th className="px-4 py-3 text-left">Distrito</th>
                 <th className="px-4 py-3 text-left">Cosas</th>
@@ -293,6 +293,7 @@ export default function ServiceRequestsList() {
                     </td>
                     <td className="px-4 py-3 text-gray-700">{r.service_type?.name}</td>
                     <td className="whitespace-nowrap px-4 py-3">
+                      {r.customer_name && <span className="block text-gray-900">{r.customer_name}</span>}
                       {r.whatsapp
                         ? (
                           <span className="flex items-center gap-2">

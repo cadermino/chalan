@@ -169,6 +169,7 @@ function Outcome({ state, request }) {
   }
   if (state === 'selected_mine') {
     const whatsapp = request.customer_contact?.whatsapp
+    const name = request.customer_contact?.name
     const digits = (whatsapp || '').replace(/\D/g, '')
     return (
       <section className="rounded-xl border border-green-200 bg-green-50 p-5 text-green-900">
@@ -181,7 +182,10 @@ function Outcome({ state, request }) {
         </p>
         {whatsapp && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <p className="text-sm">WhatsApp del cliente: <span className="font-semibold">{whatsapp}</span></p>
+            <p className="text-sm">
+              {name ? <>Cliente: <span className="font-semibold">{name}</span> · WhatsApp </> : 'WhatsApp del cliente: '}
+              <span className="font-semibold">{whatsapp}</span>
+            </p>
             <a
               href={`https://wa.me/${digits}`}
               target="_blank"

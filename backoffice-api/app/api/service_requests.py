@@ -314,6 +314,7 @@ def list_service_requests():
             'preferred_date': r.preferred_date.isoformat() if r.preferred_date else None,
             'neighborhood': r.neighborhood,
             'whatsapp': r.whatsapp,
+            'customer_name': r.customer_name,
             'items_count': items.get(r.id, 0),
             'notified_count': notified.get(r.id, 0),
             'quotations_count': quotations.get(r.id, (0, None))[0],
@@ -499,7 +500,8 @@ def get_service_request_for_carrier(token):
         'materials_summary': _materials_summary(service_request),
         'carrier_company_name': carrier.name if carrier else None,
         'quotation_state': state,
-        'customer_contact': {'whatsapp': service_request.whatsapp} if state == 'selected_mine' else None,
+        'customer_contact': {'whatsapp': service_request.whatsapp, 'name': service_request.customer_name}
+        if state == 'selected_mine' else None,
         'my_quotation': None if mine is None else {
             'amount': _money(mine.amount),
             'note': mine.note,

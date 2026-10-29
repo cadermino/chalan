@@ -87,6 +87,7 @@
                 <tr>
                   <td class="bodycopy" style="padding: 0 0 15px 0;">
                     Coordina directo con el cliente el día y la hora:<br/>
+                    {% if customer_name %}Cliente: <strong>{{customer_name}}</strong><br/>{% endif %}
                     WhatsApp: {% if customer_whatsapp_url %}<a href="{{customer_whatsapp_url}}"><strong>{{customer_phone}}</strong></a>{% else %}<strong>{{customer_phone}}</strong>{% endif %}<br/>
                     {% if customer_address %}Dirección: <strong>{{customer_address}}</strong>{% if customer_map_url %} (<a href="{{customer_map_url}}">ver en el mapa</a>){% endif %}<br/>{% endif %}
                     El día del servicio el cliente te paga <strong>{{on_site}}</strong>.
