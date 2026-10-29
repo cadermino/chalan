@@ -5,21 +5,22 @@
         <Tracker :current-view="viewName"></Tracker>
         <div class="w-full max-w-xl mx-auto sm:p-0 p-5 sm:pb-8">
           <ViewsMessages :view-name="viewName"/>
-          <p class="text-center font-bold mb-2" id="text-header" v-if="quotationsList.length > 0">
+          <p class="text-center font-bold mb-6" id="text-header" v-if="quotationsList.length > 0">
             Elige la cotización adecuada para tu mudanza <span class="text-red-500">*</span>
-          </p>
-          <!-- En el celular solo entra la primera tarjeta: así se sabe que hay más abajo. -->
-          <p class="text-center text-gray-700 mb-8" id="quotations-count" v-if="quotationsList.length > 0">
-            <span class="font-bold">{{ quotationsCountLabel }}</span>
-            <span v-if="quotationsList.length > 1"> · de la más barata a la más cara</span>
           </p>
           <!-- Una columna, de la más barata a la más cara: en dos columnas el
                comentario del transportista desalineaba las tarjetas. -->
           <div class="mb-4" v-if="quotationsList.length > 0">
+            <!-- En el celular solo entra la primera tarjeta: así se sabe que hay más abajo. -->
+            <p class="text-sm text-gray-600 px-3 mb-1" id="quotations-count">
+              <span class="font-bold">{{ quotationsCountLabel }}</span>
+              <span v-if="quotationsList.length > 1"> · de la más barata a la más cara</span>
+            </p>
             <div v-for="(quotation, index) in sortedQuotations"
               v-bind:value="index"
               v-bind:key="quotation.id"
-              class="w-full my-5 px-3">
+              :class="index === 0 ? 'mb-5' : 'my-5'"
+              class="w-full px-3">
               <div :class="[
                   (selectedQuotation.id == quotation.id) ? 'bg-gray-200' : '',
                   isBestOption(index) ? 'border-green-500 border-2' : 'border border-gray-400',
