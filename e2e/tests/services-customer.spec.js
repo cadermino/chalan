@@ -111,14 +111,17 @@ test.describe('A packing customer, start to finish', () => {
       .toBeVisible();
     await expect(page.getByRole('button', { name: 'Elegir esta' })).toHaveCount(0);
 
-    // 5. Hecho el trabajo, Chalán registra el saldo: completado. El cliente sigue viendo lo mismo.
+    // 5. Hecho el trabajo, Chalán registra el saldo: completado. El cliente lo ve
+    //    terminado y puede calificar a quien lo hizo.
     await admin.getByRole('button', { name: 'Registrar saldo pagado' }).click();
     await admin.getByRole('button', { name: 'Sí', exact: true }).click();
     await expect(admin.getByText('Completado', { exact: true })).toBeVisible({ timeout: 15000 });
     expect(getServiceRequestStatus(request.id)).toBe('completed');
 
     await page.reload({ waitUntil: 'networkidle' });
-    await expect(page.getByText('¡Listo! Tu servicio con E2E Embalajes quedó agendado')).toBeVisible();
+    await expect(page.getByText('Tu servicio con E2E Embalajes está terminado.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Calificar a E2E Embalajes' }))
+      .toHaveAttribute('href', /^\/reviews\/submit\//);
   });
 
   test('coming back to the form resumes a draft, but not one already sent', async ({ page }) => {
