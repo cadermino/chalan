@@ -517,9 +517,6 @@ export default {
       showLeadPhoneModal: false,
       leadPhone: null,
       loadTypes: LOAD_TYPES,
-      // Lo último que Google escribió en cada calle: un pin en el mapa lo
-      // reemplaza, pero no lo que el cliente escribió a mano.
-      googleStreets: { from: null, to: null },
     };
   },
   components: {
@@ -598,16 +595,11 @@ export default {
       this.setOrder({ section, field: `${direction}_longitude`, value: location ? coordinate(location.lng) : null });
       if (source === 'pin') track('address_pin_set', { end: direction });
 
-      // Una sugerencia escribe su dirección. Un pin solo reemplaza la calle si
-      // estaba vacía o la había escrito Google: la que el cliente escribió (Mz.
-      // y Lt., la que Google no encuentra) es lo que lee el transportista. Lo
-      // buscado al continuar (`typed`) deja siempre lo escrito.
-      const street = this[section][`${direction}_street`];
-      const writesStreet = source === 'search' || source === undefined
-        || (source === 'pin' && formattedAddress && (!street || street === this.googleStreets[direction]));
-      if (writesStreet) {
+      // Una sugerencia o un pin escriben su dirección en el campo, y el
+      // cliente corrige ahí el número (o Mz. y Lt.). Lo buscado al continuar
+      // (`typed`) deja lo que escribió: el pin salió de ese texto.
+      if (source !== 'typed' && formattedAddress) {
         this.setOrder({ section, field: `${direction}_street`, value: formattedAddress });
-        this.googleStreets[direction] = formattedAddress;
       }
       // El geocoder no respondió: queda la zona de lo que eligió antes.
       if (!addressComponents) return;

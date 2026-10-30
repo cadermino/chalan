@@ -7,7 +7,8 @@
       "Guardar y continuar".
     </p>
     <p v-else-if="notice === 'pin'" class="mt-2 text-sm text-gray-700">
-      Marcaste el lugar en el mapa. Revisa que la dirección diga tu calle y número.
+      Pusimos la dirección del pin en el campo de la dirección. Si el número no es exacto, corrígelo ahí
+      (también Mz. y Lt.).
     </p>
     <p v-else class="mt-2 text-sm text-gray-600">
       Toca el mapa para marcar el lugar exacto.
@@ -170,7 +171,7 @@ export default {
           mapId: this.mapId,
           source,
           place: {
-            formatted_address: result && !result.approximate ? result.formatted_address : '',
+            formatted_address: result ? result.formatted_address : '',
             address_components: result ? result.address_components : null,
             url: coordinatesUrl(location),
             geometry: { location },
@@ -181,14 +182,14 @@ export default {
     // La dirección de un punto, o null. El geocoder es lo exacto, pero la key
     // necesita la Geocoding API habilitada (la de local no la tiene). Si no
     // responde, salen de Places los datos del lugar encontrado o, para un pin,
-    // la zona (distrito, código postal, país) del lugar de Google más cercano:
-    // `approximate`, porque su calle y número no son los de la casa.
+    // los del lugar de Google más cercano (la calle y el número pueden no ser
+    // los de la casa: el aviso le pide corregirlos).
     describe(location, placeId) {
       const { places } = window.google.maps;
       const service = new places.PlacesService(this.map);
-      const details = (id, approximate) => new Promise((resolve) => {
+      const details = id => new Promise((resolve) => {
         service.getDetails({ placeId: id, fields: ['address_components', 'formatted_address'] }, (place, status) => {
-          resolve(status === places.PlacesServiceStatus.OK && place ? { ...place, approximate } : null);
+          resolve(status === places.PlacesServiceStatus.OK && place ? place : null);
         });
       });
       const nearest = () => new Promise((resolve) => {
@@ -201,14 +202,17 @@ export default {
             ? (place.geometry.location.lat() - location.lat()) ** 2
               + (place.geometry.location.lng() - location.lng()) ** 2
             : Infinity);
-          const [closest] = [...results].sort((a, b) => distance(a) - distance(b));
-          resolve(details(closest.place_id, true));
+          // Un distrito o la ciudad también son "lugares", pero su dirección no
+          // tiene calle.
+          const spots = results.filter(place => !(place.types || []).includes('political'));
+          const [closest] = (spots.length ? spots : results).sort((a, b) => distance(a) - distance(b));
+          resolve(details(closest.place_id));
         });
       });
       return new Promise((resolve) => {
         new window.google.maps.Geocoder().geocode({ location }, (results, status) => {
           if (status === 'OK' && results?.[0]) resolve(results[0]);
-          else resolve(placeId ? details(placeId, false) : nearest());
+          else resolve(placeId ? details(placeId) : nearest());
         });
       });
     },
