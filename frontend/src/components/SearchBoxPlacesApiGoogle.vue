@@ -19,9 +19,12 @@
 <script>
 import { markRaw } from 'vue';
 
-// Más lejos que esto un toque cae a cuadras de la casa: el primer toque acerca
-// el mapa ahí y el siguiente pone el pin.
+// Más lejos que esto un toque cae a cuadras de la casa: el toque acerca el
+// mapa ahí y el pin se pone cuando ya se ven las calles. Se acerca de a
+// ZOOM_STEP (país, ciudad, barrio, calle): saltar de Perú entero a la calle
+// dejaba a quien tocaba en los Andes frente a un mapa vacío.
 const PIN_ZOOM = 16;
+const ZOOM_STEP = 4;
 const ZOOM_TO_PIN = 18;
 
 const coordinatesUrl = location => 'https://www.google.com/maps/search/?api=1&query='
@@ -143,7 +146,7 @@ export default {
         if (event.placeId && typeof event.stop === 'function') event.stop();
         if (this.map.getZoom() < PIN_ZOOM) {
           this.map.setCenter(event.latLng);
-          this.map.setZoom(ZOOM_TO_PIN);
+          this.map.setZoom(Math.min(this.map.getZoom() + ZOOM_STEP, ZOOM_TO_PIN));
           return;
         }
         this.pinAt(event.latLng, 'pin');
