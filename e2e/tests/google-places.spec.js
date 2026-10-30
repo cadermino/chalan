@@ -68,4 +68,57 @@ test.describe('Google Places autocomplete', () => {
     await dismissLeadPhoneModalIfPresent(page);
     await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
   });
+
+  test('should pin a typed address that was not picked, and go on once the customer sees it', async ({ page }) => {
+    await mockGooglePlaces(page);
+    // Google finds what was typed. The geocoder of the mock answers nothing,
+    // so the area comes from the place's details, as with a key without the
+    // Geocoding API.
+    await page.addInitScript(() => {
+      const { maps } = window.google;
+      maps.Map.prototype.setCenter = () => {};
+      maps.Map.prototype.setZoom = () => {};
+      maps.places.PlacesService.prototype.findPlaceFromQuery = (_opts, cb) => cb([{
+        place_id: 'typed-place',
+        geometry: { location: { lat: () => -12.07699, lng: () => -77.04857 } },
+      }], 'OK');
+      maps.places.PlacesService.prototype.getDetails = (_opts, cb) => cb({
+        formatted_address: 'Jr. Huiracocha 1460, Jesús María 15072, Perú',
+        address_components: [
+          { long_name: '15072', short_name: '15072', types: ['postal_code'] },
+          { long_name: 'Perú', short_name: 'PE', types: ['country'] },
+        ],
+      }, 'OK');
+    });
+    await page.goto('/order/step-one', { waitUntil: 'networkidle' });
+    await page.waitForSelector('#address-from-street', { timeout: 30000 });
+
+    await page.fill('#address-from-street', 'Mz B Lt 12, Jesús María');
+    await page.selectOption('#address-from-floor', { index: 3 });
+    await page.selectOption('#from-parking-distance', '20');
+    await page.setChecked('#from-has-elevator-checkbox', true);
+
+    await selectMockAddress(page, 'address-to-street', TO_ADDRESS);
+    await page.selectOption('#address-to-floor', { index: 2 });
+    await page.selectOption('#to-parking-distance', '50');
+    await page.setChecked('#to-has-elevator-checkbox', false);
+
+    await page.click('button:has-text("Guardar y continuar")');
+    await expect(page.getByText('Lo ubicamos con lo que escribiste')).toBeVisible();
+    await expect(page).toHaveURL(/step-one/);
+
+    const origin = await page.evaluate(() => {
+      const { orderDetailsOrigin } = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+      return { ...orderDetailsOrigin };
+    });
+    // What the customer wrote stays: it is what the carrier reads.
+    expect(origin.from_street).toBe('Mz B Lt 12, Jesús María');
+    expect(origin.from_country).toBe('Perú');
+    expect(origin.from_zip_code).toBe('15072');
+    expect(origin.from_map_url).toContain('query=-12.076990,-77.048570');
+
+    await page.click('button:has-text("Guardar y continuar")');
+    await dismissLeadPhoneModalIfPresent(page);
+    await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
+  });
 });

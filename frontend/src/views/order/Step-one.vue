@@ -67,6 +67,15 @@
                     class="text-red-500
                     text-xs
                     italic">{{ formValidationMessages['from_street'] }}.</p>
+                  <p v-else-if="formValidationMessages['from_map_url'] && selectedFromStreet"
+                    class="text-red-500
+                    text-xs
+                    italic">No encontramos esta dirección en el mapa. Busca la calle o un lugar cercano, elígelo
+                    y toca el mapa en el lugar exacto.</p>
+                  <p v-else class="mt-1 text-xs text-gray-600">
+                    Escribe y elige una de las sugerencias. ¿No aparece tu dirección? Busca la calle o un lugar
+                    cercano y toca el mapa en el lugar exacto.
+                  </p>
                 </div>
                 <div class="w-full md:w-1/2 px-3 mb-4">
                   <label class="block
@@ -198,7 +207,10 @@
                   v-on:google-address="fillAddress"
                   input-id="address-from-street"
                   map-id="address-from-map"
+                  ref="fromMap"
                   :initial-address="orderDetailsOrigin.from_street"
+                  :initial-latitude="orderDetailsOrigin.from_latitude"
+                  :initial-longitude="orderDetailsOrigin.from_longitude"
                 />
               </div>
             </div>
@@ -240,6 +252,15 @@
                       class="text-red-500
                       text-xs
                       italic">{{ formValidationMessages['to_street'] }}.</p>
+                  <p v-else-if="formValidationMessages['to_map_url'] && selectedToStreet"
+                    class="text-red-500
+                    text-xs
+                    italic">No encontramos esta dirección en el mapa. Busca la calle o un lugar cercano, elígelo
+                    y toca el mapa en el lugar exacto.</p>
+                  <p v-else class="mt-1 text-xs text-gray-600">
+                    Escribe y elige una de las sugerencias. ¿No aparece tu dirección? Busca la calle o un lugar
+                    cercano y toca el mapa en el lugar exacto.
+                  </p>
                 </div>
                 <div class="w-full md:w-1/2 px-3 mb-4">
                   <label class="block
@@ -371,7 +392,10 @@
                   v-on:google-address="fillAddress"
                   input-id="address-to-street"
                   map-id="address-to-map"
+                  ref="toMap"
                   :initial-address="orderDetailsDestination.to_street"
+                  :initial-latitude="orderDetailsDestination.to_latitude"
+                  :initial-longitude="orderDetailsDestination.to_longitude"
                 />
               </div>
             </div>
@@ -493,6 +517,9 @@ export default {
       showLeadPhoneModal: false,
       leadPhone: null,
       loadTypes: LOAD_TYPES,
+      // Lo último que Google escribió en cada calle: un pin en el mapa lo
+      // reemplaza, pero no lo que el cliente escribió a mano.
+      googleStreets: { from: null, to: null },
     };
   },
   components: {
@@ -558,8 +585,33 @@ export default {
           url,
         },
         mapId,
+        source,
       } = data;
       const direction = mapId.split('-')[1];
+      const section = direction === 'from' ? 'orderDetailsOrigin' : 'orderDetailsDestination';
+      // Con la ubicación el backoffice le sugiere al admin transportistas de la
+      // zona cuando la orden no es de Lima. Las columnas miden 45.
+      const location = place.geometry && place.geometry.location;
+      const coordinate = value => (typeof value === 'function' ? value.call(location) : value);
+      this.setOrder({ section, field: `${direction}_map_url`, value: url });
+      this.setOrder({ section, field: `${direction}_latitude`, value: location ? coordinate(location.lat) : null });
+      this.setOrder({ section, field: `${direction}_longitude`, value: location ? coordinate(location.lng) : null });
+      if (source === 'pin') track('address_pin_set', { end: direction });
+
+      // Una sugerencia escribe su dirección. Un pin solo reemplaza la calle si
+      // estaba vacía o la había escrito Google: la que el cliente escribió (Mz.
+      // y Lt., la que Google no encuentra) es lo que lee el transportista. Lo
+      // buscado al continuar (`typed`) deja siempre lo escrito.
+      const street = this[section][`${direction}_street`];
+      const writesStreet = source === 'search' || source === undefined
+        || (source === 'pin' && formattedAddress && (!street || street === this.googleStreets[direction]));
+      if (writesStreet) {
+        this.setOrder({ section, field: `${direction}_street`, value: formattedAddress });
+        this.googleStreets[direction] = formattedAddress;
+      }
+      // El geocoder no respondió: queda la zona de lo que eligió antes.
+      if (!addressComponents) return;
+
       const googleAddress = {};
       Object.keys(addressComponents).forEach((key) => {
         googleAddress[addressComponents[key].types[0]] = addressComponents[key];
@@ -581,19 +633,36 @@ export default {
           long_name: state,
         } = {},
       } = googleAddress;
-      // Con la ubicación el backoffice le sugiere al admin transportistas de la
-      // zona cuando la orden no es de Lima. Las columnas miden 45.
-      const location = place.geometry && place.geometry.location;
-      const coordinate = value => (typeof value === 'function' ? value.call(location) : value);
-      const section = direction === 'from' ? 'orderDetailsOrigin' : 'orderDetailsDestination';
-      this.setOrder({ section, field: `${direction}_street`, value: formattedAddress });
       this.setOrder({ section, field: `${direction}_zip_code`, value: postalCode });
       this.setOrder({ section, field: `${direction}_country`, value: country });
-      this.setOrder({ section, field: `${direction}_map_url`, value: url });
       this.setOrder({ section, field: `${direction}_city`, value: (locality || province || '').slice(0, 45) || null });
       this.setOrder({ section, field: `${direction}_state`, value: (state || '').slice(0, 45) || null });
-      this.setOrder({ section, field: `${direction}_latitude`, value: location ? coordinate(location.lat) : null });
-      this.setOrder({ section, field: `${direction}_longitude`, value: location ? coordinate(location.lng) : null });
+    },
+    // Quien escribe su dirección y aprieta "Guardar y continuar" sin elegir una
+    // sugerencia se quedaba trabado. Se busca lo que escribió y se le muestra
+    // el pin para que lo confirme o lo corrija tocando el mapa; la siguiente
+    // vez que aprieta, pasa. Resuelve true si puso algún pin (no avanza ahora).
+    async locateTypedAddresses() {
+      const pending = ['from', 'to'].filter((direction) => {
+        const address = direction === 'from' ? this.orderDetailsOrigin : this.orderDetailsDestination;
+        const street = address[`${direction}_street`];
+        return street && street.trim() && !address[`${direction}_map_url`] && this.$refs[`${direction}Map`];
+      });
+      if (!pending.length) return false;
+      this.setLoader(true);
+      const found = await Promise.all(pending.map((direction) => {
+        const address = direction === 'from' ? this.orderDetailsOrigin : this.orderDetailsDestination;
+        return this.$refs[`${direction}Map`].findTyped(address[`${direction}_street`].trim());
+      }));
+      this.setLoader(false);
+      pending.forEach((direction, index) => {
+        track('address_typed_lookup', { end: direction, found: found[index] });
+      });
+      const first = pending.find((direction, index) => found[index]);
+      if (!first) return false;
+      const map = document.getElementById(`address-${first}-map`);
+      if (map) map.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return true;
     },
     removeSelectedProduct() {
       const productFields = {
@@ -665,7 +734,8 @@ export default {
         }
       }
     },
-    nextStep() {
+    async nextStep() {
+      if (await this.locateTypedAddresses()) return;
       this.validateRequiredFields(this.viewName);
       if (this.steps[this.viewName].isComplete) {
         this.setOrder({ section: 'currentOrder', field: 'created_date', value: this.$moment().format() });
