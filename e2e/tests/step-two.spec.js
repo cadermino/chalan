@@ -22,6 +22,7 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     // blur handler instead of nextStep() itself: adding the item grows the
     // list and pushes "Siguiente" down mid-click, so the click misses it.
     await page.fill('input[placeholder="Ej: 1 cama matrimonial"]', '1 mesa de centro');
+    await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));
 
     await page.click('button:has-text("Siguiente")');
 
@@ -61,6 +62,7 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     await expect(button).toBeDisabled();
     await expect(page.getByText('no olvides llenar este campo')).toHaveCount(0);
 
+    await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));
     release();
     await page.getByRole('button', { name: 'Siguiente' }).click();
 
@@ -69,5 +71,29 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
       () => document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main').currentOrder.comments,
     );
     expect(comments).toContain('refrigeradora');
+  });
+
+  test('asks for the budget before going on', async ({ page }) => {
+    await createOrderViaApi(page, { upTo: 'step-one' });
+    await expect(page).toHaveURL(/step-two/, { timeout: 15000 });
+    await page.evaluate((date) => {
+      const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
+      store.setOrder({ section: 'currentOrder', field: 'appointment_date', value: date });
+    }, TEST_DATA.stepTwo.appointmentDate);
+    await page.fill('input[placeholder="Ej: 1 cama matrimonial"]', '1 mesa de centro');
+
+    await page.click('button:has-text("Siguiente")');
+    await expect(page).toHaveURL(/step-two/);
+    await expect(page.locator('#approximate-budget')).toHaveClass(/border-red-300/);
+    await expect(page.getByText('Pon un presupuesto, aunque sea aproximado')).toBeVisible();
+
+    // Un cero es como dejarlo vacío.
+    await page.fill('#approximate-budget', '0');
+    await page.click('button:has-text("Siguiente")');
+    await expect(page).toHaveURL(/step-two/);
+
+    await page.fill('#approximate-budget', '450');
+    await page.click('button:has-text("Siguiente")');
+    await expect(page).toHaveURL(/step-three|contacto/, { timeout: 15000 });
   });
 });

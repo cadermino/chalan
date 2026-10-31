@@ -296,9 +296,10 @@
                 text-sm
                 font-bold"
                 for="approximate-budget">
-                    Presupuesto aproximado
+                    Presupuesto aproximado <span class="text-red-500">*</span>
               </label>
-              <input class="appearance-none
+              <input :class="formValidationMessages['approximate_budget'] ? 'border-red-300' : ''"
+                class="appearance-none
                   border rounded
                   w-full
                   py-2
@@ -314,6 +315,11 @@
                   type="number"
                   placeholder="Ej. 300"
                   autocomplete="on">
+              <p v-if="formValidationMessages['approximate_budget']"
+                class="text-red-500 text-xs italic">{{ formValidationMessages['approximate_budget'] }}.</p>
+              <p v-else class="mt-1 text-xs text-gray-600">
+                Cuánto piensas gastar, en soles, aunque sea aproximado.
+              </p>
             </div>
           </div>
           <div class="flex items-center justify-between">
@@ -438,6 +444,7 @@ export default {
     ...mapActions(useStore, [
       'setOrder',
       'setViewsMessages',
+      'setFormValidationMessages',
       'setLoader',
       'discardOrderDraft',
     ]),
@@ -595,7 +602,14 @@ export default {
       this.addManualItem();
       this.syncComments();
       this.validateRequiredFields(this.viewName);
-      if (this.steps[this.viewName].isComplete) {
+      // Obligatorio solo al enviar este paso, no en los requisitos del store:
+      // el paso 3 exige el paso 2 completo, y las órdenes de antes (o las del
+      // agente de cotización) tienen el presupuesto vacío o en 0.
+      const budgetMissing = !(Number(this.currentOrder.approximate_budget) > 0);
+      if (budgetMissing) {
+        this.setFormValidationMessages({ field: 'approximate_budget', message: 'Pon un presupuesto, aunque sea aproximado' });
+      }
+      if (this.steps[this.viewName].isComplete && !budgetMissing) {
         this.setLoader(true);
         const payload = {
           order: this.currentOrder,
@@ -663,6 +677,16 @@ export default {
         // Nombres de campo, nunca sus valores.
         const missing = this.steps[this.viewName].requisites
           .filter(field => this.formValidationMessages[field]);
+        if (budgetMissing) missing.push('approximate_budget');
+        // El presupuesto está al final del formulario: si es lo único que
+        // falta, el clic no mostraba nada a la vista.
+        if (missing.length === 1 && budgetMissing) {
+          const budget = document.getElementById('approximate-budget');
+          if (budget) {
+            budget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            budget.focus({ preventScroll: true });
+          }
+        }
         track('step_two_blocked', {
           missing_field: missing[0],
           missing_count: missing.length,

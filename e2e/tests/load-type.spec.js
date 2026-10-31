@@ -99,6 +99,7 @@ test.describe('What the order carries', () => {
     await expect(page.locator('#cargo-weight')).toHaveClass(/border-red-300/);
 
     await page.selectOption('#cargo-weight', '10000');
+    await page.fill('#approximate-budget', '800');
     await page.click('button:has-text("Siguiente")');
     await expect(page).toHaveURL(/step-three|contacto/, { timeout: 15000 });
 
@@ -121,6 +122,7 @@ test.describe('What the order carries', () => {
     await setAppointmentDate(page);
     await page.fill('input[placeholder="Ej: 200 sacos de arroz de 50 kg"]', '300 cajas navideñas');
     await page.selectOption('#cargo-weight', '1500');
+    await page.fill('#approximate-budget', '600');
     await page.click('button:has-text("Siguiente")');
     await expect(page).toHaveURL(/step-three|contacto/, { timeout: 15000 });
     const orderId = await getOrderIdFromStore(page);
