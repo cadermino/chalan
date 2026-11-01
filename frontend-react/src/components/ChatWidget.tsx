@@ -95,7 +95,10 @@ export function ChatWidget({ hiddenPaths = [] }: { hiddenPaths?: string[] }) {
     const sid = getOrCreateSession()
     setSessionId(sid)
     setMessages(loadHistory(sid))
-    if (hidden || pathname === '/' || window.innerWidth < 640) return
+    // En los posts no se abre solo: todos tienen el cotizador, y abierto tapaba
+    // el texto y el cotizador en computadora (de donde viene casi todo el
+    // tráfico del blog). Sigue a un toque en el botón.
+    if (hidden || pathname === '/' || pathname.startsWith('/blog/') || window.innerWidth < 640) return
     const t = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY)
     return () => clearTimeout(t)
   }, [pathname, hidden])
