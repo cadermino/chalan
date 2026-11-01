@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { NON_MOVING_PATHS } from '@/lib/homeServices'
-import { blogLayout } from '@/lib/blogLayoutTest'
+import { blogLayout, tagRecordings } from '@/lib/blogLayoutTest'
 
 // Grupo de contenido de GA4 (dimensión estándar "Grupo de contenido"), para
 // comparar el blog con el resto sin filtrar por URL.
@@ -44,6 +44,9 @@ export function PageViewTracker() {
     // Next actualiza el <title> al montar la ruta nueva, así que esperamos al
     // siguiente frame para no reportar el título de la página anterior.
     const frame = requestAnimationFrame(() => {
+      const layout = blogLayout()
+      if (layout) tagRecordings(layout)
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const gtag = (window as any).gtag
       if (typeof gtag !== 'function') return

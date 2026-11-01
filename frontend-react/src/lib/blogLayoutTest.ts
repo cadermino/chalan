@@ -5,7 +5,8 @@
 // posts; secundaria quote_cta_click. 2 semanas o 500 visitas por versión, y no
 // se decide antes. Al terminar se deja la que gane y se borra esto: este
 // archivo, el script del <head> en layout.tsx, `data-blog-test` y las clases
-// blog-* del post, y las reglas de globals.css.
+// blog-* del post, las reglas de globals.css, y blogLayout()/tagRecordings() en
+// PageViewTracker y analytics.ts.
 
 export const BLOG_LAYOUT_COOKIE = 'chalan_blog_ab'
 
@@ -27,4 +28,20 @@ export function blogLayout(): string | undefined {
   if (typeof window === 'undefined' || window.innerWidth < 1024) return undefined
   if (!document.querySelector('[data-blog-test]')) return undefined
   return document.documentElement.dataset.blogLayout || undefined
+}
+
+// La misma versión en las grabaciones de Inspectlet (tag `blog_layout`) y
+// Clarity (etiqueta personalizada `blog_layout`), para ver cada una por
+// separado. Si sus scripts todavía no cargaron, deja el pedido en sus colas
+// (el mismo arranque que usan sus snippets en layout.tsx), y lo toman al cargar.
+export function tagRecordings(layout: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any
+  w.__insp = w.__insp || []
+  w.__insp.push(['tagSession', { blog_layout: layout }])
+  w.clarity = w.clarity || function () {
+    // eslint-disable-next-line prefer-rest-params
+    (w.clarity.q = w.clarity.q || []).push(arguments)
+  }
+  w.clarity('set', 'blog_layout', layout)
 }
