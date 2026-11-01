@@ -316,7 +316,7 @@ def list_service_requests():
             'service_type': r.service_type.to_dict() if r.service_type else None,
             'status': r.status,
             'preferred_date': r.preferred_date.isoformat() if r.preferred_date else None,
-            'neighborhood': r.neighborhood,
+            'neighborhood': district_of({'street': r.street, 'neighborhood': r.neighborhood, 'city': r.city}),
             'whatsapp': r.whatsapp,
             'customer_name': r.customer_name,
             'items_count': items.get(r.id, 0),

@@ -1088,6 +1088,9 @@ def test_only_the_chosen_carrier_sees_the_exact_address(client, submitted, packi
     ({'street': 'Batta Isola, Barranco 15063', 'city': 'Lima'}, 'Barranco'),
     ({'street': 'Av. Pardo 610, Miraflores, Lima, Perú', 'city': 'Lima'}, 'Miraflores'),
     ({'street': 'Av. Arequipa 2450', 'city': 'Lima'}, 'Lima'),
+    # La urbanización que el formulario guardaba como distrito.
+    ({'neighborhood': 'Fund Oyague', 'street': 'Av. Arnaldo Márquez 1772, Jesús María 15072, Perú'}, 'Jesús María'),
+    ({'neighborhood': 'San Isidro', 'street': 'Av. Javier Prado 123'}, 'San Isidro'),
 ])
 def test_the_district_comes_from_google_or_from_the_address_text(address, district):
     from app.api.service_requests import district_of

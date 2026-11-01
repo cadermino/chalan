@@ -7,6 +7,7 @@ from flask import current_app, jsonify, request
 from sqlalchemy import func
 
 from . import api
+from .address import district_of
 from .decorators import is_internal_request
 from .carrier_declines import (decline_service_request, decline_to_dict, parse_decline,
                                undo_service_request_decline)
@@ -285,7 +286,7 @@ def get_customer_quotations(public_id):
         'id': service_request.id,
         'service_type': {'code': service_request.service_type.code, 'name': service_request.service_type.name},
         'status': service_request.status,
-        'neighborhood': service_request.neighborhood,
+        'neighborhood': district_of(_address_dict(service_request)),
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
         'items': [
             {'description': item.description, 'quantity': item.quantity, 'work': item.work, 'pack': item.pack}
@@ -547,8 +548,8 @@ def get_shared_service_media(token):
     return jsonify({
         'service': service_request.service_type.name if service_request.service_type else None,
         'service_code': service_request.service_type.code if service_request.service_type else None,
-        'district': service_request.neighborhood or service_request.city,
-        'destination_district': destination.get('neighborhood') or destination.get('city'),
+        'district': district_of(_address_dict(service_request)),
+        'destination_district': district_of(destination) if destination else None,
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
         'items': [{'description': _without_phones(i.description), 'quantity': i.quantity, 'work': i.work,
                    'pack': i.pack} for i in service_request.items],

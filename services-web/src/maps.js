@@ -62,7 +62,9 @@ function component(place, type, useShortName = false) {
 export function addressFromPlace(place) {
   return {
     street: (place.formatted_address || '').slice(0, 200),
-    neighborhood: (component(place, 'sublocality_level_1') || component(place, 'locality')).slice(0, 100),
+    // En Lima `locality` es el distrito (Jesús María) y `sublocality_level_1`
+    // la urbanización (Fundo Oyague), que no les dice nada a las empresas.
+    neighborhood: (component(place, 'locality') || component(place, 'sublocality_level_1')).slice(0, 100),
     city: (component(place, 'administrative_area_level_2') || component(place, 'locality')).slice(0, 100),
     state: component(place, 'administrative_area_level_1').slice(0, 100),
     country: component(place, 'country', true).slice(0, 20),

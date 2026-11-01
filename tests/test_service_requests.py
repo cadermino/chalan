@@ -2057,6 +2057,16 @@ def shared_request(client, storage):
     return service_request, make_token(service_request)
 
 
+def test_the_share_link_names_the_district_not_the_urbanizacion(client, storage):
+    service_request, token = shared_request(client, storage)
+    service_request.submitted_at = datetime(2026, 10, 5, 12, 0)
+    service_request.street = 'Av. Arnaldo Márquez 1772, Jesús María 15072, Perú'
+    service_request.neighborhood = 'Fund Oyague'
+    db.session.commit()
+
+    assert client.get(f'/api/v1/service-media/{token}').get_json()['district'] == 'Jesús María'
+
+
 def test_the_share_link_shows_the_files_and_the_district_only(client, storage):
     service_request, token = shared_request(client, storage)
     service_request.submitted_at = datetime(2026, 10, 5, 12, 0)

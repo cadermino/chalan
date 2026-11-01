@@ -7,6 +7,7 @@ from flask import current_app
 from ... import db
 from ...models import (CarrierCompany, CarrierCompanyServiceType,
                        ServiceRequestNotification)
+from ..address import district_of
 from ..email import send_email
 from ..whatsapp import normalize_phone, send_whatsapp
 from .quotations import platform_fee_rate, total_with_fee
@@ -61,6 +62,11 @@ def _pending_carriers(service_request):
     return query.order_by(CarrierCompany.id).all()
 
 
+def _district(service_request):
+    return district_of({'street': service_request.street, 'neighborhood': service_request.neighborhood,
+                        'city': service_request.city})
+
+
 def _date_label(service_request):
     return service_request.preferred_date.strftime('%d/%m/%Y') if service_request.preferred_date else None
 
@@ -92,7 +98,7 @@ def notify_service_request(service_request, notify_admin=True):
                     'email/ask_for_service_quotation',
                     bcc=[],
                     service_name=service_name,
-                    neighborhood=service_request.neighborhood,
+                    neighborhood=_district(service_request),
                     preferred_date=_date_label(service_request),
                     request_url=url,
                 )
@@ -130,7 +136,7 @@ def _notify_admin(service_request, service_name, notified_names):
                 whatsapp=service_request.whatsapp,
                 customer_name=service_request.customer_name,
                 customer_email=service_request.customer_email,
-                neighborhood=service_request.neighborhood,
+                neighborhood=_district(service_request),
                 preferred_date=_date_label(service_request),
                 items_count=len(service_request.items),
                 # Pintura no trae lista: lo que pide va escrito o en un video.
@@ -191,7 +197,7 @@ def notify_new_quotation(service_request, quotation, created):
                 amount=_money(quotation.amount),
                 total=total,
                 note=quotation.note,
-                neighborhood=service_request.neighborhood,
+                neighborhood=_district(service_request),
                 preferred_date=_date_label(service_request),
                 quotations_count=len(service_request.quotations),
                 admin_url=admin_url,
@@ -257,7 +263,7 @@ def _choice_facts(service_request, quotation):
         carrier_name=carrier.name if carrier else 'Un transportista',
         total=_money(quotation.total_amount),
         amount=_money(quotation.amount),
-        neighborhood=service_request.neighborhood,
+        neighborhood=_district(service_request),
         preferred_date=_date_label(service_request),
     )
 
