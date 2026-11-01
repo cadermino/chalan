@@ -546,6 +546,9 @@ def get_shared_service_media(token):
     if details.get('description'):
         details['description'] = _without_phones(details['description'])
     return jsonify({
+        # El número del backoffice ("Servicio #12"), para que quien cotiza diga
+        # cuál es. No abre nada, a diferencia del public_id.
+        'id': service_request.id,
         'service': service_request.service_type.name if service_request.service_type else None,
         'service_code': service_request.service_type.code if service_request.service_type else None,
         'district': district_of(_address_dict(service_request)),

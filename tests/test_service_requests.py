@@ -2078,6 +2078,7 @@ def test_the_share_link_shows_the_files_and_the_district_only(client, storage):
     assert response.status_code == 200
     body = response.get_json()
     assert body['district'] == 'Miraflores'
+    assert body['id'] == service_request.id
     assert [m['media_type'] for m in body['media']] == ['video']
     text = response.get_data(as_text=True)
     assert service_request.public_id not in text and (service_request.street or 'x' * 40) not in text

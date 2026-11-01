@@ -13,6 +13,7 @@ import { WORK_LABELS, serviceFacts } from '@/lib/serviceLabels'
 // (app/api/service_request/media_share.py).
 
 type SharedMedia = {
+  id: number
   service: string | null
   service_code: string | null
   district: string | null
@@ -117,7 +118,9 @@ function SharedBody({ data }: { data: SharedMedia }) {
   const facts = serviceFacts(data.service_code, data.details)
   return (
     <>
-      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Pedido para cotizar</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+        Pedido para cotizar · Servicio #{data.id}
+      </p>
       <h1 className="mt-2 text-3xl font-bold text-gray-900">{headline(data)}</h1>
       {day && <p className="mt-1 text-gray-600 first-letter:uppercase">{day}</p>}
       {data.destination_district && (
@@ -194,7 +197,7 @@ function SharedBody({ data }: { data: SharedMedia }) {
         <p className="mt-1 text-sm text-gray-600">Respóndenos por WhatsApp con tu precio y coordinamos.</p>
         <a
           href={whatsappUrl(`Hola, vi el pedido de ${(data.service || 'servicio').toLowerCase()}${
-            data.district ? ` en ${data.district}` : ''} y quiero cotizar`)}
+            data.district ? ` en ${data.district}` : ''} (servicio #${data.id}) y quiero cotizar`)}
           className="mt-4 inline-flex rounded-xl bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700"
         >
           Responder por WhatsApp
