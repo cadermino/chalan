@@ -30,7 +30,11 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  /* clip y no hidden: hidden hace del body un contenedor de scroll y rompe
+     position: sticky en todo el sitio (la columna del cotizador en el blog).
+     hidden queda para navegadores sin clip (Safari < 16). */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ====== PARALLAX SECTIONS ====== */
@@ -406,4 +410,32 @@ body {
 /* Google Places autocomplete dropdown */
 .pac-container {
   z-index: 9999 !important;
+}
+/* ====== A/B DEL BLOG (lib/blogLayoutTest.ts) ====== */
+/* Versión `sidebar`, solo en pantallas anchas y en los posts del test: el
+   cotizador queda fijo en una columna a la derecha y se esconden el del texto
+   (con la frase que lo presenta) y el del final. El nav es fijo de 72 px. */
+.blog-aside {
+  display: none;
+}
+@media (min-width: 1024px) {
+  html[data-blog-layout='sidebar'] .blog-layout[data-blog-test] {
+    max-width: 72rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: 3rem;
+    align-items: start;
+  }
+  html[data-blog-layout='sidebar'] .blog-layout[data-blog-test] .blog-aside {
+    display: block;
+    position: sticky;
+    top: 96px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+  html[data-blog-layout='sidebar'] .blog-layout[data-blog-test] .not-prose:has(> .blog-inline-cta),
+  html[data-blog-layout='sidebar'] .blog-layout[data-blog-test] p:has(+ .not-prose > .blog-inline-cta),
+  html[data-blog-layout='sidebar'] .blog-layout[data-blog-test] .blog-end-cta {
+    display: none;
+  }
 }

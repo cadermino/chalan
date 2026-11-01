@@ -1,3 +1,5 @@
+import { blogLayout } from './blogLayoutTest';
+
 // Capa fina sobre gtag.js. Existe por dos razones: que ningún componente
 // tenga que acordarse de comprobar si GA cargó (adblockers y dev lo dejan
 // sin definir), y que los nombres de los eventos del embudo vivan en un
@@ -47,7 +49,7 @@ export function track(event: LandingEvent, params: Params = {}) {
   // GA4 muestra los parámetros vacíos como "(not set)" en los informes, lo
   // que cuesta más de lo que aporta: mejor no mandarlos.
   const clean: Record<string, string | number | boolean> = {};
-  Object.entries(params).forEach(([key, value]) => {
+  Object.entries({ blog_layout: blogLayout(), ...params }).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') clean[key] = value;
   });
 

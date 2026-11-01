@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { NON_MOVING_PATHS } from '@/lib/homeServices'
+import { blogLayout } from '@/lib/blogLayoutTest'
 
 // Grupo de contenido de GA4 (dimensión estándar "Grupo de contenido"), para
 // comparar el blog con el resto sin filtrar por URL.
@@ -23,6 +24,7 @@ function postParams() {
   return {
     post_category: article.dataset.postCategory || undefined,
     post_date: article.dataset.postDate || undefined,
+    blog_layout: blogLayout(),
   }
 }
 

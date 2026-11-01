@@ -9,6 +9,7 @@ import { NON_MOVING_PATHS } from "@/lib/homeServices";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { ServiceCtaTracker } from "@/components/ServiceCtaTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { BLOG_LAYOUT_SCRIPT } from "@/lib/blogLayoutTest";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -72,7 +73,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={outfit.variable}>
+    // suppressHydrationWarning: el script del A/B del blog le pone
+    // data-blog-layout al <html> antes de hidratar.
+    <html lang="es" className={outfit.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: BLOG_LAYOUT_SCRIPT }} />
+      </head>
       <body>
         <Suspense fallback={null}>
           <ReferralCapture />
