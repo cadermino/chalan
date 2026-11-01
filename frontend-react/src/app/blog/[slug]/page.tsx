@@ -10,6 +10,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { QuoteWidget } from "@/components/QuoteWidget";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { CarrierSignupForm } from "@/components/CarrierSignupForm";
+import { BlogReadDepth } from "@/components/BlogReadDepth";
 import { HOME_SERVICES, whatsappUrl } from "@/lib/homeServices";
 
 interface Props {
@@ -133,7 +134,9 @@ export default async function BlogPost({ params }: Props) {
         </div>
 
         {/* MDX Content */}
-        <article className="prose prose-gray prose-lg max-w-none
+        {/* id y data-*: los leen PageViewTracker y BlogReadDepth para GA4. */}
+        <article id="blog-article" data-post-category={post.category} data-post-date={post.date}
+          className="prose prose-gray prose-lg max-w-none
           prose-headings:font-bold prose-headings:text-gray-900
           prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
           prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
@@ -151,6 +154,7 @@ export default async function BlogPost({ params }: Props) {
             components={{ QuoteWidget }}
           />
         </article>
+        <BlogReadDepth category={post.category} />
 
         {/* Waitlist — solo para posts con waitlist: true */}
         {post.waitlist && (

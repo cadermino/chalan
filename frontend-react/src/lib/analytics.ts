@@ -26,6 +26,8 @@ export type LandingEvent =
   | 'quote_cta_click'
   // Botones de cotizar un servicio a domicilio (formulario o WhatsApp), ver ServiceCtaTracker.
   | 'service_cta_click'
+  // Hasta dónde se leyó un post del blog (25, 50, 75, 100), ver BlogReadDepth.
+  | 'blog_read_depth'
   // Fuera del embudo: el botón de reseña en Google tras dejar la nuestra.
   | 'google_review_click'
   // Alta de transportistas (/transportistas): registro y documentos para validarlos.

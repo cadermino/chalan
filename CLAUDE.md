@@ -193,6 +193,9 @@ The `frontend-react/` site was redesigned with a new landing page and shared com
 ### Fonts
 The site's fonts (Instrument Serif, Inter Tight, JetBrains Mono, Outfit) are served from the repo with `next/font/local`: the `.woff2` files (latin subset, OFL) live in `frontend-react/src/fonts/` and are declared once in `src/lib/fonts.ts`, which every page imports. They used to come from `next/font/google`, which downloads at build time and made Peru deploys fail now and then (`Cannot read properties of null (reading '1')`). To change a font, drop its latin `.woff2` from Google Fonts into `src/fonts/` and edit `fonts.ts`.
 
+### Blog in GA4
+Every `page_view` of the Next site carries `content_group` (`home`, `blog`, `blog_index`, `service`, `carriers`, `landing`; `PageViewTracker.tsx`), which GA4 reads as its standard "Grupo de contenido". A post's also carries `post_category` and `post_date`, read from the `data-*` of `#blog-article`, and `BlogReadDepth.tsx` sends `blog_read_depth` (`percent` 25/50/75/100 of the post's text, `post_category`). `post_category`, `post_date` and `percent` are custom dimensions registered in GA4: they only carry values from the day they were registered.
+
 ### QuoteWidget
 Client-side widget (`'use client'`) that estimates a move price based on:
 - Move size: small (room/packages), medium (1–2 bedroom apt), large (family home)
