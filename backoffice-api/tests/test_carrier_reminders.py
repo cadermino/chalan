@@ -6,11 +6,11 @@ transportista, y que la dirección no salga entera.
 """
 from datetime import datetime, timedelta
 
-import jwt
 import pytest
 
 from app import db
 from app.models import Order, OrderCarrierDecline, OrderDetail, Quotation
+from app.quotation_short_link import make_code
 from tests.test_service_requests import make_user
 from tests.test_services_per_company import catalog, make_company  # noqa: F401
 
@@ -42,7 +42,7 @@ def reminders(client, headers):
     return {c['name']: c for c in res.get_json()['companies']}
 
 
-def test_each_carrier_gets_only_what_it_has_not_answered(client, app, catalog, superadmin):
+def test_each_carrier_gets_only_what_it_has_not_answered(client, catalog, superadmin):
     quoted, declined, silent = (make_company(n, 'moving') for n in ('Cotizó', 'Rechazó', 'Callado'))
     make_company('Solo Embala', 'packing')
     order = make_order()
@@ -57,8 +57,8 @@ def test_each_carrier_gets_only_what_it_has_not_answered(client, app, catalog, s
     assert pending['id'] == order.id
     assert (pending['origin_district'], pending['destination_district']) == ('Jesús María', 'Santiago de Surco')
     assert 'street' not in pending
-    token = jwt.decode(pending['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
-    assert (token['carrier_company_id'], token['order_id']) == (silent.id, order.id)
+    assert pending['code'] == make_code(order.id, silent.id)
+    assert pending['code'].startswith(f'{order.id}-{silent.id}-')
 
 
 def test_a_cancelled_quotation_still_counts_as_not_quoted(client, catalog, superadmin):

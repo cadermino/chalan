@@ -4,8 +4,9 @@ import Card from './Card'
 import CopyButton from './CopyButton'
 import { cargoWeightLabel, loadTypeLabel } from '../lib/loadTypes'
 
-// Las más próximas primero: un mensaje con todo se deja de leer.
-const MAX_ORDERS = 5
+// Las más próximas primero. Con los links cortos entran casi todas; más que
+// esto ya no se lee.
+const MAX_ORDERS = 20
 
 // "Sáb 8 nov". La fecha viene con la hora de Lima: se arma con sus números
 // para que el huso del navegador no la corra un día.
@@ -19,11 +20,11 @@ function orderLine(order) {
   const route = [order.origin_district, order.destination_district].filter(Boolean).join(' → ')
   const load = [loadTypeLabel(order.load_type), cargoWeightLabel(order.cargo_weight_kg)].filter(Boolean).join(', ')
   return `• ${[shortDate(order.appointment_date), route].filter(Boolean).join(' · ')} (${load.toLowerCase()})\n`
-    + `  ${window.location.origin}/quotation/${order.token}`
+    + `  ${window.location.origin}/c/${order.code}`
 }
 
-// Con los links de cotizar de cada orden, que no piden contraseña (el
-// backoffice sí, y no hay cómo recuperarla).
+// Con el link corto para cotizar cada orden (chalan.pe/c/…, lo canjea Next),
+// que no pide contraseña (el backoffice sí, y no hay cómo recuperarla).
 export function reminderMessage(company) {
   const shown = company.orders.slice(0, MAX_ORDERS)
   const count = company.orders.length

@@ -13,6 +13,7 @@ from .. import carrier_prospects
 from ..address import district_of
 from ..carrier_prospects import WORK_DEPARTMENTS
 from ..order_access import make_token as make_order_access_token
+from ..quotation_short_link import make_code as make_quotation_code
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
@@ -1265,9 +1266,10 @@ def carrier_reminders():
     Órdenes pendientes que ya se les mandaron (quotation_requested), con la
     fecha de la mudanza de hoy en adelante y sin cotización elegida (elegida con
     el yapeo en revisión la orden sigue pendiente, pero ya no busca precios).
-    Por empresa, las que no cotizó ni rechazó. Cada una lleva el token del link
-    de cotización, que no pide contraseña: el backoffice sí, y no hay cómo
-    recuperarla. Solo el distrito, como en el link de servicios.
+    Por empresa, las que no cotizó ni rechazó. Cada una lleva el código de su
+    link corto para cotizar (chalan.pe/c/<código>), que no pide contraseña: el
+    backoffice sí, y no hay cómo recuperarla. Corto porque el mensaje junta
+    todas. Solo el distrito, como en el link de servicios.
     """
     user = g.current_user
     if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
@@ -1316,7 +1318,7 @@ def carrier_reminders():
     result = []
     for company in companies:
         pending = [
-            {**summaries[o.id], 'token': _generate_quotation_token(company.id, o.id)}
+            {**summaries[o.id], 'code': make_quotation_code(o.id, company.id)}
             for o in orders if (o.id, company.id) not in answered
         ]
         if pending:

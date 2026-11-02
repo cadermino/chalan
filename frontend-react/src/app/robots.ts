@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/order/', '/carrier-company/', '/dashboard/', '/register-login/', '/transportistas/documentos/', '/v/'],
+        disallow: ['/api/', '/order/', '/carrier-company/', '/dashboard/', '/register-login/', '/transportistas/documentos/', '/v/', '/c/'],
       },
     ],
     sitemap: 'https://chalan.pe/sitemap.xml',
