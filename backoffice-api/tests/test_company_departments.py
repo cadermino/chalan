@@ -112,3 +112,18 @@ def test_departments_catalog_puts_lima_first_and_leaves_callao_out(client, super
     assert departments[1] == {'code': '01', 'name': 'Amazonas'}
     assert len(departments) == 24
     assert '07' not in [d['code'] for d in departments]
+
+
+def test_quotation_links_say_where_each_company_works(client, catalog, superadmin):
+    from app.models import Order
+    company = make_company('Mudanzas SAC', 'moving')
+    company.departments = [CarrierCompanyDepartment(department_code='15'),
+                           CarrierCompanyDepartment(department_code='12')]
+    order = Order(order_status_id=1)
+    db.session.add(order)
+    db.session.commit()
+
+    res = client.get(f'/api/orders/{order.id}/quotation-links', headers=superadmin)
+
+    assert res.status_code == 200
+    assert res.get_json()['companies'][0]['departments'] == ['Junín', 'Lima y Callao']

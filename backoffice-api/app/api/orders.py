@@ -7,9 +7,11 @@ import requests
 from flask import jsonify, g, current_app, request
 
 from . import api
+from .carrier_companies import _departments_by_company
 from .decorators import login_required
 from .. import carrier_prospects
 from ..address import district_of
+from ..carrier_prospects import WORK_DEPARTMENTS
 from ..order_access import make_token as make_order_access_token
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
@@ -1239,6 +1241,8 @@ def get_quotation_links(order_id):
         return jsonify({'message': 'order not found'}), 404
 
     companies = CarrierCompany.doing_moves().order_by(CarrierCompany.name).all()
+    # Dónde trabaja cada una, para que el admin vea a quién mandarle una orden de provincia.
+    departments = _departments_by_company([c.id for c in companies])
 
     result = []
     for company in companies:
@@ -1247,6 +1251,7 @@ def get_quotation_links(order_id):
             'id': company.id,
             'name': company.name,
             'token': token,
+            'departments': [WORK_DEPARTMENTS.get(c, c) for c in departments.get(company.id, [])],
         })
 
     return jsonify({'companies': result}), 200

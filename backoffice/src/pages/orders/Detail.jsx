@@ -717,7 +717,12 @@ export default function OrderDetail() {
               {companies.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900">{c.name}</p>
+                    <p className="truncate text-sm font-medium text-gray-900">
+                      {c.name}
+                      {c.departments?.length > 0 && (
+                        <span className="ml-2 text-xs font-normal text-gray-400">{c.departments.join(' · ')}</span>
+                      )}
+                    </p>
                     <p className="text-xs text-gray-400">Link para que cotice</p>
                   </div>
                   <CopyButton text={c.quotation_url} />
