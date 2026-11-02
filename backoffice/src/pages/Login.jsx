@@ -51,6 +51,9 @@ export default function Login() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
+            <Link to="/recuperar" state={{ email: form.email }} className="mt-1 inline-block text-xs text-teal-600 hover:underline">
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
           <button
             type="submit"

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 
 from flask import request, jsonify
 from sqlalchemy import exc
@@ -8,6 +9,7 @@ from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE,
 from ..utils import create_blank_company_and_vehicle
 from ..carrier_documents import documents_url, make_token as documents_token
 from ..email import send_email
+from ..password_reset import make_token as password_reset_token, read_token as read_password_reset_token, reset_url
 from .. import db
 
 
@@ -21,6 +23,58 @@ def login():
     if user is None or not user.verify_password(data['password']):
         return jsonify({'message': 'invalid credentials'}), 401
 
+    return jsonify({
+        'token': user.generate_auth_token(),
+        'user': user.to_dict(),
+    }), 200
+
+
+MIN_PASSWORD_LENGTH = 8
+RESET_EMAIL_WAIT = timedelta(minutes=2)
+
+
+@auth.route('/password-reset', methods=['POST'])
+def request_password_reset():
+    """Manda el link para crear una contraseña nueva.
+
+    La respuesta es la misma haya o no una cuenta con ese correo: si no, el
+    formulario serviría para averiguar quién tiene cuenta.
+    """
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    answer = jsonify({'message': 'if the account exists, we sent an email'}), 202
+    if not email:
+        return jsonify({'message': 'email is required'}), 400
+
+    user = AdminUser.query.filter_by(email=email, active=1).first()
+    now = datetime.utcnow()
+    if user is None or (user.password_reset_requested_at
+                        and now - user.password_reset_requested_at < RESET_EMAIL_WAIT):
+        return answer
+    user.password_reset_requested_at = now
+    db.session.commit()
+    send_email(
+        user.email,
+        'Crea una contraseña nueva para Chalán',
+        'email/password_reset',
+        user=user,
+        reset_url=reset_url(password_reset_token(user)),
+    )
+    return answer
+
+
+@auth.route('/password-reset/confirm', methods=['POST'])
+def confirm_password_reset():
+    """Guarda la contraseña nueva y abre la sesión, como el login."""
+    data = request.get_json() or {}
+    password = data.get('password') or ''
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return jsonify({'message': f'password must have at least {MIN_PASSWORD_LENGTH} characters'}), 400
+    user, problem = read_password_reset_token(data.get('token') or '')
+    if user is None:
+        return jsonify({'message': 'invalid link', 'reason': problem}), 401
+    user.password = password
+    db.session.commit()
     return jsonify({
         'token': user.generate_auth_token(),
         'user': user.to_dict(),

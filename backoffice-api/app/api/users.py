@@ -4,6 +4,7 @@ from sqlalchemy import exc
 from . import api
 from .decorators import login_required, superadmin_required
 from ..models import AdminUser, CarrierCompany, Vehicle, ALL_ROLES, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
+from ..password_reset import ADMIN_LINK, make_token as password_reset_token
 from ..utils import create_blank_company_and_vehicle
 from .. import db
 
@@ -97,6 +98,22 @@ def get_user(user_id):
     if user is None:
         return jsonify({'message': 'user not found'}), 404
     return jsonify({'user': user.to_dict()}), 200
+
+
+@api.route('/users/<int:user_id>/password-reset-link', methods=['GET'])
+@superadmin_required
+def password_reset_link(user_id):
+    """Token del link para crear contraseña, para mandarlo por WhatsApp (24 h).
+
+    El frontend arma la URL con su dominio. Así el superadmin no tiene que
+    inventarle una contraseña al usuario y conocerla.
+    """
+    user = db.session.get(AdminUser, user_id)
+    if user is None:
+        return jsonify({'message': 'user not found'}), 404
+    if not user.active:
+        return jsonify({'message': 'user is inactive'}), 409
+    return jsonify({'token': password_reset_token(user, via=ADMIN_LINK)}), 200
 
 
 @api.route('/users/<int:user_id>', methods=['PUT'])

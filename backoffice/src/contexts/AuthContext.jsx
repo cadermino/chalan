@@ -21,13 +21,18 @@ export function AuthProvider({ children }) {
     window.clarity?.('set', 'role', user?.role || 'anonymous')
   }, [user?.role])
 
-  const login = useCallback(async (email, password) => {
-    const { data } = await client.post('/auth/login', { email, password })
+  // La respuesta del login o del link para crear contraseña: { token, user }.
+  const startSession = useCallback((data) => {
     localStorage.setItem('bo_token', data.token)
     localStorage.setItem('bo_user', JSON.stringify(data.user))
     setUser(data.user)
     return data.user
   }, [])
+
+  const login = useCallback(async (email, password) => {
+    const { data } = await client.post('/auth/login', { email, password })
+    return startSession(data)
+  }, [startSession])
 
   const logout = useCallback(() => {
     localStorage.removeItem('bo_token')
@@ -36,7 +41,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, startSession }}>
       {children}
     </AuthContext.Provider>
   )

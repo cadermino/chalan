@@ -5,6 +5,8 @@ import Layout from './components/Layout'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import UsersList from './pages/users/List'
@@ -43,6 +45,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/recuperar" element={<ForgotPassword />} />
+        <Route path="/restablecer/:token" element={<ResetPassword />} />
         {/* Pública: la abre un transportista con el link que le llega, sin cuenta. */}
         <Route path="/carrier-view/:token" element={<ServiceRequestCarrierView />} />
 

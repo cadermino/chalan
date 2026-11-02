@@ -67,6 +67,9 @@ class AdminUser(db.Model):
     commission_rate = db.Column(db.Float, server_default='0.05', nullable=False)
     active = db.Column(db.Integer, server_default='1')
     created_date = db.Column(db.DateTime(), server_default=func.now())
+    # El último "olvidé mi contraseña" con correo enviado (migración 044): uno
+    # cada 2 minutos, para que nadie llene de correos la casilla de otro.
+    password_reset_requested_at = db.Column(db.DateTime(), nullable=True)
 
     @property
     def password(self):

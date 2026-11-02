@@ -26,6 +26,8 @@ export default function UserForm() {
   })
   const [loading, setLoading] = useState(false)
   const [referralCode, setReferralCode] = useState(null)
+  // Link para que el usuario cree su contraseña, para mandarlo por WhatsApp.
+  const [resetUrl, setResetUrl] = useState(null)
 
   useEffect(() => {
     client.get('/api/carrier-companies').then(({ data }) => setCompanies(data.carrier_companies))
@@ -33,6 +35,11 @@ export default function UserForm() {
       client.get(`/api/users/${id}`).then(({ data }) => {
         const u = data.user
         setReferralCode(u.referral_code)
+        if (u.active) {
+          client.get(`/api/users/${id}/password-reset-link`)
+            .then(({ data }) => setResetUrl(`${window.location.origin}${import.meta.env.VITE_BASE_PATH || '/'}restablecer/${data.token}`))
+            .catch(() => setResetUrl(null))
+        }
         setForm({
           email: u.email,
           password: '',
@@ -178,6 +185,16 @@ export default function UserForm() {
               title="Link de referencia"
               hint={referralLink(referralCode)}
               text={referralLink(referralCode)}
+            />
+          </div>
+        )}
+
+        {isEdit && resetUrl && (
+          <div className="rounded-lg bg-gray-50 p-3">
+            <CopyRow
+              title="Link para crear contraseña"
+              hint="Para mandarlo por WhatsApp a quien olvidó la suya: la crea él mismo, sirve 24 horas y una sola vez."
+              text={resetUrl}
             />
           </div>
         )}
