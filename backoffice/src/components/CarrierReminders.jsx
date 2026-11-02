@@ -37,9 +37,16 @@ export function reminderMessage(company) {
   return lines.join('\n')
 }
 
+// El teléfono de las empresas se guarda como lo escribieron: con o sin +51.
+function whatsappUrl(company) {
+  const digits = (company.phone || '').replace(/\D/g, '')
+  const number = digits.length === 9 ? `51${digits}` : digits
+  return `https://wa.me/${number}?text=${encodeURIComponent(reminderMessage(company))}`
+}
+
 // Por transportista, lo que no cotizó ni rechazó de las órdenes pendientes que
-// ya se le mandaron: "Copiar número" y "Copiar mensaje" para escribirle desde
-// el WhatsApp de Chalán.
+// ya se le mandaron, con un botón que abre WhatsApp (el de Chalán, donde esté
+// abierto) con el mensaje ya escrito. Sin teléfono, el mensaje se copia.
 export default function CarrierReminders() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['carrier-reminders'],
@@ -65,7 +72,7 @@ export default function CarrierReminders() {
         <>
           <p className="mb-2 text-xs text-gray-400">
             Órdenes pendientes ya avisadas, con fecha desde hoy y sin transportista elegido, que cada uno no cotizó
-            ni rechazó. El mensaje lleva hasta {MAX_ORDERS}, las más próximas, con su link para cotizar.
+            ni rechazó. WhatsApp se abre con el mensaje escrito: hasta {MAX_ORDERS}, las más próximas, con su link para cotizar.
           </p>
           <ul className="divide-y divide-gray-100">
             {data.companies.map((c) => (
@@ -79,8 +86,21 @@ export default function CarrierReminders() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  {c.phone && <CopyButton text={c.phone} label="Copiar número" />}
-                  <CopyButton text={reminderMessage(c)} label="Copiar mensaje" />
+                  {c.phone ? (
+                    <>
+                      <CopyButton text={c.phone} label="Copiar número" />
+                      <a
+                        href={whatsappUrl(c)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 rounded-lg bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700"
+                      >
+                        Abrir WhatsApp
+                      </a>
+                    </>
+                  ) : (
+                    <CopyButton text={reminderMessage(c)} label="Copiar mensaje" />
+                  )}
                 </div>
               </li>
             ))}
