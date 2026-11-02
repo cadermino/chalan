@@ -1245,13 +1245,14 @@ def get_quotation_links(order_id):
     # Dónde trabaja cada una, para que el admin vea a quién mandarle una orden de provincia.
     departments = _departments_by_company([c.id for c in companies])
 
+    # El código del link corto (chalan.pe/c/<código>), como en el recordatorio:
+    # entra en un WhatsApp sin ocupar tres líneas y no vence.
     result = []
     for company in companies:
-        token = _generate_quotation_token(company.id, order_id)
         result.append({
             'id': company.id,
             'name': company.name,
-            'token': token,
+            'code': make_quotation_code(order_id, company.id),
             'departments': [WORK_DEPARTMENTS.get(c, c) for c in departments.get(company.id, [])],
         })
 

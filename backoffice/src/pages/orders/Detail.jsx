@@ -335,7 +335,7 @@ export default function OrderDetail() {
       client.get(`/api/orders/${orderId}/quotation-links`).then(({ data }) => {
         setCompanies(data.companies.map((c) => ({
           ...c,
-          quotation_url: `${window.location.origin}/quotation/${c.token}`,
+          quotation_url: `${window.location.origin}/c/${c.code}`,
         })))
       })
     }

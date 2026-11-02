@@ -127,3 +127,17 @@ def test_quotation_links_say_where_each_company_works(client, catalog, superadmi
 
     assert res.status_code == 200
     assert res.get_json()['companies'][0]['departments'] == ['Junín', 'Lima y Callao']
+
+
+def test_quotation_links_give_the_short_link_code(client, catalog, superadmin):
+    from app.models import Order
+    from app.quotation_short_link import make_code
+    company = make_company('Mudanzas SAC', 'moving')
+    order = Order(order_status_id=1)
+    db.session.add(order)
+    db.session.commit()
+
+    res = client.get(f'/api/orders/{order.id}/quotation-links', headers=superadmin)
+
+    assert res.status_code == 200
+    assert res.get_json()['companies'][0]['code'] == make_code(order.id, company.id)
