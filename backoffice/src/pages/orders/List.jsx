@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import StatusIcon from '../../components/StatusIcon'
+import CarrierReminders from '../../components/CarrierReminders'
 
 // Cada estado tiene su color e ícono, y son los mismos en el botón de filtro
 // y en la columna Estado: por eso la columna puede mostrar solo el ícono, el
@@ -152,6 +153,7 @@ export default function OrdersList() {
   const isSuperadmin = user?.role === 'superadmin'
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showReminders, setShowReminders] = useState(false)
 
   // La URL es la única fuente de verdad: no se duplica en estado de React,
   // que es lo que hace que recargar, compartir el enlace o usar atrás y
@@ -301,15 +303,29 @@ export default function OrdersList() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Órdenes</h1>
-        {isSuperadmin && (
-          <Link
-            to="/orders/create"
-            className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium"
-          >
-            + Crear orden
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowReminders((v) => !v)}
+              aria-expanded={showReminders}
+              className="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 text-sm font-medium"
+            >
+              Recordar a transportistas
+            </button>
+          )}
+          {isSuperadmin && (
+            <Link
+              to="/orders/create"
+              className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium"
+            >
+              + Crear orden
+            </Link>
+          )}
+        </div>
       </div>
+
+      {isAdmin && showReminders && <CarrierReminders />}
 
       {/* Un fallo de red se veía igual que un resultado vacío: la tabla decía
           "No hay órdenes para este filtro", que era mentira. El aviso va

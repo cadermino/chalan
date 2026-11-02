@@ -7,6 +7,7 @@ import ClientContact from '../../components/ClientContact'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
+import { cargoWeightLabel, loadTypeLabel } from '../../lib/loadTypes'
 
 function Field({ label, value }) {
   return (
@@ -221,13 +222,6 @@ function PaymentsCard({ payments, onSetStatus, savingId, onRegister, registering
 const PARKING_LABELS = { 0: 'En la puerta', 20: 'A menos de 20 m', 50: 'Entre 20 y 50 m', 100: 'A más de 50 m' }
 const parkingLabel = (meters) =>
   meters === null || meters === undefined ? null : PARKING_LABELS[meters] || `${meters} m`
-
-// Mismas listas que frontend/src/utils/loadTypes.js. Sin tipo = orden de
-// antes de la migración 030, todas eran mudanzas.
-const LOAD_TYPE_LABELS = { moving: 'Mudanza', items: 'Objetos sueltos', cargo: 'Carga o materiales', vehicle: 'Vehículo' }
-const loadTypeLabel = (value) => LOAD_TYPE_LABELS[value || 'moving'] || value
-const CARGO_WEIGHT_LABELS = { 500: 'Hasta 500 kg', 1500: 'Hasta 1,5 t', 3000: 'Hasta 3 t', 10000: 'Hasta 10 t', 20000: 'Más de 10 t' }
-const cargoWeightLabel = (kg) => (kg ? CARGO_WEIGHT_LABELS[kg] || `${kg} kg` : null)
 
 const SERVICE_LABELS = {
   packaging: 'Embalaje', unpacking: 'Desembalaje', assembly: 'Armado de muebles', disassembly: 'Desarmado de muebles',

@@ -284,6 +284,9 @@ Admins can generate quotation links per carrier company from any order detail pa
 - `backoffice-api/app/api/orders.py` — `get_quotation_links()` endpoint, uses `_generate_quotation_token(carrier_company_id, order_id)`
 - `backoffice/src/pages/orders/Detail.jsx` — shows the company list with copy buttons for admin roles; carrier company users still see the single "Cotizar ahora" CTA
 
+### Reminder to Carriers
+"Recordar a transportistas" in the orders list (admins, `components/CarrierReminders.jsx`) lists, per company that does moves, the pending orders it neither quoted nor declined: already sent to carriers (`quotation_requested`), with a customer, the moving day from today on and no selected quotation. Each row has "Copiar número" and "Copiar mensaje": up to 5 orders, the soonest, with date, origin and destination district, load type and each one's quotation link (no password; the backoffice login has no password reset). `GET /backoffice-api/api/orders/carrier-reminders` (`carrier_reminders` in `orders.py`). Load type labels live in `backoffice/src/lib/loadTypes.js`.
+
 ### Token Structure
 JWT signed with `SECRET_KEY`, payload: `{ carrier_company_id, order_id, exp (10 days), iat }`. Same token format used throughout the quotation flow (`frontend/src/views/carrier-company/quotation.vue` decodes it).
 

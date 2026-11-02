@@ -1257,6 +1257,76 @@ def get_quotation_links(order_id):
     return jsonify({'companies': result}), 200
 
 
+@api.route('/orders/carrier-reminders', methods=['GET'])
+@login_required
+def carrier_reminders():
+    """Lo que cada transportista tiene por cotizar, para recordárselo por WhatsApp.
+
+    Órdenes pendientes que ya se les mandaron (quotation_requested), con la
+    fecha de la mudanza de hoy en adelante y sin cotización elegida (elegida con
+    el yapeo en revisión la orden sigue pendiente, pero ya no busca precios).
+    Por empresa, las que no cotizó ni rechazó. Cada una lleva el token del link
+    de cotización, que no pide contraseña: el backoffice sí, y no hay cómo
+    recuperarla. Solo el distrito, como en el link de servicios.
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    # appointment_date se guarda con la hora de Lima, sin zona.
+    today = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
+    selected = db.exists().where(
+        Quotation.order_id == Order.id,
+        Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
+    )
+    orders = (
+        Order.query
+        .filter(Order.order_status_id == 1, Order.quotation_requested.is_(True),
+                Order.customer_id.isnot(None), Order.appointment_date >= today, ~selected)
+        .order_by(Order.appointment_date, Order.id).all()
+    )
+    companies = CarrierCompany.doing_moves().order_by(CarrierCompany.name).all()
+    order_ids = [o.id for o in orders]
+    answered = set()
+    if order_ids:
+        answered = {
+            (q.order_id, q.carrier_company_id) for q in Quotation.query.filter(
+                Quotation.order_id.in_(order_ids),
+                Quotation.quotation_status_id != QUOTATION_STATUS_CANCELLED,
+            )
+        } | {
+            (d.order_id, d.carrier_company_id)
+            for d in OrderCarrierDecline.query.filter(OrderCarrierDecline.order_id.in_(order_ids))
+        }
+
+    summaries = {}
+    for order in orders:
+        details = list(order.order_details)
+        origin = next((d for d in details if d.type == 'carry_from'), None)
+        destination = next((d for d in details if d.type == 'deliver_to'), None)
+        summaries[order.id] = {
+            'id': order.id,
+            'appointment_date': order.to_dict()['appointment_date'],
+            'origin_district': district_of(origin.to_dict()) if origin else None,
+            'destination_district': district_of(destination.to_dict()) if destination else None,
+            'load_type': order.load_type,
+            'cargo_weight_kg': order.cargo_weight_kg,
+        }
+
+    result = []
+    for company in companies:
+        pending = [
+            {**summaries[o.id], 'token': _generate_quotation_token(company.id, o.id)}
+            for o in orders if (o.id, company.id) not in answered
+        ]
+        if pending:
+            result.append({'id': company.id, 'name': company.name, 'phone': company.phone,
+                           'orders': pending})
+    # Arriba los que más tienen por cotizar.
+    result.sort(key=lambda c: -len(c['orders']))
+    return jsonify({'companies': result, 'orders_count': len(orders)}), 200
+
+
 @api.route('/orders/<int:order_id>/customer-link', methods=['GET'])
 @login_required
 def customer_link(order_id):
