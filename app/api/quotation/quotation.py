@@ -1,9 +1,37 @@
 from flask import jsonify
+from sqlalchemy import func
 from .quotation_status import QuotationStatus
 from ..carrier_company import CarrierCompany as CarrierCompanyEntity
+from ..carrier_documents import DOC_TYPES
+from ..order.order_status import OrderStatus
 from ..service_request.validation import without_phones
-from ...models import Quotations as QuotationsModel
+from ...models import CarrierDocument, Order, Quotations as QuotationsModel
 from ... import db
+
+
+def _trust(company_ids):
+    """Lo que muestra la tarjeta de cotización junto a las estrellas (o en vez
+    de ellas, a una empresa sin reseñas): {empresa: (documentos, mudanzas)}.
+
+    Documentos: subió DNI o CE, licencia y tarjeta de propiedad. Mudanzas: sus
+    cotizaciones elegidas en órdenes completadas.
+    """
+    if not company_ids:
+        return {}
+    docs = dict(db.session.query(CarrierDocument.carrier_company_id,
+                                 func.count(func.distinct(CarrierDocument.doc_type)))
+                .filter(CarrierDocument.carrier_company_id.in_(company_ids),
+                        CarrierDocument.doc_type.in_(DOC_TYPES))
+                .group_by(CarrierDocument.carrier_company_id).all())
+    moves = dict(db.session.query(QuotationsModel.carrier_company_id, func.count(QuotationsModel.id))
+                 .join(Order, Order.id == QuotationsModel.order_id)
+                 .filter(QuotationsModel.carrier_company_id.in_(company_ids),
+                         QuotationsModel.quotation_status_id == QuotationStatus.Selected(),
+                         Order.order_status_id == OrderStatus.completed())
+                 .group_by(QuotationsModel.carrier_company_id).all())
+    return {company_id: (docs.get(company_id, 0) == len(DOC_TYPES), moves.get(company_id, 0))
+            for company_id in company_ids}
+
 
 class Quotation:
     def __init__(self, quotation_id=None):
@@ -59,6 +87,7 @@ class Quotation:
 
     def toJson(self, commission_rate=0, platform_fee=0):
         output = []
+        trust = _trust({quotation.carrier_company_id for quotation in self.quotations})
         for quotation in self.quotations:
             carrier_company = quotation.carrier_company
             vehicles = carrier_company.vehicles
@@ -67,6 +96,7 @@ class Quotation:
             vehicle = vehicles[0]
             selected = quotation.quotation_status_id == QuotationStatus.Selected()
             total_amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+            documents_verified, completed_moves = trust[carrier_company.id]
             output.append({
                 'id': quotation.id,
                 'amount': quotation.amount,
@@ -87,7 +117,9 @@ class Quotation:
                 'manufacture_year': vehicle.manufacture_year,
                 'brand': vehicle.brand,
                 'model': vehicle.model,
-                'picture': vehicle.picture
+                'picture': vehicle.picture,
+                'documents_verified': documents_verified,
+                'completed_moves': completed_moves,
             })
 
         return jsonify(output)

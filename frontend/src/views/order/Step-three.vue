@@ -37,8 +37,12 @@
                   justify-between
                   leading-normal">
                   <div class="mb-8">
-                    <div>
-                      <span id="stars" class="flex items-center">
+                    <!-- Sin reseñas no se inventan estrellas (ni se muestran cinco
+                         vacías con "0 Evaluaciones"): "Nuevo en Chalán", y lo que
+                         sí sabemos de la empresa. -->
+                    <div class="flex flex-wrap items-center">
+                      <span v-if="ratingState(quotation.carrier_company_id) === 'rated'"
+                        id="stars" class="flex items-center mr-3 mb-1">
                         <svg
                           v-for="star in 5"
                           :key="star"
@@ -65,8 +69,22 @@
                           @click.prevent="goToCarrierCompanyView(quotation)"
                           class="text-blue-600 ml-3 hover:underline"
                         >
-                          {{ getCompanyReviewCount(quotation.carrier_company_id) }} Evaluaciones
+                          {{ reviewCountLabel(quotation.carrier_company_id) }}
                         </a>
+                      </span>
+                      <a v-else-if="ratingState(quotation.carrier_company_id) === 'new'"
+                        href="#"
+                        @click.prevent="goToCarrierCompanyView(quotation)"
+                        id="new-company"
+                        class="bg-blue-100 text-blue-800 text-sm font-bold rounded px-2 py-0.5 mr-3 mb-1"
+                      >
+                        Nuevo en Chalán
+                      </a>
+                      <span v-if="quotation.documents_verified" class="text-sm text-green-700 mr-3 mb-1">
+                        ✓ Documentos verificados
+                      </span>
+                      <span v-if="quotation.completed_moves" class="text-sm text-gray-700 mb-1">
+                        {{ completedMovesLabel(quotation.completed_moves) }}
                       </span>
                     </div>
                     <div class="text-gray-900 font-bold text-xl mb-2">
@@ -329,6 +347,21 @@ export default {
       return star <= Math.round(rating)
         ? 'currentColor' : 'none';
     },
+    // loading mientras no llegan; unknown si falló la consulta (no decimos
+    // "Nuevo" de una empresa que quizá tiene reseñas).
+    ratingState(carrierCompanyId) {
+      const data = this.companyRatings[carrierCompanyId];
+      if (!data) return 'loading';
+      if (data.failed) return 'unknown';
+      return data.total_reviews > 0 ? 'rated' : 'new';
+    },
+    reviewCountLabel(carrierCompanyId) {
+      const count = this.getCompanyReviewCount(carrierCompanyId);
+      return count === 1 ? '1 Evaluación' : `${count} Evaluaciones`;
+    },
+    completedMovesLabel(count) {
+      return count === 1 ? '1 mudanza hecha con Chalán' : `${count} mudanzas hechas con Chalán`;
+    },
     getCompanyReviewCount(carrierCompanyId) {
       const data = this.companyRatings[carrierCompanyId];
       return data ? data.total_reviews : 0;
@@ -349,6 +382,7 @@ export default {
           this.companyRatings[id] = {
             average_rating: 0,
             total_reviews: 0,
+            failed: true,
           };
         }));
       await Promise.all(requests);
