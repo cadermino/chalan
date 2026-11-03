@@ -11,6 +11,7 @@ import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import chalan from '../api/chalan';
 import { track } from '../utils/analytics';
+import { rememberReminderVisit } from '../utils/reminderVisit';
 
 // Link del aviso de "nueva cotización" (y del backoffice): /acceso/<token>.
 // Canjea el token por una sesión, como un login, y abre las cotizaciones de esa
@@ -41,6 +42,12 @@ export default {
       // quien dejó un correo que ya tenía cuenta en el paso de contacto
       // (contact_existing_account) quedaba como fuga aunque sí entrara.
       track('login', { method: 'order_link', order_id: data.order_id });
+      // ?r=whatsapp: vino del "Recordar a clientes" del backoffice.
+      const channel = typeof this.$route.query.r === 'string' ? this.$route.query.r.slice(0, 20) : '';
+      if (channel) {
+        track('reminder_opened', { channel, order_id: data.order_id });
+        rememberReminderVisit(data.order_id, channel);
+      }
       this.$router.replace({ name: 'step-three', params: { order_id: data.order_id } }).catch(() => {});
     } catch (error) {
       const reason = error.response?.data?.reason;

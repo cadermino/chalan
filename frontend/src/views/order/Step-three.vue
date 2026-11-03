@@ -216,6 +216,7 @@ import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue'
 import axios from 'axios';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
+import { reminderChannel } from '../../utils/reminderVisit';
 
 export default {
   name: 'step-three',
@@ -433,6 +434,7 @@ export default {
           quotation_id: quotation.id,
           value: quotation.total_amount,
           currency: this.countryData.currency,
+          reminder: reminderChannel(this.currentOrder.order_id),
         });
         this.quotationSelectionPending = true;
         this.openPaymentModal();

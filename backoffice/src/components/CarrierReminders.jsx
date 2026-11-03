@@ -3,18 +3,11 @@ import client from '../api/client'
 import Card from './Card'
 import CopyButton from './CopyButton'
 import { cargoWeightLabel, loadTypeLabel } from '../lib/loadTypes'
+import { shortDate } from '../lib/shortDate'
 
 // Las más próximas primero. Con los links cortos entran casi todas; más que
 // esto ya no se lee.
 const MAX_ORDERS = 20
-
-// "Sáb 8 nov". La fecha viene con la hora de Lima: se arma con sus números
-// para que el huso del navegador no la corra un día.
-function shortDate(iso) {
-  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
-  const text = new Date(y, m - 1, d).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' })
-  return text.replace(/\./g, '').replace(',', '').replace(/^./, (c) => c.toUpperCase())
-}
 
 function orderLine(order) {
   const route = [order.origin_district, order.destination_district].filter(Boolean).join(' → ')

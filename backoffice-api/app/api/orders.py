@@ -14,7 +14,7 @@ from ..address import district_of
 from ..carrier_prospects import WORK_DEPARTMENTS
 from ..order_access import make_token as make_order_access_token
 from ..quotation_short_link import make_code as make_quotation_code
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, Vehicle, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 # Qué lleva una orden y los topes de los tramos de peso de una carga. Copia de
@@ -1328,6 +1328,103 @@ def carrier_reminders():
     # Arriba los que más tienen por cotizar.
     result.sort(key=lambda c: -len(c['orders']))
     return jsonify({'companies': result, 'orders_count': len(orders)}), 200
+
+
+@api.route('/orders/customer-reminders', methods=['GET'])
+@login_required
+def customer_reminders():
+    """Clientes con cotizaciones que no eligieron, para escribirles por WhatsApp.
+
+    Órdenes pendientes con cliente, con al menos una cotización que el cliente
+    ve y ninguna elegida. También las de fecha pasada (`past`): puede que aún se
+    muden y haya que reagendar. Cada una lleva el precio más bajo tal como lo ve
+    el cliente (con la comisión y, si es referida, la del agente) y el token de
+    su link de acceso sin contraseña. Arriba las que nadie recordó, por fecha.
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    today = datetime.now(timezone(timedelta(hours=-5))).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
+    selected = db.exists().where(
+        Quotation.order_id == Order.id,
+        Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
+    )
+    orders = Order.query.filter(Order.order_status_id == 1, Order.customer_id.isnot(None), ~selected).all()
+    order_ids = [o.id for o in orders]
+
+    # Las que ve el cliente: no canceladas, de una empresa con algún vehículo
+    # (el API principal descarta las otras al listarlas, quotation.py).
+    quotations = {}
+    if order_ids:
+        with_vehicle = db.exists().where(Vehicle.carrier_company_id == Quotation.carrier_company_id)
+        for q in Quotation.query.filter(Quotation.order_id.in_(order_ids),
+                                        Quotation.quotation_status_id != QUOTATION_STATUS_CANCELLED,
+                                        with_vehicle):
+            quotations.setdefault(q.order_id, []).append(q)
+    orders = [o for o in orders if o.id in quotations]
+
+    platform_fee = float(os.environ.get('PLATFORM_FEE', 0.1))
+    rates = {}
+    referred = ReferredOrder.query.filter(ReferredOrder.order_id.in_([o.id for o in orders])).all() if orders else []
+    agents = {a.id: a for a in AdminUser.query.filter(AdminUser.id.in_({r.admin_user_id for r in referred}))} if referred else {}
+    for r in referred:
+        agent = agents.get(r.admin_user_id)
+        rates[r.order_id] = float(agent.commission_rate or 0) if agent else 0
+    customers = {c.id: c for c in Customer.query.filter(Customer.id.in_({o.customer_id for o in orders}))} if orders else {}
+
+    result = []
+    for order in orders:
+        customer = customers.get(order.customer_id)
+        offers = quotations[order.id]
+        rate = rates.get(order.id, 0)
+        details = list(order.order_details)
+        origin = next((d for d in details if d.type == 'carry_from'), None)
+        destination = next((d for d in details if d.type == 'deliver_to'), None)
+        result.append({
+            'id': order.id,
+            'appointment_date': order.to_dict()['appointment_date'],
+            'past': bool(order.appointment_date and order.appointment_date < today),
+            'customer_name': customer.name if customer else None,
+            # El WhatsApp que dejó para este pedido, si dejó uno; si no, el de su cuenta.
+            'phone': order.lead_phone or (customer.mobile_phone if customer else None),
+            'origin_district': district_of(origin.to_dict()) if origin else None,
+            'destination_district': district_of(destination.to_dict()) if destination else None,
+            'load_type': order.load_type,
+            'quotations_count': len(offers),
+            'lowest_total': min(round(q.amount * (1 + rate + platform_fee), 2) for q in offers),
+            'last_quotation_at': max((q.created_date for q in offers if q.created_date), default=None),
+            'reminded_at': order.customer_reminded_at,
+            'reminder_count': order.customer_reminder_count or 0,
+            'token': make_order_access_token(order),
+        })
+    for row in result:
+        # reminded_at se guarda en UTC; created_date de las cotizaciones, con la hora del servidor.
+        row['reminded_at'] = row['reminded_at'].isoformat() + 'Z' if row['reminded_at'] else None
+        row['last_quotation_at'] = row['last_quotation_at'].isoformat() if row['last_quotation_at'] else None
+    # Primero las que nadie recordó. Dentro, las próximas por fecha y después las
+    # pasadas, de la más reciente a la más vieja (las viejas ya casi no se mudan).
+    upcoming = sorted((r for r in result if not r['past']), key=lambda r: (r['appointment_date'] or '', r['id']))
+    past = sorted((r for r in result if r['past']), key=lambda r: (r['appointment_date'] or '', r['id']), reverse=True)
+    result = sorted(upcoming + past, key=lambda r: r['reminded_at'] is not None)
+    return jsonify({'orders': result}), 200
+
+
+@api.route('/orders/<int:order_id>/customer-reminded', methods=['POST'])
+@login_required
+def mark_customer_reminded(order_id):
+    """Lo llama el backoffice al abrir el WhatsApp del recordatorio."""
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    order.customer_reminded_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    order.customer_reminder_count = (order.customer_reminder_count or 0) + 1
+    db.session.commit()
+    return jsonify({'reminded_at': order.customer_reminded_at.isoformat() + 'Z',
+                    'reminder_count': order.customer_reminder_count}), 200
 
 
 @api.route('/orders/<int:order_id>/customer-link', methods=['GET'])

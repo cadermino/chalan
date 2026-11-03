@@ -3,12 +3,13 @@ import toast from 'react-hot-toast'
 
 // El único botón de copiar del backoffice: links para el cliente, para los
 // transportistas y mensajes listos para pegar en WhatsApp.
-export default function CopyButton({ text, label = 'Copiar link' }) {
+export default function CopyButton({ text, label = 'Copiar link', onCopy }) {
   const [copied, setCopied] = useState(false)
 
   const copy = () => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
+      onCopy?.()
       setTimeout(() => setCopied(false), 2000)
     }).catch(() => toast.error('No se pudo copiar. Cópialo a mano.'))
   }

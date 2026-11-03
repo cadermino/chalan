@@ -128,6 +128,7 @@ import yapeQr from '@/assets/yape-qr.jpg';
 import yapeOperation from '@/assets/yape-operation-number.jpg';
 import chalan from '../api/chalan';
 import { track } from '../utils/analytics';
+import { reminderChannel } from '../utils/reminderVisit';
 
 const quotationFields = {
   quotation_id: 'id',
@@ -284,6 +285,7 @@ export default {
             value: this.quotation.total_amount,
             currency: this.currency,
             payment_method: paymentMethod,
+            reminder: reminderChannel(this.currentOrder.order_id),
           });
         }
         this.setViewsMessages({

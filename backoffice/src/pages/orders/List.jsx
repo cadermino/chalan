@@ -5,6 +5,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import StatusIcon from '../../components/StatusIcon'
 import CarrierReminders from '../../components/CarrierReminders'
+import CustomerReminders from '../../components/CustomerReminders'
 
 // Cada estado tiene su color e ícono, y son los mismos en el botón de filtro
 // y en la columna Estado: por eso la columna puede mostrar solo el ícono, el
@@ -153,7 +154,9 @@ export default function OrdersList() {
   const isSuperadmin = user?.role === 'superadmin'
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [searchParams, setSearchParams] = useSearchParams()
-  const [showReminders, setShowReminders] = useState(false)
+  // Qué recordatorio está abierto: 'carriers', 'customers' o ninguno.
+  const [reminders, setReminders] = useState(null)
+  const toggleReminders = (which) => setReminders((open) => (open === which ? null : which))
 
   // La URL es la única fuente de verdad: no se duplica en estado de React,
   // que es lo que hace que recargar, compartir el enlace o usar atrás y
@@ -301,18 +304,28 @@ export default function OrdersList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Órdenes</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {isAdmin && (
-            <button
-              type="button"
-              onClick={() => setShowReminders((v) => !v)}
-              aria-expanded={showReminders}
-              className="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 text-sm font-medium"
-            >
-              Recordar a transportistas
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => toggleReminders('customers')}
+                aria-expanded={reminders === 'customers'}
+                className="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 text-sm font-medium"
+              >
+                Recordar a clientes
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleReminders('carriers')}
+                aria-expanded={reminders === 'carriers'}
+                className="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 text-sm font-medium"
+              >
+                Recordar a transportistas
+              </button>
+            </>
           )}
           {isSuperadmin && (
             <Link
@@ -325,7 +338,8 @@ export default function OrdersList() {
         </div>
       </div>
 
-      {isAdmin && showReminders && <CarrierReminders />}
+      {isAdmin && reminders === 'carriers' && <CarrierReminders />}
+      {isAdmin && reminders === 'customers' && <CustomerReminders />}
 
       {/* Un fallo de red se veía igual que un resultado vacío: la tabla decía
           "No hay órdenes para este filtro", que era mentira. El aviso va
