@@ -1,6 +1,7 @@
 from flask import jsonify
 from .quotation_status import QuotationStatus
 from ..carrier_company import CarrierCompany as CarrierCompanyEntity
+from ..service_request.validation import without_phones
 from ...models import Quotations as QuotationsModel
 from ... import db
 
@@ -70,7 +71,8 @@ class Quotation:
                 'id': quotation.id,
                 'amount': quotation.amount,
                 'total_amount': total_amount,
-                'note': quotation.note,
+                # Sin teléfonos: con el número lo contratan sin pasar por Chalán.
+                'note': without_phones(quotation.note),
                 'selected': selected,
                 'order_id': quotation.order_id,
                 'carrier_company_id': carrier_company.id,

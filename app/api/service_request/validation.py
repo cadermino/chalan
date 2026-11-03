@@ -6,6 +6,15 @@ from ...models import ServiceMaterial
 
 LIMA = ZoneInfo('America/Lima')
 
+# Teléfonos escritos en un texto libre ("llamar al 987 654 321"): en lo que ve
+# alguien que no debe tener ese número (la página que se comparte, la nota de
+# una cotización para el cliente) se ocultan.
+_PHONE_IN_TEXT = re.compile(r'\+?\d(?:[\s.-]?\d){6,}')
+
+
+def without_phones(text):
+    return _PHONE_IN_TEXT.sub('[número oculto]', text) if text else text
+
 MAX_ITEMS = 50
 MAX_MEDIA = 10
 MAX_ADVANCE_DAYS = 90

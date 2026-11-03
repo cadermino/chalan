@@ -75,6 +75,16 @@ def test_the_customer_sees_the_note(client, order, carrier_company):
     assert listed[0]['note'] == 'Incluye embalaje del sofá'
 
 
+
+def test_the_customer_does_not_see_a_phone_written_in_the_note(client, order, carrier_company):
+    db.session.add(Vehicle(carrier_company_id=carrier_company.id, active=1))
+    db.session.commit()
+    _quote(client, order, carrier_company, note='Escríbeme al +51 987654321')
+
+    listed = QuotationEntity().listByOrderId(order.id).toJson().get_json()
+
+    assert listed[0]['note'] == 'Escríbeme al [número oculto]'
+
 def test_a_carrier_link_shows_only_its_own_note(client, order, carrier_company):
     other = CarrierCompany(name='Otra', active=1)
     db.session.add(other)

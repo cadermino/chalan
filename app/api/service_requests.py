@@ -1,5 +1,4 @@
 import os
-import re
 import uuid
 from datetime import datetime
 
@@ -27,7 +26,7 @@ from .service_request.statuses import CANCELLED, PENDING, is_draft
 from .service_request.types import SERVICE_TYPES, needs_items
 from .service_request.validation import (
     MAX_MEDIA, InvalidRequest, validate_address, validate_customer_email, validate_customer_name,
-    validate_items, validate_media_upload, validate_preferred_date, MEDIA_MAX_BYTES,
+    validate_items, validate_media_upload, validate_preferred_date, without_phones, MEDIA_MAX_BYTES,
 )
 from .whatsapp import normalize_phone
 from .. import db
@@ -225,7 +224,8 @@ def _ratings(company_ids):
 def _customer_quotation(quotation, rate, ratings=None):
     """Lo que ve el cliente: el total (el congelado si ya la eligieron) y cómo se
     reparte entre la reserva y lo que paga en el lugar, y la calificación de
-    quien cotiza. Nunca el teléfono."""
+    quien cotiza. Nunca el teléfono, tampoco el que escribió en su nota: con
+    él lo contratan por fuera."""
     total, reservation, on_site = split_total(quotation, rate)
     return {
         'id': quotation.id,
@@ -234,7 +234,7 @@ def _customer_quotation(quotation, rate, ratings=None):
         'total_amount': float(total),
         'reservation_amount': float(reservation),
         'on_site_amount': float(on_site),
-        'note': quotation.note,
+        'note': without_phones(quotation.note),
         'selected': quotation.status == 'selected',
     }
 
@@ -519,15 +519,6 @@ def _register_media(service_request):
     return jsonify(_serialize_media(media)), 201
 
 
-# Teléfonos que el cliente haya escrito en el texto libre ("llamar al 987 654 321"):
-# esta página la ve cualquiera con el link.
-_PHONE_IN_TEXT = re.compile(r'\+?\d(?:[\s.-]?\d){6,}')
-
-
-def _without_phones(text):
-    return _PHONE_IN_TEXT.sub('[número oculto]', text) if text else text
-
-
 @api.route('/service-media/<token>', methods=['GET'])
 def get_shared_service_media(token):
     """El pedido para mandar por WhatsApp a quien va a cotizar (chalan.pe/v/<token>):
@@ -544,7 +535,7 @@ def get_shared_service_media(token):
     details = dict(service_request.details or {})
     destination = details.pop('destination', None) or {}
     if details.get('description'):
-        details['description'] = _without_phones(details['description'])
+        details['description'] = without_phones(details['description'])
     return jsonify({
         # El número del backoffice ("Servicio #12"), para que quien cotiza diga
         # cuál es. No abre nada, a diferencia del public_id.
@@ -554,7 +545,7 @@ def get_shared_service_media(token):
         'district': district_of(_address_dict(service_request)),
         'destination_district': district_of(destination) if destination else None,
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
-        'items': [{'description': _without_phones(i.description), 'quantity': i.quantity, 'work': i.work,
+        'items': [{'description': without_phones(i.description), 'quantity': i.quantity, 'work': i.work,
                    'pack': i.pack} for i in service_request.items],
         'details': details,
         'media': [{'url': m.url, 'media_type': m.media_type, 'content_type': m.content_type}

@@ -1169,6 +1169,18 @@ def test_the_customer_sees_totals_split_into_reservation_and_on_site_cheapest_fi
     assert 'whatsapp' not in body
 
 
+
+def test_the_customer_does_not_see_a_phone_written_in_the_note(client):
+    request_id = make_submitted(client)
+    public_id = db.session.get(ServiceRequest, request_id).public_id
+    quote(client, request_id, make_carrier('Argema').id, note='Instalación aparte, nos contacta al 934 603 742')
+
+    body = customer_quotations(client, public_id).get_json()
+
+    assert body['quotations'][0]['note'] == 'Instalación aparte, nos contacta al [número oculto]'
+    # El admin la sigue leyendo entera.
+    assert ServiceRequestQuotation.query.one().note.endswith('934 603 742')
+
 def test_a_selected_quotation_keeps_its_frozen_total_when_the_fee_changes(client, monkeypatch):
     service_request, _, quotation_id = submitted_with_quote(client)
     select(client, service_request.id, quotation_id)
