@@ -5,7 +5,7 @@ from flask import request, jsonify
 from sqlalchemy import exc
 
 from . import auth
-from ..models import AdminUser, ROLE_SUPERADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
+from ..models import AdminUser, ServiceType, ROLE_SUPERADMIN, ROLE_CARRIER, ROLE_REAL_ESTATE, _generate_referral_code
 from ..utils import create_blank_company_and_vehicle
 from ..carrier_documents import documents_url, make_token as documents_token
 from ..email import send_email
@@ -96,6 +96,15 @@ def register():
     if role == ROLE_CARRIER and not data.get('phone'):
         return jsonify({'message': 'phone is required for carrier_company registration'}), 400
 
+    # Desde la landing de un oficio (/profesionales/pintores...): la empresa
+    # hace solo ese servicio. Solo los que se piden con formulario.
+    service_type = None
+    if role == ROLE_CARRIER and data.get('service_code'):
+        service_type = ServiceType.query.filter_by(
+            code=data['service_code'], requestable=1, active=1).first()
+        if service_type is None:
+            return jsonify({'message': 'unknown service'}), 400
+
     try:
         user = AdminUser(
             email=data['email'].strip().lower(),
@@ -114,6 +123,7 @@ def register():
                 email=data['email'].strip().lower(),
                 phone=data['phone'].strip(),
                 person_name=f"{user.first_name} {user.last_name}",
+                service_type=service_type,
             )
             user.carrier_company_id = company.id
 
@@ -128,12 +138,14 @@ def register():
         return jsonify({'message': 'email already in use'}), 409
 
     if role == ROLE_CARRIER:
+        service_name = service_type.name if service_type else None
         send_email(
             os.getenv('ADMIN_MAIL'),
-            'Nuevo transportista registrado',
+            f'Nuevo profesional registrado: {service_name}' if service_name else 'Nuevo transportista registrado',
             'email/carrier_registered',
             user=user,
             phone=data['phone'].strip(),
+            service_name=service_name,
         )
         # La landing sigue con el paso de documentos usando este token. El
         # correo lleva el mismo link para quien no los tenga a mano ahora.
@@ -143,6 +155,7 @@ def register():
             'email/carrier_documents_request',
             user=user,
             documents_url=documents_url(user.carrier_company_id),
+            service_name=service_name,
         )
         return jsonify({
             'message': 'registration successful, wait for admin approval',

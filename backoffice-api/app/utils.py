@@ -22,9 +22,12 @@ def _company_name_from(person_name):
     return name[:_COMPANY_NAME_MAX] if name else _DEFAULT_COMPANY_NAME
 
 
-def create_blank_company_and_vehicle(email='', phone='', person_name=''):
+def create_blank_company_and_vehicle(email='', phone='', person_name='', service_type=None):
     """Create a blank CarrierCompany + one blank Vehicle. Returns the company.
     Caller is responsible for committing the session.
+
+    With `service_type` (a pintor or an armador signing up from their landing)
+    the company does only that service: no moving and no vehicle.
 
     country_id must be set here — CarrierCompany.country_id is what
     app/api/orders.py's get_carrier_companies() filters on to decide who
@@ -40,13 +43,16 @@ def create_blank_company_and_vehicle(email='', phone='', person_name=''):
     # Nace con "mudanza": quien se registra desde la landing de transportistas
     # viene a recibir mudanzas. Sin esto, con el filtro de la migración 022, las
     # empresas nuevas no recibirían ninguna orden y nada lo avisaría.
-    moving = ServiceType.query.filter_by(code=MOVING_SERVICE_CODE, active=1).first()
-    if moving is not None:
-        company.service_types = [moving]
+    if service_type is not None:
+        company.service_types = [service_type]
+    else:
+        moving = ServiceType.query.filter_by(code=MOVING_SERVICE_CODE, active=1).first()
+        if moving is not None:
+            company.service_types = [moving]
     # Y en Lima, donde están todas: el admin lo corrige si es de otro departamento.
     company.departments = [CarrierCompanyDepartment(department_code=LIMA_DEPARTMENT_CODE)]
     db.session.add(company)
     db.session.flush()  # get company.id before the outer commit
-    vehicle = Vehicle(carrier_company_id=company.id, active=0)
-    db.session.add(vehicle)
+    if service_type is None:
+        db.session.add(Vehicle(carrier_company_id=company.id, active=0))
     return company

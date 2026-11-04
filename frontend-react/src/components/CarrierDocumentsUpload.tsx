@@ -7,7 +7,7 @@ import { track } from '@/lib/analytics'
 // firmada, el archivo va directo a S3 y después se registra. Same-origin vía nginx.
 const API = '/api/v1/carrier-documents'
 
-type DocType = 'identity' | 'driver_license' | 'vehicle_card'
+type DocType = 'identity' | 'driver_license' | 'vehicle_card' | 'work_photo'
 
 interface CarrierDocument {
   id: number
@@ -25,6 +25,9 @@ interface Status {
   max_files?: Partial<Record<DocType, number>>
   card_vehicle_id?: number | null
   can_delete: boolean
+  // Qué pide, en orden: los de manejar o, a un profesional de servicios, DNI y
+  // fotos de trabajos. Opcional para una respuesta del API de antes del deploy.
+  required?: DocType[]
 }
 
 const SECTIONS: { type: DocType; title: string; hint: string }[] = [
@@ -43,7 +46,14 @@ const SECTIONS: { type: DocType; title: string; hint: string }[] = [
     title: 'Tarjeta de propiedad del vehículo',
     hint: 'La tarjeta de identificación vehicular de SUNARP: frente y reverso de la tarjeta física, o el PDF si es electrónica. Que se lean la placa y los pesos.',
   },
+  {
+    type: 'work_photo',
+    title: 'Fotos de trabajos tuyos',
+    hint: 'De 3 a 8 fotos de trabajos que hiciste: terminados, o el antes y el después. Nos ayudan a ver cómo trabajas.',
+  },
 ]
+
+const MOVING_DOCS: DocType[] = ['identity', 'driver_license', 'vehicle_card']
 
 // Un documento fotografiado con el celular pesa 4–8 MB; a 2400 px de lado sigue
 // leyéndose cada número y sube en segundos con datos móviles.
@@ -93,8 +103,8 @@ async function prepare(file: File): Promise<Blob> {
   }
 }
 
-const isComplete = (documents: CarrierDocument[]) =>
-  SECTIONS.every((section) => documents.some((d) => d.doc_type === section.type))
+const isComplete = (documents: CarrierDocument[], required: DocType[]) =>
+  required.every((type) => documents.some((d) => d.doc_type === type))
 
 class UploadError extends Error {}
 
@@ -152,7 +162,7 @@ export function CarrierDocumentsUpload({ token, theme = 'dark' }: { token: strin
   const wasComplete = useRef<boolean | null>(null)
   useEffect(() => {
     if (!status) return
-    const now = isComplete(status.documents)
+    const now = isComplete(status.documents, status.required ?? MOVING_DOCS)
     if (wasComplete.current === false && now) track('carrier_documents_complete')
     wasComplete.current = now
   }, [status])
@@ -183,7 +193,10 @@ export function CarrierDocumentsUpload({ token, theme = 'dark' }: { token: strin
   // La tarjeta que se sube aquí es la del primer vehículo; las de los demás las sube Chalán.
   const byType = (type: DocType) => status.documents.filter((d) => d.doc_type === type
     && (type !== 'vehicle_card' || status.card_vehicle_id == null || d.vehicle_id === status.card_vehicle_id))
-  const complete = isComplete(status.documents)
+  const required = status.required ?? MOVING_DOCS
+  const professional = required.includes('work_photo')
+  const sections = SECTIONS.filter((section) => required.includes(section.type))
+  const complete = isComplete(status.documents, required)
 
   const added = (doc: CarrierDocument) => {
     setStatus((s) => s && { ...s, documents: [...s.documents, doc] })
@@ -197,16 +210,17 @@ export function CarrierDocumentsUpload({ token, theme = 'dark' }: { token: strin
       <div>
         <h3 style={{ ...t.heading, fontSize: 24, marginBottom: 8 }}>Sube tus documentos</h3>
         <p style={{ ...t.body, fontSize: 14, lineHeight: 1.55 }}>
-          Antes de activar una cuenta validamos a cada transportista: así el cliente sabe que quien llega
-          a su casa es quien dice ser, que tiene licencia para manejar y que el vehículo está en regla.
+          {professional
+            ? 'Antes de activar una cuenta validamos a cada profesional: así el cliente sabe que quien llega a su casa es quien dice ser, y nosotros vemos cómo trabajas.'
+            : 'Antes de activar una cuenta validamos a cada transportista: así el cliente sabe que quien llega a su casa es quien dice ser, que tiene licencia para manejar y que el vehículo está en regla.'}
         </p>
         <p style={{ ...t.mute, fontSize: 12.5, lineHeight: 1.5, marginTop: 8 }}>
-          🔒 Solo los ve el equipo de Chalán, para validar tu cuenta. No se muestran a clientes ni a otros
-          transportistas. Puede ser una foto con el celular o un escaneo.
+          🔒 Solo los ve el equipo de Chalán, para validar tu cuenta. No se muestran a clientes ni a otras
+          empresas. Puede ser una foto con el celular o un escaneo.
         </p>
       </div>
 
-      {SECTIONS.map((section) => (
+      {sections.map((section) => (
         <DocumentSection
           key={section.type}
           token={token}

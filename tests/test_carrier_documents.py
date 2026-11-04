@@ -321,3 +321,67 @@ def test_the_carrier_link_takes_two_card_files(client, storage, emails, pending_
     res = client.post(f'/api/v1/carrier-documents/{token}/presign',
                       json={'doc_type': 'vehicle_card', 'content_type': 'image/jpeg', 'size_bytes': 10})
     assert res.status_code == 400
+
+
+@pytest.fixture
+def pending_painter(app):
+    """Un pintor que se registró desde su landing: sin mudanza y sin vehículo."""
+    from app.models import ServiceType
+    painting = ServiceType.query.filter_by(code='painting').first()
+    if painting is None:
+        painting = ServiceType(code='painting', name='Pintura')
+        db.session.add(painting)
+        db.session.flush()
+    company = CarrierCompany(name='Rosa Pinto', active=0)
+    company.service_types = [painting]
+    db.session.add(company)
+    db.session.commit()
+    return company
+
+
+def test_a_service_professional_is_asked_for_id_and_work_photos(client, storage, pending_painter):
+    res = client.get(f'/api/v1/carrier-documents/{make_token(pending_painter.id)}')
+
+    assert res.get_json()['required'] == ['identity', 'work_photo']
+    assert res.get_json()['max_files'] == {'identity': 4, 'work_photo': 8}
+
+
+def test_a_mover_is_still_asked_for_the_driving_documents(client, storage, pending_company):
+    res = client.get(f'/api/v1/carrier-documents/{make_token(pending_company.id)}')
+
+    assert res.get_json()['required'] == ['identity', 'driver_license', 'vehicle_card']
+
+
+def test_a_professional_cannot_upload_a_vehicle_document(client, storage, pending_painter):
+    token = make_token(pending_painter.id)
+    for doc_type in ('driver_license', 'vehicle_card'):
+        res = client.post(f'/api/v1/carrier-documents/{token}/presign',
+                          json={'doc_type': doc_type, 'content_type': 'image/jpeg', 'size_bytes': 100})
+        assert res.status_code == 400
+
+
+def test_the_team_hears_once_when_a_professional_is_complete(client, storage, emails, pending_painter):
+    token = make_token(pending_painter.id)
+
+    assert _upload(client, storage, token, 'work_photo').status_code == 201
+    assert emails == []
+    assert _upload(client, storage, token, 'identity').status_code == 201
+    assert emails == ['email/carrier_documents_complete']
+    _upload(client, storage, token, 'work_photo')
+    assert emails == ['email/carrier_documents_complete']
+
+
+def test_up_to_eight_work_photos(client, storage, emails, pending_painter):
+    token = make_token(pending_painter.id)
+    for _ in range(8):
+        assert _upload(client, storage, token, 'work_photo').status_code == 201
+
+    res = client.post(f'/api/v1/carrier-documents/{token}/presign',
+                      json={'doc_type': 'work_photo', 'content_type': 'image/jpeg', 'size_bytes': 100})
+    assert res.status_code == 400
+
+
+def test_the_backoffice_learns_what_a_professional_has_to_upload(client, storage, pending_painter):
+    res = client.get(f'/api/v1/carrier-companies/{pending_painter.id}/documents', headers=_internal())
+
+    assert res.get_json()['required'] == ['identity', 'work_photo']

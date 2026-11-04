@@ -23,9 +23,14 @@
                     <tr>
                       <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">
                         <p style="margin: 0; Margin-bottom: 15px;">Hola {{ user.first_name }}, gracias por registrarte en Chalán.</p>
+                        {% if service_name %}
+                        <p style="margin: 0; Margin-bottom: 15px;">Antes de activar tu cuenta validamos a cada profesional: así los clientes saben que quien llega a su casa es quien dice ser, y vemos cómo trabajas. Para eso necesitamos:</p>
+                        <p style="margin: 0; Margin-bottom: 15px;">• Tu DNI o carné de extranjería (frente y reverso)<br>• Fotos de 3 a 8 trabajos tuyos</p>
+                        {% else %}
                         <p style="margin: 0; Margin-bottom: 15px;">Antes de activar tu cuenta validamos a cada transportista: así los clientes saben que quien llega a su casa es quien dice ser y que el vehículo está en regla. Para eso necesitamos una foto o escaneo de:</p>
                         <p style="margin: 0; Margin-bottom: 15px;">• Tu DNI o carné de extranjería (frente y reverso)<br>• Tu licencia de conducir<br>• La tarjeta de propiedad del vehículo</p>
-                        <p style="margin: 0; Margin-bottom: 15px;">Solo el equipo de Chalán los ve. No se muestran a los clientes ni a otros transportistas.</p>
+                        {% endif %}
+                        <p style="margin: 0; Margin-bottom: 15px;">Solo el equipo de Chalán los ve. No se muestran a los clientes ni a otras empresas.</p>
                         <p style="margin: 0; Margin-bottom: 15px; text-align: center;"><a href="{{ documents_url }}" style="display: inline-block; background: #0d9488; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 6px; font-weight: bold;">Subir mis documentos</a></p>
                         <p style="margin: 0; color: #666666; font-size: 12px;">El link sirve por 30 días. Si ya los subiste, no tienes que hacer nada más: te avisaremos cuando tu cuenta esté activa.</p>
                       </td>

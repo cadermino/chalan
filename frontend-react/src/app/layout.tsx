@@ -58,6 +58,7 @@ export const metadata: Metadata = {
 const chatHiddenPaths = [
   ...NON_MOVING_PATHS,
   "/transportistas",
+  "/profesionales",
   // Fotos y videos de un servicio que se mandan a quien va a cotizar.
   "/v",
   // La reseña (de una mudanza o de un servicio ya hecho): el chat de cotizar distrae.

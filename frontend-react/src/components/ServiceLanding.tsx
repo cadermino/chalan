@@ -4,6 +4,7 @@ import { instrumentSerif, interTight, jetbrainsMono } from '@/lib/fonts'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { whatsappUrl } from '@/lib/homeServices'
+import { PROFESSIONALS } from '@/lib/professionals'
 import '@/app/landing.css'
 
 // Landing de un servicio a domicilio que se cotiza por WhatsApp (pintura,
@@ -122,6 +123,8 @@ function Steps({ steps }: { steps: ServiceStep[] }) {
 export function ServiceLanding(props: ServiceLandingProps) {
   const fontVars = [instrumentSerif.variable, interTight.variable, jetbrainsMono.variable].join(' ')
   const url = `https://chalan.pe${props.path}`
+  // El oficio que hace este servicio, para invitarlo a registrarse.
+  const pro = PROFESSIONALS.find((p) => p.customerPath === props.path)
   const whatsapp = whatsappUrl(props.whatsappText)
   const prices = props.prices ?? []
   const lowest = prices.length ? soles(Math.min(...prices.map((p) => p.from))) : ''
@@ -387,6 +390,12 @@ export function ServiceLanding(props: ServiceLandingProps) {
                 </details>
               ))}
             </div>
+            {pro && (
+              <p style={{ marginTop: 24, fontSize: 14, color: 'var(--ink-soft)' }}>
+                ¿Eres {pro.singular}? Recibe pedidos como estos:{' '}
+                <Link href={`/profesionales/${pro.slug}`} style={{ color: 'var(--ch-accent)' }}>regístrate gratis</Link>.
+              </p>
+            )}
           </div>
         </section>
 

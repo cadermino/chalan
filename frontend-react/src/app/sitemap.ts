@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
 import { getApiBase } from '@/lib/api';
+import { PROFESSIONALS } from '@/lib/professionals';
 
 // Last real content change per static page (update when a page's copy changes).
 const LAST_MODIFIED: Record<string, string> = {
@@ -23,6 +24,7 @@ const LAST_MODIFIED: Record<string, string> = {
   '/instalacion-de-porcelanato': '2026-10-16',
   '/reparacion-de-departamentos': '2026-10-19',
   '/transportistas': '2026-08-06',
+  '/profesionales': '2026-11-04',
 };
 
 async function getCompanies(): Promise<{ id: number; last_review_date: string | null }[]> {
@@ -156,6 +158,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/profesionales`,
+      lastModified: LAST_MODIFIED['/profesionales'],
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    ...PROFESSIONALS.map((p) => ({
+      url: `${baseUrl}/profesionales/${p.slug}`,
+      lastModified: LAST_MODIFIED['/profesionales'],
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    })),
   ];
 
   const companyPages: MetadataRoute.Sitemap = companies.map((company) => ({

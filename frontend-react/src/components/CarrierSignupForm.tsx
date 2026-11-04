@@ -72,13 +72,16 @@ const THEME = {
   buttonStyle: React.CSSProperties
 }>
 
-export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
+// Sin `service` es el alta de un transportista (mudanzas). Con el código de un
+// servicio (/profesionales/<oficio>) la empresa nace haciendo solo ese, sin
+// vehículo, y los documentos que pide son el DNI y fotos de trabajos.
+export function CarrierSignupForm({ theme = 'dark', service }: { theme?: Theme; service?: string }) {
   const t = THEME[theme]
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
-  // Con él la cuenta sigue directo al paso de documentos (DNI/CE, licencia, tarjeta).
+  // Con él la cuenta sigue directo al paso de documentos.
   const [documentsToken, setDocumentsToken] = useState('')
 
   const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -110,6 +113,7 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
           phone: form.phone.trim(),
           password: form.password,
           role: 'carrier_company',
+          ...(service ? { service_code: service } : {}),
         }),
       })
 
@@ -122,7 +126,7 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
       const data = await res.json().catch(() => ({}))
       setDocumentsToken(data.documents_token || '')
       setDone(true)
-      track('carrier_sign_up')
+      track('carrier_sign_up', { service: service || 'moving' })
     } catch {
       setError('No pudimos conectar con el servidor. Inténtalo de nuevo en un momento.')
     } finally {
@@ -159,7 +163,7 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
         </h3>
         <p style={{ ...t.body, fontSize: 14, lineHeight: 1.5 }}>
           Tu cuenta fue creada. Un administrador la activará pronto y te avisaremos
-          para que completes el perfil de tu empresa y empieces a cotizar pedidos.
+          {service ? ' cuando empieces a recibir pedidos.' : ' para que completes el perfil de tu empresa y empieces a cotizar pedidos.'}
         </p>
       </div>
     )
@@ -217,12 +221,14 @@ export function CarrierSignupForm({ theme = 'dark' }: { theme?: Theme }) {
           ...t.buttonStyle,
         }}
       >
-        {loading ? 'Registrando…' : 'Registrar mi empresa'}
+        {loading ? 'Registrando…' : service ? 'Registrarme' : 'Registrar mi empresa'}
       </button>
 
       <p style={{ ...t.footnote, fontSize: 11, letterSpacing: '0.04em', textAlign: 'center' }}>
         Al registrarte aceptas que un administrador revise y active tu cuenta antes de que puedas cotizar.
-        Después te pediremos tu DNI, licencia y tarjeta de propiedad para validarte.
+        {service
+          ? ' Después te pediremos tu DNI y fotos de trabajos tuyos para validarte.'
+          : ' Después te pediremos tu DNI, licencia y tarjeta de propiedad para validarte.'}
       </p>
     </form>
   )

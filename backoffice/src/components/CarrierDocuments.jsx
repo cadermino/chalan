@@ -6,13 +6,15 @@ import Card from './Card'
 import { CopyRow } from './CopyButton'
 
 // Documentos que el transportista sube desde la landing para que lo validemos
-// (DNI/CE, licencia, tarjeta de propiedad). Solo admins: las URLs son firmadas
+// (DNI/CE, licencia, tarjeta de propiedad; un profesional de servicios, DNI y
+// fotos de trabajos). Solo admins: las URLs son firmadas
 // y vencen en una hora: a diferencia de las fotos de las órdenes, estos
 // archivos no son públicos.
 export const DOC_LABELS = {
   identity: 'DNI o carné de extranjería',
   driver_license: 'Licencia de conducir',
   vehicle_card: 'Tarjeta de propiedad',
+  work_photo: 'Fotos de trabajos',
 }
 
 // Espejo de app/api/carrier_documents.py: el servidor es quien manda, esto
@@ -23,17 +25,18 @@ const MAX_BYTES = 10 * 1024 * 1024
 const CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
 export function useCarrierDocuments(companyId, enabled = true) {
-  const [state, setState] = useState({ documents: null, uploadUrl: '', error: false })
+  const [state, setState] = useState({ documents: null, required: null, uploadUrl: '', error: false })
 
   const load = useCallback(() => {
     if (!enabled || !companyId) return
     client.get(`/api/carrier-companies/${companyId}/documents`)
       .then(({ data }) => setState({
         documents: data.documents,
+        required: data.required,
         uploadUrl: `${window.location.origin}/transportistas/documentos/${data.upload_token}`,
         error: false,
       }))
-      .catch(() => setState({ documents: [], uploadUrl: '', error: true }))
+      .catch(() => setState({ documents: [], required: null, uploadUrl: '', error: true }))
   }, [companyId, enabled])
 
   useEffect(load, [load])
@@ -177,7 +180,7 @@ function vehicleLabel(vehicle) {
 // La tarjeta de la empresa: DNI y licencia, la tarjeta de propiedad de cada
 // vehículo y el link para pedírselos al transportista.
 export default function CarrierDocumentsCard({ companyId }) {
-  const { documents, uploadUrl, error } = useCarrierDocuments(companyId)
+  const { documents, required, uploadUrl, error } = useCarrierDocuments(companyId)
   const [vehicles, setVehicles] = useState(null)
 
   useEffect(() => {
@@ -187,6 +190,8 @@ export default function CarrierDocumentsCard({ companyId }) {
   }, [companyId])
 
   const files = (type) => (documents || []).filter((d) => d.doc_type === type)
+  // Un profesional de servicios no maneja: su DNI y fotos de trabajos.
+  const professional = Boolean(required?.includes('work_photo'))
   const cards = files('vehicle_card')
   // Una tarjeta sin vehículo: se borró el suyo.
   const orphans = vehicles ? cards.filter((d) => !vehicles.some((v) => v.id === d.vehicle_id)) : []
@@ -197,10 +202,10 @@ export default function CarrierDocumentsCard({ companyId }) {
       {error && <p className="text-sm text-red-600">No se pudieron cargar los documentos.</p>}
       {documents && !error && (
         <div className="space-y-5">
-          {['identity', 'driver_license'].map((type) => (
-            <DocumentGroup key={type} label={DOC_LABELS[type]} files={files(type)} />
+          {(professional ? ['identity', 'work_photo'] : ['identity', 'driver_license']).map((type) => (
+            <DocumentGroup key={type} type={type} files={files(type)} />
           ))}
-          <div className="space-y-4">
+          {!professional && <div className="space-y-4">
             <p className="text-sm font-medium text-gray-900">
               {DOC_LABELS.vehicle_card} {cards.length === 0 && <span className="font-normal text-amber-600">· no la subió</span>}
             </p>
@@ -226,7 +231,7 @@ export default function CarrierDocumentsCard({ companyId }) {
                 <FileGrid files={orphans} />
               </div>
             )}
-          </div>
+          </div>}
           <UploadLinkRow url={uploadUrl} />
         </div>
       )}
@@ -234,11 +239,11 @@ export default function CarrierDocumentsCard({ companyId }) {
   )
 }
 
-function DocumentGroup({ label, files }) {
+function DocumentGroup({ type, files }) {
   return (
     <div>
       <p className="mb-2 text-sm font-medium text-gray-900">
-        {label} {files.length === 0 && <span className="font-normal text-amber-600">· no lo subió</span>}
+        {DOC_LABELS[type]} {files.length === 0 && <span className="font-normal text-amber-600">· {type === 'work_photo' ? 'no las subió' : 'no lo subió'}</span>}
       </p>
       <FileGrid files={files} />
     </div>

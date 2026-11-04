@@ -18,6 +18,10 @@ cualquiera `orders/` y `service-requests/`; `carrier-documents/` queda
 privado y el backoffice los ve con URLs firmadas que vencen en una hora. No
 lo agregues a esa política: serían DNIs a la vista de quien tenga la URL.
 
+Un profesional de servicios (pintor, armador; sin "mudanza" entre sus
+servicios) sube otra cosa: su DNI y fotos de trabajos suyos
+(`required_types`).
+
 Cada vehículo tiene su tarjeta: el vehículo va en la llave del archivo
 (`vehicle_card-v<id>-…`). Con el link, el transportista sube la del primer
 vehículo de la empresa (el registro crea uno en blanco); los de más los crea
@@ -35,7 +39,7 @@ from .decorators import is_internal_request
 from .email import send_email
 from .service_request.validation import InvalidRequest
 from .. import db
-from ..models import CarrierCompany, CarrierDocument, Vehicle
+from ..models import CarrierCompany, CarrierDocument, MOVING_SERVICE_CODE, Vehicle
 from ..storage import get_storage
 
 SALT = 'carrier-documents'
@@ -43,17 +47,25 @@ SALT = 'carrier-documents'
 # tiene que durar hasta que vuelva a mirar el correo.
 MAX_AGE = 30 * 24 * 3600
 
+# Lo que valida a quien hace mudanzas. Es también lo que la tarjeta de la
+# cotización llama "Documentos verificados" (quotation/quotation.py).
 DOC_TYPES = ('identity', 'driver_license', 'vehicle_card')
+# Un pintor o un armador no maneja: su DNI y fotos de trabajos suyos, que es lo
+# que se mira antes de activarlo.
+SERVICE_DOC_TYPES = ('identity', 'work_photo')
+ALL_DOC_TYPES = DOC_TYPES + ('work_photo',)
 DOC_LABELS = {
     'identity': 'DNI o carné de extranjería',
     'driver_license': 'Licencia de conducir',
     'vehicle_card': 'Tarjeta de propiedad',
+    'work_photo': 'Fotos de trabajos',
 }
 # Frente y reverso, y alguna repetición si la primera salió borrosa. DNI y
 # licencia pueden ser de más de una persona (el dueño y el chofer).
 MAX_PER_TYPE = 4
 # Una sola tarjeta por vehículo: frente y reverso, o el PDF de la electrónica.
 MAX_CARD_FILES = 2
+MAX_WORK_PHOTOS = 8
 MAX_BYTES = 10 * 1024 * 1024
 # HEIC no: el backoffice no lo puede mostrar en Chrome. La landing convierte
 # las fotos a JPEG antes de subirlas, así que solo llega HEIC si eso falla.
@@ -131,7 +143,7 @@ def _key_parts(company_id, storage_key):
     if '/' in name or '..' in name:
         return None
     doc_type = name.split('-', 1)[0]
-    if doc_type not in DOC_TYPES:
+    if doc_type not in ALL_DOC_TYPES:
         return None
     vehicle = re.match(r'vehicle_card-v(\d+)-', name) if doc_type == 'vehicle_card' else None
     return doc_type, int(vehicle.group(1)) if vehicle else None
@@ -153,7 +165,19 @@ def _vehicle_for_card(company_id):
 
 
 def _max_files(doc_type):
-    return MAX_CARD_FILES if doc_type == 'vehicle_card' else MAX_PER_TYPE
+    if doc_type == 'vehicle_card':
+        return MAX_CARD_FILES
+    return MAX_WORK_PHOTOS if doc_type == 'work_photo' else MAX_PER_TYPE
+
+
+def required_types(company):
+    """Los documentos que validan a esta empresa: los de manejar si hace
+    mudanzas, y si no (un profesional de servicios) DNI y fotos de trabajos."""
+    codes = {t.code for t in company.service_types}
+    # Sin servicios marcados se lee como antes: una empresa de mudanzas.
+    if not codes or MOVING_SERVICE_CODE in codes:
+        return DOC_TYPES
+    return SERVICE_DOC_TYPES
 
 
 def _count(company_id, doc_type, vehicle_id):
@@ -165,10 +189,11 @@ def _count(company_id, doc_type, vehicle_id):
 
 
 def _notify_complete(company):
-    """Avisa al equipo la primera vez que la empresa tiene los tres documentos."""
+    """Avisa al equipo la primera vez que la empresa tiene todos sus documentos."""
     send_email(
         os.getenv('ADMIN_MAIL'),
-        'Transportista subió sus documentos',
+        'Transportista subió sus documentos' if required_types(company) == DOC_TYPES
+        else 'Profesional subió sus documentos',
         'email/carrier_documents_complete',
         bcc='',
         company=company,
@@ -244,7 +269,8 @@ def _register(company, storage_key, vehicle_id=None, notify=True):
     db.session.add(document)
     db.session.commit()
 
-    if notify and types_before != set(DOC_TYPES) and types_before | {doc_type} == set(DOC_TYPES):
+    required = set(required_types(company))
+    if notify and not required <= types_before and required <= types_before | {doc_type}:
         _notify_complete(company)
     return jsonify(_to_dict(document)), 201
 
@@ -268,11 +294,14 @@ def get_carrier_documents(token):
     company, error = _company_from(token)
     if error:
         return error
+    required = required_types(company)
     return jsonify({
         'company_name': company.name,
         'documents': [_to_dict(d) for d in _documents_of(company.id)],
+        # Qué pide la página, en orden: los de manejar o los de un profesional.
+        'required': list(required),
         'max_per_type': MAX_PER_TYPE,
-        'max_files': {doc_type: _max_files(doc_type) for doc_type in DOC_TYPES},
+        'max_files': {doc_type: _max_files(doc_type) for doc_type in required},
         # La tarjeta que sube el link es la de este vehículo; las de los demás
         # las sube un admin y no cuentan en el tope de la página.
         'card_vehicle_id': _vehicle_for_card(company.id),
@@ -286,8 +315,9 @@ def presign_carrier_document(token):
     if error:
         return error
     doc_type = (request.get_json(silent=True) or {}).get('doc_type')
-    if doc_type not in DOC_TYPES:
-        raise InvalidRequest('doc_type must be one of ' + ', '.join(DOC_TYPES))
+    required = required_types(company)
+    if doc_type not in required:
+        raise InvalidRequest('doc_type must be one of ' + ', '.join(required))
     vehicle_id = _vehicle_for_card(company.id) if doc_type == 'vehicle_card' else None
     return _presign(company, doc_type, vehicle_id)
 
@@ -328,13 +358,17 @@ def _internal_company(company_id):
 @api.route('/carrier-companies/<int:company_id>/documents', methods=['GET'])
 def list_company_documents(company_id):
     """Documentos de una empresa con URLs para verlos. Solo para el backoffice-api."""
-    if not is_internal_request():
-        return jsonify({'message': 'forbidden'}), 403
+    company, error = _internal_company(company_id)
+    if error:
+        return error
     storage = get_storage()
-    return jsonify({'documents': [
-        {**_to_dict(d), 'url': storage.presigned_get(d.storage_key, VIEW_URL_TTL)}
-        for d in _documents_of(company_id)
-    ]}), 200
+    return jsonify({
+        'documents': [
+            {**_to_dict(d), 'url': storage.presigned_get(d.storage_key, VIEW_URL_TTL)}
+            for d in _documents_of(company_id)
+        ],
+        'required': list(required_types(company)),
+    }), 200
 
 
 @api.route('/carrier-companies/<int:company_id>/vehicles/<int:vehicle_id>/card/presign', methods=['POST'])

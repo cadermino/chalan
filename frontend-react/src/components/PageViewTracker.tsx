@@ -12,6 +12,7 @@ function contentGroup(pathname: string) {
   if (pathname === '/blog') return 'blog_index'
   if (pathname.startsWith('/blog/')) return 'blog'
   if (pathname.startsWith('/transportistas')) return 'carriers'
+  if (pathname.startsWith('/profesionales')) return 'professionals'
   if (NON_MOVING_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) return 'service'
   return 'landing'
 }

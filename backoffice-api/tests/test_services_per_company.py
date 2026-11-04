@@ -188,3 +188,36 @@ def test_a_company_that_does_moves_can_add_vehicles(client, catalog, superadmin)
                       headers=superadmin)
 
     assert res.status_code == 201
+
+
+def test_a_professional_signs_up_for_their_service_only(client, catalog, monkeypatch):
+    """Desde /profesionales/<oficio>: sin mudanza (no le llegan órdenes) y sin vehículo."""
+    from app.models import Vehicle
+    sent = []
+    monkeypatch.setattr('app.auth.routes.send_email', lambda to, subject, template, **kw: sent.append((subject, kw)))
+    res = client.post('/auth/register', json={
+        'first_name': 'Rosa', 'last_name': 'Pinto', 'dni': '12345678', 'email': 'rosa@example.com',
+        'password': 'testpass123', 'phone': '+51987654321', 'role': 'carrier_company',
+        'service_code': 'packing',
+    })
+
+    assert res.status_code == 201
+    assert res.get_json()['documents_token']
+    company = CarrierCompany.query.filter_by(email='rosa@example.com').one()
+    assert [t.code for t in company.service_types] == ['packing']
+    assert Vehicle.query.filter_by(carrier_company_id=company.id).count() == 0
+    assert sent[0][0] == 'Nuevo profesional registrado: Embalaje'
+    assert all(kw['service_name'] == 'Embalaje' for _, kw in sent)
+
+
+@pytest.mark.parametrize('code', ['moving', 'furniture_assembly', 'nope'])
+def test_only_a_requestable_service_can_be_signed_up_for(client, catalog, code):
+    # furniture_assembly no es requestable en este catálogo de prueba.
+    res = client.post('/auth/register', json={
+        'first_name': 'Rosa', 'last_name': 'Pinto', 'dni': '12345678', 'email': 'rosa@example.com',
+        'password': 'testpass123', 'phone': '+51987654321', 'role': 'carrier_company',
+        'service_code': code,
+    })
+
+    assert res.status_code == 400
+    assert CarrierCompany.query.filter_by(email='rosa@example.com').count() == 0

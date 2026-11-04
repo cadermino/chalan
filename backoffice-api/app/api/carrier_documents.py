@@ -36,6 +36,8 @@ def get_company_documents(company_id):
         return jsonify({'message': 'failed to load the documents'}), 502
     return jsonify({
         'documents': res.json()['documents'],
+        # Los de manejar, o DNI y fotos de trabajos para un profesional.
+        'required': res.json().get('required'),
         'upload_token': make_token(company_id),
     }), 200
 
