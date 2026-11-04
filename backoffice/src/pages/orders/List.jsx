@@ -5,6 +5,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import StatusIcon from '../../components/StatusIcon'
 import CarrierReminders from '../../components/CarrierReminders'
+import CompleteOrders from '../../components/CompleteOrders'
 import CustomerReminders from '../../components/CustomerReminders'
 
 // Cada estado tiene su color e ícono, y son los mismos en el botón de filtro
@@ -311,6 +312,14 @@ export default function OrdersList() {
             <>
               <button
                 type="button"
+                onClick={() => toggleReminders('incomplete')}
+                aria-expanded={reminders === 'incomplete'}
+                className="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 text-sm font-medium"
+              >
+                Completar órdenes
+              </button>
+              <button
+                type="button"
                 onClick={() => toggleReminders('customers')}
                 aria-expanded={reminders === 'customers'}
                 className="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 hover:bg-teal-50 text-sm font-medium"
@@ -340,6 +349,7 @@ export default function OrdersList() {
 
       {isAdmin && reminders === 'carriers' && <CarrierReminders />}
       {isAdmin && reminders === 'customers' && <CustomerReminders />}
+      {isAdmin && reminders === 'incomplete' && <CompleteOrders />}
 
       {/* Un fallo de red se veía igual que un resultado vacío: la tabla decía
           "No hay órdenes para este filtro", que era mentira. El aviso va

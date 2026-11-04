@@ -333,6 +333,10 @@ class Order(db.Model):
     # escribió al cliente para que elija una cotización.
     customer_reminded_at = db.Column(db.DateTime(), nullable=True)
     customer_reminder_count = db.Column(db.Integer, nullable=False, server_default='0', default=0)
+    # "Completar órdenes" (migración 046): cuándo y cuántas veces se le pidió
+    # por WhatsApp lo que le falta a la orden para mandarla a cotizar.
+    completion_asked_at = db.Column(db.DateTime(), nullable=True)
+    completion_ask_count = db.Column(db.Integer, nullable=False, server_default='0', default=0)
     # Órdenes cerradas fuera del modelo estándar (p. ej. Chalán factura el
     # total con IGV a cargo del cliente) cuyo desglose y pagos no reflejan la
     # plata real. Con texto = "conciliar en contabilidad", y el texto dice

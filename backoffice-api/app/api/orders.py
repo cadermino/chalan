@@ -1427,6 +1427,130 @@ def mark_customer_reminded(order_id):
                     'reminder_count': order.customer_reminder_count}), 200
 
 
+def _phone_key(phone):
+    """Los últimos 9 dígitos: el mismo número escrito con o sin +51."""
+    digits = re.sub(r'\D', '', phone or '')
+    return digits[-9:] or None
+
+
+def _address_ready(detail):
+    """Lo que el paso 1 exige de cada dirección (Addresses.requisites en el API principal)."""
+    return bool(detail and detail.street and detail.country and detail.map_url
+                and detail.floor_number is not None)
+
+
+def _completion_missing(order, origin, destination):
+    """Lo que le falta a la orden para mandarla a cotizar, más el contacto si no tiene cliente.
+
+    La fecha cuenta como faltante si es la de creación: la columna tiene
+    server_default now(), así que una orden que no pasó del paso 1 la tiene
+    igual a created_date.
+    """
+    missing = []
+    if not _address_ready(origin):
+        missing.append('origin')
+    if not _address_ready(destination):
+        missing.append('destination')
+    if order.appointment_date is None or order.appointment_date == order.created_date:
+        missing.append('date')
+    if not (order.comments or '').strip():
+        missing.append('comments')
+    if order.load_type == 'cargo' and not order.cargo_weight_kg:
+        missing.append('cargo_weight')
+    if order.customer_id is None:
+        missing.append('contact')
+    return missing
+
+
+@api.route('/orders/incomplete', methods=['GET'])
+@login_required
+def incomplete_orders():
+    """Órdenes que se quedaron a medias y dejaron un WhatsApp, para pedirle lo que falta.
+
+    Pendientes, sin mandar a los transportistas, de los últimos 30 días y con
+    teléfono: el que dejaron en el modal del paso 1 (`lead_phone`, también sin
+    cliente) o el de su cuenta. Una por número, la más reciente, y ninguna de
+    un número que después mandó otra orden a cotizar: ya lo resolvió. Cada una
+    dice qué le falta (`missing`); sin cliente, también nombre y correo.
+    Arriba las que nadie escribió, de la más nueva a la más vieja.
+    """
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
+    recent = Order.query.filter(Order.order_status_id == 1, Order.created_date >= since)\
+        .order_by(Order.created_date.desc(), Order.id.desc()).all()
+    customers = {c.id: c for c in Customer.query.filter(
+        Customer.id.in_({o.customer_id for o in recent if o.customer_id}))} if recent else {}
+
+    def phone_of(order):
+        customer = customers.get(order.customer_id)
+        return order.lead_phone or (customer.mobile_phone if customer else None)
+
+    sent_at = {}
+    for order in recent:
+        key = _phone_key(phone_of(order))
+        if order.quotation_requested and key:
+            sent_at[key] = max(sent_at.get(key, order.created_date), order.created_date)
+
+    result, seen = [], {}
+    for order in recent:
+        phone = phone_of(order)
+        key = _phone_key(phone)
+        if order.quotation_requested or not key:
+            continue
+        if key in sent_at and sent_at[key] >= order.created_date:
+            continue
+        if key in seen:
+            if seen[key]:
+                seen[key]['orders_with_phone'] += 1
+            continue
+        details = list(order.order_details)
+        origin = next((d for d in details if d.type == 'carry_from'), None)
+        destination = next((d for d in details if d.type == 'deliver_to'), None)
+        missing = _completion_missing(order, origin, destination)
+        if not missing:
+            # Su última orden ya tiene todo (le falta mandarla): las viejas no cuentan.
+            seen[key] = None
+            continue
+        customer = customers.get(order.customer_id)
+        row = {
+            'id': order.id,
+            'created_date': order.created_date.isoformat() + 'Z' if order.created_date else None,
+            'customer_name': customer.name if customer else None,
+            'phone': phone,
+            'origin_district': district_of(origin.to_dict()) if origin else None,
+            'destination_district': district_of(destination.to_dict()) if destination else None,
+            'load_type': order.load_type,
+            'missing': missing,
+            'orders_with_phone': 1,
+            'asked_at': order.completion_asked_at.isoformat() + 'Z' if order.completion_asked_at else None,
+            'ask_count': order.completion_ask_count or 0,
+        }
+        seen[key] = row
+        result.append(row)
+    result.sort(key=lambda r: r['asked_at'] is not None)
+    return jsonify({'orders': result}), 200
+
+
+@api.route('/orders/<int:order_id>/completion-asked', methods=['POST'])
+@login_required
+def mark_completion_asked(order_id):
+    """Lo llama el backoffice al abrir el WhatsApp de "Completar órdenes"."""
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    order.completion_asked_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    order.completion_ask_count = (order.completion_ask_count or 0) + 1
+    db.session.commit()
+    return jsonify({'asked_at': order.completion_asked_at.isoformat() + 'Z',
+                    'ask_count': order.completion_ask_count}), 200
+
+
 @api.route('/orders/<int:order_id>/customer-link', methods=['GET'])
 @login_required
 def customer_link(order_id):
