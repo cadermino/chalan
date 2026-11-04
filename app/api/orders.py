@@ -3,6 +3,7 @@ import re
 import base64
 import uuid
 from flask import jsonify, request, current_app
+from sqlalchemy import exc, func
 from openai import OpenAI
 from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, ReferredOrder
 from ..models import Payment as PaymentModel
@@ -29,6 +30,7 @@ from .email import send_email
 from .whatsapp import send_whatsapp, normalize_phone
 from datetime import date, datetime, timedelta, timezone
 from .errors import not_found
+from .service_request.validation import EMAIL_RE
 from .. import db
 from ..storage import get_storage
 
@@ -523,6 +525,63 @@ def _missing_fields_for_quotation(order_id):
     if needs_cargo_weight(details.get('load_type')) and not details.get('cargo_weight_kg'):
         missing.append('cargo_weight_kg')
     return missing
+
+@api.route('/order/<int:order_id>/customer', methods=['POST'])
+def link_order_customer(order_id):
+    """Le pone cliente a una orden que no tiene, desde el backoffice ("Enlazar cliente").
+
+    Para quien dejó su WhatsApp en el paso 1 y dio el resto por WhatsApp: sin
+    cliente la orden no sale a los transportistas. Las mismas reglas que el
+    paso de contacto (auth_routes.order_contact): un correo nuevo crea el
+    cliente sin contraseña, uno con cuenta liga la orden a esa cuenta sin tocar
+    su número. El número escrito queda en `lead_phone` en los dos casos, como
+    allá. No hay sesión ni correos: lo hace un admin, que después le manda al
+    cliente el link de su orden.
+
+    Solo llamadas internas: el control de rol se hizo en el backoffice-api.
+    """
+    if not is_internal_request():
+        return jsonify({'message': 'forbidden'}), 403
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'message': 'provide required data'}), 400
+    name = (data.get('name') or '').strip() if isinstance(data.get('name'), str) else ''
+    email = (data.get('email') or '').strip().lower() if isinstance(data.get('email'), str) else ''
+    mobile_phone = (data.get('mobile_phone') or '').strip() if isinstance(data.get('mobile_phone'), str) else ''
+    if not name or not email or not mobile_phone:
+        return jsonify({'message': 'provide required data'}), 400
+    if not EMAIL_RE.match(email):
+        return jsonify({'message': 'invalid email'}), 400
+
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return not_found('order not found')
+    if order.customer_id is not None:
+        return jsonify({'message': 'order already has a customer'}), 409
+
+    customer = Customer.query.filter(func.lower(Customer.email) == email).first()
+    existing = customer is not None
+    try:
+        if not existing:
+            customer = Customer(email=email, name=name, mobile_phone=mobile_phone)
+            db.session.add(customer)
+            db.session.flush()
+        order.customer_id = customer.id
+        order.lead_phone = mobile_phone
+        db.session.commit()
+    except exc.IntegrityError:
+        db.session.rollback()
+        return jsonify({'message': 'duplicated email'}), 409
+    except exc.DataError:
+        db.session.rollback()
+        return jsonify({'message': 'one or more fields exceed the maximum allowed length'}), 400
+    return jsonify({
+        'customer_id': customer.id,
+        'name': customer.name,
+        'email': customer.email,
+        'existing': existing,
+    }), 200 if existing else 201
+
 
 @api.route('/order/<int:order_id>/notify-carriers', methods=['POST'])
 def notify_carriers(order_id):

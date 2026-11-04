@@ -1113,6 +1113,37 @@ def notify_order_carriers(order_id):
     return jsonify(res.json()), res.status_code
 
 
+@api.route('/orders/<int:order_id>/customer', methods=['POST'])
+@login_required
+def link_order_customer(order_id):
+    """"Enlazar cliente": le pone cliente a una orden que no tiene.
+
+    Para las de "Completar órdenes", que dejaron su WhatsApp y dieron el nombre
+    y el correo por ahí. Lo hace el API principal (crea el cliente o liga la
+    cuenta que ya tiene ese correo, auth_routes.order_contact tiene las mismas
+    reglas); acá solo se controla el rol. Superadmin, igual que editar la
+    orden, que es lo que sigue.
+    """
+    user = g.current_user
+    if user.role != ROLE_SUPERADMIN:
+        return jsonify({'message': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/order/{order_id}/customer',
+            json={field: data.get(field) for field in ('name', 'email', 'mobile_phone')},
+            headers=_internal_headers(),
+            timeout=10,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the order service'}), 502
+    if res.status_code not in (200, 201, 400, 404, 409):
+        return jsonify({'message': 'failed to link the customer'}), 502
+    return jsonify(res.json()), res.status_code
+
+
 @api.route('/orders/bulk-cancel', methods=['POST'])
 @login_required
 def bulk_cancel_orders():

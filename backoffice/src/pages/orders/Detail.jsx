@@ -4,6 +4,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/Card'
 import ClientContact from '../../components/ClientContact'
+import LinkCustomer from '../../components/LinkCustomer'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
@@ -322,6 +323,15 @@ export default function OrderDetail() {
 
   const loadOrder = () => client.get(`/api/orders/${orderId}`).then(({ data }) => setOrder(data.order))
 
+  // Sin cliente la orden no sale a cotizar: lo que sigue es completarla en Editar.
+  const onCustomerLinked = (linked) => {
+    setBanner(linked.existing
+      ? `Ese correo ya tenía cuenta (${linked.name}): la orden quedó en esa cuenta. Ahora complétala en Editar y mándala a los transportistas.`
+      : `Se creó el cliente ${linked.name} y quedó en esta orden. Ahora complétala en Editar y mándala a los transportistas.`)
+    window.scrollTo(0, 0)
+    return loadOrder()
+  }
+
   useEffect(() => {
     loadOrder().finally(() => setLoading(false))
 
@@ -455,6 +465,11 @@ export default function OrderDetail() {
         {isAdmin && (
           <Card title="Cliente">
             <ClientContact name={order.customer_name} phone={order.customer_phone || order.lead_phone} />
+            {isSuperadmin && !order.customer_id && order.order_status_id === 1 && (
+              <div className="mt-3">
+                <LinkCustomer orderId={order.id} leadPhone={order.lead_phone} onLinked={onCustomerLinked} />
+              </div>
+            )}
             {/* El WhatsApp que dejó en este pedido no reemplaza el de su cuenta
                 (p. ej. un correo que ya tenía cuenta en el paso de contacto):
                 los avisos van al de la cuenta, así que se muestra aparte. */}

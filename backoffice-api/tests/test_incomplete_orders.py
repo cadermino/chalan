@@ -122,3 +122,42 @@ def test_only_admins(client):
     carrier = make_user('carrier_company')
     assert client.get('/api/orders/incomplete', headers=carrier).status_code == 403
     assert client.post('/api/orders/1/completion-asked', headers=carrier).status_code == 403
+
+
+class FakeResponse:
+    def __init__(self, status_code, body):
+        self.status_code = status_code
+        self._body = body
+
+    def json(self):
+        return self._body
+
+
+def test_linking_a_customer_goes_to_the_main_api(client, superadmin, monkeypatch):
+    seen = {}
+
+    def fake_post(url, json, headers, timeout):
+        seen.update(url=url, json=json, headers=headers)
+        return FakeResponse(201, {'customer_id': 9, 'existing': False})
+    monkeypatch.setattr('app.api.orders.requests.post', fake_post)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+
+    res = client.post('/api/orders/12/customer', headers=superadmin,
+                      json={'name': 'Carla', 'email': 'carla@example.com', 'mobile_phone': '987654321', 'id': 3})
+
+    assert res.status_code == 201
+    assert seen['url'] == 'http://flask-api:8001/api/v1/order/12/customer'
+    assert seen['json'] == {'name': 'Carla', 'email': 'carla@example.com', 'mobile_phone': '987654321'}
+    assert seen['headers']['Authorization'].startswith('Bearer ')
+
+
+def test_a_409_passes_through(client, superadmin, monkeypatch):
+    monkeypatch.setattr('app.api.orders.requests.post',
+                        lambda *a, **k: FakeResponse(409, {'message': 'order already has a customer'}))
+
+    assert client.post('/api/orders/12/customer', headers=superadmin, json={}).status_code == 409
+
+
+def test_only_superadmins_link_customers(client):
+    admin = make_user('admin')
+    assert client.post('/api/orders/12/customer', headers=admin, json={}).status_code == 403
