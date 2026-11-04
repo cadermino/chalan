@@ -96,3 +96,67 @@ def test_only_a_paid_reservation_confirms_the_order(client, admin, main_api):
         assert 'order_confirmation' not in res.get_json()
 
     assert calls == []
+
+
+def test_registering_the_reservation_as_received_confirms_the_order(client, admin, main_api):
+    """Una orden cerrada por WhatsApp no tiene filas de pago: "Registrar y marcar
+    el adelanto como recibido" las crea, y tiene que poner la orden en marcha
+    igual que marcar la reserva después."""
+    from app.models import Quotation
+    calls, _ = main_api
+    db.session.execute(db.text('CREATE TABLE IF NOT EXISTS lu_payment_type (id INTEGER PRIMARY KEY, type TEXT)'))
+    db.session.execute(db.text("INSERT INTO lu_payment_type (id, type) VALUES (1, 'cash'), (2, 'yape')"))
+    order = Order(order_status_id=1, created_date=datetime(2026, 10, 1), total_amount=220)
+    db.session.add(order)
+    db.session.commit()
+    db.session.add(Quotation(order_id=order.id, amount=200, quotation_status_id=2))
+    db.session.commit()
+
+    res = client.post(f'/api/orders/{order.id}/payments', headers=admin, json={'reservation_paid': True})
+
+    assert res.status_code == 201
+    assert res.get_json()['order_confirmation'] == 'ok'
+    assert [c['url'] for c in calls] == [f'http://flask-api:8001/api/v1/order/{order.id}/confirm-reservation']
+
+    res = client.post(f'/api/orders/{order.id}/payments', headers=admin, json={'reservation_paid': False})
+    assert res.status_code == 409  # ya tiene pagos
+
+
+@pytest.mark.parametrize('status_before', [1, 2])
+def test_paying_the_carrier_completes_the_order(client, admin, main_api, status_before):
+    order, payment = make_payment('carrier_cash')
+    order.order_status_id = status_before
+    db.session.commit()
+
+    res = patch_payment(client, admin, order, payment, 'paid')
+
+    assert res.get_json()['order_status_id'] == 3
+    assert db.session.get(Order, order.id).order_status_id == 3
+
+
+def test_undoing_the_carrier_payment_puts_the_order_back_in_progress(client, admin, main_api):
+    order, payment = make_payment('carrier_cash')
+    patch_payment(client, admin, order, payment, 'paid')
+
+    res = patch_payment(client, admin, order, payment, 'pending')
+
+    assert res.get_json()['order_status_id'] == 2
+    assert db.session.get(Order, order.id).order_status_id == 2
+
+
+def test_the_carrier_payment_leaves_cancelled_and_untouched_orders_alone(client, admin, main_api):
+    cancelled, payment = make_payment('carrier_cash')
+    cancelled.order_status_id = 4
+    db.session.commit()
+    res = patch_payment(client, admin, cancelled, payment, 'paid')
+    assert 'order_status_id' not in res.get_json()
+    assert db.session.get(Order, cancelled.id).order_status_id == 4
+
+    # Cancelar una fila que nunca estuvo pagada no reabre una orden que el
+    # transportista completó desde su panel.
+    done, payment = make_payment('carrier_cash')
+    done.order_status_id = 3
+    db.session.commit()
+    res = patch_payment(client, admin, done, payment, 'cancelled')
+    assert 'order_status_id' not in res.get_json()
+    assert db.session.get(Order, done.id).order_status_id == 3

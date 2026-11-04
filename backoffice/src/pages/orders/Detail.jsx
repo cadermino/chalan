@@ -385,11 +385,26 @@ export default function OrderDetail() {
     && order?.order_status_id === 2
     && order?.existing_quotation?.quotation_status_id === 2
 
+  // Confirmar la reserva pone la orden en progreso y avisa al transportista;
+  // si eso falló, el pago ya quedó guardado.
+  function showOrderConfirmation(confirmation) {
+    if (confirmation === 'ok') {
+      loadOrder()
+    } else if (confirmation === 'failed') {
+      setPaymentsError(
+        'El pago quedó registrado, pero la orden no se pudo poner en progreso. Hazlo desde Editar orden.'
+      )
+    }
+  }
+
   function registerPayments(options) {
     setRegisteringPayments(true)
     setPaymentsError(null)
     client.post(`/api/orders/${orderId}/payments`, options)
-      .then(({ data }) => setPayments(data.payments))
+      .then(({ data }) => {
+        setPayments(data.payments)
+        showOrderConfirmation(data.order_confirmation)
+      })
       .catch(err => setPaymentsError(
         err.response?.data?.message || 'No se pudieron registrar los pagos'
       ))
@@ -402,15 +417,10 @@ export default function OrderDetail() {
     client.patch(`/api/orders/${orderId}/payments/${paymentId}`, { status })
       .then(({ data }) => {
         setPayments((prev) => prev.map((p) => (p.id === data.payment.id ? data.payment : p)))
-        // Confirmar la reserva pone la orden en progreso y avisa al
-        // transportista; si eso falló, el pago ya quedó guardado.
-        if (data.order_confirmation === 'ok') {
-          loadOrder()
-        } else if (data.order_confirmation === 'failed') {
-          setPaymentsError(
-            'El pago quedó registrado, pero la orden no se pudo poner en progreso. Hazlo desde Editar orden.'
-          )
-        }
+        showOrderConfirmation(data.order_confirmation)
+        // El efectivo al transportista completa la orden (o la devuelve a en
+        // progreso al deshacerlo).
+        if (data.order_status_id) loadOrder()
       })
       .catch(err => setPaymentsError(
         err.response?.data?.message || 'No se pudo actualizar el pago'
