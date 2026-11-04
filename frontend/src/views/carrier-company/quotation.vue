@@ -751,6 +751,7 @@ export default {
           if (response.status === 200) {
             this.orderData = response.data.order;
             this.carrierCompanyId = response.data.carrier_company_id;
+            tagSession('order_id', this.orderData.id);
             tagSession('carrier_company_id', this.carrierCompanyId);
             tagSession('carrier_company', response.data.carrier_company_name);
             this.orderDetails = this.orderData.order_details;
