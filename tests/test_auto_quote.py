@@ -256,6 +256,18 @@ def test_weekends_carry_the_surcharge(customer, moving):
     assert estimates(order)[company.id].amount == round((200 + 420 + 60) * 1.1)
 
 
+def test_customers_and_carriers_do_not_see_what_was_computed(customer, moving):
+    from app.api.order.order import Order as OrderEntity
+    make_company(moving)
+    order = make_order(customer)
+    run(NOW)
+
+    details = OrderEntity(order.id).details()
+
+    assert float(order.estimated_volume_m3) > 0
+    assert not {'estimated_volume_m3', 'volume_breakdown', 'auto_quote_checked_at', 'auto_quote_skip'} & set(details)
+
+
 # ── La misma fórmula que el simulador del backoffice ──
 
 def test_the_formula_is_the_same_as_the_backoffice_one():

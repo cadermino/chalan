@@ -631,6 +631,9 @@ class OrderSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
 		model = Order
 		load_instance = True
+		# Lo de la cotización automática es de Chalán: este dump llega al
+		# cliente y al link del transportista (Order.details()).
+		exclude = ('estimated_volume_m3', 'volume_breakdown', 'auto_quote_checked_at', 'auto_quote_skip')
 
 class OrderDetailsSchema(ma.SQLAlchemyAutoSchema):
 	class Meta:
