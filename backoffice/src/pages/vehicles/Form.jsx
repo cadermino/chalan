@@ -17,10 +17,6 @@ const CARD_FIELDS = [
   'cargo_cover', 'box_length_m', 'box_width_m', 'box_height_m',
 ]
 
-// Columnas de tarifas del vehículo anteriores a la página Tarifas (migración
-// 047). Nada las usaba para calcular; quedan en la base hasta borrarlas.
-const OLD_FEES = ['charge_per_kilometer', 'charge_per_floor', 'driver_fee', 'loader_fee', 'loaders_quantity']
-
 const EMPTY = {
   brand: '', model: '', plates: '', size: 'medium', description: '',
   picture: '', base_address: '', active: true,
@@ -100,9 +96,6 @@ export default function VehicleForm() {
     const payload = { ...form }
     // La foto se guarda al subirla (VehiclePhoto), no con este botón.
     delete payload.picture
-    // Las tarifas viejas del vehículo no se editan más (van por empresa, en
-    // Tarifas); sin mandarlas, el PUT deja lo que había.
-    for (const key of OLD_FEES) delete payload[key]
     try {
       if (isEdit) {
         await client.put(`/api/carrier-companies/${companyId}/vehicles/${vehicleId}`, payload)

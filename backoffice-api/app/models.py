@@ -241,11 +241,6 @@ class Vehicle(db.Model):
     height = db.Column(db.String(45))
     length = db.Column(db.String(45))
     base_address = db.Column(db.String(200))
-    charge_per_kilometer = db.Column(db.Integer, nullable=False, server_default='0')
-    charge_per_floor = db.Column(db.Integer, nullable=False, server_default='0')
-    driver_fee = db.Column(db.Integer, nullable=False, server_default='0')
-    loader_fee = db.Column(db.Integer, nullable=False, server_default='0')
-    loaders_quantity = db.Column(db.Integer, nullable=False, server_default='0')
     active = db.Column(db.Integer, server_default='0')
     # Datos de la tarjeta de identificación vehicular (migración 023). Los
     # pesos van en toneladas, como los imprime la tarjeta. weight, width,
@@ -298,11 +293,6 @@ class Vehicle(db.Model):
             'height': self.height,
             'length': self.length,
             'base_address': self.base_address,
-            'charge_per_kilometer': self.charge_per_kilometer,
-            'charge_per_floor': self.charge_per_floor,
-            'driver_fee': self.driver_fee,
-            'loader_fee': self.loader_fee,
-            'loaders_quantity': self.loaders_quantity,
             'active': bool(self.active),
         }
 

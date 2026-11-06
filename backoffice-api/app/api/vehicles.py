@@ -153,11 +153,6 @@ def create_vehicle(company_id):
         height=data.get('height'),
         length=data.get('length'),
         base_address=data.get('base_address'),
-        charge_per_kilometer=data.get('charge_per_kilometer', 0),
-        charge_per_floor=data.get('charge_per_floor', 0),
-        driver_fee=data.get('driver_fee', 0),
-        loader_fee=data.get('loader_fee', 0),
-        loaders_quantity=data.get('loaders_quantity', 0),
         active=1 if data.get('active', True) else 0,
     )
     db.session.add(vehicle)
@@ -192,9 +187,7 @@ def update_vehicle(company_id, vehicle_id):
     for field, value in card.items():
         setattr(vehicle, field, value)
     for field in ('brand', 'model', 'plates', 'size', 'description', 'picture',
-                  'weight', 'width', 'height', 'length', 'base_address',
-                  'charge_per_kilometer', 'charge_per_floor', 'driver_fee',
-                  'loader_fee', 'loaders_quantity'):
+                  'weight', 'width', 'height', 'length', 'base_address'):
         if field in data:
             setattr(vehicle, field, data[field])
     if 'active' in data:
