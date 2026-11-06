@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import jwt
@@ -182,3 +183,16 @@ def test_the_carriers_link_cannot_review_its_own_job(app, client, packing, conta
     assert client.get(f'/api/v1/reviews/verify/{carrier_link}').status_code == 400
     assert review(client, carrier_link).status_code == 400
     assert Review.query.count() == 0
+
+
+def test_the_public_list_only_has_companies_with_reviews(client, packing):
+    country_id = int(os.getenv('COUNTRY_ID', '1'))
+    reviewed = CarrierCompany(name='Embala SAC', active=1, country_id=country_id)
+    quiet = CarrierCompany(name='Sin reseñas', active=1, country_id=country_id)
+    db.session.add_all([reviewed, quiet])
+    db.session.commit()
+    review(client, make_review_token(make_request(packing, reviewed)))
+
+    listed = client.get('/api/v1/reviews/companies').get_json()
+
+    assert [c['id'] for c in listed] == [reviewed.id]

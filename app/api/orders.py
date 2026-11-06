@@ -254,12 +254,21 @@ def order_detail():
     data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order = OrderEntity(data['order_id'])
     order_details = order.details()
+    # Solo su propia cotización (con su nota, para recotizar sin reescribirla):
+    # la vista no usa las demás, y venían con monto y empresa, así que con las
+    # herramientas del navegador se veía cuántos cotizaron y a cuánto.
     quotations = QuotationEntity().listByOrderId(data['order_id'])
-    order_details['quotations'] = QuotationsSchema(many=True).dump(quotations.quotations)
-    # Su propia nota, para recotizar sin reescribirla; las de los demás no.
-    for dumped, quotation in zip(order_details['quotations'], quotations.quotations):
-        if quotation.carrier_company_id == data['carrier_company_id']:
-            dumped['note'] = quotation.note
+    own = [q for q in quotations.quotations if q.carrier_company_id == data['carrier_company_id']]
+    order_details['quotations'] = QuotationsSchema(many=True).dump(own)
+    for dumped, quotation in zip(order_details['quotations'], own):
+        dumped['note'] = quotation.note
+    # details() es la de la vista del cliente: trae sus datos de contacto y,
+    # elegida otra empresa, su precio, su vehículo y los pagos.
+    order_details.pop('customers', None)
+    if order_details.get('selected_quotation_id') not in {q.id for q in own}:
+        for field in ('selected_quotation_id', 'amount', 'vehicle'):
+            order_details.pop(field, None)
+        order_details['payments'] = []
 
     if order_details.get('approximate_budget'):
         platform_fee = float(os.getenv('PLATFORM_FEE'))

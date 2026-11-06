@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { StarRating } from "@/components/StarRating";
 import { getApiBase } from "@/lib/api";
 import type { Metadata } from "next";
@@ -28,7 +29,10 @@ async function getCompanyReviews(id: string): Promise<CompanyDetail | null> {
       next: { revalidate: 60 },
     });
     if (!res.ok) return null;
-    return res.json();
+    const company: CompanyDetail = await res.json();
+    // Without reviews the page is empty, and listing every company told any
+    // carrier how many others there are: only companies with reviews have one.
+    return company.total_reviews > 0 ? company : null;
   } catch {
     return null;
   }
@@ -38,12 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const company = await getCompanyReviews(id);
   
-  if (!company) {
-    return {
-      title: "Empresa no encontrada - Chalán",
-      description: "La empresa transportista que buscas no existe.",
-    };
-  }
+  if (!company) notFound();
 
   const avgRating = company.average_rating ? company.average_rating.toFixed(1) : "0";
   const reviewCount = company.total_reviews || 0;
@@ -80,18 +79,7 @@ export default async function CompanyReviewsPage({
   const { id } = await params;
   const company = await getCompanyReviews(id);
 
-  if (!company) {
-    return (
-      <main id="main-content" className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Empresa no encontrada</h1>
-          <Link href="/reviews" className="text-blue-600 hover:underline">
-            ← Volver a reseñas
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  if (!company) notFound();
 
   const ratingDistribution = [5, 4, 3, 2, 1].map((star) => ({
     star,

@@ -237,19 +237,20 @@ def get_top_companies():
 
 @api.route('/reviews/companies', methods=['GET'])
 def get_all_companies_with_ratings():
-    """List all active carrier companies with their average rating and review count."""
+    """List the active carrier companies that have reviews, with their rating and count."""
     country_id = os.getenv('COUNTRY_ID', '1')
 
-    # Left outer join to include companies without reviews
+    # Solo las que tienen reseñas: la lista es pública (/reviews, el sitemap)
+    # y con todas, cualquier transportista veía cuántas empresas hay.
     results = db.session.query(
         CarrierCompany.id,
         CarrierCompany.name,
         CarrierCompany.description,
         CarrierCompany.cover_image,
-        func.coalesce(func.avg(Review.rating), 0).label('average_rating'),
+        func.avg(Review.rating).label('average_rating'),
         func.count(Review.id).label('total_reviews'),
         func.max(Review.created_date).label('last_review_date')
-    ).outerjoin(Review, Review.carrier_company_id == CarrierCompany.id)\
+    ).join(Review, Review.carrier_company_id == CarrierCompany.id)\
      .filter(CarrierCompany.country_id == int(country_id))\
      .filter(CarrierCompany.active == 1)\
      .group_by(CarrierCompany.id, CarrierCompany.name,

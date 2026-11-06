@@ -1,14 +1,15 @@
 """La nota del transportista en una cotización de mudanza.
 
 Lo que aclara junto al precio ("voy con 2 cargadores", "en 2 viajes"). La ve
-el cliente al lado de esa cotización; en el link de cada transportista solo
-viene la suya, porque ese link lista todas las cotizaciones de la orden.
+el cliente al lado de esa cotización; el link de cada transportista solo trae
+su propia cotización.
 """
 import pytest
 
 from app import db
 from app.api.carrier_company import CarrierCompany as CarrierCompanyEntity
 from app.api.quotation import Quotation as QuotationEntity
+from app.api.quotation.quotation_status import QuotationStatus
 from app.models import CarrierCompany, Quotations, Vehicle
 
 
@@ -95,6 +96,32 @@ def test_a_carrier_link_shows_only_its_own_note(client, order, carrier_company):
     res = client.get('/api/v1/orders/details', headers={'Authorization': f'Bearer {_token(order, carrier_company)}'})
 
     assert res.status_code == 200
-    by_company = {q['carrier_company_id']: q for q in res.get_json()['order']['quotations']}
-    assert by_company[carrier_company.id]['note'] == 'Mi nota'
-    assert 'note' not in by_company[other.id]
+    quotations = res.get_json()['order']['quotations']
+    assert [q['carrier_company_id'] for q in quotations] == [carrier_company.id]
+    assert quotations[0]['note'] == 'Mi nota'
+
+
+def _details(client, order, company):
+    res = client.get('/api/v1/orders/details', headers={'Authorization': f'Bearer {_token(order, company)}'})
+    assert res.status_code == 200
+    return res.get_json()['order']
+
+
+def test_a_carrier_link_does_not_show_the_customer_or_the_chosen_competitor(client, order, carrier_company):
+    other = CarrierCompany(name='Otra', active=1)
+    db.session.add(other)
+    db.session.commit()
+    _quote(client, order, carrier_company)
+    _quote(client, order, other)
+    chosen = Quotations.query.filter_by(order_id=order.id, carrier_company_id=other.id).one()
+    chosen.quotation_status_id = QuotationStatus.Selected()
+    db.session.commit()
+
+    mine = _details(client, order, carrier_company)
+    theirs = _details(client, order, other)
+
+    assert 'customers' not in mine
+    assert not {'selected_quotation_id', 'amount', 'vehicle'} & mine.keys()
+    assert mine['payments'] == []
+    assert theirs['selected_quotation_id'] == chosen.id
+    assert 'customers' not in theirs
