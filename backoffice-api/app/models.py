@@ -346,6 +346,12 @@ class Order(db.Model):
     # principal). NULL = orden de antes, se lee como mudanza.
     load_type = db.Column(db.String(20), nullable=True)
     cargo_weight_kg = db.Column(db.Integer, nullable=True)
+    # Lo que la cotización automática leyó de la orden (migración 048; lo
+    # escribe el API principal, api/auto_quote.py).
+    estimated_volume_m3 = db.Column(db.Numeric(6, 2), nullable=True)
+    volume_breakdown = db.Column(db.JSON, nullable=True)
+    auto_quote_checked_at = db.Column(db.DateTime(), nullable=True)
+    auto_quote_skip = db.Column(db.String(20), nullable=True)
 
     order_details = db.relationship('OrderDetail', backref='order', lazy='dynamic')
     quotations = db.relationship('Quotation', backref='order', lazy='dynamic')
@@ -798,6 +804,25 @@ class CarrierRates(db.Model):
     auto_quote_authorized_by = db.Column(db.Integer, db.ForeignKey('admin_users.id', ondelete='SET NULL'))
     created_date = db.Column(db.DateTime(), server_default=func.now())
     updated_date = db.Column(db.DateTime(), server_default=func.now())
+
+
+class AutoQuoteEstimate(db.Model):
+    """Lo que una empresa habría cotizado con sus tarifas (migración 048). Lo
+    escribe el API principal en silencio; acá solo se lee para compararlo con lo
+    que cotizó de verdad."""
+    __tablename__ = 'auto_quote_estimates'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
+                                   nullable=False)
+    notified_at = db.Column(db.DateTime(), nullable=False)
+    amount = db.Column(db.Integer)
+    skip_reason = db.Column(db.String(20))
+    inputs = db.Column(db.JSON)
+    lines = db.Column(db.JSON)
+    created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
 class CarrierAvailability(db.Model):

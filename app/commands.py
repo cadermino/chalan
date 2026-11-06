@@ -8,6 +8,16 @@ from .storage import get_storage
 
 
 def register(app):
+    @app.cli.command('auto-quote')
+    def auto_quote():
+        """Calcula en silencio lo que cada transportista con tarifas habría
+        cotizado en las órdenes avisadas hace 20 minutos o más (api/auto_quote.py).
+        Pensado para un cron cada pocos minutos: lo que ya miró no lo repite."""
+        from .api.auto_quote import run
+        checked = run()
+        if checked:
+            click.echo(' '.join(f'{order_id}:{skip or "ok"}' for order_id, skip in checked.items()))
+
     @app.cli.command('move-service-media')
     @click.option('--apply', is_flag=True, help='Mover de verdad; sin esto solo cuenta.')
     def move_service_media(apply):

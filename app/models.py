@@ -129,6 +129,12 @@ class Order(db.Model):
 	# 030). Vacíos en las órdenes de antes: se leen como mudanza.
 	load_type = db.Column(db.String(20), nullable=True)
 	cargo_weight_kg = db.Column(db.Integer, nullable=True)
+	# Los m³ leídos de la lista de cosas y cómo (api/order/volume.py), y la
+	# última vez que la cotización automática miró la orden (migración 048).
+	estimated_volume_m3 = db.Column(db.Numeric(6, 2), nullable=True)
+	volume_breakdown = db.Column(db.JSON, nullable=True)
+	auto_quote_checked_at = db.Column(db.DateTime(), nullable=True)
+	auto_quote_skip = db.Column(db.String(20), nullable=True)
 
 	order_details = db.relationship("OrderDetails", backref="orders", lazy='dynamic')
 	payments = db.relationship("Payment", backref="orders", lazy='dynamic')
@@ -476,6 +482,58 @@ class OrderCarrierDecline(db.Model):
 	note = db.Column(db.String(500))
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+
+class CarrierRates(db.Model):
+	"""Lo que cobra una empresa (migración 047; se edita en el backoffice, ver
+	backoffice-api app/carrier_rates.py). Una fila por empresa por ahora."""
+	__tablename__ = 'carrier_rates'
+	id = db.Column(db.Integer, primary_key=True)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), nullable=False)
+	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id', ondelete='CASCADE'))
+	base_fee = db.Column(db.Numeric(10, 2))
+	per_m3 = db.Column(db.Numeric(10, 2))
+	per_loader = db.Column(db.Numeric(10, 2))
+	per_floor = db.Column(db.Numeric(10, 2))
+	minimum_fare = db.Column(db.Numeric(10, 2))
+	per_km_outside_lima = db.Column(db.Numeric(10, 2))
+	weekend_surcharge_percent = db.Column(db.Numeric(5, 2))
+	max_m3 = db.Column(db.Numeric(6, 2))
+	max_km = db.Column(db.Integer)
+	moves_per_day = db.Column(db.SmallInteger, nullable=False, server_default='1', default=1)
+	auto_quote = db.Column(db.Boolean, nullable=False, server_default='false', default=False)
+	auto_quote_authorized_at = db.Column(db.DateTime())
+	auto_quote_authorized_by = db.Column(db.Integer)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+	updated_date = db.Column(db.DateTime(), server_default=func.now())
+
+class CarrierAvailability(db.Model):
+	"""Lo que una empresa no puede trabajar (migración 047): `weekday` (0 = lunes)
+	todas las semanas, o `day` para una fecha, que manda sobre la semana.
+	`blocked` es la parte del día: `day`, `am`, `pm`, o NULL (abierto)."""
+	__tablename__ = 'carrier_availability'
+	id = db.Column(db.Integer, primary_key=True)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), nullable=False)
+	vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id', ondelete='CASCADE'))
+	weekday = db.Column(db.SmallInteger)
+	day = db.Column(db.Date)
+	blocked = db.Column(db.String(3))
+	source = db.Column(db.String(10), nullable=False, server_default='carrier', default='carrier')
+	created_by = db.Column(db.Integer)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+class AutoQuoteEstimate(db.Model):
+	"""Lo que una empresa habría cotizado con sus tarifas (migración 048), sin
+	mostrarlo: `amount` es su precio, o NULL con `skip_reason` si no podía."""
+	__tablename__ = 'auto_quote_estimates'
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), nullable=False)
+	notified_at = db.Column(db.DateTime(), nullable=False)
+	amount = db.Column(db.Integer)
+	skip_reason = db.Column(db.String(20))
+	inputs = db.Column(db.JSON)
+	lines = db.Column(db.JSON)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 class ServiceRequestPayment(db.Model):
 	"""La plata de una solicitud (migraciones 026 y 032). `reservation`: lo que el

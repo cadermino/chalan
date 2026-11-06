@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import client from '../../api/client'
 import Card from '../../components/Card'
+import { useAuth } from '../../contexts/AuthContext'
 
 // Lo que cobra la empresa por una mudanza (backoffice-api carrier_rates.py).
 // En Lima el precio sigue a lo que se lleva, no a la distancia, así que es una
@@ -42,7 +43,10 @@ const toPayload = (form) => Object.fromEntries(
 
 export default function CarrierRates() {
   const { companyId } = useParams()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const [company, setCompany] = useState(null)
+  const [accuracy, setAccuracy] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [saved, setSaved] = useState(null)
   const [autoQuote, setAutoQuote] = useState(false)
@@ -58,7 +62,10 @@ export default function CarrierRates() {
       setForm(toForm(data.rates))
       setAutoQuote(data.rates.auto_quote)
     })
-  }, [companyId])
+    if (isAdmin) {
+      client.get(`/api/carrier-companies/${companyId}/auto-quote-accuracy`).then(({ data }) => setAccuracy(data))
+    }
+  }, [companyId, isAdmin])
 
   // El simulador no guarda: recalcula con lo que está escrito, un momento
   // después de dejar de escribir.
@@ -182,7 +189,8 @@ export default function CarrierRates() {
           </button>
         </div>
 
-        <aside className="lg:sticky lg:top-6">
+        <aside className="lg:sticky lg:top-6 space-y-6">
+          {accuracy && <AccuracyCard accuracy={accuracy} />}
           <Card title="Cuánto cobrarías">
             {!complete && (
               <p className="text-sm text-gray-400">Escribe la base y el precio por m³ para ver los totales.</p>
@@ -226,5 +234,45 @@ export default function CarrierRates() {
         </aside>
       </form>
     </div>
+  )
+}
+
+// Solo admins: cuánto se parece lo que sale con sus tarifas a lo que la empresa
+// cotiza de verdad (backoffice-api api/auto_quote.py). Decide a quién encender.
+function AccuracyCard({ accuracy: a }) {
+  const pct = (n) => `${Math.round(n * 100)}%`
+  return (
+    <Card title="Cuánto acierta (solo Chalán)">
+      {a.compared === 0 ? (
+        <p className="text-sm text-gray-500">
+          {a.estimated === 0
+            ? 'Todavía no se calculó ninguna orden con estas tarifas.'
+            : `${a.estimated === 1 ? 'Se calculó 1 orden' : `Se calcularon ${a.estimated} órdenes`}, pero no cotizó ninguna para comparar.`}
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-gray-700">
+            En <span className="font-medium">{a.hits} de {a.compared}</span> órdenes quedó a menos de{' '}
+            {pct(a.tolerance)} de lo que cotizó ({pct(a.share)}). Diferencia típica: {a.median_error > 0 ? '+' : ''}
+            {pct(a.median_error)}.
+          </p>
+          <p className={`text-xs mt-2 ${a.ready ? 'text-green-700' : 'text-gray-500'}`}>
+            {a.ready
+              ? 'Acierta lo suficiente para cotizar por ella.'
+              : `Para cotizar por ella: ${a.ready_min_compared} órdenes comparadas y ${pct(a.ready_share)} de aciertos.`}
+          </p>
+          <ul className="mt-3 space-y-0.5 text-xs text-gray-500">
+            {a.recent.slice(0, 8).map((r) => (
+              <li key={`${r.order_id}-${r.notified_at}`} className="flex justify-between gap-3">
+                <span>Orden #{r.order_id}: S/ {r.amount} vs S/ {r.quoted}</span>
+                <span className={Math.abs(r.error) <= a.tolerance ? 'text-green-700' : 'text-red-600'}>
+                  {r.error > 0 ? '+' : ''}{Math.round(r.error * 100)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Card>
   )
 }

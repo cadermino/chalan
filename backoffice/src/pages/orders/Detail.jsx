@@ -8,6 +8,7 @@ import LinkCustomer from '../../components/LinkCustomer'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
+import AutoQuoteEstimates from '../../components/AutoQuoteEstimates'
 import { cargoWeightLabel, loadTypeLabel } from '../../lib/loadTypes'
 
 function Field({ label, value }) {
@@ -728,6 +729,9 @@ export default function OrderDetail() {
         {isAdmin && order.order_status_id === 1 && (
           <NearbyCarriers orderId={orderId} appointmentDate={order.appointment_date} moveText={moveSummary(order)} />
         )}
+
+        {/* Lo que cada empresa habría cotizado con sus tarifas, calculado en silencio */}
+        {isAdmin && <AutoQuoteEstimates orderId={orderId} />}
 
         {/* Link de cotización por empresa — solo para admins */}
         {isAdmin && companies.length > 0 && (
