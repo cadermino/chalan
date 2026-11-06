@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const reviewCount = company.total_reviews || 0;
   
   return {
-    title: `${company.name} - Reviews y calificaciones (${avgRating}⭐) - Chalán`,
+    title: `${company.name} - Reviews y calificaciones (${avgRating} de 5) - Chalán`,
     description: 
       `Lee las ${reviewCount} reseñas de ${company.name}, empresa de mudanzas y fletes en Perú. Calificación promedio: ${avgRating}/5 estrellas.`,
     keywords: 
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       canonical: `/reviews/${id}`,
     },
     openGraph: {
-      title: `${company.name} - Reviews (${avgRating}⭐)`,
+      title: `${company.name} - Reviews (${avgRating} de 5)`,
       description: 
         `Lee las reseñas de ${company.name}, empresa de mudanzas en Perú. ${reviewCount} reviews - ${avgRating}/5 estrellas.`,
       url: `https://chalan.pe/reviews/${id}`,
