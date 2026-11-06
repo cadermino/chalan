@@ -17,8 +17,6 @@ interface CompanyDetail {
   name: string;
   description: string;
   cover_image: string | null;
-  phone: string;
-  email: string;
   average_rating: number;
   total_reviews: number;
   reviews: Review[];
@@ -106,14 +104,13 @@ export default async function CompanyReviewsPage({
         : 0,
   }));
 
-  // JSON-LD structured data
+  // JSON-LD structured data: one company with its reviews inside. No phone or
+  // email: the page doesn't show them, and they let customers skip Chalán.
   const businessJsonLd = {
     "@context": "https://schema.org",
     "@type": "MovingCompany",
     name: company.name,
     description: company.description,
-    telephone: company.phone,
-    email: company.email,
     image: company.cover_image,
     aggregateRating: company.total_reviews > 0 ? {
       "@type": "AggregateRating",
@@ -122,28 +119,22 @@ export default async function CompanyReviewsPage({
       bestRating: "5",
       worstRating: "1",
     } : undefined,
+    review: company.reviews.map((review) => ({
+      "@type": "Review",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: review.rating,
+        bestRating: "5",
+        worstRating: "1",
+      },
+      author: {
+        "@type": "Person",
+        name: review.customer_name,
+      },
+      reviewBody: review.comment,
+      datePublished: review.created_date,
+    })),
   };
-
-  const reviewsJsonLd = company.reviews.map((review) => ({
-    "@context": "https://schema.org",
-    "@type": "Review",
-    reviewRating: {
-      "@type": "Rating",
-      ratingValue: review.rating,
-      bestRating: "5",
-      worstRating: "1",
-    },
-    author: {
-      "@type": "Person", 
-      name: review.customer_name,
-    },
-    reviewBody: review.comment,
-    datePublished: review.created_date,
-    itemReviewed: {
-      "@type": "MovingCompany",
-      name: company.name,
-    },
-  }));
 
   return (
     <main id="main-content" className="min-h-screen bg-gray-50">
@@ -151,13 +142,7 @@ export default async function CompanyReviewsPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
       />
-      {reviewsJsonLd.map((reviewJson, index) => (
-        <script
-          key={index}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(reviewJson) }}
-        />
-      ))}
+
       <div className="container mx-auto px-6 py-12">
         <BreadcrumbJsonLd
           items={[

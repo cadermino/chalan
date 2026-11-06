@@ -3,7 +3,7 @@ import jwt
 from flask import jsonify, request, current_app
 from . import api
 from .. import db
-from ..models import (Review, ReviewSchema, Order, CarrierCompany, Customer, CarrierCompanySchema, Quotations,
+from ..models import (Review, ReviewSchema, Order, CarrierCompany, Customer, Quotations,
                       ServiceRequest)
 from .order.order_status import OrderStatus
 from .quotation.quotation_status import QuotationStatus
@@ -189,13 +189,17 @@ def get_company_reviews(company_id):
             'created_date': r.created_date.isoformat() if r.created_date else None,
         })
 
-    carrier_schema = CarrierCompanySchema()
-    carrier_data = carrier_schema.dump(carrier)
-    carrier_data['average_rating'] = round(float(avg_rating), 1)
-    carrier_data['total_reviews'] = len(reviews)
-    carrier_data['reviews'] = reviews_data
-
-    return jsonify(carrier_data)
+    # Solo lo que muestra la ficha: el teléfono y el correo dejaban contratar al
+    # transportista sin pasar por Chalán, y el RUC y contact_name no son públicos.
+    return jsonify({
+        'id': carrier.id,
+        'name': carrier.name,
+        'description': carrier.description or '',
+        'cover_image': carrier.cover_image,
+        'average_rating': round(float(avg_rating), 1),
+        'total_reviews': len(reviews),
+        'reviews': reviews_data,
+    })
 
 
 @api.route('/reviews/top-companies', methods=['GET'])

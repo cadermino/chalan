@@ -161,6 +161,18 @@ def test_a_registered_company_shows_its_service_reviews_with_the_customers_short
     assert recent[0]['customer_name'] == 'Carla R.'
 
 
+def test_the_public_page_does_not_give_the_companys_contact_or_tax_data(client, packing):
+    company = CarrierCompany(name='Embala SAC', active=1, phone='987654321', email='embala@example.com',
+                             rfc='20123456789', address='Av. Siempre Viva 123', contact_name='Rosa')
+    db.session.add(company)
+    db.session.commit()
+
+    page = client.get(f'/api/v1/reviews/company/{company.id}').get_json()
+
+    assert page['name'] == 'Embala SAC'
+    assert not {'phone', 'email', 'rfc', 'address', 'contact_name'} & page.keys()
+
+
 def test_the_carriers_link_cannot_review_its_own_job(app, client, packing, contact):
     # El link del transportista trae service_request_id y carrier_company_id, con la misma firma.
     service_request = make_request(packing, contact)
