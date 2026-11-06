@@ -69,7 +69,6 @@ export default function VehiclesList() {
               <th className="px-4 py-3 text-left">Marca / Modelo</th>
               <th className="px-4 py-3 text-left">Placas</th>
               <th className="px-4 py-3 text-left">Tamaño</th>
-              <th className="px-4 py-3 text-right">S/km</th>
               <th className="px-4 py-3 text-left">Estado</th>
               <th className="px-4 py-3 text-left">Acciones</th>
             </tr>
@@ -82,7 +81,6 @@ export default function VehiclesList() {
                 </td>
                 <td className="px-4 py-3 text-gray-500">{v.plates || '—'}</td>
                 <td className="px-4 py-3 text-gray-500">{SIZE_LABEL[v.size] || v.size}</td>
-                <td className="px-4 py-3 text-right">{v.charge_per_kilometer}</td>
                 <td className="px-4 py-3">
                   {v.active
                     ? <span className="text-green-600 font-medium">Activo</span>
@@ -102,7 +100,7 @@ export default function VehiclesList() {
               </tr>
             ))}
             {vehicles.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Sin vehículos</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Sin vehículos</td></tr>
             )}
           </tbody>
         </table>

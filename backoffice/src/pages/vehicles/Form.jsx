@@ -17,10 +17,13 @@ const CARD_FIELDS = [
   'cargo_cover', 'box_length_m', 'box_width_m', 'box_height_m',
 ]
 
+// Columnas de tarifas del vehículo anteriores a la página Tarifas (migración
+// 047). Nada las usaba para calcular; quedan en la base hasta borrarlas.
+const OLD_FEES = ['charge_per_kilometer', 'charge_per_floor', 'driver_fee', 'loader_fee', 'loaders_quantity']
+
 const EMPTY = {
   brand: '', model: '', plates: '', size: 'medium', description: '',
-  picture: '', base_address: '', charge_per_kilometer: 0, charge_per_floor: 0,
-  driver_fee: 0, loader_fee: 0, loaders_quantity: 1, active: true,
+  picture: '', base_address: '', active: true,
   ...Object.fromEntries(CARD_FIELDS.map((f) => [f, ''])),
 }
 
@@ -94,16 +97,12 @@ export default function VehicleForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    const payload = {
-      ...form,
-      charge_per_kilometer: Number(form.charge_per_kilometer),
-      charge_per_floor: Number(form.charge_per_floor),
-      driver_fee: Number(form.driver_fee),
-      loader_fee: Number(form.loader_fee),
-      loaders_quantity: Number(form.loaders_quantity),
-    }
+    const payload = { ...form }
     // La foto se guarda al subirla (VehiclePhoto), no con este botón.
     delete payload.picture
+    // Las tarifas viejas del vehículo no se editan más (van por empresa, en
+    // Tarifas); sin mandarlas, el PUT deja lo que había.
+    for (const key of OLD_FEES) delete payload[key]
     try {
       if (isEdit) {
         await client.put(`/api/carrier-companies/${companyId}/vehicles/${vehicleId}`, payload)
@@ -161,23 +160,10 @@ export default function VehicleForm() {
             <input value={form.base_address} onChange={set('base_address')} className="input" />
           </Field>
 
-          <p className="col-span-2 text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Tarifas (en Soles)</p>
-
-          <Field label="Costo por km">
-            <input type="number" min="0" value={form.charge_per_kilometer} onChange={set('charge_per_kilometer')} className="input" />
-          </Field>
-          <Field label="Costo por piso">
-            <input type="number" min="0" value={form.charge_per_floor} onChange={set('charge_per_floor')} className="input" />
-          </Field>
-          <Field label="Tarifa conductor">
-            <input type="number" min="0" value={form.driver_fee} onChange={set('driver_fee')} className="input" />
-          </Field>
-          <Field label="Tarifa cargador">
-            <input type="number" min="0" value={form.loader_fee} onChange={set('loader_fee')} className="input" />
-          </Field>
-          <Field label="Cant. cargadores">
-            <input type="number" min="0" value={form.loaders_quantity} onChange={set('loaders_quantity')} className="input" />
-          </Field>
+          <p className="col-span-2 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            Las tarifas se cargan por empresa, en{' '}
+            <Link to={`/carrier-companies/${companyId}/rates`} className="text-teal-600 hover:underline">Tarifas</Link>.
+          </p>
 
           <div className="col-span-2 pt-2">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tarjeta de identificación vehicular (opcional)</p>
