@@ -353,9 +353,17 @@ export default function CarrierCompaniesList() {
                       </Link>
                       {/* Los vehículos son de mudanzas: no se ofrecen a quien solo embala o arma. */}
                       {hasMovingService(c) && (
-                        <Link to={`/carrier-companies/${c.id}/vehicles`} className="text-indigo-600 hover:underline">
-                          Vehículos
-                        </Link>
+                        <>
+                          <Link to={`/carrier-companies/${c.id}/vehicles`} className="text-indigo-600 hover:underline">
+                            Vehículos
+                          </Link>
+                          <Link to={`/carrier-companies/${c.id}/rates`} className="text-indigo-600 hover:underline">
+                            Tarifas
+                          </Link>
+                          <Link to={`/carrier-companies/${c.id}/availability`} className="text-indigo-600 hover:underline">
+                            Disponibilidad
+                          </Link>
+                        </>
                       )}
                       {canCreate && (
                         <button onClick={() => toggle(c)} className="text-gray-500 hover:underline">

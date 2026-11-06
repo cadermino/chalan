@@ -107,6 +107,28 @@ export default function Sidebar({ onClose }) {
                   Vehículos
                 </NavLink>
               )}
+
+              {/* Tarifas y disponibilidad de la empresa: la propia, o la que el admin está viendo. */}
+              {item.to === '/carrier-companies' && showMoves && companyId && [
+                { to: `/carrier-companies/${companyId}/rates`, icon: '💲', label: 'Tarifas' },
+                { to: `/carrier-companies/${companyId}/availability`, icon: '📅', label: 'Disponibilidad' },
+              ].map((sub) => (
+                <NavLink
+                  key={sub.to}
+                  to={sub.to}
+                  onClick={handleClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 ml-6 pl-3 pr-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-teal-700 text-white'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    }`
+                  }
+                >
+                  <span>{sub.icon}</span>
+                  {sub.label}
+                </NavLink>
+              ))}
             </div>
           ))}
       </nav>

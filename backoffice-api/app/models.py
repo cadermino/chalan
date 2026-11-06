@@ -770,6 +770,57 @@ class CarrierCompanyDepartment(db.Model):
     created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
+class CarrierRates(db.Model):
+    """Lo que cobra una empresa (migración 047), para calcular una mudanza a su
+    nombre: ver `app/carrier_rates.py`. Una fila por empresa (`vehicle_id`
+    NULL); por vehículo vendrá después en la misma tabla. Montos en soles."""
+    __tablename__ = 'carrier_rates'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
+                                   nullable=False)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id', ondelete='CASCADE'))
+    base_fee = db.Column(db.Numeric(10, 2))
+    per_m3 = db.Column(db.Numeric(10, 2))
+    per_loader = db.Column(db.Numeric(10, 2))
+    per_floor = db.Column(db.Numeric(10, 2))
+    minimum_fare = db.Column(db.Numeric(10, 2))
+    per_km_outside_lima = db.Column(db.Numeric(10, 2))
+    weekend_surcharge_percent = db.Column(db.Numeric(5, 2))
+    max_m3 = db.Column(db.Numeric(6, 2))
+    max_km = db.Column(db.Integer)
+    moves_per_day = db.Column(db.SmallInteger, nullable=False, server_default='1', default=1)
+    # El permiso de la empresa para que Chalán cotice por ella, con quién lo dio
+    # y cuándo: la empresa desde su cuenta o un admin con lo que dijo por WhatsApp.
+    auto_quote = db.Column(db.Boolean, nullable=False, server_default='false', default=False)
+    auto_quote_authorized_at = db.Column(db.DateTime())
+    auto_quote_authorized_by = db.Column(db.Integer, db.ForeignKey('admin_users.id', ondelete='SET NULL'))
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+    updated_date = db.Column(db.DateTime(), server_default=func.now())
+
+
+class CarrierAvailability(db.Model):
+    """Lo que una empresa no puede trabajar (migración 047). Disponible por
+    defecto: `weekday` (0 = lunes) bloquea ese día todas las semanas, `day`
+    manda sobre la semana para esa fecha (y con `blocked` NULL la abre).
+    `blocked` es la parte del día que no puede: `day`, `am` o `pm`."""
+    __tablename__ = 'carrier_availability'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
+                                   nullable=False)
+    vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id', ondelete='CASCADE'))
+    weekday = db.Column(db.SmallInteger)
+    day = db.Column(db.Date)
+    blocked = db.Column(db.String(3))
+    # carrier, admin; "decline" cuando venga de un rechazo por fecha.
+    source = db.Column(db.String(10), nullable=False, server_default='carrier', default='carrier')
+    created_by = db.Column(db.Integer, db.ForeignKey('admin_users.id', ondelete='SET NULL'))
+    created_date = db.Column(db.DateTime(), server_default=func.now())
+
+
 class ServiceRequestNotification(db.Model):
     __tablename__ = 'service_request_notifications'
     __table_args__ = {'extend_existing': True}

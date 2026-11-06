@@ -12,6 +12,7 @@ from .decorators import login_required
 from .. import carrier_prospects
 from ..address import district_of
 from ..carrier_prospects import WORK_DEPARTMENTS
+from ..carrier_rates import unavailable_pairs
 from ..order_access import make_token as make_order_access_token
 from ..quotation_short_link import make_code as make_quotation_code
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, Vehicle, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
@@ -1332,6 +1333,10 @@ def carrier_reminders():
             (d.order_id, d.carrier_company_id)
             for d in OrderCarrierDecline.query.filter(OrderCarrierDecline.order_id.in_(order_ids))
         }
+
+    # Lo que cae en un día que la empresa marcó que no puede, o que ya tiene
+    # lleno, no se le recuerda: cotizaría una fecha que no va a cumplir.
+    answered |= unavailable_pairs([c.id for c in companies], orders)
 
     summaries = {}
     for order in orders:

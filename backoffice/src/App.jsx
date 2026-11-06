@@ -13,6 +13,8 @@ import UsersList from './pages/users/List'
 import UserForm from './pages/users/Form'
 import CarrierCompaniesList from './pages/carrier-companies/List'
 import CarrierCompanyForm from './pages/carrier-companies/Form'
+import CarrierRates from './pages/carrier-companies/Rates'
+import CarrierAvailability from './pages/carrier-companies/Availability'
 import VehiclesList from './pages/vehicles/List'
 import VehicleForm from './pages/vehicles/Form'
 import VehiclesAdminList from './pages/vehicles/AdminList'
@@ -162,6 +164,9 @@ export default function App() {
           <Route path="carrier-companies/:companyId/vehicles" element={<ProtectedRoute requiresMoves><VehiclesList /></ProtectedRoute>} />
           <Route path="carrier-companies/:companyId/vehicles/new" element={<ProtectedRoute requiresMoves><VehicleForm /></ProtectedRoute>} />
           <Route path="carrier-companies/:companyId/vehicles/:vehicleId/edit" element={<ProtectedRoute requiresMoves><VehicleForm /></ProtectedRoute>} />
+          {/* Tarifas y calendario son de mudanzas, como los vehículos. */}
+          <Route path="carrier-companies/:companyId/rates" element={<ProtectedRoute requiresMoves><CarrierRates /></ProtectedRoute>} />
+          <Route path="carrier-companies/:companyId/availability" element={<ProtectedRoute requiresMoves><CarrierAvailability /></ProtectedRoute>} />
 
           {/* Customers — superadmin and admin */}
           <Route
