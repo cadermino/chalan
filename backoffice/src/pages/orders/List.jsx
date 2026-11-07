@@ -42,15 +42,6 @@ const STATUSES = {
 
 const FILTERS = ['all', '1', '2', '3', '4'].map(key => ({ key, ...STATUSES[key] }))
 
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  )
-}
-
 function QuotationsIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -610,7 +601,7 @@ export default function OrdersList() {
                   ? <SortHeader column="deposit" label="Adelanto" sort={sort} dir={dir} onSort={onSort} />
                   : <th className="px-4 py-3 text-left">Cotización</th>}
                 {isAdmin && <SortHeader column="quotations" label="Cotizaciones" sort={sort} dir={dir} onSort={onSort} />}
-                <th className="px-4 py-3 text-left">Acciones</th>
+                {isAdmin && <th className="px-4 py-3 text-left">Acciones</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -743,20 +734,13 @@ export default function OrdersList() {
                       {o.quotation_count ?? 0}
                     </td>
                   )}
-                  <td className="px-4 py-3">
-                    {/* El title da el tooltip nativo del navegador; el
-                        aria-label es lo que lee un lector de pantalla, que no
-                        siempre anuncia el title. */}
-                    <div className="flex gap-1">
-                      <Link
-                        to={`/orders/${o.id}`}
-                        title={`Ver el detalle de la orden #${o.id}`}
-                        aria-label={`Ver el detalle de la orden #${o.id}`}
-                        className="p-1.5 rounded-lg text-teal-600 hover:bg-teal-50"
-                      >
-                        <EyeIcon />
-                      </Link>
-                      {isAdmin && (
+                  {/* El detalle se abre desde el número de orden. Para el
+                      transportista la columna quedaría vacía. El title da el
+                      tooltip nativo del navegador; el aria-label es lo que lee
+                      un lector de pantalla, que no siempre anuncia el title. */}
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
                         <Link
                           to={`/orders/${o.id}/quotations`}
                           title={`Ver las cotizaciones de la orden #${o.id}`}
@@ -765,24 +749,24 @@ export default function OrdersList() {
                         >
                           <QuotationsIcon />
                         </Link>
-                      )}
-                      {isSuperadmin && (
-                        <Link
-                          to={`/orders/${o.id}/edit`}
-                          title={`Editar la orden #${o.id}`}
-                          aria-label={`Editar la orden #${o.id}`}
-                          className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50"
-                        >
-                          <PencilIcon />
-                        </Link>
-                      )}
-                    </div>
-                  </td>
+                        {isSuperadmin && (
+                          <Link
+                            to={`/orders/${o.id}/edit`}
+                            title={`Editar la orden #${o.id}`}
+                            aria-label={`Editar la orden #${o.id}`}
+                            className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50"
+                          >
+                            <PencilIcon />
+                          </Link>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={(isAdmin ? 10 : 9) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={(isAdmin ? 10 : 8) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
                     {isError
                       ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
                       : pagination && pagination.total > 0
