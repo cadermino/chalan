@@ -182,6 +182,8 @@ export default function OrdersList() {
   const showDeclined = !isAdmin && searchParams.get('declined') === '1'
   // Solo para el admin: las órdenes marcadas para conciliar en contabilidad.
   const onlyAccounting = isAdmin && searchParams.get('accounting') === '1'
+  // A quién se le asignó: solo en en curso y completadas, que siempre tienen uno.
+  const showCarrier = isAdmin && ['2', '3'].includes(statusFilter)
 
   // El input sí lleva estado propio: escribir no debe consultar al servidor ni
   // dejar una entrada en el historial por tecla. La búsqueda pasa a la URL al
@@ -588,6 +590,7 @@ export default function OrdersList() {
                 <SortHeader column="created" label="Creación" sort={sort} dir={dir} onSort={onSort} />
                 <SortHeader column="appointment" label="Fecha mudanza" sort={sort} dir={dir} onSort={onSort} />
                 <th className="px-4 py-3 text-center">Estado</th>
+                {showCarrier && <th className="px-4 py-3 text-left">Transportista</th>}
                 {isAdmin
                   ? <SortHeader column="deposit" label="Adelanto" sort={sort} dir={dir} onSort={onSort} />
                   : <th className="px-4 py-3 text-left">Cotización</th>}
@@ -675,6 +678,7 @@ export default function OrdersList() {
                       </span>
                     ) : o.order_status_id}
                   </td>
+                  {showCarrier && <td className="px-4 py-3 text-gray-700">{o.carrier_name || '—'}</td>}
                   <td className="px-4 py-3">
                     {isAdmin
                       ? <DepositCell deposit={o.deposit} />
@@ -728,7 +732,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={(isAdmin ? 11 : 9) + (isSuperadmin ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={(isAdmin ? 11 : 9) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
                     {isError
                       ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
                       : pagination && pagination.total > 0

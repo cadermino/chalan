@@ -488,7 +488,7 @@ def list_pending_orders():
     # columna decía "Pendiente" siempre, sin querer decir nada. Lo que sí le
     # sirve es cómo va el adelanto.
     deposits = {}
-    selected_by_order = set()
+    selected_by_order = {}
     quotation_counts = {}
     if is_admin:
         page_ids = [o.id for o in all_sent_orders]
@@ -505,12 +505,16 @@ def list_pending_orders():
                 .group_by(Quotation.order_id)
                 .all()
             )
-            selected_by_order = {
-                q.order_id for q in Quotation.query.filter(
+            # La empresa elegida de cada orden, para la columna Transportista.
+            selected_by_order = dict(
+                db.session.query(Quotation.order_id, CarrierCompany.name)
+                .join(CarrierCompany, CarrierCompany.id == Quotation.carrier_company_id)
+                .filter(
                     Quotation.order_id.in_(page_ids),
                     Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
-                ).all()
-            }
+                )
+                .all()
+            )
 
     result = []
     for order in all_sent_orders:
@@ -560,6 +564,7 @@ def list_pending_orders():
             # Solo para el admin: al transportista no le toca saber cuántos
             # competidores cotizaron la misma orden.
             'quotation_count': quotation_counts.get(order.id, 0) if is_admin else None,
+            'carrier_name': selected_by_order.get(order.id) if is_admin else None,
         })
 
     # `pagination` se agrega sin tocar `orders`, así que cualquier consumidor
