@@ -110,10 +110,10 @@ function WhatsAppIcon() {
   )
 }
 
-// El chat del transportista elegido, sin mensaje escrito. El teléfono de las
-// empresas se guarda como lo escribieron: con o sin +51 (igual que en
+// El chat del cliente o del transportista elegido, sin mensaje escrito. Los
+// teléfonos se guardan como los escribieron: con o sin +51 (igual que en
 // CarrierReminders).
-function carrierWhatsapp(phone) {
+function whatsappUrl(phone) {
   const digits = (phone || '').replace(/\D/g, '')
   if (!digits) return null
   return `https://wa.me/${digits.length === 9 ? `51${digits}` : digits}`
@@ -124,12 +124,11 @@ function carrierWhatsapp(phone) {
 // que más ofertas tiene primero en cotizaciones, y en adelanto los que falta
 // registrar arriba, que son los que hay que ir a resolver. Los vacíos cuentan
 // como el valor más bajo (la API los pone primero en ascendente), así que
-// "sin teléfono" o "sin fecha" se ven invirtiendo el sentido. Las de admin
-// las rechaza también la API para los demás roles.
+// "sin fecha" se ve invirtiendo el sentido. Las de admin las rechaza también
+// la API para los demás roles.
 const SORTS = {
   id: { firstDir: 'desc' },
   customer: { firstDir: 'asc' },
-  phone: { firstDir: 'asc', adminOnly: true },
   created: { firstDir: 'desc' },
   appointment: { firstDir: 'desc' },
   deposit: { firstDir: 'desc', adminOnly: true },
@@ -601,7 +600,6 @@ export default function OrdersList() {
                 )}
                 <SortHeader column="id" label="# Orden" sort={sort} dir={dir} onSort={onSort} />
                 <SortHeader column="customer" label="Cliente" sort={sort} dir={dir} onSort={onSort} />
-                {isAdmin && <SortHeader column="phone" label="Teléfono" sort={sort} dir={dir} onSort={onSort} />}
                 <th className="px-4 py-3 text-left">Origen</th>
                 <th className="px-4 py-3 text-left">Destino</th>
                 <SortHeader column="created" label="Creación" sort={sort} dir={dir} onSort={onSort} />
@@ -648,8 +646,25 @@ export default function OrdersList() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{o.customer_name || '—'}</td>
-                  {isAdmin && <td className="px-4 py-3 text-gray-600">{o.customer_phone || o.lead_phone || '—'}</td>}
+                  <td className="px-4 py-3 text-gray-700">
+                    {/* El WhatsApp de este pedido si lo escribió, si no el de su cuenta,
+                        como en los recordatorios. Solo el admin recibe el teléfono. */}
+                    <div className="flex items-center gap-1.5">
+                      <span>{o.customer_name || '—'}</span>
+                      {whatsappUrl(o.lead_phone || o.customer_phone) && (
+                        <a
+                          href={whatsappUrl(o.lead_phone || o.customer_phone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Abrir el WhatsApp de ${o.customer_name || 'este cliente'}`}
+                          aria-label={`Abrir el WhatsApp de ${o.customer_name || 'este cliente'}`}
+                          className="p-1 rounded-lg text-green-600 hover:bg-green-50"
+                        >
+                          <WhatsAppIcon />
+                        </a>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-gray-600">
                     {o.origin ? (
                       <div>
@@ -699,9 +714,9 @@ export default function OrdersList() {
                     <td className="px-4 py-3 text-gray-700">
                       <div className="flex items-center gap-1.5">
                         <span>{o.carrier_name || '—'}</span>
-                        {carrierWhatsapp(o.carrier_phone) && (
+                        {whatsappUrl(o.carrier_phone) && (
                           <a
-                            href={carrierWhatsapp(o.carrier_phone)}
+                            href={whatsappUrl(o.carrier_phone)}
                             target="_blank"
                             rel="noopener noreferrer"
                             title={`Abrir el WhatsApp de ${o.carrier_name}`}
@@ -767,7 +782,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={(isAdmin ? 11 : 9) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={(isAdmin ? 10 : 9) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
                     {isError
                       ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
                       : pagination && pagination.total > 0
