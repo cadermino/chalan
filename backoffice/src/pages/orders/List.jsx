@@ -632,7 +632,7 @@ export default function OrdersList() {
                     </td>
                   )}
                   <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                    #{o.id}
+                    <Link to={`/orders/${o.id}`} className="text-teal-700 hover:underline">#{o.id}</Link>
                     {/* Marca de "conciliar en contabilidad": el title muestra la
                         nota al pasar el mouse, para encontrarlas al cerrar el mes
                         sin abrir cada una. */}
