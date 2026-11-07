@@ -102,6 +102,15 @@ function DepositCell({ deposit }) {
   return <span className="text-amber-500 font-medium">○ Pendiente {money(deposit.amount)}</span>
 }
 
+// El chat del transportista elegido, sin mensaje escrito. El teléfono de las
+// empresas se guarda como lo escribieron: con o sin +51 (igual que en
+// CarrierReminders).
+function carrierWhatsapp(phone) {
+  const digits = (phone || '').replace(/\D/g, '')
+  if (!digits) return null
+  return `https://wa.me/${digits.length === 9 ? `51${digits}` : digits}`
+}
+
 // Columnas ordenables y con qué dirección arrancan al primer clic: la que
 // suele interesar. Lo más reciente primero en fechas y números de orden, el
 // que más ofertas tiene primero en cotizaciones, y en adelanto los que falta
@@ -678,7 +687,21 @@ export default function OrdersList() {
                       </span>
                     ) : o.order_status_id}
                   </td>
-                  {showCarrier && <td className="px-4 py-3 text-gray-700">{o.carrier_name || '—'}</td>}
+                  {showCarrier && (
+                    <td className="px-4 py-3 text-gray-700">
+                      <div>{o.carrier_name || '—'}</div>
+                      {carrierWhatsapp(o.carrier_phone) && (
+                        <a
+                          href={carrierWhatsapp(o.carrier_phone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-green-700 hover:underline"
+                        >
+                          WhatsApp
+                        </a>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     {isAdmin
                       ? <DepositCell deposit={o.deposit} />

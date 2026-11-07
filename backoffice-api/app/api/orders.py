@@ -505,16 +505,19 @@ def list_pending_orders():
                 .group_by(Quotation.order_id)
                 .all()
             )
-            # La empresa elegida de cada orden, para la columna Transportista.
-            selected_by_order = dict(
-                db.session.query(Quotation.order_id, CarrierCompany.name)
+            # La empresa elegida de cada orden, para la columna Transportista
+            # (con su teléfono, para abrirle el WhatsApp).
+            selected_by_order = {
+                order_id: (name, phone)
+                for order_id, name, phone in db.session.query(
+                    Quotation.order_id, CarrierCompany.name, CarrierCompany.phone)
                 .join(CarrierCompany, CarrierCompany.id == Quotation.carrier_company_id)
                 .filter(
                     Quotation.order_id.in_(page_ids),
                     Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
                 )
                 .all()
-            )
+            }
 
     result = []
     for order in all_sent_orders:
@@ -564,7 +567,8 @@ def list_pending_orders():
             # Solo para el admin: al transportista no le toca saber cuántos
             # competidores cotizaron la misma orden.
             'quotation_count': quotation_counts.get(order.id, 0) if is_admin else None,
-            'carrier_name': selected_by_order.get(order.id) if is_admin else None,
+            'carrier_name': selected_by_order.get(order.id, (None, None))[0] if is_admin else None,
+            'carrier_phone': selected_by_order.get(order.id, (None, None))[1] if is_admin else None,
         })
 
     # `pagination` se agrega sin tocar `orders`, así que cualquier consumidor

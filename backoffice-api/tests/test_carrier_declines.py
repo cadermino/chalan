@@ -182,6 +182,7 @@ def test_carrier_view_and_admin_detail_show_the_decline(client, admin, submitted
 
 
 def test_admin_list_names_the_chosen_carrier(client, admin, carrier):
+    carrier.phone = '987 654 321'
     chosen, open_order = make_order(2), make_order()
     db.session.add_all([
         Quotation(order_id=chosen.id, carrier_company_id=carrier.id, amount=300, quotation_status_id=2),
@@ -191,4 +192,5 @@ def test_admin_list_names_the_chosen_carrier(client, admin, carrier):
 
     orders = client.get('/api/orders/pending?status=all', headers=admin).get_json()['orders']
 
-    assert {o['id']: o['carrier_name'] for o in orders} == {chosen.id: 'Mudanzas SAC', open_order.id: None}
+    assert {o['id']: (o['carrier_name'], o['carrier_phone']) for o in orders} == {
+        chosen.id: ('Mudanzas SAC', '987 654 321'), open_order.id: (None, None)}
