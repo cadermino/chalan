@@ -100,6 +100,22 @@ def test_carrier_list_hides_declined_orders_unless_asked(client, carrier, carrie
     assert {o['id']: o['declined'] for o in everything} == {kept.id: False, declined.id: True}
 
 
+def test_carrier_list_only_has_orders_still_open_to_quote(client, carrier, carrier_user):
+    other = make_carrier(name='Otra SAC')
+    open_order, in_progress, chosen_elsewhere, chosen_mine = make_order(), make_order(2), make_order(), make_order()
+    db.session.add_all([
+        Quotation(order_id=in_progress.id, carrier_company_id=other.id, amount=300, quotation_status_id=2),
+        Quotation(order_id=chosen_elsewhere.id, carrier_company_id=other.id, amount=300, quotation_status_id=2),
+        Quotation(order_id=chosen_elsewhere.id, carrier_company_id=carrier.id, amount=350, quotation_status_id=1),
+        Quotation(order_id=chosen_mine.id, carrier_company_id=carrier.id, amount=320, quotation_status_id=2),
+    ])
+    db.session.commit()
+
+    orders = client.get('/api/orders/pending', headers=carrier_user).get_json()['orders']
+
+    assert {o['id'] for o in orders} == {open_order.id, chosen_mine.id}
+
+
 def test_another_carriers_decline_does_not_hide_the_order(client, carrier_user):
     order = make_order()
     other = make_carrier(name='Otra SAC')

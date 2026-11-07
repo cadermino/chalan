@@ -411,7 +411,10 @@ def list_pending_orders():
 
     if user.role == ROLE_CARRIER:
         company_id = user.carrier_company_id
-        status_filter = [1, 2]
+        # Solo las que todavía se pueden cotizar. Las en curso ya tienen
+        # transportista: las suyas están en "Mis órdenes" y las de otra
+        # empresa no le tocan.
+        status_filter = [1]
     elif user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
         company_id = None  # superadmin sees all, no company filter
         status_param = request.args.get('status')
@@ -437,6 +440,13 @@ def list_pending_orders():
         }
         if declined_ids and request.args.get('declined') != '1':
             query = query.filter(~Order.id.in_(declined_ids))
+        # Una pendiente donde el cliente ya eligió a otra empresa (falta el
+        # adelanto) tampoco se puede cotizar.
+        chosen_elsewhere = db.session.query(Quotation.order_id).filter(
+            Quotation.quotation_status_id == QUOTATION_STATUS_SELECTED,
+            Quotation.carrier_company_id != company_id,
+        )
+        query = query.filter(~Order.id.in_(chosen_elsewhere))
 
     # ?accounting=1: solo las marcadas para conciliar en contabilidad. Es
     # contabilidad interna, así que para el transportista el parámetro no hace
