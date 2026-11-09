@@ -34,6 +34,7 @@ import ServiceRequestsList from './pages/service-requests/List'
 import ServiceRequestDetail from './pages/service-requests/Detail'
 import ServiceRequestCreate from './pages/service-requests/Create'
 import ServiceRequestCarrierView from './pages/service-requests/CarrierView'
+import CarrierServiceRequests from './pages/service-requests/CarrierList'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -234,6 +235,16 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <ServiceRequestDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Las solicitudes de servicio de la empresa, para volver a cotizarlas */}
+          <Route
+            path="my-service-requests"
+            element={
+              <ProtectedRoute allowedRoles={['carrier_company']}>
+                <CarrierServiceRequests />
               </ProtectedRoute>
             }
           />

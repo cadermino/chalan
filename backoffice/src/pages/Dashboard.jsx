@@ -266,6 +266,11 @@ function NoMovesDashboard({ data }) {
         Cuando llega una solicitud de tus servicios te avisamos por correo y WhatsApp, con un
         enlace para ver los detalles y enviar tu cotización.
       </p>
+      {services.length > 0 && (
+        <Link to="/my-service-requests" className="inline-block mt-4 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+          Ver las solicitudes para cotizar
+        </Link>
+      )}
       <p className="text-sm text-gray-500 mt-3">
         ¿Falta algún servicio o también haces mudanzas? Escríbele al equipo de Chalán para que lo actualice.
       </p>

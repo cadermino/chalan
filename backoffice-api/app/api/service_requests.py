@@ -16,7 +16,7 @@ from ..address import district_of
 from ..service_media import make_token as make_media_token
 from ..service_reviews import review_of, review_path
 from .. import db
-from ..models import (ROLE_SUPERADMIN, LIMA_DEPARTMENT_CODE, CarrierCompany, CarrierCompanyDepartment,
+from ..models import (ROLE_CARRIER, ROLE_SUPERADMIN, LIMA_DEPARTMENT_CODE, CarrierCompany, CarrierCompanyDepartment,
                       CarrierCompanyServiceType, ServiceRequest,
                       ServiceRequestCarrierDecline, ServiceRequestItem,
                       ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
@@ -276,6 +276,65 @@ def _counts(model, request_ids):
         .group_by(model.service_request_id).all()
     )
     return dict(rows)
+
+
+@api.route('/carrier/service-requests', methods=['GET'])
+@login_required
+def list_carrier_service_requests():
+    """Las solicitudes de los servicios de la empresa, para el transportista.
+
+    El aviso trae un link que vence a los 10 días; sin esta lista, perdido el
+    mensaje o vencido el link no había cómo volver a una solicitud para cotizarla.
+    Cada fila trae un link nuevo (`carrier_path`) a la misma página de cotizar.
+    Solo las que todavía puede cotizar y las que ganó: las canceladas y las que
+    el cliente le dio a otra empresa no le tocan.
+    """
+    user = g.current_user
+    if user.role != ROLE_CARRIER or not user.carrier_company_id:
+        return jsonify({'message': 'forbidden'}), 403
+    company = db.session.get(CarrierCompany, user.carrier_company_id)
+    if company is None or not company.active:
+        return jsonify({'service_requests': []}), 200
+
+    type_ids = [t for (t,) in db.session.query(CarrierCompanyServiceType.service_type_id)
+                .filter_by(carrier_company_id=company.id).all()]
+    query = ServiceRequest.query.filter(
+        ServiceRequest.service_type_id.in_(type_ids),
+        ServiceRequest.submitted_at.isnot(None),
+        ServiceRequest.status != 'cancelled',
+    )
+    # Igual que a quién se avisa (_pending_carriers del API principal).
+    if company.country_id is not None:
+        query = query.filter(db.or_(ServiceRequest.country_id.is_(None),
+                                    ServiceRequest.country_id == company.country_id))
+    rows = query.order_by(ServiceRequest.id.desc()).limit(LIST_LIMIT).all()
+
+    ids = [r.id for r in rows]
+    items = _counts(ServiceRequestItem, ids)
+    declined = {d for (d,) in db.session.query(ServiceRequestCarrierDecline.service_request_id).filter(
+        ServiceRequestCarrierDecline.service_request_id.in_(ids),
+        ServiceRequestCarrierDecline.carrier_company_id == company.id).all()} if ids else set()
+
+    result = []
+    for r in rows:
+        state = _quotation_state(r, company.id)
+        if state in ('cancelled', 'selected_other'):
+            continue
+        mine = next((q for q in r.quotations if q.carrier_company_id == company.id), None)
+        result.append({
+            'id': r.id,
+            'service_type': r.service_type.to_dict() if r.service_type else None,
+            'status': r.status,
+            'quotation_state': state,
+            'preferred_date': r.preferred_date.isoformat() if r.preferred_date else None,
+            'neighborhood': district_of({'street': r.street, 'neighborhood': r.neighborhood, 'city': r.city}),
+            'items_count': items.get(r.id, 0),
+            'my_quotation': _money(mine.amount) if mine else None,
+            'declined': r.id in declined,
+            'submitted_at': _iso(r.submitted_at),
+            'carrier_path': f'/carrier-view/{_generate_token(r.id, company.id)}',
+        })
+    return jsonify({'service_requests': result}), 200
 
 
 @api.route('/service-requests', methods=['GET'])

@@ -2,6 +2,7 @@ import { NavLink, Link, useNavigate, useMatch } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { roleLabel } from '../lib/roles'
 import { useCompanyServices } from '../hooks/useCompanyServices'
+import { MOVING_CODE } from '../lib/companyList'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '🏠', roles: ['superadmin', 'admin', 'carrier_company'] },
@@ -10,6 +11,8 @@ const navItems = [
   { to: '/referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['real_estate_agent'] },
   { to: '/admin-referred-orders', label: 'Órdenes referidas', icon: '🏘️', roles: ['superadmin', 'admin'] },
   { to: '/service-requests', label: 'Servicios', icon: '🧰', roles: ['superadmin', 'admin'] },
+  // needsServices: la empresa hace algún servicio además de mudanzas (embalaje, armado…).
+  { to: '/my-service-requests', label: 'Servicios', icon: '🧰', roles: ['carrier_company'], needsServices: true },
   { to: '/carrier-companies', label: 'Empresas', icon: '🏢', roles: ['superadmin', 'admin', 'carrier_company'] },
   { to: '/customers', label: 'Clientes', icon: '🧑‍💼', roles: ['superadmin', 'admin'] },
   { to: '/whatsapp', label: 'WhatsApp', icon: '💬', roles: ['superadmin', 'admin'] },
@@ -18,11 +21,12 @@ const navItems = [
 
 export default function Sidebar({ onClose }) {
   const { user, logout } = useAuth()
-  const { ready, doesMoves } = useCompanyServices()
+  const { ready, doesMoves, services } = useCompanyServices()
   // Mientras no se sabe qué hace la empresa no se muestra lo de mudanzas: es
   // preferible que aparezca un instante tarde a que una empresa que solo arma
   // muebles lo vea parpadear.
   const showMoves = ready && doesMoves
+  const showServices = ready && services.some((t) => t.code !== MOVING_CODE)
   const navigate = useNavigate()
   const handleClose = onClose ?? (() => {})
 
@@ -49,7 +53,8 @@ export default function Sidebar({ onClose }) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems
-          .filter((item) => item.roles.includes(user?.role) && (!item.needsMoves || showMoves))
+          .filter((item) => item.roles.includes(user?.role) && (!item.needsMoves || showMoves)
+            && (!item.needsServices || showServices))
           .map((item) => (
             <div key={item.to}>
               <NavLink
