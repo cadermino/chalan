@@ -3,7 +3,9 @@
 // "Calle 123, Distrito 15063, Perú": el tramo con el código postal, sin él.
 // `neighborhood` puede traer la urbanización ("Fund Oyague" en Jesús María), que
 // el formulario de servicios guardaba antes que el distrito; se usa si no hay ese
-// tramo (un admin lo escribe a mano). Si tampoco, la ciudad. Mismo criterio que
+// tramo (un admin lo escribe a mano). Si tampoco, la ciudad. "Lima" o "Callao" solo
+// si no hay nada más: Google también escribe "Calle 123, Los Olivos, Lima 15301",
+// con la provincia junto al código postal. Mismo criterio que
 // district_of en backoffice-api y en la API principal.
 const SKIP = /^(per[uú]|lima|callao|provincia de lima)$/i
 const POSTAL_CODE = /\b\d{5}\b/
@@ -13,8 +15,7 @@ export function districtOf(address) {
   const parts = (address.street || '').split(',').map((p) => p.trim()).filter(Boolean).slice(1)
   const withZip = parts.find((p) => POSTAL_CODE.test(p))
   const fromZip = withZip ? withZip.replace(POSTAL_CODE, '').trim() : ''
-  if (fromZip) return fromZip
-  if (address.neighborhood) return address.neighborhood
-  const named = parts.reverse().find((p) => !SKIP.test(p) && !/\d/.test(p))
-  return named || address.city || ''
+  const named = [...parts].reverse().find((p) => !SKIP.test(p) && !/\d/.test(p))
+  const found = [fromZip, address.neighborhood, named, address.city].filter(Boolean)
+  return found.find((d) => !SKIP.test(d)) || found[0] || ''
 }

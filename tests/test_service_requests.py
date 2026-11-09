@@ -2093,6 +2093,13 @@ def test_the_share_link_names_the_district_not_the_urbanizacion(client, storage)
     assert client.get(f'/api/v1/service-media/{token}').get_json()['district'] == 'Jesús María'
 
 
+def test_the_district_is_not_the_province_next_to_the_postal_code():
+    from app.api.address import district_of
+    assert district_of({'neighborhood': 'Lima', 'city': 'Lima',
+                        'street': 'Av. Carlos Izaguirre 813, Los Olivos, Lima 15301, Perú'}) == 'Los Olivos'
+    assert district_of({'neighborhood': 'Lima', 'street': 'Jr. Ica 120, Lima 15001, Perú'}) == 'Lima'
+
+
 def test_the_share_link_shows_the_files_and_the_district_only(client, storage):
     service_request, token = shared_request(client, storage)
     service_request.submitted_at = datetime(2026, 10, 5, 12, 0)
