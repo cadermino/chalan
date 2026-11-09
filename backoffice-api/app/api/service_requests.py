@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -537,13 +538,29 @@ def _hide_exact_address(address):
     return {**address, 'neighborhood': district_of(address), **{field: None for field in EXACT_ADDRESS_FIELDS}}
 
 
+# Un teléfono escrito en texto libre (la descripción, una cosa de la lista). Copia
+# de without_phones del API principal (app/api/service_request/validation.py).
+_PHONE_IN_TEXT = re.compile(r'\+?\d(?:[\s.-]?\d){6,}')
+
+
+def _without_phones(text):
+    return _PHONE_IN_TEXT.sub('[número oculto]', text) if isinstance(text, str) else text
+
+
 def _district_only(data, keep_address):
+    """Hasta que el trabajo es suyo, el transportista ve el distrito y no la
+    dirección, ni un teléfono que el cliente haya escrito en lo que pide."""
     if keep_address:
         return {**data, 'address_hidden': False}
     hidden = {**_hide_exact_address(data), 'address_hidden': True}
-    destination = (data.get('details') or {}).get('destination')
-    if destination:
-        hidden['details'] = {**data['details'], 'destination': _hide_exact_address(destination)}
+    details = dict(data.get('details') or {})
+    if details.get('destination'):
+        details['destination'] = _hide_exact_address(details['destination'])
+    if 'description' in details:
+        details['description'] = _without_phones(details['description'])
+    hidden['details'] = details
+    hidden['items'] = [{**item, 'description': _without_phones(item.get('description'))}
+                       for item in data.get('items') or []]
     return hidden
 
 

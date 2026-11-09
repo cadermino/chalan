@@ -200,6 +200,13 @@ def get_service_request(public_id):
     service_request = _find_request(public_id)
     if service_request is None:
         return _message('service request not found', 404)
+    # Una vez enviada, el formulario ya no la retoma (la descarta al ver
+    # `submitted`), y el public_id se filtró a las empresas en las URLs de las
+    # fotos subidas antes de media_prefix: no puede devolver el WhatsApp, el
+    # nombre, el correo ni la dirección del cliente.
+    if service_request.submitted_at is not None:
+        return jsonify({'id': service_request.id, 'service_type': service_request.service_type.code,
+                        'status': service_request.status, 'submitted': True}), 200
     return jsonify(_serialize(service_request)), 200
 
 

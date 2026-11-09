@@ -277,6 +277,20 @@ def test_carrier_view_shows_the_request_without_the_customers_whatsapp(client, s
     assert '987654321' not in res.get_data(as_text=True)
 
 
+def test_carrier_view_hides_phones_the_customer_wrote_until_the_job_is_theirs(client, submitted, packing):
+    carrier = make_carrier(packing, name='Ofrece SAC')
+    submitted.details = {'description': 'Sala y comedor, llamar al 987 654 321'}
+    submitted.items[0].description = 'Sofá (mi cel 912-345-678)'
+    db.session.commit()
+
+    res = client.get(f'/api/public/service-requests/{carrier_token(submitted.id, carrier.id)}')
+
+    data = res.get_json()['service_request']
+    assert data['details']['description'] == 'Sala y comedor, llamar al [número oculto]'
+    assert data['items'][0]['description'] == 'Sofá (mi cel [número oculto])'
+    assert '654 321' not in res.get_data(as_text=True) and '345-678' not in res.get_data(as_text=True)
+
+
 def test_carrier_view_needs_no_login_and_never_answers_401(client, submitted):
     for token in ('garbage', carrier_token(submitted.id, 1, exp=datetime.now(timezone.utc) - timedelta(days=1))):
         assert client.get(f'/api/public/service-requests/{token}').status_code != 401

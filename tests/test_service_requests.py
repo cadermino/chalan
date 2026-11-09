@@ -312,6 +312,20 @@ def test_get_returns_the_draft_to_resume(client):
     assert data['items'][0]['materials'] == ['stretch_film', 'carpet']
 
 
+def test_a_sent_request_does_not_give_back_the_customers_data(client):
+    # El public_id de las solicitudes viejas está en las URLs de sus fotos, que
+    # ven todas las empresas del servicio.
+    public_id = create_draft(client)
+    fill(client, public_id)
+    request = ServiceRequest.query.filter_by(public_id=public_id).one()
+    request.submitted_at = request.created_date
+    db.session.commit()
+
+    data = client.get(f'/api/v1/service-requests/{public_id}').get_json()
+
+    assert data == {'id': request.id, 'service_type': 'packing', 'status': 'pending', 'submitted': True}
+
+
 def test_unknown_public_id_is_404(client):
     assert client.get('/api/v1/service-requests/' + 'f' * 32).status_code == 404
     assert client.patch('/api/v1/service-requests/' + 'f' * 32, json={}).status_code == 404
