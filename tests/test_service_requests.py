@@ -2098,6 +2098,8 @@ def test_the_district_is_not_the_province_next_to_the_postal_code():
     assert district_of({'neighborhood': 'Lima', 'city': 'Lima',
                         'street': 'Av. Carlos Izaguirre 813, Los Olivos, Lima 15301, Perú'}) == 'Los Olivos'
     assert district_of({'neighborhood': 'Lima', 'street': 'Jr. Ica 120, Lima 15001, Perú'}) == 'Lima'
+    assert district_of({'neighborhood': 'Lima', 'street': 'Los Olivos, Lima 15063'}) == 'Los Olivos'
+    assert district_of({'neighborhood': 'Lima', 'street': 'Av. Arequipa, Lima 15001'}) == 'Lima'
 
 
 def test_the_share_link_shows_the_files_and_the_district_only(client, storage):
