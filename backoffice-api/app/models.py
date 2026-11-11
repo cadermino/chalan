@@ -160,6 +160,9 @@ class CarrierCompany(db.Model):
     # Lo que ve el cliente en vez de `name` cuando está: el nombre de quien
     # contesta, para los contactos cargados desde un servicio (migración 040).
     contact_name = db.Column(db.String(60))
+    # Quien coordina las mudanzas y contesta el WhatsApp (migración 049): la
+    # cuenta se crea a nombre del representante legal. Lo cambian solo los admins.
+    coordinator_name = db.Column(db.String(60))
     description = db.Column(db.String(2000))
     rfc = db.Column(db.String(12))
     email = db.Column(db.String(45))
@@ -211,6 +214,7 @@ class CarrierCompany(db.Model):
         return {
             'id': self.id,
             'name': self.name,
+            'coordinator_name': self.coordinator_name,
             'description': self.description,
             'rfc': self.rfc,
             'email': self.email,

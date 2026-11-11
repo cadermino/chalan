@@ -16,13 +16,21 @@ function orderLine(order) {
     + `  ${window.location.origin}/c/${order.code}`
 }
 
+// El primer nombre del coordinador, con mayúscula aunque se haya anotado en
+// minúsculas. Sin coordinador no hay nombre: el de la empresa no es a quién se le habla.
+function firstName(company) {
+  const [first] = (company.coordinator_name || '').trim().split(/\s+/)
+  return first ? first.charAt(0).toLocaleUpperCase('es') + first.slice(1) : ''
+}
+
 // Con el link corto para cotizar cada orden (chalan.pe/c/…, lo canjea Next),
 // que no pide contraseña (el backoffice sí, y no hay cómo recuperarla).
 export function reminderMessage(company) {
   const shown = company.orders.slice(0, MAX_ORDERS)
   const count = company.orders.length
+  const name = firstName(company)
   const lines = [
-    `Hola ${company.name}, tienes ${count === 1 ? '1 pedido esperando' : `${count} pedidos esperando`} tu cotización en Chalán:`,
+    `Hola${name ? ` ${name}` : ''}, tienes ${count === 1 ? '1 orden esperando' : `${count} órdenes esperando`} tu cotización en Chalán:`,
     '',
     ...shown.map(orderLine),
   ]
@@ -72,7 +80,10 @@ export default function CarrierReminders() {
             {data.companies.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-gray-900">{c.name}</p>
+                  <p className="truncate text-sm font-medium text-gray-900">
+                    {c.name}
+                    {c.coordinator_name && <span className="font-normal text-gray-500"> · {c.coordinator_name}</span>}
+                  </p>
                   <p className="text-xs text-gray-400">
                     {c.orders.length === 1 ? '1 por cotizar' : `${c.orders.length} por cotizar`}
                     {' · '}#{c.orders.map((o) => o.id).join(', #')}

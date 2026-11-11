@@ -113,7 +113,7 @@ export default function CarrierCompaniesList() {
 
   const filtering = hasActiveFilters({ ...state, service, department })
   const clearAll = () => update({ q: '', status: DEFAULT_LIST_STATE.status, service: '', department: '', pending: false })
-  const columns = canCreate ? 9 : 8
+  const columns = canCreate ? 10 : 8
 
   return (
     <div>
@@ -136,7 +136,7 @@ export default function CarrierCompaniesList() {
               type="search"
               value={state.q}
               onChange={(e) => update({ q: e.target.value })}
-              placeholder={canCreate ? 'Buscar por nombre, ID, email, teléfono, usuario o servicio…' : 'Buscar…'}
+              placeholder={canCreate ? 'Buscar por nombre, coordinador, ID, email, teléfono, usuario o servicio…' : 'Buscar…'}
               aria-label="Buscar empresas"
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
@@ -246,6 +246,7 @@ export default function CarrierCompaniesList() {
             <tr>
               <SortableTh label="ID" column="id" sort={state} onSort={handleSort} />
               <SortableTh label="Nombre" column="name" sort={state} onSort={handleSort} />
+              {canCreate && <th className="px-4 py-3 text-left">Coordinador</th>}
               {canCreate && <th className="px-4 py-3 text-left">Usuario</th>}
               <th className="px-4 py-3 text-left">Email</th>
               <th className="px-4 py-3 text-left">Teléfono</th>
@@ -263,6 +264,9 @@ export default function CarrierCompaniesList() {
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-xs text-gray-400">{c.id}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
+                  {canCreate && (
+                    <td className="px-4 py-3 text-gray-600">{c.coordinator_name || <span className="text-gray-400">—</span>}</td>
+                  )}
                   {canCreate && (
                     <td className="px-4 py-3 text-gray-600">
                       {c.users?.length

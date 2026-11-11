@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import CarrierDocumentsCard from '../../components/CarrierDocuments'
 
 const EMPTY = {
-  name: '', description: '', rfc: '', email: '', phone: '',
+  name: '', coordinator_name: '', description: '', rfc: '', email: '', phone: '',
   address: '', cover_image: '', facebook: '', youtube: '', active: true, country_id: '',
   service_type_ids: [],
   // Una empresa nueva arranca en Lima, donde están hoy todas.
@@ -41,7 +41,7 @@ export default function CarrierCompanyForm() {
     if (isEdit) {
       client.get(`/api/carrier-companies/${id}`).then(({ data }) => {
         const c = data.carrier_company
-        setForm({ ...c, active: Boolean(c.active), country_id: c.country_id ?? '', service_type_ids: c.service_type_ids ?? [], department_codes: c.department_codes ?? [] })
+        setForm({ ...c, coordinator_name: c.coordinator_name ?? '', active: Boolean(c.active), country_id: c.country_id ?? '', service_type_ids: c.service_type_ids ?? [], department_codes: c.department_codes ?? [] })
       })
     }
   }, [id])
@@ -60,6 +60,7 @@ export default function CarrierCompanyForm() {
       if (!isAdmin) {
         delete payload.service_type_ids
         delete payload.department_codes
+        delete payload.coordinator_name
       }
       if (isEdit) {
         await client.put(`/api/carrier-companies/${id}`, payload)
@@ -88,6 +89,14 @@ export default function CarrierCompanyForm() {
           <Field label="Nombre *" span={2}>
             <input required value={form.name} onChange={set('name')} className="input" />
           </Field>
+          {isAdmin && (
+            <Field label="Coordinador" span={2}>
+              <input value={form.coordinator_name} onChange={set('coordinator_name')} maxLength={60} className="input" />
+              <p className="text-xs text-gray-400 mt-1">
+                Con quién hablas por WhatsApp, si no es quien creó la cuenta. El recordatorio lo saluda por su primer nombre.
+              </p>
+            </Field>
+          )}
           <Field label="Email">
             <input type="email" value={form.email} onChange={set('email')} className="input" />
           </Field>

@@ -21,6 +21,8 @@ class CarrierCompany(db.Model):
 	# Lo que ve el cliente en vez de `name` cuando está: el nombre de quien
 	# contesta, para los contactos que cargó el admin (migración 040).
 	contact_name = db.Column(db.String(60))
+	# Con quién habla Chalán por WhatsApp (migración 049); no lo ve el cliente.
+	coordinator_name = db.Column(db.String(60))
 	description = db.Column(db.String(2000))
 	rfc = db.Column(db.String(12))
 	email = db.Column(db.String(45))

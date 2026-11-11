@@ -1379,7 +1379,7 @@ def carrier_reminders():
         ]
         if pending:
             result.append({'id': company.id, 'name': company.name, 'phone': company.phone,
-                           'orders': pending})
+                           'coordinator_name': company.coordinator_name, 'orders': pending})
     # Arriba los que más tienen por cotizar.
     result.sort(key=lambda c: -len(c['orders']))
     return jsonify({'companies': result, 'orders_count': len(orders)}), 200

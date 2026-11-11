@@ -59,6 +59,16 @@ def _company_dict(company):
             **_departments_dict(company.department_codes)}
 
 
+def _coordinator_name(value):
+    """El nombre del coordinador como se escribió, sin espacios de más; vacío es None."""
+    if value is not None and not isinstance(value, str):
+        return None, 'coordinator_name must be text'
+    name = ' '.join((value or '').split())
+    if len(name) > 60:
+        return None, 'coordinator_name is too long'
+    return name or None, None
+
+
 def _departments_dict(codes):
     # Los nombres van con los códigos: la lista los muestra sin pedir el catálogo.
     return {'department_codes': codes,
@@ -202,6 +212,9 @@ def create_carrier_company():
         country_id=data.get('country_id'),
         active=1,
     )
+    company.coordinator_name, error = _coordinator_name(data.get('coordinator_name'))
+    if error:
+        return jsonify({'message': error}), 400
     if 'service_type_ids' in data:
         types, error = _service_types_from(data['service_type_ids'])
         if error:
@@ -247,6 +260,13 @@ def update_carrier_company(company_id):
         if error:
             return jsonify({'message': error}), 400
         _set_departments(company, codes)
+    if 'coordinator_name' in data:
+        # Lo anota Chalán: con quién habla por WhatsApp, no un dato de la empresa.
+        if g.current_user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+            return jsonify({'message': 'only admins can change the coordinator'}), 403
+        company.coordinator_name, error = _coordinator_name(data['coordinator_name'])
+        if error:
+            return jsonify({'message': error}), 400
     for field in ('name', 'description', 'rfc', 'email', 'phone', 'address',
                   'cover_image', 'facebook', 'youtube', 'country_id'):
         if field in data:

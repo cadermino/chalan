@@ -38,6 +38,7 @@ export function searchableText(company) {
   const parts = [
     company.id,
     company.name,
+    company.coordinator_name,
     company.email,
     company.phone,
     company.rfc,
