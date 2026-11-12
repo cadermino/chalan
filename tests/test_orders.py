@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -750,6 +750,21 @@ def test_confirm_reservation_moves_order_to_in_progress(client, customer, carrie
     sent.clear()
     again = client.post(f'/api/v1/order/{order_id}/confirm-reservation', headers=_internal_auth())
     assert again.get_json() == {'confirmed': False}
+    assert sent == []
+
+
+def test_confirm_reservation_of_a_past_move_sends_no_emails(client, customer, carrier_company, monkeypatch):
+    sent = _checkout_setup(monkeypatch, carrier_company, required=True)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+    _checkout(client, customer, order_id, '12345678')
+    db.session.get(Order, order_id).appointment_date = datetime.now() - timedelta(days=2)
+    db.session.commit()
+    sent.clear()
+
+    res = client.post(f'/api/v1/order/{order_id}/confirm-reservation', headers=_internal_auth())
+
+    assert res.get_json() == {'confirmed': True, 'notified': False}
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.in_progress()
     assert sent == []
 
 

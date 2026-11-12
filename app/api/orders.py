@@ -490,7 +490,9 @@ def confirm_reservation(order_id):
     acá la orden estaba en pending esperando la verificación.
 
     Idempotente: si la orden ya no está pending (confirmada antes, completada o
-    cancelada) no hace nada ni reenvía correos.
+    cancelada) no hace nada ni reenvía correos. Tampoco hay correos si el día
+    de la mudanza ya pasó: es un admin registrando una mudanza hecha (cerrada
+    por WhatsApp), y el cliente recibía "Hemos agendado tu mudanza".
     """
     if not is_internal_request():
         return jsonify({'message': 'forbidden'}), 403
@@ -509,6 +511,10 @@ def confirm_reservation(order_id):
 
     order.order_status_id = OrderStatus.in_progress()
     db.session.commit()
+    # appointment_date se guarda con la hora de Lima, sin zona.
+    today = datetime.now(LIMA_TZ).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0)
+    if order.appointment_date is not None and order.appointment_date < today:
+        return jsonify({'confirmed': True, 'notified': False}), 200
     _send_order_scheduled_emails(order, customer, quotation,
                                  reservation=_reservation_of(order_id, quotation.id))
     return jsonify({'confirmed': True}), 200
