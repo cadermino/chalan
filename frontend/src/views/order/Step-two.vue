@@ -26,7 +26,7 @@
                 class="theme-chalan"
                 :min-date="minDay"
                 :max-date="maxDay"
-                placeholder="17 de diciembre de 2026"
+                placeholder="Elige el día"
               />
               <p class="block
               text-gray-700
@@ -170,6 +170,7 @@
                 </p>
                 <div class="flex mt-2">
                   <input type="text"
+                    id="list-of-belongings"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
                     @blur="handleManualItemBlur"
@@ -392,6 +393,17 @@ function isToday(day) {
   return day === moment().format('YYYY-MM-DD');
 }
 
+// Los campos del paso, en el orden de la pantalla, con el elemento al que se
+// lleva a quien toca "Siguiente" sin llenarlos. El aviso queda junto al campo,
+// lejos del botón: sin esto el clic no mostraba nada (GA4, octubre-noviembre
+// 2026: quien no eligió la fecha tocaba "Siguiente" 4 veces en promedio).
+const FIELD_ELEMENTS = [
+  ['appointment_date', 'datetime'],
+  ['comments', 'list-of-belongings'],
+  ['cargo_weight_kg', 'cargo-weight'],
+  ['approximate_budget', 'approximate-budget'],
+];
+
 // Hoy solo valen las horas que todavía no llegaron.
 function isHourAvailable(day, hour) {
   return !isToday(day) || hour > new Date().getHours();
@@ -567,6 +579,19 @@ export default {
       }
       this.addManualItem();
     },
+    // Lleva al primer campo que falta, en el orden de la pantalla, y lo enfoca.
+    // Con el día elegido y sin hora, a los botones de la hora.
+    showFirstMissing(missing) {
+      const first = FIELD_ELEMENTS.find(([field]) => missing.includes(field));
+      if (!first) return;
+      const [field, elementId] = first;
+      const id = field === 'appointment_date' && this.appointmentDay ? 'appointment-hour' : elementId;
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusable = target.matches('input, select') ? target : target.querySelector('button:not([disabled])');
+      if (focusable) focusable.focus({ preventScroll: true });
+    },
     selectHour(hour) {
       this.pickedHour = hour;
       this.saveAppointment();
@@ -678,15 +703,7 @@ export default {
         const missing = this.steps[this.viewName].requisites
           .filter(field => this.formValidationMessages[field]);
         if (budgetMissing) missing.push('approximate_budget');
-        // El presupuesto está al final del formulario: si es lo único que
-        // falta, el clic no mostraba nada a la vista.
-        if (missing.length === 1 && budgetMissing) {
-          const budget = document.getElementById('approximate-budget');
-          if (budget) {
-            budget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            budget.focus({ preventScroll: true });
-          }
-        }
+        this.showFirstMissing(missing);
         track('step_two_blocked', {
           missing_field: missing[0],
           missing_count: missing.length,
