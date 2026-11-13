@@ -143,6 +143,17 @@ function saveOrigin(place: PlaceArg) {
   }))
 }
 
+// Las coordenadas guardadas: el widget las escribe como `from_lat`/`from_lng`,
+// y el formulario de la orden (Vue), al pasar por el paso 1, reescribe la
+// dirección con `from_latitude`/`from_longitude`. Sin leer las dos, quien
+// volvía de la orden veía sus direcciones sin precio.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function savedLatLng(saved: any, end: 'from' | 'to') {
+  const lat = Number(saved?.[`${end}_lat`] ?? saved?.[`${end}_latitude`])
+  const lng = Number(saved?.[`${end}_lng`] ?? saved?.[`${end}_longitude`])
+  return lat && lng && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null
+}
+
 // Carga el script de Google Places una sola vez aunque haya varias instancias
 // de QuoteWidget montadas en la misma página, encolando el init de cada una.
 function loadGooglePlaces(apiKey: string, onReady: () => void) {
@@ -218,8 +229,8 @@ export function QuoteWidget({ theme = 'dark', load = 'moving' }: { theme?: 'dark
       const dest   = JSON.parse(localStorage.getItem('orderDetailsDestination') || 'null')
       if (origin?.from_street) setFrom(origin.from_street)
       if (dest?.to_street)     setTo(dest.to_street)
-      if (origin?.from_lat && origin?.from_lng) fromLatLng.current = { lat: origin.from_lat, lng: origin.from_lng }
-      if (dest?.to_lat && dest?.to_lng)         toLatLng.current   = { lat: dest.to_lat,     lng: dest.to_lng }
+      fromLatLng.current = savedLatLng(origin, 'from')
+      toLatLng.current   = savedLatLng(dest, 'to')
       if (fromLatLng.current && toLatLng.current) {
         setKm(haversineKm(fromLatLng.current.lat, fromLatLng.current.lng, toLatLng.current.lat, toLatLng.current.lng))
       }
@@ -229,8 +240,8 @@ export function QuoteWidget({ theme = 'dark', load = 'moving' }: { theme?: 'dark
       // Direcciones guardadas de antes de que se guardara lat/lng: necesitan
       // el script de Google (geocoder) para calcular el km, así que en ese
       // caso puntual no podemos diferir la carga hasta el foco del input.
-      const legacyOrigin = origin?.from_street && !(origin?.from_lat && origin?.from_lng)
-      const legacyDest   = dest?.to_street && !(dest?.to_lat && dest?.to_lng)
+      const legacyOrigin = origin?.from_street && !fromLatLng.current
+      const legacyDest   = dest?.to_street && !toLatLng.current
       if (legacyOrigin || legacyDest) ensurePlacesLoaded()
     } catch { /* localStorage no disponible */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
