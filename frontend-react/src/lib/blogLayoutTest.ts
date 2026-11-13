@@ -2,8 +2,8 @@
 // mudanza y flete se ven como siempre (`inline`: el cotizador dentro del texto
 // y al final) o con el cotizador fijo en una columna a la derecha (`sidebar`).
 // Métrica principal: sesiones con quote_widget_start sobre sesiones en esos
-// posts; secundaria quote_cta_click. 2 semanas o 500 visitas por versión, y no
-// se decide antes. Al terminar se deja la que gane y se borra esto: este
+// posts; secundaria quote_cta_click. Hasta el 2026-11-30 (eran 2 semanas, pero
+// en 11 días llegaron ~30 personas por versión), y no se decide antes. Al terminar se deja la que gane y se borra esto: este
 // archivo, el script del <head> en layout.tsx, `data-blog-test` y las clases
 // blog-* del post, las reglas de globals.css, y blogLayout()/tagRecordings() en
 // PageViewTracker y analytics.ts.
