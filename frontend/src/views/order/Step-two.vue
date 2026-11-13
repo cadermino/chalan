@@ -15,6 +15,8 @@
               text-sm
               font-bold mb-2" for="datetime">
                   Elige la fecha <span class="text-red-500">*</span>
+                  <span v-if="appointmentMissing === 'day'"
+                    class="text-red-500 text-xs italic font-normal">{{ formValidationMessages['appointment_date'] }}.</span>
               </label>
               <VueDatePicker v-model="pickerDay"
                 :ui="{ input: datePickerClasses }"
@@ -33,6 +35,8 @@
               text-sm
               font-bold mt-4 mb-2">
                   Elige la hora <span class="text-red-500">*</span>
+                  <span v-if="appointmentMissing === 'hour'"
+                    class="text-red-500 text-xs italic font-normal">{{ formValidationMessages['appointment_date'] }}.</span>
               </p>
               <div id="appointment-hour" class="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 <button v-for="slot in hourSlots"
@@ -52,12 +56,6 @@
                   {{ slot.label }}
                 </button>
               </div>
-              <p v-if="formValidationMessages['appointment_date']"
-                class="text-red-500
-                text-xs
-                italic">
-                {{ formValidationMessages['appointment_date'] }}.
-              </p>
             </div>
             <div class="w-full px-3 mb-4">
               <label class="text-gray-700
@@ -810,6 +808,13 @@ export default {
       if (!this.storedAppointment) return null;
       const hour = this.storedAppointment.hours();
       return hour >= FIRST_HOUR && hour <= LAST_HOUR ? hour : null;
+    },
+    // La fecha de la orden necesita día y hora: el aviso va junto al que falta,
+    // como el de la lista junto a su título.
+    appointmentMissing() {
+      if (!this.formValidationMessages.appointment_date) return null;
+      if (!this.appointmentDay) return 'day';
+      return this.appointmentHour === null ? 'hour' : null;
     },
     pickerDay: {
       get() {
