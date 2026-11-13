@@ -23,11 +23,13 @@ export const CARGO_WEIGHT_OPTIONS = [
 ];
 
 // Lo que se ve en el inventario del paso 2 según lo que lleva.
+// `photoHint`: debajo del botón de la foto en el paso 2, para que se entienda
+// que con una alcanza y que no es obligatoria.
 export const INVENTORY_COPY = {
-  moving: { label: 'Lista las cosas que vamos a mover', placeholder: 'Ej: 1 cama matrimonial' },
-  items: { label: 'Lista las cosas que vamos a mover', placeholder: 'Ej: 1 refrigeradora' },
-  cargo: { label: 'Describe la carga', placeholder: 'Ej: 200 sacos de arroz de 50 kg' },
-  vehicle: { label: 'Describe el vehículo', placeholder: 'Ej: 1 camioneta Toyota Hilux, funciona' },
+  moving: { label: 'Lista las cosas que vamos a mover', placeholder: 'Ej: 1 cama matrimonial', photoHint: 'Una foto por ambiente basta.' },
+  items: { label: 'Lista las cosas que vamos a mover', placeholder: 'Ej: 1 refrigeradora', photoHint: 'Una foto de lo que vas a mover basta.' },
+  cargo: { label: 'Describe la carga', placeholder: 'Ej: 200 sacos de arroz de 50 kg', photoHint: 'Una foto de la carga basta.' },
+  vehicle: { label: 'Describe el vehículo', placeholder: 'Ej: 1 camioneta Toyota Hilux, funciona', photoHint: 'Una foto del vehículo basta.' },
 };
 
 export function needsCargoWeight(loadType) {

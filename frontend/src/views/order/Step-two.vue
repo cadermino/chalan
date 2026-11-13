@@ -71,40 +71,93 @@
                       text-xs
                       italic">{{ formValidationMessages['comments'] }}.</span>
 
-              <div
-                class="mt-2 mb-3 p-4 border-2 border-dashed
-                  border-gray-300 rounded-lg text-center
-                  cursor-pointer hover:border-green-400
-                  transition-colors"
-                @click="$refs.photoInput.click()"
-                @dragover.prevent="dragOver = true"
-                @dragleave.prevent="dragOver = false"
-                @drop.prevent="handleDrop"
-                :class="{ 'border-green-400 bg-green-50': dragOver }">
+              <div class="mt-2 mb-3 border rounded p-3"
+                :class="recognizedItems.length
+                  ? 'bg-gray-50' : ''">
+                <div v-if="recognizedItems.length">
+                  <p class="text-sm font-bold text-gray-700 mb-2">
+                    Cosas a mover (edita o elimina):
+                  </p>
+                  <div v-for="(item, index) in recognizedItems"
+                    :key="'item-'+index"
+                    class="flex items-center mb-1">
+                    <input type="text"
+                      v-model="recognizedItems[index]"
+                      class="flex-1 appearance-none border
+                        rounded py-1 px-2 text-sm text-gray-700
+                        focus:outline-none
+                        focus:border-blue-400" />
+                    <button type="button"
+                      @click="removeRecognizedItem(index)"
+                      class="ml-2 text-red-500
+                        hover:text-red-700 text-sm font-bold">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-400
+                  text-center py-2">
+                  Escribe cada cosa y toca «+ Agregar»
+                </p>
+                <div class="flex mt-2">
+                  <input type="text"
+                    id="list-of-belongings"
+                    v-model="manualItem"
+                    @keyup.enter="addManualItem"
+                    @blur="handleManualItemBlur"
+                    :placeholder="inventoryCopy.placeholder"
+                    class="flex-1 appearance-none border
+                      rounded py-1 px-2 text-sm text-gray-700
+                      focus:outline-none
+                      focus:border-blue-400" />
+                  <button type="button"
+                    @click="addManualItem"
+                    class="ml-2 bg-green-500
+                      hover:bg-green-700 text-white text-sm
+                      py-1 px-3 rounded">
+                    + Agregar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Primero se escribe; la foto es una ayuda, no un requisito. Antes
+                   el recuadro grande de la foto iba arriba de la lista, y quien
+                   no tenía fotos a mano creía que no podía seguir. -->
+              <div class="mb-3">
+                <button type="button"
+                  class="w-full flex items-center justify-center gap-2 px-3 py-3
+                    border-2 border-dashed border-gray-300 rounded-lg
+                    text-sm text-gray-700 hover:border-green-400
+                    transition-colors"
+                  :class="{ 'border-green-400 bg-green-50': dragOver }"
+                  @click="$refs.photoInput.click()"
+                  @dragover.prevent="dragOver = true"
+                  @dragleave.prevent="dragOver = false"
+                  @drop.prevent="handleDrop">
+                  <!-- eslint-disable max-len -->
+                  <svg
+                    class="h-6 w-6 text-gray-400 shrink-0"
+                    fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <!-- eslint-enable max-len -->
+                  <span>
+                    <span class="text-green-600 font-semibold">¿Prefieres una foto?</span>
+                    Súbela y anotamos lo que vemos
+                  </span>
+                </button>
                 <input type="file"
                   ref="photoInput"
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   multiple
                   class="hidden"
                   @change="handlePhotoSelect" />
-                <!-- eslint-disable max-len -->
-                <svg
-                  class="mx-auto h-10 w-10 text-gray-400 mb-2"
-                  fill="none" stroke="currentColor"
-                  viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                <!-- eslint-enable max-len -->
-                <p class="text-sm text-gray-600">
-                  <span class="text-green-500 font-semibold">
-                    Sube fotos
-                  </span> de tus cosas y la IA las identificará
-                </p>
-                <p class="text-xs text-gray-400 mt-1">JPG, PNG, WebP o GIF (máx. 10MB)</p>
+                <p class="text-xs text-gray-500 mt-1 text-center">{{ inventoryCopy.photoHint }}</p>
               </div>
 
-              <div v-if="photoThumbnails.length" class="flex flex-wrap gap-2 mb-3">
+              <div v-if="photoThumbnails.length" class="flex flex-wrap gap-2 mb-2">
                 <div v-for="(thumb, index) in photoThumbnails" :key="index" class="relative">
                   <img v-if="!thumb.loadError"
                     :src="thumb.url"
@@ -140,54 +193,28 @@
                 </div>
               </div>
 
-              <div class="mb-3 border rounded p-3"
-                :class="recognizedItems.length
-                  ? 'bg-gray-50' : ''">
-                <div v-if="recognizedItems.length">
-                  <p class="text-sm font-bold text-gray-700 mb-2">
-                    Cosas a mover (edita o elimina):
-                  </p>
-                  <div v-for="(item, index) in recognizedItems"
-                    :key="'item-'+index"
-                    class="flex items-center mb-1">
-                    <input type="text"
-                      v-model="recognizedItems[index]"
-                      class="flex-1 appearance-none border
-                        rounded py-1 px-2 text-sm text-gray-700
-                        focus:outline-none
-                        focus:border-blue-400" />
-                    <button type="button"
-                      @click="removeRecognizedItem(index)"
-                      class="ml-2 text-red-500
-                        hover:text-red-700 text-sm font-bold">
-                      ✕
-                    </button>
-                  </div>
-                </div>
-                <p v-else class="text-sm text-gray-400
-                  text-center py-2">
-                  Sube una foto o agrega items manualmente
-                </p>
-                <div class="flex mt-2">
-                  <input type="text"
-                    id="list-of-belongings"
-                    v-model="manualItem"
-                    @keyup.enter="addManualItem"
-                    @blur="handleManualItemBlur"
-                    :placeholder="inventoryCopy.placeholder"
-                    class="flex-1 appearance-none border
-                      rounded py-1 px-2 text-sm text-gray-700
-                      focus:outline-none
-                      focus:border-blue-400" />
-                  <button type="button"
-                    @click="addManualItem"
-                    class="ml-2 bg-green-500
-                      hover:bg-green-700 text-white text-sm
-                      py-1 px-3 rounded">
-                    + Agregar
-                  </button>
-                </div>
-              </div>
+
+              <!-- Lo que pasa con la foto, ahí mismo: antes el aviso salía arriba
+                   de la página y el análisis solo se veía en la miniatura. -->
+              <p v-if="photoStatus" id="photo-status" aria-live="polite"
+                class="mb-3 text-sm flex items-center gap-2"
+                :class="{
+                  'text-gray-600': photoStatus.type === 'working',
+                  'text-green-700': photoStatus.type === 'ok',
+                  'text-gray-700': photoStatus.type === 'info',
+                  'text-red-600': photoStatus.type === 'error',
+                }">
+                <!-- eslint-disable max-len -->
+                <svg v-if="photoStatus.type === 'working'"
+                  class="animate-spin h-4 w-4 text-green-500 shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <!-- eslint-enable max-len -->
+                {{ photoStatus.text }}
+              </p>
 
               <div v-if="needsWeight" class="mb-3">
                 <label class="block text-gray-700 text-sm font-bold mb-1"
@@ -372,7 +399,8 @@ import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
-import { tagBlockedStep } from '../../utils/sessionTags';
+import { tagBlockedStep, tagSessionLabel } from '../../utils/sessionTags';
+import shrinkPhoto from '../../utils/shrinkPhoto';
 import {
   CARGO_WEIGHT_OPTIONS, DEFAULT_LOAD_TYPE, INVENTORY_COPY, needsCargoWeight,
 } from '../../utils/loadTypes';
@@ -416,6 +444,8 @@ export default {
       viewName: 'step-two',
       dragOver: false,
       photoThumbnails: [],
+      // Qué pasó con la última foto: { type: 'ok' | 'info' | 'error', text }.
+      photoResult: null,
       recognizedItems: [],
       manualItem: '',
       cargoWeightOptions: CARGO_WEIGHT_OPTIONS,
@@ -479,38 +509,55 @@ export default {
         // guarda un Proxy, y cambiar el objeto original no repinta nada.
         const thumb = reactive({ url, file, processing: true });
         this.photoThumbnails.push(thumb);
-
-        const payload = {
-          image: file,
-          orderId: this.currentOrder.order_id,
-        };
-        chalan.recognizeItems(payload)
-          .then((response) => {
-            if (response.data.items && response.data.items.length) {
-              this.mergeItems(response.data.items);
-              this.syncComments();
-            } else {
-              this.setViewsMessages({
-                view: this.viewName,
-                message: {
-                  text: 'No reconocimos objetos en esta foto: agrégalos a mano',
-                  type: 'info',
-                },
-              });
-            }
-            thumb.processing = false;
-          })
-          .catch(() => {
-            thumb.processing = false;
-            this.setViewsMessages({
-              view: this.viewName,
-              message: {
-                text: 'No se pudo analizar la imagen, intenta con otra foto',
-                type: 'error',
-              },
-            });
-          });
+        this.recognizePhoto(thumb);
       });
+    },
+    async recognizePhoto(thumb) {
+      const loadType = this.currentOrder.load_type || DEFAULT_LOAD_TYPE;
+      const orderId = this.currentOrder.order_id;
+      const image = await shrinkPhoto(thumb.file);
+      const startedAt = Date.now();
+      track('photo_uploaded', { order_id: orderId, load_type: loadType, size_kb: Math.round(image.size / 1024) });
+      tagSessionLabel('photo_uploaded');
+      try {
+        const response = await chalan.recognizeItems({ image, orderId });
+        const items = response.data.items || [];
+        track('photo_recognized', {
+          order_id: orderId,
+          load_type: loadType,
+          items_count: items.length,
+          seconds: Math.round((Date.now() - startedAt) / 1000),
+        });
+        if (items.length) {
+          this.mergeItems(items);
+          this.syncComments();
+          this.photoResult = {
+            type: 'ok',
+            text: items.length === 1
+              ? 'Anotamos 1 cosa de tu foto en la lista de arriba. Revísala.'
+              : `Anotamos ${items.length} cosas de tu foto en la lista de arriba. Revísalas.`,
+          };
+        } else {
+          tagSessionLabel('photo_empty');
+          this.photoResult = {
+            type: 'info',
+            text: 'No reconocimos objetos en esta foto. Escríbelos arriba o prueba con otra.',
+          };
+        }
+      } catch (error) {
+        let reason = 'server';
+        if (error.code === 'ECONNABORTED') reason = 'timeout';
+        else if (!error.response) reason = 'network';
+        else if (error.response.status < 500) reason = 'rejected';
+        track('photo_failed', { order_id: orderId, load_type: loadType, reason });
+        tagSessionLabel(`photo_failed:${reason}`);
+        this.photoResult = {
+          type: 'error',
+          text: 'No pudimos leer esta foto. Prueba con otra o escribe las cosas arriba.',
+        };
+      } finally {
+        thumb.processing = false;
+      }
     },
     parseItem(item) {
       const match = item.match(/^(\d+)\s+(.+)$/);
@@ -730,6 +777,12 @@ export default {
     },
     analyzingPhotos() {
       return this.photoThumbnails.some(thumb => thumb.processing);
+    },
+    photoStatus() {
+      if (this.analyzingPhotos) {
+        return { type: 'working', text: 'Leyendo tu foto… toma unos segundos.' };
+      }
+      return this.photoResult;
     },
     ...mapState(useStore, [
       'currentOrder',
