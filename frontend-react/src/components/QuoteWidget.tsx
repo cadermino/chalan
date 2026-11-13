@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { track } from '@/lib/analytics'
+import { tagCtaText } from '@/lib/ctaTextTest'
 
 // ─── Sizes ──────────────────────────────────────────────────────────────────
 
@@ -323,6 +324,7 @@ export function QuoteWidget({ theme = 'dark', load = 'moving' }: { theme?: 'dark
     if (interactedRef.current) return
     interactedRef.current = true
     track('quote_widget_start', { move_size: size, load_type: loadType })
+    tagCtaText()
   }
 
   function handleAddressFocus() {
