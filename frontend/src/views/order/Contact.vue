@@ -26,7 +26,7 @@
           <form v-else class="bg-white pb-8 sm:p-0 p-5 sm:pb-8" @submit.prevent="submit">
             <p class="text-center font-bold mb-2">¿A dónde te avisamos?</p>
             <p class="text-center text-sm text-gray-600 mb-8">
-              Sin contraseña. Te avisamos por WhatsApp y por correo cuando lleguen las
+              Te avisamos por WhatsApp y por correo cuando lleguen las
               cotizaciones.
             </p>
             <div v-if="skippedPhone" id="contact-reassurance"
