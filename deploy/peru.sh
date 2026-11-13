@@ -126,8 +126,27 @@ restore_previous_image() {
   fi
   "${DOCKER[@]}" tag "chalan-prev/$svc:latest" "$name"
   if [ "$restart" -eq 1 ]; then
+    if [ "$svc" = nginx ]; then save_nginx_log; fi
     compose up -d --no-deps --no-build "$svc"
   fi
+}
+
+# El log de nginx (cada visita, con IP y navegador) vive en el contenedor y se
+# pierde al recrearlo, así que solo quedaba desde el último deploy: en noviembre
+# 2026 no se pudo ver qué eran los clics de Google que nunca cargaron la página.
+# Se guarda comprimido antes de recrear nginx; se borran los de más de 30 días.
+save_nginx_log() {
+  local cid file
+  cid=$(compose ps -q nginx 2>/dev/null || true)
+  [ -n "$cid" ] || return 0
+  mkdir -p "$STATE_DIR/nginx"
+  file="$STATE_DIR/nginx/nginx-$(date +%Y%m%d-%H%M%S).log.gz"
+  if "${DOCKER[@]}" logs "$cid" 2>&1 | gzip > "$file"; then
+    log "  Log de nginx guardado en $file"
+  else
+    log "  No se pudo guardar el log de nginx (sigue el deploy)"
+  fi
+  find "$STATE_DIR/nginx" -name 'nginx-*.log.gz' -mtime +30 -delete 2>/dev/null || true
 }
 
 # --- health check -------------------------------------------------------------
@@ -319,6 +338,7 @@ fi
 
 for svc in "${TO_DEPLOY[@]}"; do
   log "Reiniciando $svc"
+  if [ "$svc" = nginx ]; then save_nginx_log; fi
   compose up -d --no-deps --no-build "$svc"
 done
 
