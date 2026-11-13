@@ -29,6 +29,21 @@
               Sin contraseña. Te avisamos por WhatsApp y por correo cuando lleguen las
               cotizaciones.
             </p>
+            <div v-if="skippedPhone" id="contact-reassurance"
+              class="bg-green-50 rounded text-sm text-gray-700 p-4 mb-8">
+              <p v-if="limaMove" class="mb-2">
+                Mudanzas dentro de Lima en Chalán: la mitad se cotiza entre
+                <strong>S/&nbsp;{{ LIMA_MOVE_RANGE[0] }} y S/&nbsp;{{ LIMA_MOVE_RANGE[1] }}</strong>,
+                con todo incluido.
+              </p>
+              <p :class="limaMove ? '' : 'mb-2'">
+                La primera cotización suele llegar en minutos: 3 de cada 4 pedidos
+                reciben una en menos de 1 hora.
+              </p>
+              <p v-if="!limaMove">
+                Y comparar vale la pena: la más cara suele costar 1,7 veces la más barata.
+              </p>
+            </div>
             <div class="flex flex-wrap -mx-3">
               <div class="w-full px-3 mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
@@ -119,6 +134,24 @@ const DOMAIN_TYPOS = {
   'yaho.com': 'yahoo.com',
 };
 
+// Lo que ve en el contacto quien cerró el modal de WhatsApp del paso 1: de
+// ellos pasaba el contacto el 44 %, contra el 95 % de quienes dejaron su número
+// (GA4, oct-nov 2026). Se le pedían sus datos sin haber recibido nada. Son
+// cotizaciones reales de producción (estudio de precios del 2026-10-27, con
+// PLATFORM_FEE), no la fórmula del cotizador de la landing, que estima la
+// mitad: actualizarlos junto con ese estudio. Solo hay muestra para mudanzas
+// dentro de Lima; las demás rutas y la carga ven la velocidad y la comparación.
+const LIMA_MOVE_RANGE = [220, 390];
+const LIMA_BOUNDS = { lat: [-12.55, -11.70], lng: [-77.20, -76.65] };
+const HOUSEHOLD_LOADS = [null, undefined, '', 'moving', 'items'];
+
+function inLima(lat, lng) {
+  const [la, lo] = [Number(lat), Number(lng)];
+  return Boolean(lat && lng)
+    && la >= LIMA_BOUNDS.lat[0] && la <= LIMA_BOUNDS.lat[1]
+    && lo >= LIMA_BOUNDS.lng[0] && lo <= LIMA_BOUNDS.lng[1];
+}
+
 export default {
   name: 'order-contact',
   components: { Tracker, ViewsMessages },
@@ -128,6 +161,7 @@ export default {
       fields: { name: '', email: '', mobilePhone: '' },
       errors: { name: null, email: null, mobilePhone: null },
       linkSentTo: null,
+      LIMA_MOVE_RANGE,
     };
   },
   mounted() {
@@ -208,6 +242,17 @@ export default {
   },
   computed: {
     ...mapState(useStore, ['currentOrder', 'customer', 'loading']),
+    ...mapState(useStore, ['orderDetailsOrigin', 'orderDetailsDestination']),
+    skippedPhone() {
+      return Boolean(this.currentOrder.lead_phone_prompted) && !this.customer.mobile_phone;
+    },
+    limaMove() {
+      const from = this.orderDetailsOrigin;
+      const to = this.orderDetailsDestination;
+      return HOUSEHOLD_LOADS.includes(this.currentOrder.load_type)
+        && inLima(from.from_latitude, from.from_longitude)
+        && inLima(to.to_latitude, to.to_longitude);
+    },
     ...mapState(useStore, ['isUserLogged', 'decodeToken']),
     redirect() {
       return this.$route.query.redirect || { name: 'step-three' };
