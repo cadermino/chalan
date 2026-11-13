@@ -20,11 +20,13 @@ const SIZES = [
 // frontend/src/utils/loadTypes.js.
 export type LoadType = 'moving' | 'items' | 'cargo' | 'vehicle'
 
-const LOADS: { id: LoadType; label: string }[] = [
+// `help`: una línea bajo los chips cuando ese está elegido. "Vehículo" se
+// confundía con elegir el vehículo de la mudanza; es llevar el auto del cliente.
+const LOADS: { id: LoadType; label: string; help?: string }[] = [
   { id: 'moving',  label: 'Mudanza' },
   { id: 'items',   label: 'Objetos sueltos' },
   { id: 'cargo',   label: 'Carga o materiales' },
-  { id: 'vehicle', label: 'Vehículo' },
+  { id: 'vehicle', label: 'Vehículo', help: 'Llevamos tu auto, camioneta o moto en un camión.' },
 ]
 
 // Lo que dice cada tamaño según lo que lleva. El precio sale de la misma
@@ -406,12 +408,16 @@ export function QuoteWidget({ theme = 'dark', load = 'moving' }: { theme?: 'dark
             type="button"
             className={'load-chip' + (loadType === l.id ? ' active' : '')}
             aria-pressed={loadType === l.id}
+            title={l.help}
             onClick={() => { markInteraction(); setLoadType(l.id); saveLoadType(l.id) }}
           >
             {l.label}
           </button>
         ))}
       </div>
+      {LOADS.find(l => l.id === loadType)?.help && (
+        <p className="quote-load-help">{LOADS.find(l => l.id === loadType)?.help}</p>
+      )}
 
       <div className="quote-sizes">
         {SIZES.map(s => (

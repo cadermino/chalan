@@ -408,6 +408,12 @@
   color: #fff;
 }
 .quote-widget.quote-widget--light .load-chip.active { color: #14532d; }
+.quote-widget .quote-load-help {
+  margin: 2px 0 8px;
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.85;
+}
 
 .quote-widget .quote-result {
   display: flex;
