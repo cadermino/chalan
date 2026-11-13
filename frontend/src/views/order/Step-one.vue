@@ -471,7 +471,9 @@ import { LOAD_TYPES, DEFAULT_LOAD_TYPE } from '../../utils/loadTypes';
 // Una carga o un vehículo casi siempre se recoge a nivel de calle: el piso
 // arranca en el primero para que no frene a quien no sube escaleras.
 const STREET_LEVEL_LOADS = ['cargo', 'vehicle'];
-const STREET_LEVEL_FLOOR = 1;
+// Piso 1 de entrada, en recojo y destino: es lo más común y el selector vacío
+// trababa el paso (step_one_blocked por from_floor_number). Se cambia si no.
+const DEFAULT_FLOOR = 1;
 
 // Number('') es 0, así que vaciar el campo guardaba un cero y el paso quedaba
 // "completo" con la casilla en blanco. Vacío es null; el cero solo llega
@@ -534,6 +536,8 @@ export default {
     if (this.orderDetailsDestination.to_approximate_distance_from_parking === null) {
       this.toParkingDistance = DEFAULT_PARKING_DISTANCE;
     }
+    if (this.orderDetailsOrigin.from_floor_number === null) this.selectedFromFloor = DEFAULT_FLOOR;
+    if (this.orderDetailsDestination.to_floor_number === null) this.selectedToFloor = DEFAULT_FLOOR;
     // El widget de la web puede haberlo elegido ya (lo deja en currentOrder).
     this.loadType = this.currentOrder.load_type || DEFAULT_LOAD_TYPE;
     this.buildRequisites();
@@ -855,10 +859,6 @@ export default {
       },
       set(value) {
         this.setOrder({ section: 'currentOrder', field: 'load_type', value });
-        if (STREET_LEVEL_LOADS.includes(value)) {
-          if (this.selectedFromFloor === null) this.selectedFromFloor = STREET_LEVEL_FLOOR;
-          if (this.selectedToFloor === null) this.selectedToFloor = STREET_LEVEL_FLOOR;
-        }
       },
     },
     floorLabel() {
