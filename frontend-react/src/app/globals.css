@@ -439,3 +439,10 @@ body {
     display: none;
   }
 }
+
+/* A/B del texto del botón del cotizador (lib/ctaTextTest.ts). Sin la marca en
+   el <html> se ve el texto de siempre. */
+html:not([data-cta-text='comparar']) .cta-text-comparar,
+html[data-cta-text='comparar'] .cta-text-continuar {
+  display: none;
+}

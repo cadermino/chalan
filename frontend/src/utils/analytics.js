@@ -23,4 +23,12 @@ export function track(event, params = {}) {
   window.gtag('event', event, clean);
 }
 
+// La versión del botón del cotizador que vio en la web (A/B de noviembre 2026,
+// frontend-react/src/lib/ctaTextTest.ts), para medir si el texto nuevo trae
+// órdenes y no solo clics. La cookie la pone la web; sin ella, nada.
+export function ctaTextVersion() {
+  const match = document.cookie.match(/(?:^|; )chalan_cta_ab=(continuar|comparar)(?:;|$)/);
+  return match ? match[1] : undefined;
+}
+
 export default { track };

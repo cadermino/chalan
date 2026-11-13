@@ -462,7 +462,7 @@ import ViewsMessages from '@/components/ViewsMessages.vue';
 import SearchBoxPlacesApiGoogle from '@/components/SearchBoxPlacesApiGoogle.vue';
 import Modal from '@/components/Modal.vue';
 import chalan from '../../api/chalan';
-import { track } from '../../utils/analytics';
+import { ctaTextVersion, track } from '../../utils/analytics';
 import { tagBlockedStep } from '../../utils/sessionTags';
 import steps from '../../store/steps';
 import { PARKING_OPTIONS, DEFAULT_PARKING_DISTANCE, formatParkingDistance } from '../../utils/parking';
@@ -693,6 +693,7 @@ export default {
               order_id: response.data.order_id,
               ref_code: referralCode,
               load_type: this.loadType,
+              cta_text: ctaTextVersion(),
             });
             this.proceedToStepTwo();
           }

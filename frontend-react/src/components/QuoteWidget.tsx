@@ -466,9 +466,12 @@ export function QuoteWidget({ theme = 'dark', load = 'moving' }: { theme?: 'dark
           })
         }}
       >
-        Continuar con esta cotización
+        {/* A/B del texto (lib/ctaTextTest.ts): el CSS muestra uno de los dos. */}
+        <span className="cta-text-continuar">Continuar con esta cotización</span>
+        <span className="cta-text-comparar">Comparar precios de transportistas</span>
         <ArrowIcon />
       </Link>
+      <p className="quote-cta-note cta-text-comparar">Sin compromiso · Te avisamos por WhatsApp cuando lleguen</p>
     </div>
     </div>
   )

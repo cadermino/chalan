@@ -1,4 +1,5 @@
 import { blogLayout } from './blogLayoutTest';
+import { ctaText } from './ctaTextTest';
 
 // Capa fina sobre gtag.js. Existe por dos razones: que ningún componente
 // tenga que acordarse de comprobar si GA cargó (adblockers y dev lo dejan
@@ -49,7 +50,9 @@ export function track(event: LandingEvent, params: Params = {}) {
   // GA4 muestra los parámetros vacíos como "(not set)" en los informes, lo
   // que cuesta más de lo que aporta: mejor no mandarlos.
   const clean: Record<string, string | number | boolean> = {};
-  Object.entries({ blog_layout: blogLayout(), ...params }).forEach(([key, value]) => {
+  // La versión del botón del cotizador solo en los eventos del cotizador.
+  const cta_text = event.startsWith('quote_') ? ctaText() : undefined;
+  Object.entries({ blog_layout: blogLayout(), cta_text, ...params }).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') clean[key] = value;
   });
 

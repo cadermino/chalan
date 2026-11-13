@@ -10,6 +10,7 @@ import { PageViewTracker } from "@/components/PageViewTracker";
 import { ServiceCtaTracker } from "@/components/ServiceCtaTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
 import { BLOG_LAYOUT_SCRIPT } from "@/lib/blogLayoutTest";
+import { CTA_TEXT_SCRIPT } from "@/lib/ctaTextTest";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -74,11 +75,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // suppressHydrationWarning: el script del A/B del blog le pone
-    // data-blog-layout al <html> antes de hidratar.
+    // suppressHydrationWarning: los scripts de los A/B le ponen
+    // data-blog-layout y data-cta-text al <html> antes de hidratar.
     <html lang="es" className={outfit.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: BLOG_LAYOUT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CTA_TEXT_SCRIPT }} />
       </head>
       <body>
         <Suspense fallback={null}>
