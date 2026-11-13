@@ -251,8 +251,10 @@
   --ink-strong: #111827;
   --paper: #ffffff;
   --paper-2: #f9fafb;
-  --line: #e5e7eb;
-  --line-strong: #d1d5db;
+  /* Un tono más oscuras que antes (#e5e7eb / #d1d5db): sobre el fondo casi
+     blanco del widget no se veían los bordes de los campos ni de las tarjetas. */
+  --line: #d1d5db;
+  --line-strong: #9ca3af;
   --mute: #9ca3af;
   --ch-accent-soft: #d1fae5;
 }
