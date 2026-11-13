@@ -26,7 +26,7 @@
     <!--Nav-->
     <Navbar></Navbar>
     <router-view/>
-    <ChatWidget v-if="$route.name !== 'quotation'" />
+    <ChatWidget v-if="showChat" />
   </div>
 </template>
 
@@ -35,6 +35,10 @@ import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import Navbar from '@/components/Navbar.vue';
 import ChatWidget from '@/components/ChatWidget.vue';
+
+// Sin chat en el link de cotizar del transportista ni en los pasos de la orden:
+// la burbuja, fija abajo a la derecha, tapaba "Siguiente" en el celular.
+const ROUTES_WITHOUT_CHAT = ['quotation', 'step-one', 'step-two', 'step-three', 'order-contact'];
 
 export default {
   name: 'app',
@@ -58,6 +62,9 @@ export default {
     ...mapState(useStore, [
       'loading',
     ]),
+    showChat() {
+      return !ROUTES_WITHOUT_CHAT.includes(this.$route.name);
+    },
   },
 };
 </script>
