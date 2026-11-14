@@ -17,7 +17,9 @@ type SharedMedia = {
   service: string | null
   service_code: string | null
   district: string | null
+  street: string | null
   destination_district: string | null
+  destination_street: string | null
   preferred_date: string | null
   items: { description: string; quantity: number; work: string | null; pack: boolean | null }[]
   details: Record<string, unknown> & { description?: string }
@@ -123,8 +125,16 @@ function SharedBody({ data }: { data: SharedMedia }) {
       </p>
       <h1 className="mt-2 text-3xl font-bold text-gray-900">{headline(data)}</h1>
       {day && <p className="mt-1 text-gray-600 first-letter:uppercase">{day}</p>}
+      {/* La calle sin el número: el número y el mapa van a la empresa elegida. */}
+      {data.street && (
+        <p className="mt-1 text-gray-600">
+          {[data.street, data.district].filter(Boolean).join(', ')}. El número te lo damos si el cliente te elige.
+        </p>
+      )}
       {data.destination_district && (
-        <p className="mt-1 text-gray-600">Se arman en {data.destination_district}.</p>
+        <p className="mt-1 text-gray-600">
+          Se arman en {[data.destination_street, data.destination_district].filter(Boolean).join(', ')}.
+        </p>
       )}
 
       {(data.details.description || facts.length > 0) && (

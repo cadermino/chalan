@@ -2103,10 +2103,12 @@ def test_the_share_link_names_the_district_not_the_urbanizacion(client, storage)
     service_request.neighborhood = 'Fund Oyague'
     db.session.commit()
 
-    assert client.get(f'/api/v1/service-media/{token}').get_json()['district'] == 'Jesús María'
+    body = client.get(f'/api/v1/service-media/{token}').get_json()
+    assert (body['district'], body['street']) == ('Jesús María', 'Av. Arnaldo Márquez')
+    assert '1772' not in str(body)
 
 
-def test_the_share_link_shows_the_files_and_the_district_only(client, storage):
+def test_the_share_link_shows_the_files_and_not_the_exact_address(client, storage):
     service_request, token = shared_request(client, storage)
     service_request.submitted_at = datetime(2026, 10, 5, 12, 0)
     service_request.neighborhood = 'Miraflores'
@@ -2170,9 +2172,22 @@ def test_the_share_link_carries_what_to_do_without_phones_or_addresses(client, s
     body = client.get(f'/api/v1/service-media/{token}').get_json()
 
     assert body['details'] == {'description': 'Sala y comedor. Llamar al [número oculto] antes de ir.'}
-    assert body['destination_district'] == 'San Isidro'
+    assert (body['destination_district'], body['destination_street']) == ('San Isidro', 'Calle Secreta')
     assert body['items'] == [{'description': 'Ropero, cel [número oculto]', 'quantity': 1, 'work': 'both', 'pack': True}]
-    assert 'Calle Secreta' not in str(body)
+    assert 'Calle Secreta 99' not in str(body)
+
+
+def test_both_apis_hide_the_door_number_the_same_way():
+    from pathlib import Path
+    from app.api import address
+    copy = Path(__file__).resolve().parents[1] / 'backoffice-api' / 'app' / 'address.py'
+    if not copy.exists():
+        pytest.skip('backoffice-api is not mounted in this container')
+
+    def rule(path):
+        text = path.read_text()
+        return text[text.index('# Lo que identifica la puerta'):].split('Mismo criterio que')[0]
+    assert rule(Path(address.__file__)) == rule(copy)
 
 
 

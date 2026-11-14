@@ -71,14 +71,16 @@ function MaterialChips({ materials, empty }) {
   )
 }
 
-function AddressBlock({ address }) {
+function AddressBlock({ address, hidden }) {
   const line = [address.street, address.interior].filter(Boolean).join(' · ')
-  // El link de las empresas no trae la calle hasta que el trabajo es suyo.
-  if (!line) {
+  // Hasta que el trabajo es suyo, el link de las empresas trae la calle sin el
+  // número y el distrito, sin interior ni mapa.
+  if (hidden) {
     return (
       <>
-        <p className="font-medium text-gray-900">{districtOf(address) || '—'}</p>
-        <p className="text-sm text-gray-500">La dirección exacta te la damos cuando el cliente te elija.</p>
+        <p className="font-medium text-gray-900">{address.street || districtOf(address) || '—'}</p>
+        {address.street && districtOf(address) && <p className="text-sm text-gray-500">{districtOf(address)}</p>}
+        <p className="mt-1 text-sm text-gray-500">El número y la ubicación en el mapa te los damos cuando el cliente te elija.</p>
       </>
     )
   }
@@ -224,13 +226,13 @@ export default function ServiceRequestView({ request }) {
         </p>
       </div>
 
-      <Card title={`${request.address_hidden ? 'Distrito' : 'Dirección'}${destination ? ' (dónde se desarman)' : ''}`}>
-        <AddressBlock address={request} />
+      <Card title={`Dirección${destination ? ' (dónde se desarman)' : ''}`}>
+        <AddressBlock address={request} hidden={request.address_hidden} />
       </Card>
 
       {destination && (
-        <Card title={`${request.address_hidden ? 'Distrito de destino' : 'Destino'} (dónde se arman)`}>
-          <AddressBlock address={destination} />
+        <Card title="Destino (dónde se arman)">
+          <AddressBlock address={destination} hidden={request.address_hidden} />
           <p className="mt-2 text-xs text-gray-400">El traslado de los muebles no está incluido.</p>
         </Card>
       )}

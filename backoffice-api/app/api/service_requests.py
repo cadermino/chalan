@@ -12,7 +12,7 @@ from sqlalchemy import func
 from . import api
 from .decorators import admin_required, login_required
 from .orders import _internal_headers
-from ..address import district_of
+from ..address import district_of, street_without_number
 from ..customer_note import PHONE_IN_TEXT, note_for_customer
 from ..service_media import make_token as make_media_token
 from ..service_reviews import review_of, review_path
@@ -529,13 +529,13 @@ def bulk_cancel_service_requests():
 
 # Lo que identifica la casa del cliente. El link llega a todas las empresas
 # que ofrecen el servicio, así que antes de que el trabajo quede en firme con
-# una solo ven el distrito, como el correo de "nueva solicitud"; la elegida
-# recibe la dirección junto con el WhatsApp del cliente.
-EXACT_ADDRESS_FIELDS = ('street', 'interior', 'map_url')
-
-
+# una ven la calle sin el número y el distrito (con el distrito solo no
+# siempre sabían dónde era: el de Google sale mal a veces), sin el interior ni
+# el punto del mapa; la elegida recibe la dirección junto con el WhatsApp del
+# cliente.
 def _hide_exact_address(address):
-    return {**address, 'neighborhood': district_of(address), **{field: None for field in EXACT_ADDRESS_FIELDS}}
+    return {**address, 'street': street_without_number(address), 'neighborhood': district_of(address),
+            'interior': None, 'map_url': None}
 
 
 # Un teléfono escrito en texto libre (la descripción, una cosa de la lista), como
@@ -545,8 +545,8 @@ def _without_phones(text):
 
 
 def _district_only(data, keep_address):
-    """Hasta que el trabajo es suyo, el transportista ve el distrito y no la
-    dirección, ni un teléfono que el cliente haya escrito en lo que pide."""
+    """Hasta que el trabajo es suyo, el transportista ve la calle sin el número
+    y el distrito, ni un teléfono que el cliente haya escrito en lo que pide."""
     if keep_address:
         return {**data, 'address_hidden': False}
     hidden = {**_hide_exact_address(data), 'address_hidden': True}

@@ -266,10 +266,11 @@ def test_carrier_view_shows_the_request_without_the_customers_whatsapp(client, s
     data = res.get_json()['service_request']
     assert data['carrier_company_name'] == 'Ofrece SAC'
     assert data['preferred_date'] == '2026-10-20'
-    # Antes de que la elijan, solo el distrito (llega a todas las empresas del servicio).
-    assert (data['street'], data['map_url'], data['neighborhood']) == (None, None, 'San Isidro')
+    # Antes de que la elijan, la calle sin el número y el distrito (llega a
+    # todas las empresas del servicio).
+    assert (data['street'], data['map_url'], data['neighborhood']) == ('Av. Javier Prado', None, 'San Isidro')
     assert data['address_hidden'] is True
-    assert 'Javier Prado' not in res.get_data(as_text=True)
+    assert 'Javier Prado 123' not in res.get_data(as_text=True)
     assert [(i['description'], i['quantity'], [m['code'] for m in i['materials']]) for i in data['items']] == [
         ('Sofá', 2, ['stretch_film']), ('TV', 1, ['cardboard_sheet', 'stretch_film'])]
     assert data['materials_summary'][1] == {'code': 'stretch_film', 'name': 'Film', 'items': 2, 'quantity': 3}
@@ -1103,7 +1104,7 @@ def test_only_the_chosen_carrier_sees_the_exact_address(client, submitted, packi
     other = public_get(client, submitted, loser).get_json()['service_request']
 
     assert (chosen['street'], chosen['address_hidden']) == ('Av. Javier Prado 123', False)
-    assert (other['street'], other['neighborhood'], other['address_hidden']) == (None, 'San Isidro', True)
+    assert (other['street'], other['neighborhood'], other['address_hidden']) == ('Av. Javier Prado', 'San Isidro', True)
 
 
 @pytest.mark.parametrize('address, district', [
@@ -1128,7 +1129,25 @@ def test_a_request_without_district_still_shows_one_on_the_carrier_link(client, 
 
     data = public_get(client, submitted, carrier).get_json()['service_request']
 
-    assert (data['street'], data['neighborhood']) == (None, 'San Isidro')
+    assert (data['street'], data['neighborhood']) == ('Av. Javier Prado', 'San Isidro')
+
+
+@pytest.mark.parametrize('street, shown', [
+    ('Av. Arequipa 1234, Lince 15046, Perú', 'Av. Arequipa'),
+    ('Calle 2 de Mayo 345, San Isidro', 'Calle 2 de Mayo'),
+    ('Jr. Huallaga N° 123, Cercado de Lima', 'Jr. Huallaga'),
+    ('Calle Los Pinos 123 Dpto 401, Miraflores', 'Calle Los Pinos'),
+    ('Mz. B Lt. 5 Urb. Los Pinos, Ate', 'Mz. B Urb. Los Pinos'),
+    ('Av. Javier Prado Este 4200-B, Surco', 'Av. Javier Prado Este'),
+    ('Av. Brasil Nro. 1250, Jesús María', 'Av. Brasil'),
+    # Ese número es el nombre de la calle.
+    ('Pasaje 7, Comas', 'Pasaje 7'),
+    ('', None),
+])
+def test_the_street_without_the_door_number(street, shown):
+    from app.address import street_without_number
+    assert street_without_number({'street': street}) == shown
+
 
 
 def test_the_admin_gets_a_share_link_for_a_sent_request(client, admin, submitted):

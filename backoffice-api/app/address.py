@@ -21,3 +21,25 @@ def district_of(address):
         return address['neighborhood']
     named = next((p for p in reversed(parts) if not _NOT_A_DISTRICT.match(p) and not re.search(r'\d', p)), None)
     return named or address.get('city')
+
+
+# Lo que identifica la puerta dentro de la calle: el número ("1234", "N° 1234",
+# "#1234", "1234-B"), el lote ("Lt. 5") y el interior ("Dpto 401", "Int. 2").
+_UNIT = re.compile(r'\b(?:dpto|depto|dep|departamento|int|interior|of|oficina|piso)\.?\s*[\w-]+', re.IGNORECASE)
+_LOT = re.compile(r'\b(?:lt|lote)\.?\s*\w+', re.IGNORECASE)
+_STREET_TYPE_ONLY = re.compile(r'^(?:av|avenida|calle|ca|jr|jir[oó]n|psje|pje|pasaje|prol|prolongaci[oó]n)\.?$', re.IGNORECASE)
+_HOUSE_NUMBER = re.compile(r'\s*(?:\b(?:n(?:ro)?|no)\.?\s*[°º]?|[°º#])?\s*\d+[a-z]?(?:\s*-\s*\w+)?\s*$', re.IGNORECASE)
+
+
+def street_without_number(address):
+    """La calle sin el número de la puerta: "Av. Arequipa 1234, Lince 15046,
+    Perú" da "Av. Arequipa". Es lo que ve una empresa de un servicio hasta que la
+    eligen: con la calle y el distrito cotiza (el distrito de Google no siempre
+    sale bien), y sin el número no puede ir a buscar al cliente por fuera. Solo
+    el primer tramo del texto de Google, que es la calle; el distrito va aparte
+    (district_of). Mismo criterio que app/api/address.py."""
+    street = next((p.strip() for p in (address.get('street') or '').split(',') if p.strip()), '')
+    street = re.sub(r'\s{2,}', ' ', _LOT.sub('', _UNIT.sub('', street))).strip(' ,-')
+    # "Pasaje 7", "Calle 12": ese número es el nombre de la calle.
+    without = _HOUSE_NUMBER.sub('', street).strip(' ,-')
+    return (street if _STREET_TYPE_ONLY.match(without) else without) or None
