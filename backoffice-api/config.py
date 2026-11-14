@@ -18,6 +18,18 @@ class DevelopmentConfig(Config):
     DEBUG = True
 
 
+class ProductionConfig(Config):
+    # Con gunicorn en el servidor (Dockerfile.backoffice-api.prod). Sin
+    # SECRET_KEY no arranca: caer a 'change-me-in-production' firmaría las
+    # sesiones con una clave que cualquiera conoce.
+    DEBUG = False
+
+    @staticmethod
+    def check():
+        if not os.environ.get('SECRET_KEY'):
+            raise RuntimeError('SECRET_KEY is required in production')
+
+
 class TestingConfig(Config):
     TESTING = True
     SECRET_KEY = 'test-secret-key-at-least-32-bytes-long'
@@ -27,5 +39,6 @@ class TestingConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
+    'production': ProductionConfig,
     'default': DevelopmentConfig,
 }

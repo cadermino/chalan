@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta
 
-from flask import request, jsonify
+from flask import current_app, request, jsonify
 from sqlalchemy import exc
 
 from . import auth
@@ -168,6 +168,10 @@ def register():
 @auth.route('/seed', methods=['POST'])
 def seed_superadmin():
     """Create the first superadmin. Disabled once any superadmin exists."""
+    # Solo para armar una base local: en producción, si la tabla quedara sin
+    # superadmin, el primero en llamar se quedaba con el backoffice.
+    if not current_app.debug:
+        return jsonify({'message': 'not found'}), 404
     if AdminUser.query.filter_by(role=ROLE_SUPERADMIN).count() > 0:
         return jsonify({'message': 'superadmin already exists'}), 409
 

@@ -5,6 +5,7 @@ COPY ./backoffice-api/requirements.txt .
 RUN pip install --upgrade pip
 RUN apk add --no-cache tzdata
 ENV TZ America/Lima
+ENV BACKOFFICE_CONFIG production
 RUN apk update && apk add python3-dev \
                           gcc \
                           libc-dev \
