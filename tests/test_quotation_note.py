@@ -102,6 +102,28 @@ def test_the_customer_does_not_see_an_amount_written_in_the_note(client, order, 
     # El transportista y el admin la siguen leyendo entera.
     assert Quotations.query.one().note.startswith('carro por viaje 290 soles')
 
+@pytest.mark.parametrize('amount', [0, -5, 'abc', None])
+def test_a_quotation_needs_a_positive_amount(client, order, carrier_company, amount):
+    assert _quote(client, order, carrier_company, amount=amount).status_code == 400
+    assert Quotations.query.count() == 0
+
+
+def test_a_closed_order_or_an_inactive_company_cannot_quote(client, order, carrier_company):
+    # El link vale 10 días: se cotizaban órdenes canceladas y al cliente le
+    # llegaba "tienes una nueva cotización".
+    order.order_status_id = 4
+    db.session.commit()
+    res = _quote(client, order, carrier_company)
+    assert (res.status_code, res.get_json()['reason']) == (409, 'not_pending')
+
+    order.order_status_id = 1
+    carrier_company.active = 0
+    db.session.commit()
+    res = _quote(client, order, carrier_company)
+    assert (res.status_code, res.get_json()['reason']) == (409, 'inactive_company')
+    assert Quotations.query.count() == 0
+
+
 def test_a_carrier_link_shows_only_its_own_note(client, order, carrier_company):
     other = CarrierCompany(name='Otra', active=1)
     db.session.add(other)

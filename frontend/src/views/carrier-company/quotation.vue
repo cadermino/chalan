@@ -907,9 +907,16 @@ export default {
           } else if (error.response && error.response.status === 401) {
             message = 'Proporciona un token por favor';
           } else if (error.response && error.response.status === 409) {
-            // El cliente ya aceptó esta cotización y su precio quedó cerrado.
-            message = 'El cliente ya aceptó tu cotización, por eso no se puede '
-              + 'cambiar el monto. Escríbenos si necesitas ajustarlo.';
+            const { reason } = error.response.data || {};
+            if (reason === 'not_pending') {
+              message = 'Esta orden ya no está recibiendo cotizaciones.';
+            } else if (reason === 'inactive_company') {
+              message = 'Tu empresa no está activa en Chalán. Escríbenos para activarla.';
+            } else {
+              // El cliente ya aceptó esta cotización y su precio quedó cerrado.
+              message = 'El cliente ya aceptó tu cotización, por eso no se puede '
+                + 'cambiar el monto. Escríbenos si necesitas ajustarlo.';
+            }
           } else {
             message = 'Hubo un error, intenta después de recargar la página';
           }

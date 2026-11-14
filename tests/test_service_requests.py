@@ -1463,6 +1463,18 @@ def test_without_reservation_the_customer_gets_the_carrier_contact_right_away(cl
     assert body['carrier_contact']['phone'] == '999111222'
 
 
+def test_a_carrier_picked_by_an_admin_is_not_shown_until_the_reservation_is_in(client, yape):
+    # Sin fila de pago se leía como "no hace falta reserva", y el cliente veía
+    # el WhatsApp del transportista antes de pagarla.
+    service_request, _, quotation_id = submitted_with_quote(client)
+
+    select(client, service_request.id, quotation_id)
+
+    assert customer_quotations(client, service_request.public_id).get_json()['carrier_contact'] is None
+    register_reservation(client, service_request.id)
+    assert customer_quotations(client, service_request.public_id).get_json()['carrier_contact']['phone'] == '999111222'
+
+
 def test_no_contact_is_shown_before_choosing(client):
     service_request, _, _ = submitted_with_quote(client)
 

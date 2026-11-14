@@ -590,6 +590,8 @@ def test_carrier_view_returns_only_their_own_quotation(client, submitted, packin
 def test_state_when_the_carrier_was_selected_and_when_another_was(client, submitted, packing):
     winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
     make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'in_progress'  # en firme: la reserva pagada (sync_status)
+    db.session.commit()
     make_quotation(submitted, loser, 280)
 
     assert public_get(client, submitted, winner).get_json()['service_request']['quotation_state'] == 'selected_mine'
@@ -598,6 +600,18 @@ def test_state_when_the_carrier_was_selected_and_when_another_was(client, submit
     # Pierde ve su propio precio, pero nada de lo del ganador.
     assert other_view['my_quotation']['amount'] == 280.0
     assert '300' not in str(other_view) and 'Gana SAC' not in str(other_view)
+
+
+def test_a_carrier_chosen_by_an_admin_without_the_reservation_is_not_confirmed_yet(client, submitted, packing):
+    # Elegida por un admin y sin reserva registrada, el servicio sigue pendiente:
+    # la empresa no ve todavía el WhatsApp ni la dirección del cliente.
+    winner = make_carrier(name='Ganador')
+    make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+
+    view = public_get(client, submitted, winner).get_json()['service_request']
+
+    assert view['quotation_state'] == 'selected_pending'
+    assert view['customer_contact'] is None
 
 
 def test_a_cancelled_request_reports_cancelled_even_if_one_was_selected(client, submitted, packing):
@@ -1098,6 +1112,8 @@ def test_admins_get_the_microcement_applicators_to_invite(client, admin):
 def test_only_the_chosen_carrier_sees_the_exact_address(client, submitted, packing):
     winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
     make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'in_progress'  # en firme: la reserva pagada (sync_status)
+    db.session.commit()
     make_quotation(submitted, loser, 280)
 
     chosen = public_get(client, submitted, winner).get_json()['service_request']
@@ -1149,6 +1165,8 @@ def test_the_carrier_link_shows_a_moved_circle_until_the_job_is_theirs(client, s
     assert public_get(client, submitted, winner).get_json()['service_request']['approximate_location'] == circle
 
     make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'in_progress'  # en firme: la reserva pagada (sync_status)
+    db.session.commit()
     chosen = public_get(client, submitted, winner).get_json()['service_request']
     assert (chosen['latitude'], chosen['address_hidden']) == (-12.0915, False)
 
@@ -1282,6 +1300,8 @@ def test_the_chosen_carrier_sees_the_customers_name_with_the_whatsapp(client, su
     db.session.commit()
     winner, loser = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Pierde SAC')
     make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    submitted.status = 'in_progress'  # en firme: la reserva pagada (sync_status)
+    db.session.commit()
     make_quotation(submitted, loser, 280)
 
     assert public_get(client, submitted, winner).get_json()['service_request']['customer_contact']['name'] == 'Carla'

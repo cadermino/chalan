@@ -21,6 +21,8 @@ from flask import current_app, jsonify
 from . import api
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .errors import not_found
+from .order.order_status import OrderStatus
+from .quotation.quotation_status import QuotationStatus
 from ..models import CarrierCompany, Order
 from .. import db
 
@@ -58,7 +60,13 @@ def redeem_quotation_short_link(code):
     if ids is None:
         return not_found('link not found')
     order_id, carrier_company_id = ids
-    if db.session.get(Order, order_id) is None or db.session.get(CarrierCompany, carrier_company_id) is None:
+    order = db.session.get(Order, order_id)
+    if order is None or db.session.get(CarrierCompany, carrier_company_id) is None:
+        return not_found('link not found')
+    # El código no vence: canjeado meses después seguía abriendo la dirección de
+    # una orden cerrada. Sirve mientras se cotiza, o si la mudanza es suya.
+    if order.order_status_id != OrderStatus.pending() and not order.quotations.filter_by(
+            carrier_company_id=carrier_company_id, quotation_status_id=QuotationStatus.Selected()).first():
         return not_found('link not found')
     token = CarrierCompanyEntity().generate_carrier_company_token(TOKEN_SECONDS, order_id, carrier_company_id)
     return jsonify({'token': token}), 200

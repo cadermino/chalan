@@ -54,3 +54,21 @@ def test_the_backoffice_makes_the_same_code(app):
     spec.loader.exec_module(module)
 
     assert module.make_code(12, 3) == make_code(12, 3)
+
+
+def test_the_code_only_opens_an_order_still_quoting_or_the_carriers_own(app, client, order, carrier_company):
+    # El código no vence: canjeado meses después abría la dirección de una
+    # orden cerrada.
+    from app import db
+    from app.models import Quotations
+    code = make_code(order.id, carrier_company.id)
+
+    order.order_status_id = 4
+    db.session.commit()
+    assert redeem(client, code).status_code == 404
+
+    order.order_status_id = 2
+    db.session.add(Quotations(order_id=order.id, carrier_company_id=carrier_company.id, amount=300,
+                              quotation_status_id=2))
+    db.session.commit()
+    assert redeem(client, code).status_code == 200

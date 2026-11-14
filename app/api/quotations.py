@@ -1,3 +1,4 @@
+import math
 import os
 from flask import jsonify, request
 from . import api
@@ -11,7 +12,7 @@ from .carrier_declines import (clear_order_decline, decline_order, decline_to_di
                                parse_decline, undo_order_decline)
 from .errors import bad_request, unauthorized
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
-from ..models import Customer, ReferredOrder, AdminUser
+from ..models import Customer, ReferredOrder, AdminUser, CarrierCompany as CarrierCompanyModel
 from ..models import Quotations as QuotationsModel, Order as OrderModel
 from .email import send_email
 from .whatsapp import send_whatsapp
@@ -125,7 +126,23 @@ def create_quotation():
     token_data = CarrierCompanyEntity.verify_carrier_company_token(auth_headers[1])
     order_id = token_data['order_id']
     carrier_company_id = token_data['carrier_company_id']
-    base_amount = float(quotation_data['amount'])
+    # El link vale 10 días aunque la orden ya no se esté cotizando: se cotizaban
+    # órdenes canceladas o completadas, desde empresas desactivadas, y con monto 1
+    # al cliente le llegaba "tienes una nueva cotización".
+    try:
+        base_amount = float(quotation_data['amount'])
+    except (KeyError, TypeError, ValueError):
+        return jsonify({'message': 'invalid amount'}), 400
+    if not math.isfinite(base_amount) or base_amount <= 0:
+        return jsonify({'message': 'invalid amount'}), 400
+    order_row = db.session.get(OrderModel, order_id)
+    if order_row is None:
+        return jsonify({'message': 'order not found'}), 404
+    if order_row.order_status_id != OrderStatus.pending():
+        return jsonify({'message': 'the order is no longer pending', 'reason': 'not_pending'}), 409
+    company = db.session.get(CarrierCompanyModel, carrier_company_id)
+    if company is None or not company.active:
+        return jsonify({'message': 'carrier company is not active', 'reason': 'inactive_company'}), 409
     # Opcional, como en las cotizaciones de servicios: 400 si no es texto o
     # pasa de 500. Al recotizar, sin `note` queda la que tenía.
     note = parse_note(quotation_data.get('note'))

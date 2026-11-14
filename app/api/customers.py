@@ -9,23 +9,27 @@ from .whatsapp import normalize_phone
 from ..models import AdminUser, Customer, Order, Payment, Quotations, ReferredOrder
 from .. import db
 
+# Lo que el cliente cambia de su cuenta (Vue manda solo el WhatsApp).
+EDITABLE_CUSTOMER_FIELDS = {'name', 'paternal_last_name', 'maternal_last_name', 'mobile_phone'}
+
+
 @api.route('/customer/<int:customer_id>', methods=['PATCH'])
 @token_required
 def update_customer(customer_id):
     auth_headers = request.headers.get('Authorization', '').split()
     customer = Customer.verify_auth_token(auth_headers[1])
-    customer_data = request.json
-    try:
-        customer_data['id']
-        return {}, 401
-    except:
-        for column in customer_data:
-            if getattr(customer, column) != customer_data[column]:
-                setattr(customer, column, customer_data[column])
-                db.session.add(customer)
-                db.session.commit()
-
-        return {}, 204
+    customer_data = request.get_json(silent=True)
+    if not isinstance(customer_data, dict):
+        return jsonify({'message': 'invalid body'}), 400
+    # Hacía setattr de cualquier columna que llegara: el correo sin
+    # verificarlo y la contraseña sin pedir la actual.
+    unknown = set(customer_data) - EDITABLE_CUSTOMER_FIELDS
+    if unknown:
+        return jsonify({'message': 'not editable: ' + ', '.join(sorted(unknown))}), 400
+    for column, value in customer_data.items():
+        setattr(customer, column, value)
+    db.session.commit()
+    return {}, 204
 
 @api.route('/customer/<int:customer_id>/last-pending-order', methods=['GET'])
 @token_required

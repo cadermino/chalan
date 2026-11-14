@@ -121,9 +121,12 @@ def _quotation_state(service_request, carrier_company_id):
         return 'open'
     if selected.carrier_company_id != carrier_company_id:
         return 'selected_other'
-    pending = any(p.status == 'pending' and p.service_request_quotation_id == selected.id
-                  for p in service_request.payments)
-    return 'selected_pending' if pending else 'selected_mine'
+    # En firme es lo que dice el estado (sync_status del API principal): con la
+    # reserva pagada, o elegida por el cliente cuando no hacía falta. Elegida por
+    # un admin sin reserva registrada, todavía no.
+    if service_request.status not in ('in_progress', 'completed'):
+        return 'selected_pending'
+    return 'selected_mine'
 
 
 def _resolve_carrier_link(token):

@@ -317,14 +317,11 @@ def sync_status(service_request):
 
 
 def confirmed_quotation(service_request):
-    """La elegida si el trabajo está en firme: su reserva ya se confirmó, o no
-    tiene (el cliente eligió sin reserva, o la eligió un admin). Desde ahí el
-    cliente y el transportista ven el contacto del otro y coordinan directo,
-    igual que una mudanza agendada."""
-    selected = next((q for q in service_request.quotations if q.status == 'selected'), None)
-    if selected is None:
+    """La elegida si el trabajo está en firme, que es lo que dice el estado
+    (sync_status): la reserva pagada, o el cliente eligió cuando no hacía falta.
+    Desde ahí el cliente y el transportista ven el contacto del otro y coordinan
+    directo, igual que una mudanza agendada. Antes bastaba no tener fila de
+    reserva, y una elegida por un admin mostraba los contactos sin la reserva."""
+    if service_request.status not in (IN_PROGRESS, COMPLETED):
         return None
-    reservation = live_reservation(service_request, selected.id)
-    if reservation is not None and reservation.status != 'paid':
-        return None
-    return selected
+    return next((q for q in service_request.quotations if q.status == 'selected'), None)

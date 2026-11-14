@@ -120,3 +120,17 @@ def test_the_carrier_contact_waits_until_the_yapeo_is_confirmed(client, customer
     assert body['status'] == 'pending'
     assert body['reservation']['status'] == 'pending'
     assert body['carrier_contact'] is None
+
+
+def test_the_customer_only_edits_their_name_and_whatsapp(client, customer):
+    # Se escribía cualquier columna: el correo sin verificar, la contraseña sin
+    # pedir la actual.
+    url = f'/api/v1/customer/{customer.id}'
+
+    assert client.patch(url, json={'mobile_phone': '955111222'}, headers=_auth_header(customer)).status_code == 204
+    for body in ({'email': 'otro@example.com'}, {'password_hash': 'x'}, {'id': 99}):
+        assert client.patch(url, json=body, headers=_auth_header(customer)).status_code == 400, body
+
+    db.session.refresh(customer)
+    assert customer.mobile_phone == '955111222'
+    assert customer.email == 'nathalia@example.com'
