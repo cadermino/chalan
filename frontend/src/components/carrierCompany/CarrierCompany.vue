@@ -215,7 +215,6 @@ export default {
   data() {
     return {
       name: null,
-      address: null,
       description: null,
       coverImage: null,
       vehicles: null,
@@ -351,7 +350,6 @@ export default {
     },
     mapCarrierCompanyData(data) {
       this.name = data.name;
-      this.address = data.address;
       this.description = data.description;
       this.coverImage = data.cover_image;
       this.vehicles = data.vehicles;

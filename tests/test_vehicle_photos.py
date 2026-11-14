@@ -139,3 +139,28 @@ def test_the_public_page_lists_active_vehicles_without_plates(client, vehicle):
     assert vehicles[0]['cargo_cover'] == 'cerrada'
     assert vehicles[0]['payload_tons'] == 2.5
     assert 'plates' not in vehicles[0]
+
+
+def test_the_public_page_does_not_give_the_companys_phone_or_address(client, vehicle):
+    # El cliente llega con el id de cada cotización: con el teléfono escribía al
+    # transportista sin elegir ni pagar la reserva.
+    company = db.session.get(CarrierCompany, vehicle.carrier_company_id)
+    company.phone = '987654321'
+    company.address = 'Av. Arequipa 1234'
+    db.session.commit()
+
+    body = client.get(f'/api/v1/carrier-company/{company.id}').get_json()
+
+    assert body['name'] == 'Mudanzas SAC'
+    assert 'phone' not in body
+    assert 'address' not in body
+
+
+def test_an_inactive_company_has_no_public_page(client, vehicle):
+    # Entre las inactivas están los contactos de Google Maps: su nombre de
+    # negocio no se muestra al cliente.
+    db.session.get(CarrierCompany, vehicle.carrier_company_id).active = 0
+    db.session.commit()
+
+    assert client.get(f'/api/v1/carrier-company/{vehicle.carrier_company_id}').status_code == 404
+    assert client.get('/api/v1/carrier-company/999999').status_code == 404

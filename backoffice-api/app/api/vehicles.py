@@ -3,12 +3,13 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 
 import requests
-from flask import request, jsonify, g
+from flask import request, jsonify
 
 from . import api
 from .decorators import login_required, admin_required, superadmin_required
 from .orders import _internal_headers
-from ..models import Vehicle, CarrierCompany, Quotation, ROLE_CARRIER, MOVING_SERVICE_CODE
+from .carrier_companies import _can_access_company
+from ..models import Vehicle, CarrierCompany, Quotation, MOVING_SERVICE_CODE
 from .. import db
 
 
@@ -103,13 +104,6 @@ def _parse_card_fields(data):
         values[field] = number
 
     return values, None
-
-
-def _can_access_company(company_id):
-    user = g.current_user
-    if user.role == ROLE_CARRIER:
-        return user.carrier_company_id == company_id
-    return True
 
 
 @api.route('/carrier-companies/<int:company_id>/vehicles', methods=['GET'])

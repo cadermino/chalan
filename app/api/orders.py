@@ -194,7 +194,7 @@ def update_order(order_id):
     # orden desde el backoffice. De esos solo se toma ligar al cliente.
     order_entity = OrderEntity(order_id)
     if order_data.get('orderEditedByCustomer'):
-        order = order_entity.update(request=order_data, customer_id=owner_id)
+        order = order_entity.update(request=order_data, customer_id=owner_id, internal=internal)
         written = 'full'
     else:
         order = order_entity.link_customer(owner_id)
@@ -422,9 +422,18 @@ def _reservation_of(order_id, quotation_id):
 def generate_checkout_cash(order_id):
     auth_headers = request.headers.get('Authorization', '').split()
     customer = Customer.verify_auth_token(auth_headers[1])
+    # Solo el dueño agenda su orden: antes cualquier cliente con sesión creaba
+    # los pagos de una ajena, y sin la reserva obligatoria la ponía en curso.
+    owned = db.session.get(Order, order_id)
+    if owned is None:
+        return jsonify({'message': 'order not found'}), 404
+    if owned.customer_id != customer.id:
+        return jsonify({'message': 'forbidden'}), 403
     order_entity = OrderEntity(order_id)
     order_model = order_entity.query_orders({'id': order_id})
     quotation = order_model[0].quotations.filter_by(quotation_status_id = 2).first()
+    if quotation is None:
+        return jsonify({'message': 'no selected quotation'}), 409
 
     # Con la exigencia activa, agendar pide yapear la reserva e informar su
     # número de operación. Se valida acá y no solo en el modal: sin esto basta

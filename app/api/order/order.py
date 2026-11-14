@@ -175,7 +175,7 @@ class Order:
             self.written_fields = ['customer_id']
         return order
 
-    def update(self, request, customer_id=None):
+    def update(self, request, customer_id=None, internal=False):
         order = db.session.get(OrderModel, self.order_id)
 
         # customer_id llega ya validado contra el token por la ruta; el
@@ -188,7 +188,10 @@ class Order:
         order.appointment_date = request['order']['appointment_date']
         order.comments = request['order']['comments']
         written.extend(['appointment_date', 'comments'])
-        if request['order'].get('order_status_id') is not None:
+        # El estado lo mueven el pago y el backoffice, nunca el navegador: un
+        # cliente que mandaba 2 tenía su orden en curso, y el WhatsApp del
+        # transportista, sin haber pagado la reserva.
+        if internal and request['order'].get('order_status_id') is not None:
             order.order_status_id = request['order']['order_status_id']
             written.append('order_status_id')
         # Un campo numerico que el usuario dejo vacio llega como '' desde

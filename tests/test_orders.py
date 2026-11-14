@@ -9,7 +9,7 @@ from app.api.order.steps.addresses import Addresses as AddressesStep
 from app.api.orders import send_email_to_carrier_companies
 from app.api.order.order_status import OrderStatus
 from app.models import (ServiceRequest, ServiceRequestPayment, ServiceRequestQuotation,
-                        CarrierCompanyServiceType, LuServices, Order, OrdersServices, Payment,
+                        CarrierCompanyServiceType, Customer, LuServices, Order, OrdersServices, Payment,
                         PaymentType, Quotations, ServiceType)
 
 
@@ -808,3 +808,63 @@ def test_empty_numeric_strings_do_not_blow_up_the_route(client, customer):
     order = db.session.get(Order, order_id)
     assert order.loaders_quantity is None
     assert order.approximate_budget == 0
+
+
+def test_the_customer_cannot_change_the_order_status(client, customer):
+    # Mandar order_status_id 2 ponía la orden en curso sin pagar la reserva, y
+    # con eso el cliente recibía el WhatsApp del transportista.
+    order_id = _create_order(client, customer)
+    payload = _route_update_payload(edited_by_customer=True)
+    payload['order']['order_status_id'] = OrderStatus.in_progress()
+
+    res = client.put(f'/api/v1/order/{order_id}', json=payload, headers=_auth(customer))
+
+    assert res.status_code == 200
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+
+
+def test_nobody_cancels_an_order_without_an_owner(client, customer):
+    order_id = _create_order(client, customer)
+    db.session.get(Order, order_id).customer_id = None
+    db.session.commit()
+    payload = _route_update_payload(edited_by_customer=True)
+    payload['order']['order_status_id'] = OrderStatus.cancelled()
+
+    client.put(f'/api/v1/order/{order_id}', json=payload)
+
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+
+
+def test_the_backoffice_can_still_set_the_order_status(client, customer):
+    order_id = _create_order(client, customer)
+    payload = _route_update_payload(edited_by_customer=True)
+    payload['order']['order_status_id'] = OrderStatus.cancelled()
+
+    res = client.put(f'/api/v1/order/{order_id}', json=payload, headers=_internal_auth())
+
+    assert res.status_code == 200
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.cancelled()
+
+
+def test_another_customer_cannot_schedule_someone_elses_order(client, customer, carrier_company, monkeypatch):
+    # Cualquier cliente con sesión creaba los pagos de una orden ajena y, sin la
+    # reserva obligatoria, la ponía en curso y recibía el teléfono del transportista.
+    sent = _checkout_setup(monkeypatch, carrier_company, required=False)
+    order_id = _order_with_selected_quotation(client, customer, carrier_company)
+    intruder = Customer(name='Otro', email='otro@example.com')
+    db.session.add(intruder)
+    db.session.commit()
+
+    res = _checkout(client, intruder, order_id)
+
+    assert res.status_code == 403
+    assert db.session.get(Order, order_id).order_status_id == OrderStatus.pending()
+    assert Payment.query.filter_by(order_id=order_id).count() == 0
+    assert sent == []
+
+
+def test_checkout_without_a_selected_quotation_is_a_409_not_a_500(client, customer, carrier_company, monkeypatch):
+    _checkout_setup(monkeypatch, carrier_company, required=False)
+    order_id = _create_order(client, customer)
+
+    assert _checkout(client, customer, order_id).status_code == 409

@@ -10,13 +10,17 @@ from .decorators import carrier_company_token_required
 @api.route('/carrier-company/<int:id>', methods=['GET'])
 def carrier_company_data(id):
     carrier_company = CarrierCompanyEntity(id)
+    # Página pública: el cliente llega con el id de cada cotización, así que ni
+    # teléfono ni dirección (los tendría sin elegir ni pagar la reserva). Las
+    # inactivas no existen aquí: entre ellas están los contactos de Google Maps,
+    # cuyo nombre de negocio el cliente no debe ver.
+    if carrier_company.carrier_company is None or not carrier_company.get_is_active():
+        return not_found('Carrier company not found')
     try:
         return jsonify({
             'name': carrier_company.get_name(),
-            'address': carrier_company.get_address(),
             'vehicles': carrier_company.get_vehicles(),
             'description': carrier_company.get_description(),
-            'phone': carrier_company.get_phone(),
             'cover_image': carrier_company.get_cover_image(),
             'facebook': carrier_company.get_facebook(),
             'youtube': carrier_company.get_youtube(),

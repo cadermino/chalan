@@ -10,11 +10,18 @@ from .. import db
 
 
 def _can_access_company(company_id):
-    """Carrier company users can only access their own company."""
+    """Admins ven todas las empresas; una empresa, solo la suya; nadie más.
+
+    Antes solo se restringía al rol de empresa, y un agente inmobiliario pasaba
+    como admin: veía teléfono, correo, RUC, vehículos y tarifas de todas, y
+    podía editarlas.
+    """
     user = g.current_user
+    if user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return True
     if user.role == ROLE_CARRIER:
         return user.carrier_company_id == company_id
-    return True
+    return False
 
 
 def _users_by_company(company_ids):
@@ -160,8 +167,10 @@ def list_carrier_companies():
     user = g.current_user
     if user.role == ROLE_CARRIER:
         companies = CarrierCompany.query.filter_by(id=user.carrier_company_id).all()
-    else:
+    elif user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
         companies = CarrierCompany.query.order_by(CarrierCompany.name).all()
+    else:
+        return jsonify({'message': 'forbidden'}), 403
 
     # Solo para admins: al transportista se le devuelve únicamente su propia
     # empresa, y no tiene por qué recibir la lista de cuentas ligadas a ella.
