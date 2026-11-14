@@ -21,7 +21,7 @@ export default function AddressAutocomplete({ id, value, disabled, invalid, onTe
         if (cancelled || !inputRef.current) return
         const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
           componentRestrictions: { country: 'pe' },
-          fields: ['address_components', 'formatted_address', 'url'],
+          fields: ['address_components', 'formatted_address', 'url', 'geometry'],
         })
         listener = autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace()

@@ -69,5 +69,9 @@ export function addressFromPlace(place) {
     state: component(place, 'administrative_area_level_1').slice(0, 100),
     country: component(place, 'country', true).slice(0, 20),
     map_url: (place.url || '').slice(0, 400),
+    // El punto, para el mapa aproximado que ven las empresas (un círculo
+    // corrido, nunca este punto).
+    latitude: place.geometry?.location?.lat() ?? null,
+    longitude: place.geometry?.location?.lng() ?? null,
   }
 }

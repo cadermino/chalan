@@ -9,6 +9,7 @@ export default function AddressFields({ id, label, address, onChange, error, map
   // (es la prueba de que salió de Google y no es texto libre).
   const handleText = (street) => onChange({
     ...address, street, map_url: '', neighborhood: '', city: '', state: '', country: '',
+    latitude: null, longitude: null,
   })
 
   return (

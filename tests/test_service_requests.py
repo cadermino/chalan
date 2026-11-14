@@ -2186,7 +2186,8 @@ def test_both_apis_hide_the_door_number_the_same_way():
 
     def rule(path):
         text = path.read_text()
-        return text[text.index('# Lo que identifica la puerta'):].split('Mismo criterio que')[0]
+        text = text.replace('backoffice-api/app/address.py', 'la otra').replace('app/api/address.py', 'la otra')
+        return text[text.index('# Lo que identifica la puerta'):]
     assert rule(Path(address.__file__)) == rule(copy)
 
 
@@ -2263,3 +2264,50 @@ def test_an_admin_records_the_customers_name(client):
     saved = db.session.get(ServiceRequest, request_id)
     assert (saved.customer_name, saved.customer_email) == ('Rosa', 'rosa@example.com')
     assert manual(client, customer_name='').status_code == 400
+
+
+# --- where the request is, for the companies' approximate map (migration 050) -----
+
+def test_the_form_saves_the_point_google_gave_and_drops_one_that_is_not_a_number(client):
+    public_id = create_draft(client, address={**ADDRESS, 'latitude': -12.0915, 'longitude': -77.035})
+    assert (ServiceRequest.query.one().latitude, ServiceRequest.query.one().longitude) == (-12.0915, -77.035)
+
+    response = client.patch(f'/api/v1/service-requests/{public_id}',
+                            json={'address': {**ADDRESS, 'latitude': 'cerca', 'longitude': -77.035}})
+    assert response.status_code == 200
+    assert ServiceRequest.query.one().latitude is None
+    assert client.get(f'/api/v1/service-requests/{public_id}').get_json()['address']['latitude'] is None
+
+
+@pytest.mark.parametrize('map_url, point', [
+    ('https://www.google.com/maps/place/Parque/@-12.09,-77.04,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0x1!8m2'
+     '!3d-12.0915!4d-77.035', (-12.0915, -77.035)),
+    ('https://maps.google.com/maps?q=-12.1234,-77.0123', (-12.1234, -77.0123)),
+    ('https://www.google.com/maps/@-12.05,-77.02,15z', (-12.05, -77.02)),
+    ('https://maps.app.goo.gl/AbCdEf123', (None, None)),
+    ('https://maps.google.com/?cid=1', (None, None)),
+])
+def test_an_admins_map_link_gives_the_point_when_it_has_one(map_url, point):
+    from app.api.service_request.validation import validate_address
+    cleaned = validate_address({**ADDRESS, 'map_url': map_url})
+    assert (cleaned['latitude'], cleaned['longitude']) == point
+
+
+def test_the_share_link_shows_a_moved_circle_not_the_point(client, storage):
+    import math
+    service_request, token = shared_request(client, storage)
+    service_request.submitted_at = datetime(2026, 10, 5, 12, 0)
+    service_request.latitude, service_request.longitude = -12.0915, -77.035
+    service_request.details = {'destination': {**ADDRESS, 'latitude': -12.12, 'longitude': -77.03}}
+    db.session.commit()
+
+    body = client.get(f'/api/v1/service-media/{token}').get_json()
+    again = client.get(f'/api/v1/service-media/{token}').get_json()
+
+    circle = body['approximate_location']
+    moved = math.hypot((circle['latitude'] + 12.0915) * 111320,
+                       (circle['longitude'] + 77.035) * 111320 * math.cos(math.radians(-12.0915)))
+    assert 140 < moved < 360 < circle['radius_m']
+    assert again['approximate_location'] == circle
+    assert body['destination_approximate_location'] not in (None, circle)
+    assert '-12.0915' not in str(body) and '-12.12,' not in str(body)

@@ -363,6 +363,10 @@ class ServiceRequest(db.Model):
 	state = db.Column(db.String(100))
 	country = db.Column(db.String(20))
 	map_url = db.Column(db.String(400))
+	# El punto que dio Google al elegir la dirección (migración 050). Nunca sale
+	# hacia una empresa: ve un círculo corrido (address.approximate_location).
+	latitude = db.Column(db.Float)
+	longitude = db.Column(db.Float)
 	details = db.Column(db.JSON)
 	submitted_at = db.Column(db.DateTime())
 	created_date = db.Column(db.DateTime(), server_default=func.now())

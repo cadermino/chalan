@@ -99,6 +99,14 @@ const EMPTY_PER_M2 = {
   ...Object.fromEntries(PER_M2_LISTS.map((key) => [key, []])),
 }
 
+// Las coordenadas que dio Google al cliente (migración 050, para el mapa
+// aproximado de las empresas) siguen mientras el link de Maps sea el mismo; con
+// otro link, el API las saca de ese link si las trae.
+function samePoint(saved, mapUrl) {
+  if (!saved || saved.map_url !== mapUrl) return {}
+  return { latitude: saved.latitude ?? null, longitude: saved.longitude ?? null }
+}
+
 function formFromRequest(request) {
   const destination = request.details?.destination
   return {
@@ -269,6 +277,7 @@ export default function ServiceRequestCreate() {
         state: original?.state || null,
         country: original?.country || 'PE',
         map_url: form.mapUrl,
+        ...samePoint(original, form.mapUrl),
       },
       ...(!isDescribed && {
         items: filled.map(({ description, quantity, materials: codes, work, pack }) => (isAssembly
@@ -302,6 +311,7 @@ export default function ServiceRequestCreate() {
             city: destination.city,
             country: 'PE',
             map_url: destination.mapUrl,
+            ...samePoint(original?.details?.destination, destination.mapUrl),
           },
         },
       }),

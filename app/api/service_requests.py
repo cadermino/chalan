@@ -6,7 +6,7 @@ from flask import current_app, jsonify, request
 from sqlalchemy import func
 
 from . import api
-from .address import district_of, street_without_number
+from .address import approximate_location, district_of, street_without_number
 from .decorators import is_internal_request
 from .carrier_declines import (decline_service_request, decline_to_dict, parse_decline,
                                undo_service_request_decline)
@@ -97,6 +97,8 @@ def _address_dict(service_request):
         'state': service_request.state,
         'country': service_request.country,
         'map_url': service_request.map_url,
+        'latitude': service_request.latitude,
+        'longitude': service_request.longitude,
     }
 
 
@@ -556,6 +558,14 @@ def get_shared_service_media(token):
         'street': street_without_number(_address_dict(service_request)),
         'destination_district': district_of(destination) if destination else None,
         'destination_street': street_without_number(destination) if destination else None,
+        # Un círculo corrido en vez del punto, el mismo que el link de las
+        # empresas (backoffice-api _hide_exact_address).
+        'approximate_location': approximate_location(
+            service_request.latitude, service_request.longitude, current_app.config['SECRET_KEY'],
+            f'service_request:{service_request.id}'),
+        'destination_approximate_location': approximate_location(
+            destination.get('latitude'), destination.get('longitude'), current_app.config['SECRET_KEY'],
+            f'service_request:{service_request.id}:destination') if destination else None,
         'preferred_date': service_request.preferred_date.isoformat() if service_request.preferred_date else None,
         'items': [{'description': without_phones(i.description), 'quantity': i.quantity, 'work': i.work,
                    'pack': i.pack} for i in service_request.items],

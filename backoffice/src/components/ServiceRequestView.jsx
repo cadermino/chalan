@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Card from './Card'
 import { districtOf } from '../lib/district'
+import ApproxMap from './ApproxMap'
 
 // 'YYYY-MM-DD' -> 'sábado 20 de octubre'. Se arma desde las partes y se formatea en
 // UTC: new Date('2026-10-20') se lee como UTC y en Lima mostraría el día anterior.
@@ -74,13 +75,18 @@ function MaterialChips({ materials, empty }) {
 function AddressBlock({ address, hidden }) {
   const line = [address.street, address.interior].filter(Boolean).join(' · ')
   // Hasta que el trabajo es suyo, el link de las empresas trae la calle sin el
-  // número y el distrito, sin interior ni mapa.
+  // número, el distrito y un círculo corrido en el mapa, sin interior ni punto.
   if (hidden) {
+    const zone = address.approximate_location
     return (
       <>
         <p className="font-medium text-gray-900">{address.street || districtOf(address) || '—'}</p>
         {address.street && districtOf(address) && <p className="text-sm text-gray-500">{districtOf(address)}</p>}
-        <p className="mt-1 text-sm text-gray-500">El número y la ubicación en el mapa te los damos cuando el cliente te elija.</p>
+        <ApproxMap location={zone} />
+        <p className="mt-2 text-sm text-gray-500">
+          {zone ? 'El círculo es la zona aproximada. ' : ''}
+          El número y la ubicación exacta te los damos cuando el cliente te elija.
+        </p>
       </>
     )
   }

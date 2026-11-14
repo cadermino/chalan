@@ -19,6 +19,10 @@ RUN npm ci
 COPY /backoffice .
 ENV VITE_API_URL=/backoffice-api
 ENV VITE_BASE_PATH=/backoffice/
+# La key de Google de services-web (NEXT_PUBLIC_PLACES_API_KEY en .env.prod,
+# docker-compose-peru.prod.yml): el mapa aproximado del link de las empresas.
+ARG VITE_PLACES_API_KEY
+ENV VITE_PLACES_API_KEY=$VITE_PLACES_API_KEY
 RUN npm run build
 
 FROM nginx:alpine

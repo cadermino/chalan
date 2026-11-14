@@ -659,6 +659,10 @@ class ServiceRequest(db.Model):
     state = db.Column(db.String(100))
     country = db.Column(db.String(20))
     map_url = db.Column(db.String(400))
+    # Migración 050. Las empresas no lo reciben: _hide_exact_address lo cambia
+    # por un círculo corrido hasta que el trabajo es suyo.
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
     details = db.Column(db.JSON)
     submitted_at = db.Column(db.DateTime())
     created_date = db.Column(db.DateTime(), server_default=func.now())
@@ -689,6 +693,8 @@ class ServiceRequest(db.Model):
             'state': self.state,
             'country': self.country,
             'map_url': self.map_url,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'details': self.details or {},
             'submitted_at': _iso(self.submitted_at),
             'created_date': _iso(self.created_date),

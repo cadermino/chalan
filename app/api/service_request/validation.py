@@ -84,7 +84,39 @@ def validate_address(address, name='address'):
         if len(value) > max_length:
             raise InvalidRequest(f'{name}.{field} is too long (max {max_length})')
         cleaned[field] = value
+    cleaned['latitude'], cleaned['longitude'] = _coordinates(address, cleaned['map_url'])
     return cleaned
+
+
+# Un link de Google Maps con el punto adentro: "!3d-12.09!4d-77.03" (el lugar),
+# "?q=-12.09,-77.03" (la ubicación que se comparte por WhatsApp) o
+# "@-12.09,-77.03,17z" (el centro de la vista). Los "?cid=…" y los cortos
+# (maps.app.goo.gl) no lo traen.
+_POINT_IN_LINK = (
+    re.compile(r'!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)'),
+    re.compile(r'[?&](?:q|query|ll|center|destination)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)'),
+    re.compile(r'@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)'),
+)
+
+
+def _coordinates(address, map_url):
+    """El punto de la dirección, para el mapa aproximado de las empresas
+    (migración 050): el que manda el formulario de Google, o el del link de
+    Maps que pega un admin. Opcional: uno que no es un número en rango se
+    descarta en vez de rechazar el pedido, como en las mudanzas."""
+    latitude, longitude = address.get('latitude'), address.get('longitude')
+    if _in_range(latitude, 90) and _in_range(longitude, 180):
+        return float(latitude), float(longitude)
+    for pattern in _POINT_IN_LINK:
+        found = pattern.search(map_url or '')
+        if found and _in_range(float(found.group(1)), 90) and _in_range(float(found.group(2)), 180):
+            return float(found.group(1)), float(found.group(2))
+    return None, None
+
+
+def _in_range(value, limit):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and -limit <= value <= limit \
+        and value == value
 
 
 def validate_preferred_date(value, allow_today=False):

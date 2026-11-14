@@ -1132,6 +1132,32 @@ def test_a_request_without_district_still_shows_one_on_the_carrier_link(client, 
     assert (data['street'], data['neighborhood']) == ('Av. Javier Prado', 'San Isidro')
 
 
+
+def test_the_carrier_link_shows_a_moved_circle_until_the_job_is_theirs(client, submitted, packing):
+    submitted.latitude, submitted.longitude = -12.0915, -77.035
+    db.session.commit()
+    winner, other = make_carrier(packing, name='Gana SAC'), make_carrier(packing, name='Otra SAC')
+
+    response = public_get(client, submitted, other)
+    hidden = response.get_json()['service_request']
+
+    circle = hidden['approximate_location']
+    assert (hidden['latitude'], hidden['longitude'], circle['radius_m']) == (None, None, 500)
+    assert (circle['latitude'], circle['longitude']) != (-12.0915, -77.035)
+    assert '-12.0915' not in response.get_data(as_text=True)
+    # La misma para todas las empresas y en cada carga: promediando no sale la casa.
+    assert public_get(client, submitted, winner).get_json()['service_request']['approximate_location'] == circle
+
+    make_quotation(submitted, winner, 300, status='selected', total=330, rate=0.1)
+    chosen = public_get(client, submitted, winner).get_json()['service_request']
+    assert (chosen['latitude'], chosen['address_hidden']) == (-12.0915, False)
+
+
+def test_a_request_without_coordinates_has_no_circle(client, submitted, packing):
+    hidden = public_get(client, submitted, make_carrier(packing)).get_json()['service_request']
+    assert hidden['approximate_location'] is None
+
+
 @pytest.mark.parametrize('street, shown', [
     ('Av. Arequipa 1234, Lince 15046, Perú', 'Av. Arequipa'),
     ('Calle 2 de Mayo 345, San Isidro', 'Calle 2 de Mayo'),

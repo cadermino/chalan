@@ -12,7 +12,7 @@ from sqlalchemy import func
 from . import api
 from .decorators import admin_required, login_required
 from .orders import _internal_headers
-from ..address import district_of, street_without_number
+from ..address import approximate_location, district_of, street_without_number
 from ..customer_note import PHONE_IN_TEXT, note_for_customer
 from ..service_media import make_token as make_media_token
 from ..service_reviews import review_of, review_path
@@ -529,13 +529,15 @@ def bulk_cancel_service_requests():
 
 # Lo que identifica la casa del cliente. El link llega a todas las empresas
 # que ofrecen el servicio, así que antes de que el trabajo quede en firme con
-# una ven la calle sin el número y el distrito (con el distrito solo no
-# siempre sabían dónde era: el de Google sale mal a veces), sin el interior ni
-# el punto del mapa; la elegida recibe la dirección junto con el WhatsApp del
-# cliente.
-def _hide_exact_address(address):
+# una ven la calle sin el número, el distrito (con el distrito solo no siempre
+# sabían dónde era: el de Google sale mal a veces) y un círculo corrido en el
+# mapa (como Airbnb), sin el interior, el link ni el punto; la elegida recibe
+# la dirección junto con el WhatsApp del cliente.
+def _hide_exact_address(address, key):
     return {**address, 'street': street_without_number(address), 'neighborhood': district_of(address),
-            'interior': None, 'map_url': None}
+            'interior': None, 'map_url': None, 'latitude': None, 'longitude': None,
+            'approximate_location': approximate_location(
+                address.get('latitude'), address.get('longitude'), current_app.config['SECRET_KEY'], key)}
 
 
 # Un teléfono escrito en texto libre (la descripción, una cosa de la lista), como
@@ -549,10 +551,11 @@ def _district_only(data, keep_address):
     y el distrito, ni un teléfono que el cliente haya escrito en lo que pide."""
     if keep_address:
         return {**data, 'address_hidden': False}
-    hidden = {**_hide_exact_address(data), 'address_hidden': True}
+    key = f"service_request:{data['id']}"
+    hidden = {**_hide_exact_address(data, key), 'address_hidden': True}
     details = dict(data.get('details') or {})
     if details.get('destination'):
-        details['destination'] = _hide_exact_address(details['destination'])
+        details['destination'] = _hide_exact_address(details['destination'], f'{key}:destination')
     if 'description' in details:
         details['description'] = _without_phones(details['description'])
     hidden['details'] = details

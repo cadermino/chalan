@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
+import { ApproxMap, type ApproxLocation } from '@/components/ApproxMap'
 import { getApiBase } from '@/lib/api'
 import { whatsappUrl } from '@/lib/homeServices'
 import { WORK_LABELS, serviceFacts } from '@/lib/serviceLabels'
@@ -20,6 +21,8 @@ type SharedMedia = {
   street: string | null
   destination_district: string | null
   destination_street: string | null
+  approximate_location: ApproxLocation | null
+  destination_approximate_location: ApproxLocation | null
   preferred_date: string | null
   items: { description: string; quantity: number; work: string | null; pack: boolean | null }[]
   details: Record<string, unknown> & { description?: string }
@@ -128,13 +131,19 @@ function SharedBody({ data }: { data: SharedMedia }) {
       {/* La calle sin el número: el número y el mapa van a la empresa elegida. */}
       {data.street && (
         <p className="mt-1 text-gray-600">
-          {[data.street, data.district].filter(Boolean).join(', ')}. El número te lo damos si el cliente te elige.
+          {[data.street, data.district].filter(Boolean).join(', ')}.
+          {data.approximate_location ? ' El círculo del mapa es la zona aproximada.' : ''}
+          {' '}El número te lo damos si el cliente te elige.
         </p>
       )}
+      <ApproxMap location={data.approximate_location} />
       {data.destination_district && (
-        <p className="mt-1 text-gray-600">
-          Se arman en {[data.destination_street, data.destination_district].filter(Boolean).join(', ')}.
-        </p>
+        <>
+          <p className="mt-4 text-gray-600">
+            Se arman en {[data.destination_street, data.destination_district].filter(Boolean).join(', ')}.
+          </p>
+          <ApproxMap location={data.destination_approximate_location} />
+        </>
       )}
 
       {(data.details.description || facts.length > 0) && (

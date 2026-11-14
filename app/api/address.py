@@ -1,5 +1,8 @@
 """Direcciones que salen de Chalán hacia las empresas: solo el distrito hasta
 que el trabajo es de ellas (servicios y mudanzas)."""
+import hashlib
+import hmac
+import math
 import re
 
 _NOT_A_DISTRICT = re.compile(r'^(per[uú]|lima|callao|provincia de lima)$', re.IGNORECASE)
@@ -43,3 +46,29 @@ def street_without_number(address):
     # "Pasaje 7", "Calle 12": ese número es el nombre de la calle.
     without = _HOUSE_NUMBER.sub('', street).strip(' ,-')
     return (street if _STREET_TYPE_ONLY.match(without) else without) or None
+
+
+# El círculo que ve una empresa en vez del punto: Airbnb muestra el barrio así.
+# El centro se corre entre 150 y 350 m del punto, en una dirección que sale del
+# pedido firmado con SECRET_KEY: siempre la misma para cada pedido (si cambiara
+# en cada carga, promediando varias saldría la casa) y nadie sin la clave la
+# deshace. Con 500 m de radio la casa siempre queda adentro.
+APPROXIMATE_RADIUS_M = 500
+_METERS_PER_DEGREE = 111_320
+
+
+def approximate_location(latitude, longitude, secret, key):
+    """`key` distingue los puntos de un mismo pedido ("service_request:12",
+    "service_request:12:destination"). None sin coordenadas."""
+    if latitude is None or longitude is None:
+        return None
+    digest = hmac.new(str(secret).encode(), f'approximate-location:{key}'.encode(), hashlib.sha256).digest()
+    angle = int.from_bytes(digest[:4], 'big') / 2 ** 32 * 2 * math.pi
+    distance = 150 + int.from_bytes(digest[4:8], 'big') / 2 ** 32 * 200
+    north = distance * math.cos(angle) / _METERS_PER_DEGREE
+    east = distance * math.sin(angle) / (_METERS_PER_DEGREE * math.cos(math.radians(latitude)))
+    return {
+        'latitude': round(latitude + north, 5),
+        'longitude': round(longitude + east, 5),
+        'radius_m': APPROXIMATE_RADIUS_M,
+    }

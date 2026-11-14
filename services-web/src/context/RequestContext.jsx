@@ -9,6 +9,7 @@ const STORAGE_KEY = `chalan_${SERVICE}_request`
 
 export const EMPTY_ADDRESS = {
   street: '', interior: '', neighborhood: '', city: '', state: '', country: '', map_url: '',
+  latitude: null, longitude: null,
 }
 const EMPTY_DRAFT = {
   publicId: null,
@@ -32,13 +33,15 @@ export function newItem(fields = {}) {
   return { key: `item-${itemSeq}`, description: '', quantity: 1, materials: [], work: null, pack: false, ...fields }
 }
 
-// El servidor manda null en los campos vacíos; los inputs quieren ''.
+// El servidor manda null en los campos vacíos; los inputs quieren ''. Las
+// coordenadas no son inputs: quedan como vienen.
 const toForm = (address) => ({ ...EMPTY_ADDRESS, ...Object.fromEntries(
-  Object.entries(address || {}).map(([k, v]) => [k, v || ''])) })
+  Object.entries(address || {}).map(([k, v]) => [k, k === 'latitude' || k === 'longitude' ? v ?? null : v || ''])) })
 
 const addressPayload = (address) => ({
   street: address.street, interior: address.interior, neighborhood: address.neighborhood,
   city: address.city, state: address.state, country: address.country, map_url: address.map_url,
+  latitude: address.latitude ?? null, longitude: address.longitude ?? null,
 })
 
 function fromServer(data) {
