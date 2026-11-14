@@ -15,6 +15,31 @@ _PHONE_IN_TEXT = re.compile(r'\+?\d(?:[\s.-]?\d){6,}')
 def without_phones(text):
     return _PHONE_IN_TEXT.sub('[número oculto]', text) if text else text
 
+
+# Montos escritos en la nota de una cotización ("S/ 80 c/u", "290 soles por
+# viaje"): el cliente ve un solo total, con la comisión, y otro número al lado
+# lo confunde o le muestra el precio del transportista. Solo un número con
+# moneda o justo después de "precio"/"costo": "2 cargadores" o "20 m2" quedan.
+_NUMBER = r'\d{1,3}(?:[.,\s]\d{3}(?!\d))+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?'
+_AMOUNT = rf'(?:{_NUMBER})(?:(?:\s*[-–]\s*|\s+(?:a|al|o)\s+)(?:{_NUMBER}))?(?:\s*mil\b)?'
+_CURRENCY_AFTER = r'\s*(?:nuevos\s+)?(?:soles|sol|lucas|luca|d[óo]lares|d[óo]lar|PEN|USD)\b'
+_AMOUNT_IN_TEXT = re.compile(
+    rf'(?:S\s*/\s*\.?|US\$|\$|USD|PEN|soles\s+)\s*(?:{_AMOUNT})(?:{_CURRENCY_AFTER})?'
+    rf'|(?<![\w.,])(?:{_AMOUNT}){_CURRENCY_AFTER}',
+    re.IGNORECASE,
+)
+_PRICE_WORD_AMOUNT = re.compile(
+    rf'\b((?:precio|costo|cuesta|cobro|cobramos)\s*:?\s*(?:de\s+)?)(?:{_AMOUNT})(?![\w.,])'
+    r'(?!\s*(?:m|m2|m²|m3|m³|metros|horas?|d[ií]as?|personas?|cargadores?)\b)',
+    re.IGNORECASE,
+)
+
+
+def without_amounts(text):
+    if not text:
+        return text
+    return _PRICE_WORD_AMOUNT.sub(r'\1[monto oculto]', _AMOUNT_IN_TEXT.sub('[monto oculto]', text))
+
 MAX_ITEMS = 50
 MAX_MEDIA = 10
 MAX_ADVANCE_DAYS = 90

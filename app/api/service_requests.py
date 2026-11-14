@@ -26,7 +26,8 @@ from .service_request.statuses import CANCELLED, PENDING, is_draft
 from .service_request.types import SERVICE_TYPES, needs_items
 from .service_request.validation import (
     MAX_MEDIA, InvalidRequest, validate_address, validate_customer_email, validate_customer_name,
-    validate_items, validate_media_upload, validate_preferred_date, without_phones, MEDIA_MAX_BYTES,
+    validate_items, validate_media_upload, validate_preferred_date, without_amounts, without_phones,
+    MEDIA_MAX_BYTES,
 )
 from .whatsapp import normalize_phone
 from .. import db
@@ -232,7 +233,7 @@ def _customer_quotation(quotation, rate, ratings=None):
     """Lo que ve el cliente: el total (el congelado si ya la eligieron) y cómo se
     reparte entre la reserva y lo que paga en el lugar, y la calificación de
     quien cotiza. Nunca el teléfono, tampoco el que escribió en su nota: con
-    él lo contratan por fuera."""
+    él lo contratan por fuera. Ni los montos de la nota: el total es uno solo."""
     total, reservation, on_site = split_total(quotation, rate)
     return {
         'id': quotation.id,
@@ -241,7 +242,7 @@ def _customer_quotation(quotation, rate, ratings=None):
         'total_amount': float(total),
         'reservation_amount': float(reservation),
         'on_site_amount': float(on_site),
-        'note': without_phones(quotation.note),
+        'note': without_phones(without_amounts(quotation.note)),
         'selected': quotation.status == 'selected',
     }
 
