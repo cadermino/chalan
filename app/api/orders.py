@@ -247,6 +247,16 @@ def update_order(order_id):
         'emails_sent_by_company_id': emails_sent
     }), 200
 
+# Lo que ve el transportista de una orden en su link (order_detail).
+CARRIER_ORDER_FIELDS = (
+    'id', 'order_status_id', 'appointment_date', 'comments', 'approximate_budget',
+    'loaders_quantity', 'load_type', 'cargo_weight_kg', 'total_kilometers',
+    'order_details', 'services', 'images', 'videos', 'quotations',
+)
+# Y además, cuando la elegida es la suya.
+CARRIER_SELECTED_FIELDS = ('selected_quotation_id', 'amount', 'vehicle', 'payments')
+
+
 @api.route('/orders/details', methods=['GET'])
 @carrier_company_token_required
 def order_detail():
@@ -262,13 +272,16 @@ def order_detail():
     order_details['quotations'] = QuotationsSchema(many=True).dump(own)
     for dumped, quotation in zip(order_details['quotations'], own):
         dumped['note'] = quotation.note
-    # details() es la de la vista del cliente: trae sus datos de contacto y,
-    # elegida otra empresa, su precio, su vehículo y los pagos.
-    order_details.pop('customers', None)
-    if order_details.get('selected_quotation_id') not in {q.id for q in own}:
-        for field in ('selected_quotation_id', 'amount', 'vehicle'):
-            order_details.pop(field, None)
-        order_details['payments'] = []
+    # details() es la de la vista del cliente, y OrderSchema vuelca todas las
+    # columnas de la orden: venían lead_phone (el WhatsApp del cliente) y
+    # total_amount (el total del ganador, de donde sale su precio). Al
+    # transportista le llega solo lo que leen quotation.vue y order-details.vue,
+    # así una columna nueva no sale sola.
+    fields = CARRIER_ORDER_FIELDS
+    if order_details.get('selected_quotation_id') in {q.id for q in own}:
+        fields = fields + CARRIER_SELECTED_FIELDS
+    order_details = {field: order_details[field] for field in fields if field in order_details}
+    order_details.setdefault('payments', [])
 
     if order_details.get('approximate_budget'):
         platform_fee = float(os.getenv('PLATFORM_FEE'))

@@ -143,6 +143,26 @@ def test_a_carrier_link_does_not_show_the_customer_or_the_chosen_competitor(clie
     assert 'customers' not in theirs
 
 
+def test_a_carrier_link_does_not_show_the_customers_whatsapp_or_the_winners_total(client, order, carrier_company):
+    # OrderSchema vuelca todas las columnas: venían lead_phone y total_amount,
+    # que con otra empresa elegida es el total del ganador.
+    other = CarrierCompany(name='Otra', active=1)
+    db.session.add(other)
+    db.session.commit()
+    _quote(client, order, carrier_company)
+    _quote(client, order, other)
+    Quotations.query.filter_by(order_id=order.id, carrier_company_id=other.id).one().quotation_status_id = \
+        QuotationStatus.Selected()
+    order.lead_phone = '987654321'
+    order.total_amount = 330.0
+    db.session.commit()
+
+    for company in (carrier_company, other):
+        seen = _details(client, order, company)
+        assert not {'lead_phone', 'total_amount', 'customer_id'} & seen.keys(), company.name
+        assert seen['id'] == order.id
+
+
 @pytest.mark.parametrize('note, shown', [
     ('carro por viaje 290 soles, estibas S/ 80.00 c/u, voy con 2 cargadores', 'Voy con 2 cargadores'),
     ('Mano de obra S/ 35 el m2, materiales 1,200 soles aparte. Vamos 2 personas, 3 días', 'Vamos 2 personas, 3 días'),
