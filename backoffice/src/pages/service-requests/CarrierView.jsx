@@ -109,8 +109,15 @@ function QuotationForm({ token, request, onSaved }) {
           <label htmlFor="quotation-note" className="mb-1 block text-sm font-medium text-gray-700">
             Nota <span className="font-normal text-gray-400">(opcional)</span>
           </label>
+          {/* El cliente ve un solo total, con la comisión: los montos escritos aquí le llegan
+              como "[monto oculto]" (without_amounts en el API principal). */}
+          <p id="quotation-note-hint" className="mb-1 text-xs text-gray-500">
+            No pongas precios ni costos aquí: el cliente ve un solo precio total. Si algo se cobra
+            aparte (materiales, otra visita), súmalo al precio de arriba.
+          </p>
           <textarea
             id="quotation-note"
+            aria-describedby="quotation-note-hint"
             rows={3}
             maxLength={MAX_NOTE}
             placeholder="Ej. Incluye materiales, vamos 2 personas, demora 3 horas"

@@ -436,7 +436,8 @@
               </label>
               <!-- Un transportista escribió "carro por viaje 290 soles, estibas
                    S/ 80.00 c/u": el cliente ve un solo total, distinto de esos
-                   montos, y no entendía cuánto iba a pagar. -->
+                   montos, y no entendía cuánto iba a pagar. Ahora el API se los
+                   oculta ("[monto oculto]", without_amounts). -->
               <p id="quotation-note-hint" class="text-xs text-gray-500 mb-1">
                 No pongas precios ni costos aquí: el cliente ve un solo precio total y otros
                 montos lo confunden. Si algo se cobra aparte (estibas, otro viaje), súmalo al
