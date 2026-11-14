@@ -106,8 +106,10 @@ export default function RootLayout({
   __insp.push(['wid', 1681414770]);
   var ldinsp = function(){
     if(typeof window.__inspld != "undefined") return; window.__inspld = 1; var insp = document.createElement('script'); insp.type = 'text/javascript'; insp.async = true; insp.id = "inspsync"; insp.src = ('https:' == document.location.protocol ? 'https' : 'http') + '://cdn.inspectlet.com/inspectlet.js?wid=1681414770&r=' + Math.floor(new Date().getTime()/3600000); var x = document.getElementsByTagName('script')[0]; x.parentNode.insertBefore(insp, x); };
-  // Sin CompressionStream (Safari < 16.4) Inspectlet no puede enviar nada.
-  if (typeof window.CompressionStream !== 'undefined') setTimeout(ldinsp, 0);
+  // Sin CompressionStream (Safari < 16.4) Inspectlet no puede enviar nada. Y no
+  // graba navegadores automáticos (WebPageTest, Lighthouse, Chrome sin pantalla).
+  var automated = navigator.webdriver || /HeadlessChrome|PTST\\/|Chrome-Lighthouse/.test(navigator.userAgent);
+  if (typeof window.CompressionStream !== 'undefined' && !automated) setTimeout(ldinsp, 0);
 })();`,
             }}
           />

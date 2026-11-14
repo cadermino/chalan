@@ -13,7 +13,10 @@
       // Inspectlet comprime cada envío con CompressionStream (Safari < 16.4
       // no lo tiene): ahí no graba nada y cada intento es un rechazo sin
       // manejar que llena Sentry. Clarity sigue grabando esas sesiones.
-      if (typeof window.CompressionStream !== 'undefined') setTimeout(ldinsp, 0);
+      // Tampoco en navegadores automáticos (WebPageTest, Lighthouse, Chrome sin
+      // pantalla): dejaban sesiones de 2 segundos con IPs inventadas.
+      var automated = navigator.webdriver || /HeadlessChrome|PTST\/|Chrome-Lighthouse/.test(navigator.userAgent);
+      if (typeof window.CompressionStream !== 'undefined' && !automated) setTimeout(ldinsp, 0);
       })();
     </script>
     <!-- End Inspectlet Asynchronous Code -->

@@ -51,8 +51,13 @@ export function initClarity() {
 // así que ni se carga.
 const INSPECTLET_WID = 1681414770
 
+// Navegadores manejados por un programa (WebPageTest, Lighthouse, Chrome sin
+// pantalla): Inspectlet guardaba sus cargas como sesiones de 2 segundos.
+const AUTOMATED_AGENT = /HeadlessChrome|PTST\/|Chrome-Lighthouse/
+
 export function initInspectlet() {
   if (!import.meta.env.PROD || typeof window.CompressionStream === 'undefined') return
+  if (navigator.webdriver || AUTOMATED_AGENT.test(navigator.userAgent)) return
   window.__insp = window.__insp || []
   window.__insp.push(['wid', INSPECTLET_WID])
   const script = document.createElement('script')
