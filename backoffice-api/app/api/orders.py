@@ -173,6 +173,13 @@ def _is_theirs(quotation, order):
             and order.order_status_id in (2, 3))
 
 
+def _may_quote(quotation, order):
+    """El link de cotizar sirve mientras la orden está pendiente, o si la mudanza
+    es de esta empresa. Antes salía para cualquier orden, y con él el API
+    principal daba la calle completa de una que ya era de otra."""
+    return order.order_status_id == 1 or _is_theirs(quotation, order)
+
+
 def _internal_token():
     """Token para llamar al API principal en nombre del backoffice.
 
@@ -531,14 +538,16 @@ def list_pending_orders():
 
         # For superadmin, quotation_url is not applicable (no fixed company)
         quotation_url = None
-        if company_id is not None:
+        if company_id is not None and _may_quote(own_quotation, order):
             token = _generate_quotation_token(company_id, order.id)
             quotation_url = f"{site_url}quotation/{token}"
 
         customer = db.session.get(Customer, order.customer_id) if order.customer_id else None
         customer_name = None
         customer_phone = None
-        if customer:
+        # El nombre, como la calle, solo cuando la mudanza es suya: el detalle ya
+        # lo escondía y la lista se lo daba a todas antes de elegir.
+        if customer and (is_admin or reveal_full_address):
             customer_name = ' '.join(filter(None, [customer.name, customer.paternal_last_name]))
             if user.role in (ROLE_SUPERADMIN, ROLE_ADMIN):
                 customer_phone = customer.mobile_phone
@@ -691,6 +700,7 @@ def create_order():
                     'to_country': destination.get('country'),
                 },
             },
+            headers=_internal_headers(),
             timeout=10,
         )
     except requests.RequestException:
@@ -774,6 +784,7 @@ def upload_order_image(order_id):
             f'{internal_api}/api/v1/order/recognize-items',
             files={'image': (image_file.filename, image_file.stream, image_file.content_type)},
             data={'order_id': order_id},
+            headers=_internal_headers(),
             timeout=30,
         )
     except requests.RequestException:
@@ -801,6 +812,7 @@ def delete_order_image(order_id, image_id):
     try:
         res = requests.delete(
             f'{internal_api}/api/v1/order/{order_id}/image/{image_id}',
+            headers=_internal_headers(),
             timeout=10,
         )
     except requests.RequestException:
@@ -900,7 +912,7 @@ def get_order(order_id):
     reveal_full_address = _is_theirs(existing_quotation, order)
 
     quotation_url = None
-    if company_id is not None:
+    if company_id is not None and _may_quote(existing_quotation, order):
         site_url = os.environ.get('SITE_URL', 'https://chalan.pe/')
         token = _generate_quotation_token(company_id, order_id)
         quotation_url = f"{site_url}quotation/{token}"

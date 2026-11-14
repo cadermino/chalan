@@ -2,10 +2,14 @@ import axios from 'axios';
 
 export default {
   createOrder(orderData) {
+    const headers = { 'Content-Type': 'application/json' };
+    // El API solo le pone dueño a la orden si la sesión es de ese cliente.
+    const token = orderData.customer && orderData.customer.token;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     return axios.post(`${import.meta.env.VUE_APP_API_URL}order`, orderData, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
   },
   updateOrder(orderData) {
@@ -23,13 +27,14 @@ export default {
     });
   },
   saveLeadPhone(payload) {
+    const headers = { 'Content-Type': 'application/json' };
+    // Una orden con dueño solo la cambia él, como en updateOrder.
+    if (payload.token) {
+      headers.Authorization = `Bearer ${payload.token}`;
+    }
     return axios.put(`${import.meta.env.VUE_APP_API_URL}order/${payload.orderId}/lead-phone`,
       { lead_phone: payload.leadPhone },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      { headers });
   },
   getAddress(zipcode) {
     return axios.get(`${import.meta.env.VUE_APP_API_URL}address/zipcode/${zipcode}`, {
@@ -222,10 +227,13 @@ export default {
     const formData = new FormData();
     formData.append('image', payload.image);
     formData.append('order_id', payload.orderId);
+    const headers = { 'Content-Type': 'multipart/form-data' };
+    // Una orden con dueño solo la cambia él, como en updateOrder.
+    if (payload.token) {
+      headers.Authorization = `Bearer ${payload.token}`;
+    }
     return axios.post(`${import.meta.env.VUE_APP_API_URL}order/recognize-items`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers,
       // El paso 2 no deja seguir mientras se analiza una foto: sin tope, un
       // análisis colgado dejaba el botón bloqueado para siempre.
       timeout: 60000,

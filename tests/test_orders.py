@@ -135,11 +135,12 @@ def test_create_order_missing_order_details_returns_clean_400(client):
 
 
 def _create_order(client, customer):
+    # Con su sesión, como Vue: el API no le cree al customer_id del cuerpo.
     res = client.post('/api/v1/order', json={
         'customer': {'customer_id': customer.id},
         'orderDetailsOrigin': ORIGIN,
         'orderDetailsDestination': DESTINATION,
-    })
+    }, headers=_auth(customer))
     return res.get_json()['order_id']
 
 

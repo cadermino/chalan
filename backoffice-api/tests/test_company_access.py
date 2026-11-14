@@ -5,6 +5,9 @@ veía teléfono, correo y RUC de todas, sus vehículos y tarifas, y podía edita
 """
 import pytest
 
+from app import db
+from app.models import CarrierCompany
+
 from tests.test_service_requests import make_user
 from tests.test_services_per_company import catalog, make_company  # noqa: F401
 
@@ -45,3 +48,20 @@ def test_admins_still_see_every_company(client, catalog):
         headers = make_user(role)
         res = client.get('/api/carrier-companies', headers=headers)
         assert len(res.get_json()['carrier_companies']) == 2, role
+
+
+def test_a_company_cannot_activate_itself_or_change_its_country(client, catalog):
+    # Activarse es lo que le trae órdenes y avisos: lo decide un admin.
+    company = make_company('Mudanzas SAC', 'moving')
+    company.active = 0
+    db.session.commit()
+    headers = make_user('carrier_company', carrier_company_id=company.id)
+    base = f'/api/carrier-companies/{company.id}'
+
+    assert client.put(base, json={'active': True}, headers=headers).status_code == 403
+    assert client.put(base, json={'country_id': 999}, headers=headers).status_code == 403
+    assert not db.session.get(CarrierCompany, company.id).active
+    # El formulario los reenvía sin tocar: eso sí pasa.
+    res = client.put(base, json={'active': False, 'country_id': company.country_id, 'name': 'Nuevo'},
+                     headers=headers)
+    assert res.status_code == 200

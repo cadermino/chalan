@@ -56,11 +56,14 @@ export default function CarrierCompanyForm() {
     setLoading(true)
     try {
       const payload = { ...form, country_id: form.country_id === '' ? null : Number(form.country_id) }
-      // El servidor responde 403 si una empresa intenta cambiar sus propios servicios.
+      // El servidor responde 403 si una empresa intenta cambiar sus propios
+      // servicios, activarse o cambiar de país.
       if (!isAdmin) {
         delete payload.service_type_ids
         delete payload.department_codes
         delete payload.coordinator_name
+        delete payload.active
+        delete payload.country_id
       }
       if (isEdit) {
         await client.put(`/api/carrier-companies/${id}`, payload)
@@ -106,15 +109,17 @@ export default function CarrierCompanyForm() {
           <Field label="RUC / RFC">
             <input value={form.rfc} onChange={set('rfc')} className="input" />
           </Field>
-          <Field label="País (country_id)">
-            <input
-              type="number"
-              value={form.country_id}
-              onChange={set('country_id')}
-              className="input"
-              placeholder="2 = Perú"
-            />
-          </Field>
+          {isAdmin && (
+            <Field label="País (country_id)">
+              <input
+                type="number"
+                value={form.country_id}
+                onChange={set('country_id')}
+                className="input"
+                placeholder="2 = Perú"
+              />
+            </Field>
+          )}
           <Field label="Dirección" span={2}>
             <input value={form.address} onChange={set('address')} className="input" />
           </Field>
@@ -180,12 +185,14 @@ export default function CarrierCompanyForm() {
               </p>
             </Field>
           )}
-          <Field label="Estado">
-            <label className="flex items-center gap-2 cursor-pointer mt-1">
-              <input type="checkbox" checked={form.active} onChange={set('active')} className="w-4 h-4 accent-teal-600" />
-              <span className="text-sm">Activa</span>
-            </label>
-          </Field>
+          {isAdmin && (
+            <Field label="Estado">
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input type="checkbox" checked={form.active} onChange={set('active')} className="w-4 h-4 accent-teal-600" />
+                <span className="text-sm">Activa</span>
+              </label>
+            </Field>
+          )}
         </div>
 
         <div className="flex gap-3 pt-2">

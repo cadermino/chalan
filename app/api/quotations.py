@@ -44,7 +44,13 @@ def _accept_quotation(quotation_id):
 @token_required
 def get_quotations(order_id):
     auth_headers = request.headers.get('Authorization', '').split()
-    Customer.verify_auth_token(auth_headers[1])
+    customer = Customer.verify_auth_token(auth_headers[1])
+    # Como en pick_quotation: el token se verificaba y se tiraba, y cualquier
+    # cliente con sesión (un transportista registrado como cliente, por
+    # ejemplo) veía los precios de todas las empresas en cualquier orden.
+    order = db.session.get(OrderModel, order_id)
+    if order is None or order.customer_id != customer.id:
+        return jsonify({'message': 'forbidden'}), 403
     platform_fee = float(os.getenv('PLATFORM_FEE'))
     commission_rate = 0
     referred = ReferredOrder.query.filter_by(order_id=order_id).first()

@@ -518,7 +518,7 @@ export default {
       track('photo_uploaded', { order_id: orderId, load_type: loadType, size_kb: Math.round(image.size / 1024) });
       tagSessionLabel('photo_uploaded');
       try {
-        const response = await chalan.recognizeItems({ image, orderId });
+        const response = await chalan.recognizeItems({ image, orderId, token: this.customer.token });
         const items = response.data.items || [];
         track('photo_recognized', {
           order_id: orderId,

@@ -93,9 +93,10 @@ class Order:
         # para que no pueda desfasarse de lo que realmente ocurre.
         self.written_fields = []
 
-    def create(self, request):
+    def create(self, request, customer_id=None):
+        # customer_id llega ya validado por la ruta, como en update().
         order = OrderModel(
-            customer_id = request['customer']['customer_id'],
+            customer_id = customer_id,
             country_id = os.getenv('COUNTRY_ID')
         )
         _set_load(order, request.get('order') or {})

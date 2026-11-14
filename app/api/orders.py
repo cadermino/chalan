@@ -12,6 +12,7 @@ from ..models import CarrierCompanySchema, QuotationsSchema
 from ..models import CarrierCompany as CarrierCompanyModel
 from ..models import CarrierCompanyServiceType, ServiceType, MOVING_SERVICE_CODE
 from . import api
+from .address import street_without_number
 from .decorators import (token_required, carrier_company_token_required,
                          authenticated_customer, is_internal_request)
 from .order import Order as OrderEntity
@@ -53,8 +54,22 @@ def create_order():
     if missing:
         return jsonify({'message': 'missing required fields: ' + ', '.join(missing)}), 400
 
+    # El dueño, como en el PUT, no sale del cuerpo: cualquiera creaba órdenes a
+    # nombre de otro cliente, que pasaban a ser "su último pedido" y le traían
+    # avisos de una mudanza que no pidió. Se le cree al cuerpo si la sesión es de
+    # ese mismo cliente o si llama el backoffice; si no, la orden nace sin dueño,
+    # como la de alguien con la sesión vencida.
+    requested = customer.get('customer_id')
+    owner_id = None
+    if is_internal_request():
+        owner_id = requested
+    elif requested is not None:
+        authenticated = authenticated_customer()
+        if authenticated is not None and authenticated.id == requested:
+            owner_id = requested
+
     order = OrderEntity()
-    order = order.create(request=order_data)
+    order = order.create(request=order_data, customer_id=owner_id)
 
     # Link order to referring real_estate_agent if referral_code is present
     referral_code = order_data.get('referral_code')
@@ -72,11 +87,25 @@ def create_order():
         'order_id': order.id,
     }), 201
 
+def _may_edit(order):
+    """Quién puede agregarle cosas a una orden fuera del PUT: si no tiene dueño,
+    cualquiera (los primeros pasos son anónimos); si tiene, él o el backoffice."""
+    if order.customer_id is None or is_internal_request():
+        return True
+    customer = authenticated_customer()
+    return customer is not None and customer.id == order.customer_id
+
+
 @api.route('/order/<int:order_id>/lead-phone', methods=['PUT'])
 def save_lead_phone(order_id):
     order = db.session.get(Order, order_id)
     if order is None:
         return not_found('order not found')
+    # "Recordar a clientes" escribe a lead_phone antes que al teléfono de la
+    # cuenta, con el link de acceso del cliente: si cualquiera pudiera cambiarlo,
+    # ese link le llegaría a él.
+    if not _may_edit(order):
+        return jsonify({'message': 'forbidden'}), 403
     data = request.json or {}
     order.lead_phone = data.get('lead_phone')
     db.session.commit()
@@ -278,10 +307,19 @@ def order_detail():
     # transportista le llega solo lo que leen quotation.vue y order-details.vue,
     # así una columna nueva no sale sola.
     fields = CARRIER_ORDER_FIELDS
-    if order_details.get('selected_quotation_id') in {q.id for q in own}:
+    selected_id = order_details.get('selected_quotation_id')
+    if selected_id in {q.id for q in own}:
         fields = fields + CARRIER_SELECTED_FIELDS
     order_details = {field: order_details[field] for field in fields if field in order_details}
     order_details.setdefault('payments', [])
+    # La dirección exacta es para cotizar la ruta. Elegida otra empresa ya no
+    # hay nada que cotizar, y el link (o el del backoffice) seguía mostrándole
+    # la casa a quien perdió: queda la calle sin número, como en servicios.
+    if selected_id is not None and selected_id not in {q.id for q in own}:
+        for address in order_details.get('order_details') or []:
+            address['street'] = street_without_number(address)
+            for field in ('interior_number', 'map_url', 'latitude', 'longitude'):
+                address[field] = None
 
     if order_details.get('approximate_budget'):
         platform_fee = float(os.getenv('PLATFORM_FEE'))
@@ -774,6 +812,10 @@ def recognized_items(text):
     return items
 
 
+# Las de una orden: en producción ninguna pasaba de 2.
+MAX_ORDER_IMAGES = 10
+
+
 @api.route('/order/recognize-items', methods=['POST'])
 def recognize_items():
     if 'image' not in request.files:
@@ -786,6 +828,11 @@ def recognize_items():
     order = db.session.get(Order, order_id)
     if not order:
         return jsonify({'message': 'Order not found'}), 404
+    # Cada foto es un archivo público en el bucket y una llamada pagada a OpenAI.
+    if not _may_edit(order):
+        return jsonify({'message': 'forbidden'}), 403
+    if OrderImage.query.filter_by(order_id=order.id).count() >= MAX_ORDER_IMAGES:
+        return jsonify({'message': 'too many images'}), 409
 
     image_file = request.files['image']
 
@@ -856,6 +903,10 @@ def recognize_items():
 
 @api.route('/order/<int:order_id>/image/<int:image_id>', methods=['DELETE'])
 def delete_order_image(order_id, image_id):
+    # Solo la usa el backoffice (superadmin); sin esto cualquiera borraba de S3
+    # las fotos de órdenes ajenas recorriendo ids.
+    if not is_internal_request():
+        return jsonify({'message': 'forbidden'}), 403
     order_image = OrderImage.query.filter_by(id=image_id, order_id=order_id).first()
     if not order_image:
         return jsonify({'message': 'Image not found'}), 404

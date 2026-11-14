@@ -276,6 +276,14 @@ def update_carrier_company(company_id):
         company.coordinator_name, error = _coordinator_name(data['coordinator_name'])
         if error:
             return jsonify({'message': error}), 400
+    # Activarse es lo que hace que le lleguen órdenes y avisos, y el país decide
+    # cuáles: los cambia un admin, después de revisar los documentos. El
+    # formulario de la empresa los reenvía sin tocar, así que solo un cambio es 403.
+    if g.current_user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        if 'active' in data and bool(data['active']) != bool(company.active):
+            return jsonify({'message': 'only admins can activate or deactivate a company'}), 403
+        if 'country_id' in data and data['country_id'] != company.country_id:
+            return jsonify({'message': 'only admins can change the country of a company'}), 403
     for field in ('name', 'description', 'rfc', 'email', 'phone', 'address',
                   'cover_image', 'facebook', 'youtube', 'country_id'):
         if field in data:

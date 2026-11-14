@@ -824,6 +824,7 @@ export default {
         chalan.saveLeadPhone({
           orderId: this.currentOrder.order_id,
           leadPhone: this.leadPhone,
+          token: this.isUserLogged ? this.customer.token : null,
         }).catch(() => {});
         // El número nunca se manda a GA, solo el hecho de que lo dejó.
         track('lead_phone_submitted', { order_id: this.currentOrder.order_id });

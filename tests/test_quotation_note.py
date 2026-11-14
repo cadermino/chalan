@@ -14,7 +14,7 @@ from app.api import customer_note
 from app.api.carrier_company import CarrierCompany as CarrierCompanyEntity
 from app.api.quotation import Quotation as QuotationEntity
 from app.api.quotation.quotation_status import QuotationStatus
-from app.models import CarrierCompany, Quotations, Vehicle
+from app.models import CarrierCompany, OrderDetails, Quotations, Vehicle
 
 
 @pytest.fixture(autouse=True)
@@ -161,6 +161,33 @@ def test_a_carrier_link_does_not_show_the_customers_whatsapp_or_the_winners_tota
         seen = _details(client, order, company)
         assert not {'lead_phone', 'total_amount', 'customer_id'} & seen.keys(), company.name
         assert seen['id'] == order.id
+
+
+def test_the_loser_sees_the_street_without_the_number_once_another_company_is_chosen(
+        client, order, carrier_company):
+    # La dirección exacta es para cotizar la ruta; elegida otra empresa, el link
+    # le seguía mostrando la casa a quien perdió.
+    other = CarrierCompany(name='Otra', active=1)
+    db.session.add_all([other, OrderDetails(order_id=order.id, type='carry_from', street='Av. Arequipa 1234, Lince 15046',
+                                            interior_number='302', map_url='https://maps.google.com/x',
+                                            latitude=-12.08, longitude=-77.03)])
+    db.session.commit()
+    _quote(client, order, carrier_company)
+    _quote(client, order, other)
+    pending = _details(client, order, carrier_company)['order_details'][0]
+    assert pending['street'] == 'Av. Arequipa 1234, Lince 15046'
+    assert pending['interior_number'] == '302'
+
+    Quotations.query.filter_by(order_id=order.id, carrier_company_id=other.id).one().quotation_status_id = \
+        QuotationStatus.Selected()
+    db.session.commit()
+    lost = _details(client, order, carrier_company)['order_details'][0]
+    won = _details(client, order, other)['order_details'][0]
+
+    assert lost['street'] == 'Av. Arequipa'
+    assert lost['interior_number'] is None and lost['map_url'] is None and lost['latitude'] is None
+    assert won['street'] == 'Av. Arequipa 1234, Lince 15046'
+    assert won['interior_number'] == '302'
 
 
 @pytest.mark.parametrize('note, shown', [
