@@ -43,7 +43,7 @@
                   flex-col
                   justify-between
                   leading-normal">
-                  <div class="mb-8">
+                  <div class="mb-4">
                     <!-- Sin reseñas no se inventan estrellas (ni se muestran cinco
                          vacías con "0 Evaluaciones"): "Nuevo en Chalán", y lo que
                          sí sabemos de la empresa. -->
@@ -145,7 +145,7 @@
                         <span class="font-bold">Comentario del transportista:</span>
                         {{ quotation.note }}
                       </li>
-                      <li class="mt-3">
+                      <li v-if="quotation.description" class="mt-3">
                         {{ quotation.description }}
                       </li>
                     </ul>
