@@ -124,22 +124,35 @@
                           )
                       }}
                     </div>
+                    <!-- La foto del vehículo flota en el hueco a la derecha de los
+                         datos: en un celular angosto, lo que queda debajo de ella
+                         vuelve a usar todo el ancho, así la tarjeta no crece. Sin
+                         foto no se pone ninguna de relleno: el cliente juzga el
+                         camión por ella. Abre la página de la empresa, con todas. -->
+                    <div class="flow-root">
+                      <a v-if="quotation.picture" href="#" id="vehicle-picture"
+                        @click.prevent="goToCarrierCompanyView(quotation)"
+                        class="float-right ml-3 mb-1">
+                        <img :src="quotation.picture" loading="lazy"
+                          :alt="`Vehículo ${quotation.brand || ''} ${quotation.model || ''}`.trim()"
+                          class="w-20 h-20 sm:w-28 sm:h-28 object-cover rounded border border-gray-300">
+                      </a>
+                      <ul>
+                        <li>Marca: <span class="font-bold">{{ quotation.brand }}</span></li>
+                        <li>Modelo: <span class="font-bold">{{ quotation.model }}</span></li>
+                        <li v-if="cargoCoverLabel(quotation.cargo_cover)">
+                          Carga: <span class="font-bold">{{ cargoCoverLabel(quotation.cargo_cover) }}</span>
+                        </li>
+                        <li v-if="quotation.manufacture_year">
+                          Año: <span class="font-bold">{{ quotation.manufacture_year }}</span>
+                        </li>
+                        <li v-if="payloadLabel(quotation)">
+                          Capacidad de carga:
+                          <span class="font-bold whitespace-nowrap">{{ payloadLabel(quotation) }}</span>
+                        </li>
+                      </ul>
+                    </div>
                     <ul>
-                      <li><span>Marca:</span>
-                        <span class="font-bold"> {{ quotation.brand }}</span>
-                      </li>
-                      <li><span>Modelo:</span>
-                        <span class="font-bold"> {{ quotation.model }}</span>
-                      </li>
-                      <li v-if="cargoCoverLabel(quotation.cargo_cover)"><span>Carga:</span>
-                        <span class="font-bold"> {{ cargoCoverLabel(quotation.cargo_cover) }}</span>
-                      </li>
-                      <li v-if="quotation.manufacture_year"><span>Año:</span>
-                        <span class="font-bold"> {{ quotation.manufacture_year }}</span>
-                      </li>
-                      <li v-if="payloadLabel(quotation)"><span>Capacidad de carga:</span>
-                        <span class="font-bold"> {{ payloadLabel(quotation) }}</span>
-                      </li>
                       <li v-if="quotation.note" class="mt-3 bg-gray-50 rounded p-2
                         text-gray-700 whitespace-pre-line break-words">
                         <span class="font-bold">Comentario del transportista:</span>
