@@ -5,7 +5,7 @@ import pytest
 
 from app import db
 from app.api.decorators import generate_internal_token
-from app.api.service_request.validation import LIMA, without_amounts
+from app.api.service_request.validation import LIMA
 from app.models import (CarrierCompany, CarrierCompanyServiceType, Payment, PaymentType, ServiceMaterial,
                         ServiceRequest, ServiceRequestMedia, ServiceRequestNotification,
                         ServiceRequestCarrierDecline, ServiceRequestPayment, ServiceRequestQuotation,
@@ -1191,7 +1191,7 @@ def test_the_customer_does_not_see_a_phone_written_in_the_note(client):
 
     body = customer_quotations(client, public_id).get_json()
 
-    assert body['quotations'][0]['note'] == 'Instalación aparte, nos contacta al [número oculto]'
+    assert body['quotations'][0]['note'] == 'Instalación aparte'
     # El admin la sigue leyendo entera.
     assert ServiceRequestQuotation.query.one().note.endswith('934 603 742')
 
@@ -1204,24 +1204,9 @@ def test_the_customer_does_not_see_an_amount_written_in_the_note(client):
 
     body = customer_quotations(client, public_id).get_json()
 
-    assert body['quotations'][0]['note'] == \
-        'Mano de obra [monto oculto] el m2, materiales [monto oculto] aparte. Vamos 2 personas, 3 días'
+    assert body['quotations'][0]['note'] == 'Vamos 2 personas, 3 días'
     # El admin la sigue leyendo entera.
     assert ServiceRequestQuotation.query.one().note.startswith('Mano de obra S/ 35')
-
-
-@pytest.mark.parametrize('note, shown', [
-    ('carro por viaje 290 soles, estibas S/ 80.00 c/u', 'carro por viaje [monto oculto], estibas [monto oculto] c/u'),
-    ('S/.1,200.50 todo incluido', '[monto oculto] todo incluido'),
-    ('entre 80 a 100 soles', 'entre [monto oculto]'),
-    ('S/ 2 mil', '[monto oculto]'),
-    ('precio: 350 por 2 personas', 'precio: [monto oculto] por 2 personas'),
-    ('Precio 20 m2, demora 3 horas', 'Precio 20 m2, demora 3 horas'),
-    ('Incluye 2 cargadores y 5 cajas, sol de tarde', 'Incluye 2 cargadores y 5 cajas, sol de tarde'),
-    ('S/ 80 987654321', '[monto oculto] 987654321'),
-])
-def test_without_amounts_hides_money_and_leaves_other_numbers(note, shown):
-    assert without_amounts(note) == shown
 
 def test_a_selected_quotation_keeps_its_frozen_total_when_the_fee_changes(client, monkeypatch):
     service_request, _, quotation_id = submitted_with_quote(client)

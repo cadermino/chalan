@@ -4,9 +4,13 @@ Lo que aclara junto al precio ("voy con 2 cargadores", "en 2 viajes"). La ve
 el cliente al lado de esa cotización; el link de cada transportista solo trae
 su propia cotización.
 """
+import importlib.util
+from pathlib import Path
+
 import pytest
 
 from app import db
+from app.api import customer_note
 from app.api.carrier_company import CarrierCompany as CarrierCompanyEntity
 from app.api.quotation import Quotation as QuotationEntity
 from app.api.quotation.quotation_status import QuotationStatus
@@ -84,7 +88,7 @@ def test_the_customer_does_not_see_a_phone_written_in_the_note(client, order, ca
 
     listed = QuotationEntity().listByOrderId(order.id).toJson().get_json()
 
-    assert listed[0]['note'] == 'Escríbeme al [número oculto]'
+    assert listed[0]['note'] is None
 
 
 def test_the_customer_does_not_see_an_amount_written_in_the_note(client, order, carrier_company):
@@ -94,7 +98,7 @@ def test_the_customer_does_not_see_an_amount_written_in_the_note(client, order, 
 
     listed = QuotationEntity().listByOrderId(order.id).toJson().get_json()
 
-    assert listed[0]['note'] == 'carro por viaje [monto oculto], estibas [monto oculto] c/u, voy con 2 cargadores'
+    assert listed[0]['note'] == 'Voy con 2 cargadores'
     # El transportista y el admin la siguen leyendo entera.
     assert Quotations.query.one().note.startswith('carro por viaje 290 soles')
 
@@ -137,3 +141,33 @@ def test_a_carrier_link_does_not_show_the_customer_or_the_chosen_competitor(clie
     assert mine['payments'] == []
     assert theirs['selected_quotation_id'] == chosen.id
     assert 'customers' not in theirs
+
+
+@pytest.mark.parametrize('note, shown', [
+    ('carro por viaje 290 soles, estibas S/ 80.00 c/u, voy con 2 cargadores', 'Voy con 2 cargadores'),
+    ('Mano de obra S/ 35 el m2, materiales 1,200 soles aparte. Vamos 2 personas, 3 días', 'Vamos 2 personas, 3 días'),
+    ('Instalación aparte, nos contacta al 934 603 742', 'Instalación aparte'),
+    ('Llevo frazadas y film. Total S/. 1,200.50, pago al terminar.', 'Llevo frazadas y film. Pago al terminar.'),
+    ('Incluye embalaje.\nPrecio: 300\nLlego a las 8', 'Incluye embalaje.\nLlego a las 8'),
+    ('entre 80 a 100 soles', None),
+    ('S/ 2 mil', None),
+    ('Escríbeme al +51 987654321', None),
+    # Números sin moneda quedan, y la nota sin cortes llega tal cual.
+    ('Precio 20 m2, demora 3 horas', 'Precio 20 m2, demora 3 horas'),
+    ('voy con 2 cargadores y 5 cajas, sol de tarde.', 'voy con 2 cargadores y 5 cajas, sol de tarde.'),
+    (None, None),
+])
+def test_the_customer_reads_the_note_without_the_phrases_with_amounts_or_phones(note, shown):
+    assert customer_note.note_for_customer(note) == shown
+
+
+def test_the_backoffice_copy_of_the_customer_note_is_the_same():
+    path = Path(__file__).resolve().parents[1] / 'backoffice-api' / 'app' / 'customer_note.py'
+    if not path.exists():
+        pytest.skip('backoffice-api is not mounted in this container')
+    spec = importlib.util.spec_from_file_location('backoffice_customer_note', path)
+    backoffice = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(backoffice)
+
+    assert backoffice.note_for_customer('estibas S/ 80 c/u, voy con 2') == 'Voy con 2'
+    assert Path(customer_note.__file__).read_text().split('"""', 2)[2] == path.read_text().split('"""', 2)[2]

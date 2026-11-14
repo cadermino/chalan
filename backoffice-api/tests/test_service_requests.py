@@ -702,6 +702,15 @@ def test_admin_detail_lists_quotations_cheapest_first_with_the_total_for_the_cus
     assert data['quotations'][0]['platform_fee_rate'] == 0.1
 
 
+def test_admin_detail_shows_how_the_customer_reads_a_trimmed_note(client, admin, submitted, packing):
+    make_quotation(submitted, make_carrier(packing), 300, note='Materiales S/ 120 aparte, vamos 2 personas')
+
+    quotation = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']['quotations'][0]
+
+    assert (quotation['note'], quotation['customer_note']) == (
+        'Materiales S/ 120 aparte, vamos 2 personas', 'Vamos 2 personas')
+
+
 def test_a_selected_quotation_keeps_its_frozen_total_when_the_fee_changes(client, admin, submitted, packing, monkeypatch):
     carrier, other = make_carrier(packing, name='Elegida SAC'), make_carrier(packing, name='Otra SAC')
     make_quotation(submitted, carrier, 100, status='selected', total=110, rate=0.1)

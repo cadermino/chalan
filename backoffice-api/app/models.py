@@ -36,6 +36,7 @@ def _iso_local(dt):
     return dt.isoformat() + '-05:00'
 
 from . import db
+from .customer_note import note_for_customer
 
 # Roles
 ROLE_SUPERADMIN = 'superadmin'
@@ -890,6 +891,8 @@ class ServiceRequestQuotation(db.Model):
             'carrier_company_name': self.carrier_company.name if self.carrier_company else None,
             'amount': _money(self.amount),
             'note': self.note,
+            # Como la lee el cliente: sin las frases con montos o teléfonos.
+            'customer_note': note_for_customer(self.note),
             'status': self.status,
             'platform_fee_rate': float(self.platform_fee_rate) if self.platform_fee_rate is not None else None,
             'selected_at': _iso(self.selected_at),

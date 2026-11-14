@@ -4,7 +4,7 @@ from .quotation_status import QuotationStatus
 from ..carrier_company import CarrierCompany as CarrierCompanyEntity
 from ..carrier_documents import DOC_TYPES
 from ..order.order_status import OrderStatus
-from ..service_request.validation import without_amounts, without_phones
+from ..customer_note import note_for_customer
 from ...models import CarrierDocument, Order, Quotations as QuotationsModel
 from ... import db
 
@@ -101,9 +101,8 @@ class Quotation:
                 'id': quotation.id,
                 'amount': quotation.amount,
                 'total_amount': total_amount,
-                # Sin teléfonos: con el número lo contratan sin pasar por Chalán.
-                # Sin montos: el cliente ve un solo total, con la comisión.
-                'note': without_phones(without_amounts(quotation.note)),
+                # Sin las frases con teléfonos o montos (customer_note.py).
+                'note': note_for_customer(quotation.note),
                 'selected': selected,
                 'order_id': quotation.order_id,
                 'carrier_company_id': carrier_company.id,

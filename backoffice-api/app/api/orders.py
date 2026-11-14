@@ -11,6 +11,7 @@ from .carrier_companies import _departments_by_company
 from .decorators import login_required
 from .. import carrier_prospects
 from ..address import district_of
+from ..customer_note import note_for_customer
 from ..carrier_prospects import WORK_DEPARTMENTS
 from ..carrier_rates import unavailable_pairs
 from ..order_access import make_token as make_order_access_token
@@ -1747,6 +1748,8 @@ def list_order_quotations(order_id):
             'carrier_company_name': company.name if company else None,
             'total_amount': total_amount,
             'note': q.note,
+            # Como la lee el cliente: sin las frases con montos o teléfonos.
+            'customer_note': note_for_customer(q.note),
         })
 
     declines = OrderCarrierDecline.query.filter_by(order_id=order_id) \

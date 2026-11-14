@@ -7,6 +7,7 @@ import ClientContact from '../../components/ClientContact'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
+import QuotationNote from '../../components/QuotationNote'
 import ServiceProspects from '../../components/ServiceProspects'
 import { districtOf } from '../../lib/district'
 import { useAuth } from '../../contexts/AuthContext'
@@ -61,7 +62,7 @@ function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
                           )}
                         </p>
                         <p className="text-xs text-gray-400">Actualizada {formatTimestamp(q.updated_date)}</p>
-                        {q.note && <p className="mt-1 text-sm text-gray-600">“{q.note}”</p>}
+                        <QuotationNote note={q.note} customerNote={q.customer_note} />
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-gray-400">Transportista: {formatMoney(q.amount)}</p>

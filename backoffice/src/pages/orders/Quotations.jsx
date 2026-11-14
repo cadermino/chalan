@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import { DeclinesList } from '../../components/DeclinePanel'
+import QuotationNote from '../../components/QuotationNote'
 
 const STATUS_LABEL = { 1: 'Activa', 2: 'Seleccionada', 3: 'Cancelada' }
 
@@ -156,7 +157,7 @@ export default function OrderQuotations() {
                   <td className="px-4 py-3 text-gray-700">
                     {q.carrier_company_name || '—'}
                     {/* Lo que aclara junto al precio; el cliente también lo ve. */}
-                    {q.note && <p className="mt-1 max-w-xs whitespace-pre-line text-xs text-gray-500">“{q.note}”</p>}
+                    <QuotationNote note={q.note} customerNote={q.customer_note} className="max-w-xs text-xs text-gray-500" />
                   </td>
 
                   {isAdmin && (

@@ -1,7 +1,6 @@
 import json
 import os
 import pathlib
-import re
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -14,6 +13,7 @@ from . import api
 from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from ..address import district_of
+from ..customer_note import PHONE_IN_TEXT, note_for_customer
 from ..service_media import make_token as make_media_token
 from ..service_reviews import review_of, review_path
 from .. import db
@@ -538,13 +538,10 @@ def _hide_exact_address(address):
     return {**address, 'neighborhood': district_of(address), **{field: None for field in EXACT_ADDRESS_FIELDS}}
 
 
-# Un teléfono escrito en texto libre (la descripción, una cosa de la lista). Copia
-# de without_phones del API principal (app/api/service_request/validation.py).
-_PHONE_IN_TEXT = re.compile(r'\+?\d(?:[\s.-]?\d){6,}')
-
-
+# Un teléfono escrito en texto libre (la descripción, una cosa de la lista), como
+# without_phones del API principal (app/api/service_request/validation.py).
 def _without_phones(text):
-    return _PHONE_IN_TEXT.sub('[número oculto]', text) if isinstance(text, str) else text
+    return PHONE_IN_TEXT.sub('[número oculto]', text) if isinstance(text, str) else text
 
 
 def _district_only(data, keep_address):
@@ -589,6 +586,7 @@ def get_service_request_for_carrier(token):
         'my_quotation': None if mine is None else {
             'amount': _money(mine.amount),
             'note': mine.note,
+            'customer_note': note_for_customer(mine.note),
             'status': mine.status,
             'updated_date': _iso(mine.updated_date),
         },
