@@ -38,6 +38,22 @@ class CarrierCompany(db.Model):
 	# Servicios sueltos (no mudanza) que la empresa ofrece, p. ej. 'packing'.
 	service_types = db.relationship("ServiceType", secondary="carrier_company_service_types")
 
+# Las dos APIs firman con el mismo SECRET_KEY, así que sin un tipo la sesión de
+# un usuario del backoffice con id N valía aquí como el cliente N. El backoffice
+# marca las suyas con 'backoffice' (backoffice-api/app/models.py).
+CUSTOMER_TOKEN_TYPE = 'customer'
+_LEGACY_CUSTOMER_KEYS = {'id', 'exp', 'iat'}
+
+
+def _is_customer_session(data):
+	if data.get('typ') == CUSTOMER_TOKEN_TYPE:
+		return True
+	# Sesiones emitidas antes del tipo: traen justo id, exp e iat. Las del
+	# backoffice traen role y no iat; los links de transportista y el token
+	# interno, ningún id. Duran 24 h: borrar esto un día después del deploy.
+	return 'typ' not in data and set(data) == _LEGACY_CUSTOMER_KEYS
+
+
 class Customer(db.Model):
 	__tablename__ = 'customers'
 	id = db.Column(db.Integer, primary_key=True)
@@ -68,6 +84,7 @@ class Customer(db.Model):
 	def generate_auth_token(self, expiration):
 		"""Generate a JWT token with expiration."""
 		payload = {
+			'typ': CUSTOMER_TOKEN_TYPE,
 			'id': self.id,
 			'exp': datetime.now(timezone.utc) + timedelta(seconds=expiration),
 			'iat': datetime.now(timezone.utc)
@@ -87,6 +104,8 @@ class Customer(db.Model):
 			return None  # Token expired
 		except jwt.InvalidTokenError:
 			return None  # Invalid token
+		if not _is_customer_session(data):
+			return None
 		return db.session.get(Customer, data['id'])
 
 	def __repr__(self):

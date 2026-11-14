@@ -7,6 +7,20 @@ from sqlalchemy import func
 import jwt
 
 
+# Las dos APIs firman con el mismo SECRET_KEY, así que sin un tipo la sesión de
+# un cliente con id N valía aquí como el usuario N del backoffice. El API
+# principal marca las suyas con 'customer' (app/models.py).
+BACKOFFICE_TOKEN_TYPE = 'backoffice'
+
+
+def _is_backoffice_session(data):
+    if data.get('typ') == BACKOFFICE_TOKEN_TYPE:
+        return 'id' in data
+    # Sesiones emitidas antes del tipo: siempre traen role, que ningún otro
+    # token lleva. Duran 24 h: borrar esto un día después del deploy.
+    return 'typ' not in data and 'role' in data and 'id' in data
+
+
 def _generate_referral_code():
     alphabet = string.ascii_uppercase + string.digits
     return 'AGT-' + ''.join(secrets.choice(alphabet) for _ in range(5))
@@ -85,6 +99,7 @@ class AdminUser(db.Model):
 
     def generate_auth_token(self, expiration=86400):
         payload = {
+            'typ': BACKOFFICE_TOKEN_TYPE,
             'id': self.id,
             'role': self.role,
             'carrier_company_id': self.carrier_company_id,
@@ -102,7 +117,13 @@ class AdminUser(db.Model):
             )
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
             return None
-        return db.session.get(AdminUser, data['id'])
+        if not _is_backoffice_session(data):
+            return None
+        user = db.session.get(AdminUser, data['id'])
+        # Desactivar a alguien corta también la sesión que tenía abierta.
+        if user is None or not user.active:
+            return None
+        return user
 
     def to_dict(self):
         return {

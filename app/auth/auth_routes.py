@@ -10,7 +10,6 @@ from ..api.order_access import order_access_url, read_token
 from sqlalchemy import exc
 from facepy import SignedRequest
 from ..api.email import send_email
-from ..api.carrier_company import CarrierCompany as CarrierCompanyEntity
 
 @auth.route('/register', methods=['POST'])
 def register():
@@ -265,12 +264,3 @@ def login_google():
         'email': customer.email,
         'mobile_phone': customer.mobile_phone,
     }), 200
-
-
-@auth.route('/generate-carrier-company-token', methods=['POST'])
-def quotation_token():
-    data = request.json
-    return jsonify({
-        'token': CarrierCompanyEntity().generate_carrier_company_token(864000, data['order_id'], data['carrier_company_id']),
-        'expiration': 864000,
-    })
