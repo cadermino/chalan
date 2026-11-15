@@ -71,6 +71,11 @@ def test_a_number_in_the_name_is_not_the_quantity():
     assert _read('2 camas de 2 plazas') == [('cama_2', 2)]
 
 
+def test_the_pieces_of_a_living_room_set_are_one_set():
+    assert _read('4 muebles de sala') == [('juego_sala', 1)]
+    assert _read('2 juegos de sala') == [('juego_sala', 2)]
+
+
 def test_what_comes_with_a_thing_counts_only_if_it_takes_room():
     assert _read('2 mesas de madera con 6 sillas') == [('mesa', 2), ('silla', 6)]
     assert _read('cama con 2 veladores') == [('cama', 1), ('velador', 2)]

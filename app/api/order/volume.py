@@ -48,7 +48,8 @@ CATALOG = {
     'televisor': (0.25, 'Televisor', ['televisor', 'television', 'tv', 'smart tv', 'tele', 'monitor']),
     'sofa_cama': (1.5, 'Sofá cama', ['sofa cama', 'sofacama', 'futon']),
     'juego_sala': (3.5, 'Juego de sala', [
-        'juego de sala', 'juego de muebles', 'jueglo de muebles', 'juego de sofa', 'juego de sofas',
+        'juego de sala', 'juegos de sala', 'juego de muebles', 'juegos de muebles', 'jueglo de muebles',
+        'juego de sofa', 'juego de sofas',
         'muebles de sala', 'mueble de sala', 'mueble sala', 'sala completa']),
     'sofa_l': (2.5, 'Sofá en L', ['sofa en l', 'sofa l', 'seccional', 'esquinero', 'mueble en l']),
     'sofa_3': (1.8, 'Sofá de 3 cuerpos', [
@@ -83,7 +84,7 @@ CATALOG = {
         'escritorio', 'mesa de computadora', 'mueble de computadora', 'modulo de computo', 'mesa de estudio', 'desk']),
     'silla': (0.15, 'Silla', [
         'silla', 'banco', 'banca', 'taburete', 'banqueta', 'puff', 'puf', 'otoman', 'pouf', 'chairs', 'chair']),
-    'comedor': (1.5, 'Juego de comedor', ['juego de comedor', 'comedor completo', 'comedor']),
+    'comedor': (1.5, 'Juego de comedor', ['juego de comedor', 'juegos de comedor', 'comedor completo', 'comedor']),
     'mesa_centro': (0.3, 'Mesa de centro', [
         'mesa de centro', 'mesa centro', 'mesa baja', 'mesa auxiliar', 'mesa lateral', 'mesita', 'mesilla',
         'mesa de arrime', 'mesa plegable']),
@@ -163,6 +164,8 @@ _WITH_KEYS = ('silla', 'colchon', 'velador')
 _MEASURE = re.compile(
     r'^\d+(?:[.,]\d+)?\s*(?:(?:l|lt|lts|litros?|kg|kgs|kilos?|kilogramos?|g|gr|gramos?|tn|ton|toneladas?|mm|cm|m|m2|'
     r'mts?|metros?|pulgadas?)\b|")')
+# "4 muebles de sala" es un juego de sala de 4 piezas, no 4 juegos.
+_PIECES_OF_A_SET = re.compile(r'\bmuebles? (de )?sala\b')
 # Las que tienen variantes por tamaño: "cama de madera queen" es una cama queen.
 _FAMILIES = ('cama', 'sofa', 'refrigeradora', 'televisor', 'ropero', 'caja')
 # Lo que no es una cosa: pruebas, y negativas de la IA de las fotos de antes de
@@ -253,7 +256,8 @@ def _item(text, part):
     measure = _MEASURE.match(part)
     # "2 plazas", "3 cuerpos": el número es del nombre, no la cantidad.
     named_by_number = part[:1].isdigit() and _found(part)[:1] and _found(part)[0][0] == 0
-    qty = 1 if measure or named_by_number else _quantity(part)
+    pieces = key == 'juego_sala' and _PIECES_OF_A_SET.search(part)
+    qty = 1 if measure or named_by_number or pieces else _quantity(part)
     if key:
         each, label, _ = CATALOG[key]
         return {'text': text, 'key': key, 'label': label, 'qty': qty, 'm3': round(each * qty, 3)}, False
