@@ -4,6 +4,12 @@ El API principal lo calcula en silencio a los 20 minutos de avisada una orden
 (api/auto_quote.py allá) y lo guarda en `auto_quote_estimates`. Esto lo muestra a
 los admins: por orden, y por empresa cuánto acierta, que es lo que decide a
 quién se puede encender la cotización automática.
+
+El acierto de una empresa se mide con sus tarifas de hoy, no con las que tenía
+cuando se calculó: cada estimación guarda la mudanza (`inputs`) y acá se vuelve
+a pasar por la fórmula. Así sirve todo su historial (el API principal lo deja
+comparable con `flask auto-quote-backfill`), cambiar una tarifa se ve al
+instante, y a una empresa sin tarifas se le pueden sugerir (`rates_fit.py`).
 """
 from statistics import median
 
@@ -12,13 +18,35 @@ from flask import g, jsonify
 from . import api
 from .decorators import login_required
 from .. import db
+from ..carrier_rates import company_rates
 from ..models import AutoQuoteEstimate, CarrierCompany, Order, Quotation, ROLE_ADMIN, ROLE_SUPERADMIN, _iso
+from ..rates_fit import FIELDS as SUGGESTED_FIELDS, suggest
+from ..rates_formula import estimate as formula_estimate, rates_complete
 
-# Una estimación acierta si queda a menos de esto del precio real, y una empresa
-# está lista para encenderse con tantas comparaciones y esa parte de aciertos.
-TOLERANCE = 0.25
+# Lo que importa no es acertar parejo sino no quedar muy por debajo: una
+# cotización automática ata a la empresa a ese precio, y una muy alta solo
+# pierde la orden. "Cerca" es entre LOW abajo y HIGH arriba de lo que cotizó.
+# Una empresa está lista con tantas comparaciones, casi ninguna muy por debajo
+# y la mayoría cerca.
+#
+# Con 232 cotizaciones de producción (noviembre de 2026) y las mejores tarifas
+# posibles para cada empresa, la regla de antes (75% a ±25%) solo la pasaba una:
+# los transportistas varían más que eso entre ellos mismos (prediciendo a cada
+# uno con lo que cotizaron los demás en la misma orden se acierta 64%).
+LOW = 0.25
+HIGH = 0.40
 READY_MIN_COMPARED = 10
-READY_SHARE = 0.75
+READY_MAX_LOW_SHARE = 0.10
+READY_MIN_NEAR_SHARE = 0.60
+RULE = {'low': LOW, 'high': HIGH, 'min_compared': READY_MIN_COMPARED, 'max_low_share': READY_MAX_LOW_SHARE,
+        'min_near_share': READY_MIN_NEAR_SHARE}
+
+FORMULA_FIELDS = ('base_fee', 'per_m3', 'per_loader', 'per_floor', 'minimum_fare', 'per_km_outside_lima',
+                  'weekend_surcharge_percent')
+MOVE_FIELDS = ('m3', 'km', 'floors', 'loaders', 'weekend', 'outside_lima')
+# Las filas que guardan una mudanza comparable: se calculó, o la empresa no
+# tenía tarifas ese día. Las demás (rechazó, no podía) no se comparan.
+COMPARABLE = (None, 'no_rates')
 
 SKIP_LABELS = {
     'load_type': 'No es mudanza ni cosas (carga o vehículo)',
@@ -29,6 +57,7 @@ SKIP_LABELS = {
     'error': 'No se pudo calcular (error del sistema)',
 }
 REASON_LABELS = {
+    'no_rates': 'Sin tarifas',
     'declined': 'Rechazó la orden',
     'unavailable': 'No puede ese día',
     'too_big': 'Lleva menos m³',
@@ -90,6 +119,8 @@ def order_auto_quote(order_id):
     rows = []
     for e in sorted(estimates, key=lambda e: (e.amount is None, e.amount or 0)):
         quotation = real.get(e.id)
+        if e.skip_reason == 'no_rates' and quotation is None:
+            continue
         error = _error(e, quotation)
         rows.append({
             'carrier_company_id': e.carrier_company_id,
@@ -113,11 +144,42 @@ def order_auto_quote(order_id):
     }), 200
 
 
+def _move(estimate):
+    return {field: estimate.inputs[field] for field in MOVE_FIELDS if field in (estimate.inputs or {})}
+
+
+def _measure(moves, rates):
+    """Cómo quedan las tarifas contra lo que la empresa cotizó: `moves` es
+    [(estimación, cotización)]. Vacío si faltan la base o el precio por m³."""
+    rows = []
+    if rates_complete(rates):
+        for e, quotation in moves:
+            amount = formula_estimate(rates, **_move(e))['total']
+            rows.append({'order_id': e.order_id, 'amount': amount, 'quoted': quotation.amount,
+                         'error': round((amount - quotation.amount) / quotation.amount, 3),
+                         'notified_at': _iso(e.notified_at)})
+    rows.sort(key=lambda r: r['notified_at'], reverse=True)
+    compared = len(rows)
+    low = sum(1 for r in rows if r['error'] < -LOW)
+    high = sum(1 for r in rows if r['error'] > HIGH)
+    near = compared - low - high
+    return {
+        'compared': compared, 'near': near, 'low': low, 'high': high,
+        'near_share': round(near / compared, 3) if compared else None,
+        'low_share': round(low / compared, 3) if compared else None,
+        'median_error': round(median(r['error'] for r in rows), 3) if rows else None,
+        'ready': (compared >= READY_MIN_COMPARED and low <= READY_MAX_LOW_SHARE * compared
+                  and near >= READY_MIN_NEAR_SHARE * compared),
+        'recent': rows[:20],
+    }
+
+
 @api.route('/carrier-companies/<int:company_id>/auto-quote-accuracy', methods=['GET'])
 @login_required
 def company_auto_quote_accuracy(company_id):
-    """Cuánto acierta la empresa con sus tarifas: sus estimaciones con precio que
-    tienen cotización real. Solo admins: es para decidir a quién encender."""
+    """Cuánto acierta la empresa con sus tarifas de hoy contra todo lo que
+    cotizó, y las tarifas que saldrían de esas cotizaciones. Solo admins: es
+    para decidir a quién encender."""
     if not _is_admin():
         return jsonify({'message': 'forbidden'}), 403
     if db.session.get(CarrierCompany, company_id) is None:
@@ -128,25 +190,21 @@ def company_auto_quote_accuracy(company_id):
     # Las otras empresas también cuentan para saber dónde termina cada aviso.
     every = AutoQuoteEstimate.query.filter(AutoQuoteEstimate.order_id.in_(order_ids)).all() if order_ids else []
     real = _real_quotations(every)
+    moves = [(e, real[e.id]) for e in estimates
+             if e.skip_reason in COMPARABLE and (e.inputs or {}).get('m3') and e.id in real and real[e.id].amount]
 
-    compared = []
-    for e in estimates:
-        error = _error(e, real.get(e.id))
-        if error is not None:
-            compared.append({'order_id': e.order_id, 'amount': e.amount, 'quoted': real[e.id].amount,
-                             'error': round(error, 3), 'notified_at': _iso(e.notified_at)})
-    compared.sort(key=lambda c: c['notified_at'], reverse=True)
-    hits = sum(1 for c in compared if abs(c['error']) <= TOLERANCE)
-    share = hits / len(compared) if compared else None
+    saved = company_rates(company_id)
+    rates = {field: getattr(saved, field) for field in FORMULA_FIELDS} if saved else {}
+    suggested = suggest([(_move(e), q.amount) for e, q in moves], LOW, READY_MAX_LOW_SHARE,
+                        weekend_percent=rates.get('weekend_surcharge_percent'))
+    if suggested is not None:
+        with_them = _measure(moves, {**rates, **suggested})
+        suggested = {'rates': suggested, **{k: with_them[k] for k in ('near_share', 'low_share', 'ready')}}
     return jsonify({
-        'estimated': sum(1 for e in estimates if e.amount is not None),
-        'compared': len(compared),
-        'hits': hits,
-        'share': round(share, 3) if share is not None else None,
-        'median_error': round(median(c['error'] for c in compared), 3) if compared else None,
-        'ready': len(compared) >= READY_MIN_COMPARED and share >= READY_SHARE,
-        'tolerance': TOLERANCE,
-        'ready_min_compared': READY_MIN_COMPARED,
-        'ready_share': READY_SHARE,
-        'recent': compared[:20],
+        'has_rates': rates_complete(rates),
+        'quotations': len(moves),
+        **_measure(moves, rates),
+        'rule': RULE,
+        'suggested': suggested,
+        'suggested_fields': SUGGESTED_FIELDS,
     }), 200

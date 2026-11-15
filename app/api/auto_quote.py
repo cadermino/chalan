@@ -147,43 +147,75 @@ def _blocked(company_id, day):
     return blocked_on(weekly, days, day)[0]
 
 
-def check_order(order, now):
+def _ends(order):
     details = list(order.order_details)
-    origin = next((d for d in details if d.type == 'carry_from'), None)
-    destination = next((d for d in details if d.type == 'deliver_to'), None)
+    return (next((d for d in details if d.type == 'carry_from'), None),
+            next((d for d in details if d.type == 'deliver_to'), None))
 
+
+def _read_volume(order):
     volume = estimate_volume(order.comments)
     volume['m3'] = min(volume['m3'], MAX_M3)
     order.estimated_volume_m3 = volume['m3']
     order.volume_breakdown = volume
+    return volume
+
+
+def _move(order, origin, destination, m3):
+    """Lo que la fórmula necesita de la orden. Se guarda con cada estimación
+    (`inputs`): con eso el backoffice recalcula con las tarifas de hoy."""
+    return {
+        'm3': m3,
+        'km': straight_km(origin, destination) or 0,
+        'floors': floors_on_foot(origin) + floors_on_foot(destination),
+        'loaders': order.loaders_quantity or 0,
+        'weekend': order.appointment_date.weekday() >= 5,
+        'outside_lima': False,
+    }
+
+
+def _complete_rates(company_ids=None):
+    query = CarrierRates.query.filter(CarrierRates.vehicle_id.is_(None))
+    if company_ids is not None:
+        query = query.filter(CarrierRates.carrier_company_id.in_(company_ids))
+    return {rates.carrier_company_id: rates for rates in query.all() if rates_complete(_rates_dict(rates))}
+
+
+def _add_estimate(order_id, company_id, notified_at, move, rates, reason=None):
+    """Una fila por empresa y aviso. Sin tarifas no hay precio, pero la fila
+    queda igual (`no_rates`): es lo que deja comparar a la empresa con su
+    historial el día que las cargue, o sugerírselas."""
+    result = None
+    if reason is None and rates is None:
+        reason = 'no_rates'
+    if reason is None:
+        result = estimate(_rates_dict(rates), **move)
+    db.session.add(AutoQuoteEstimate(
+        order_id=order_id, carrier_company_id=company_id, notified_at=notified_at,
+        amount=result['total'] if result else None, skip_reason=reason,
+        inputs=move, lines=result['lines'] if result else None,
+    ))
+
+
+def check_order(order, now):
+    origin, destination = _ends(order)
+    volume = _read_volume(order)
     skip = _scope(order, origin, destination)
     if skip is None and volume['m3'] <= 0:
         skip = 'no_items'
 
-    rates_by_company = {}
     if skip is None:
         company_ids = _company_ids()
-        for rates in CarrierRates.query.filter(CarrierRates.carrier_company_id.in_(company_ids),
-                                               CarrierRates.vehicle_id.is_(None)).all():
-            if rates_complete(_rates_dict(rates)):
-                rates_by_company[rates.carrier_company_id] = rates
-        if not rates_by_company:
-            skip = 'no_rates'
-
-    if skip is None:
+        rates_by_company = _complete_rates(company_ids)
         declined = {d.carrier_company_id for d in OrderCarrierDecline.query.filter_by(order_id=order.id)}
-        move = {
-            'm3': volume['m3'],
-            'km': straight_km(origin, destination) or 0,
-            'floors': floors_on_foot(origin) + floors_on_foot(destination),
-            'loaders': order.loaders_quantity or 0,
-            'weekend': order.appointment_date.weekday() >= 5,
-            'outside_lima': False,
-        }
-        for company_id, rates in rates_by_company.items():
-            reason, result = None, None
+        move = _move(order, origin, destination, volume['m3'])
+        for company_id in company_ids:
+            rates = rates_by_company.get(company_id)
+            reason = None
             if company_id in declined:
                 reason = 'declined'
+            elif rates is None:
+                reason = 'no_rates'
             elif not is_available(_blocked(company_id, order.appointment_date.date()), _taken(company_id, order),
                                   rates.moves_per_day, order.appointment_date):
                 reason = 'unavailable'
@@ -191,18 +223,59 @@ def check_order(order, now):
                 reason = 'too_big'
             elif rates.max_km is not None and move['km'] > rates.max_km:
                 reason = 'too_far'
-            else:
-                result = estimate(_rates_dict(rates), **move)
-            db.session.add(AutoQuoteEstimate(
-                order_id=order.id, carrier_company_id=company_id, notified_at=order.carrier_notified_at,
-                amount=result['total'] if result else None, skip_reason=reason,
-                inputs=move, lines=result['lines'] if result else None,
-            ))
+            _add_estimate(order.id, company_id, order.carrier_notified_at, move, rates, reason)
+        if not rates_by_company:
+            skip = 'no_rates'
 
     order.auto_quote_skip = skip
     order.auto_quote_checked_at = now
     db.session.commit()
     return skip
+
+
+def backfill(apply=False):
+    """Deja comparable lo cotizado antes del cálculo en silencio: una fila por
+    cada empresa que cotizó una orden en alcance y no tiene estimación de ese
+    aviso. Con eso el backoffice mide el acierto de una empresa contra todo su
+    historial, sin esperar órdenes nuevas, y le sugiere tarifas.
+
+    La orden se lee como está hoy (la lista pudo cambiar después de cotizada), y
+    no se mira el calendario ni si rechazó: es historia. Devuelve cuántas filas
+    faltan, o cuántas agregó con `apply`.
+    """
+    rates_by_company = _complete_rates()
+    quoted, notices = {}, {}
+    for order_id, company_id in db.session.query(Quotations.order_id, Quotations.carrier_company_id).distinct():
+        quoted.setdefault(order_id, set()).add(company_id)
+    for row in AutoQuoteEstimate.query.all():
+        notices.setdefault(row.order_id, {}).setdefault(row.notified_at, {})[row.carrier_company_id] = row
+
+    added = 0
+    for order in Order.query.filter(Order.id.in_(quoted)).order_by(Order.id).all():
+        if order.id in notices:
+            # Ya se calculó: faltan las empresas que no recibían la orden o no
+            # estaban ese día. La mudanza de cada aviso es la misma para todas.
+            missing = [(notified_at, next(iter(rows.values())).inputs, quoted[order.id] - set(rows))
+                       for notified_at, rows in notices[order.id].items()]
+        else:
+            origin, destination = _ends(order)
+            if _scope(order, origin, destination) is not None:
+                continue
+            m3 = min(estimate_volume(order.comments)['m3'], MAX_M3)
+            if m3 <= 0:
+                continue
+            if apply:
+                _read_volume(order)
+            # Antes de cualquier cotización: todas las de la orden caen en este aviso.
+            missing = [(order.created_date, _move(order, origin, destination, m3), quoted[order.id])]
+        for notified_at, move, company_ids in missing:
+            for company_id in sorted(company_ids):
+                added += 1
+                if apply:
+                    _add_estimate(order.id, company_id, notified_at, move, rates_by_company.get(company_id))
+    if apply:
+        db.session.commit()
+    return added
 
 
 def pending_orders(now):

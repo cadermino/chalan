@@ -62,10 +62,20 @@ export default function CarrierRates() {
       setForm(toForm(data.rates))
       setAutoQuote(data.rates.auto_quote)
     })
+    loadAccuracy()
+  }, [companyId, isAdmin])
+
+  // Se mide con las tarifas guardadas: después de guardar hay que volver a pedirlo.
+  const loadAccuracy = () => {
     if (isAdmin) {
       client.get(`/api/carrier-companies/${companyId}/auto-quote-accuracy`).then(({ data }) => setAccuracy(data))
     }
-  }, [companyId, isAdmin])
+  }
+
+  const fillSuggested = (rates) => {
+    setForm((f) => ({ ...f, ...Object.fromEntries(Object.entries(rates).map(([k, v]) => [k, String(v)])) }))
+    toast('Revisa los ejemplos y guarda para ver cuánto acierta')
+  }
 
   // El simulador no guarda: recalcula con lo que está escrito, un momento
   // después de dejar de escribir.
@@ -93,6 +103,7 @@ export default function CarrierRates() {
       setSaved(data.rates)
       setAutoQuote(data.rates.auto_quote)
       toast.success('Tarifas guardadas')
+      loadAccuracy()
     } catch (err) {
       const field = FIELDS.find((f) => f.key === err.response?.data?.field)
       toast.error(field ? `Revisa "${field.label}"` : 'No se pudo guardar')
@@ -190,7 +201,7 @@ export default function CarrierRates() {
         </div>
 
         <aside className="lg:sticky lg:top-6 space-y-6">
-          {accuracy && <AccuracyCard accuracy={accuracy} />}
+          {accuracy && <AccuracyCard accuracy={accuracy} onUse={fillSuggested} />}
           <Card title="Cuánto cobrarías">
             {!complete && (
               <p className="text-sm text-gray-400">Escribe la base y el precio por m³ para ver los totales.</p>
@@ -237,41 +248,63 @@ export default function CarrierRates() {
   )
 }
 
-// Solo admins: cuánto se parece lo que sale con sus tarifas a lo que la empresa
-// cotiza de verdad (backoffice-api api/auto_quote.py). Decide a quién encender.
-function AccuracyCard({ accuracy: a }) {
+// Solo admins: cuánto se parece lo que sale con sus tarifas de hoy a lo que la
+// empresa cotizó (backoffice-api api/auto_quote.py), y las tarifas que saldrían
+// de esas cotizaciones. Decide a quién encender. Lo que pesa es no quedar muy
+// por debajo: eso ata a la empresa a un precio que no habría dado.
+const SUGGESTED_LABELS = { base_fee: 'Base', per_m3: 'm³', per_loader: 'cargador', per_floor: 'piso' }
+
+function AccuracyCard({ accuracy: a, onUse }) {
   const pct = (n) => `${Math.round(n * 100)}%`
+  const { rule } = a
+  const color = (error) => (error < -rule.low ? 'text-red-600' : error > rule.high ? 'text-amber-600' : 'text-green-700')
   return (
     <Card title="Cuánto acierta (solo Chalán)">
-      {a.compared === 0 ? (
+      {a.quotations === 0 ? (
+        <p className="text-sm text-gray-500">Todavía no hay cotizaciones suyas de mudanzas en Lima para comparar.</p>
+      ) : !a.has_rates ? (
         <p className="text-sm text-gray-500">
-          {a.estimated === 0
-            ? 'Todavía no se calculó ninguna orden con estas tarifas.'
-            : `${a.estimated === 1 ? 'Se calculó 1 orden' : `Se calcularon ${a.estimated} órdenes`}, pero no cotizó ninguna para comparar.`}
+          Hay {a.quotations === 1 ? '1 cotización suya' : `${a.quotations} cotizaciones suyas`} para comparar.
+          Guarda la base y el precio por m³ para ver cuánto acierta.
         </p>
       ) : (
         <>
           <p className="text-sm text-gray-700">
-            En <span className="font-medium">{a.hits} de {a.compared}</span> órdenes quedó a menos de{' '}
-            {pct(a.tolerance)} de lo que cotizó ({pct(a.share)}). Diferencia típica: {a.median_error > 0 ? '+' : ''}
-            {pct(a.median_error)}.
+            Con las tarifas guardadas, de {a.compared === 1 ? 'su cotización' : `sus ${a.compared} cotizaciones`}:{' '}
+            <span className="font-medium">{a.near} cerca</span>, {a.low} muy por debajo y {a.high} muy por arriba.
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Cerca es entre {pct(rule.low)} menos y {pct(rule.high)} más de lo que cotizó.
           </p>
           <p className={`text-xs mt-2 ${a.ready ? 'text-green-700' : 'text-gray-500'}`}>
             {a.ready
-              ? 'Acierta lo suficiente para cotizar por ella.'
-              : `Para cotizar por ella: ${a.ready_min_compared} órdenes comparadas y ${pct(a.ready_share)} de aciertos.`}
+              ? 'Lista para cotizar por ella.'
+              : `Para cotizar por ella: ${rule.min_compared} cotizaciones comparadas, a lo más ${pct(rule.max_low_share)} muy por debajo y al menos ${pct(rule.min_near_share)} cerca.`}
           </p>
           <ul className="mt-3 space-y-0.5 text-xs text-gray-500">
             {a.recent.slice(0, 8).map((r) => (
               <li key={`${r.order_id}-${r.notified_at}`} className="flex justify-between gap-3">
                 <span>Orden #{r.order_id}: S/ {r.amount} vs S/ {r.quoted}</span>
-                <span className={Math.abs(r.error) <= a.tolerance ? 'text-green-700' : 'text-red-600'}>
-                  {r.error > 0 ? '+' : ''}{Math.round(r.error * 100)}%
-                </span>
+                <span className={color(r.error)}>{r.error > 0 ? '+' : ''}{Math.round(r.error * 100)}%</span>
               </li>
             ))}
           </ul>
         </>
+      )}
+      {a.suggested && (
+        <div className="mt-4 pt-3 border-t border-gray-100">
+          <p className="text-sm font-medium text-gray-800">Tarifas que salen de lo que cotizó</p>
+          <p className="text-sm text-gray-700 mt-1">
+            {a.suggested_fields.map((f) => `${SUGGESTED_LABELS[f]} S/ ${a.suggested.rates[f]}`).join(' · ')}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Con estas, en esas mismas cotizaciones: {pct(a.suggested.near_share)} cerca y{' '}
+            {pct(a.suggested.low_share)} muy por debajo. Con órdenes nuevas acierta algo menos.
+          </p>
+          <button type="button" onClick={() => onUse(a.suggested.rates)} className="text-sm text-teal-600 hover:underline mt-2">
+            Poner estas tarifas en el formulario
+          </button>
+        </div>
       )}
     </Card>
   )

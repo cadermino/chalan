@@ -18,6 +18,16 @@ def register(app):
         if checked:
             click.echo(' '.join(f'{order_id}:{skip or "ok"}' for order_id, skip in checked.items()))
 
+    @app.cli.command('auto-quote-backfill')
+    @click.option('--apply', is_flag=True, help='Guardar de verdad; sin esto solo cuenta.')
+    def auto_quote_backfill(apply):
+        """Deja comparables las cotizaciones de antes del cálculo en silencio
+        (api/auto_quote.py, `backfill`): el backoffice mide con ellas cuánto
+        acierta cada empresa y le sugiere tarifas. Se puede repetir."""
+        from .api.auto_quote import backfill
+        rows = backfill(apply=apply)
+        click.echo(f'{rows} estimaciones {"agregadas" if apply else "por agregar (usa --apply)"}.')
+
     @app.cli.command('move-service-media')
     @click.option('--apply', is_flag=True, help='Mover de verdad; sin esto solo cuenta.')
     def move_service_media(apply):

@@ -14,7 +14,7 @@ import pytest
 
 from app import db
 from app.api import rates_formula
-from app.api.auto_quote import check_order, in_lima, run
+from app.api.auto_quote import backfill, check_order, in_lima, run
 from app.api.order.volume import estimate_volume
 from app.models import (AutoQuoteEstimate, CarrierAvailability, CarrierCompany, CarrierCompanyServiceType,
                         CarrierRates, Order, OrderCarrierDecline, OrderDetails, Quotations, ServiceType)
@@ -207,13 +207,15 @@ def estimates(order):
 
 def test_each_company_with_rates_gets_what_it_would_charge(customer, moving):
     company = make_company(moving)
-    make_company(moving, name='Sin Tarifas', rates=None)
+    without = make_company(moving, name='Sin Tarifas', rates=None)
     order = make_order(customer, loaders_quantity=2)
 
     assert run(NOW) == {order.id: None}
 
-    [estimate] = estimates(order).values()
-    assert estimate.carrier_company_id == company.id
+    estimate = estimates(order)[company.id]
+    # Sin tarifas no hay precio, pero queda la mudanza para compararla después.
+    assert (estimates(order)[without.id].amount, estimates(order)[without.id].skip_reason) == (None, 'no_rates')
+    assert estimates(order)[without.id].inputs == estimate.inputs
     # 200 + 5.1 × 15 + 2 × 60 + 3 pisos sin ascensor × 20 (4.º piso en el origen) = 456.5
     assert estimate.amount == 457
     assert estimate.inputs['floors'] == 3 and estimate.inputs['weekend'] is False
@@ -313,6 +315,7 @@ def test_without_any_company_with_rates_it_says_so(customer, moving):
     order = make_order(customer)
 
     assert run(NOW) == {order.id: 'no_rates'}
+    assert {e.skip_reason for e in estimates(order).values()} == {'no_rates'}
 
 
 def test_a_company_that_cannot_take_it_is_recorded_with_why(customer, moving):
@@ -374,6 +377,60 @@ def test_customers_and_carriers_do_not_see_what_was_computed(customer, moving):
 
     assert float(order.estimated_volume_m3) > 0
     assert not {'estimated_volume_m3', 'volume_breakdown', 'auto_quote_checked_at', 'auto_quote_skip'} & set(details)
+
+
+# ── Lo cotizado antes del cálculo en silencio ──
+
+def quote(order, company, amount=400):
+    db.session.add(Quotations(order_id=order.id, carrier_company_id=company.id, amount=amount, quotation_status_id=1))
+    db.session.commit()
+
+
+def test_backfill_makes_past_quotations_comparable(customer, moving):
+    with_rates = make_company(moving)
+    without = make_company(moving, name='Sin Tarifas', rates=None)
+    never_quoted = make_company(moving, name='No Cotizó')
+    old = make_order(customer, notified=None, loaders_quantity=1)
+    quote(old, with_rates)
+    quote(old, without)
+
+    assert backfill() == 2 and not estimates(old)      # sin --apply solo cuenta
+    assert backfill(apply=True) == 2
+
+    rows = estimates(old)
+    assert set(rows) == {with_rates.id, without.id} and never_quoted.id not in rows
+    # 200 + 5.1 × 15 + 60 + 3 pisos × 20
+    assert (rows[with_rates.id].amount, rows[with_rates.id].skip_reason) == (397, None)
+    assert (rows[without.id].amount, rows[without.id].skip_reason) == (None, 'no_rates')
+    assert rows[without.id].inputs == {'m3': 5.1, 'km': rows[without.id].inputs['km'], 'floors': 3, 'loaders': 1,
+                                       'weekend': False, 'outside_lima': False}
+    # Antes de cualquier cotización de la orden, para que todas caigan en ese aviso.
+    assert rows[without.id].notified_at == old.created_date
+    assert float(old.estimated_volume_m3) == 5.1
+    assert backfill(apply=True) == 0                   # se puede repetir
+
+
+def test_backfill_leaves_out_what_the_formula_does_not_cover(customer, moving):
+    company = make_company(moving)
+    for fields in ({'load_type': 'cargo'}, {'destination': (-12.06, -75.21, 1, 0)}, {'comments': ''}):
+        quote(make_order(customer, notified=None, **fields), company)
+    make_order(customer, notified=None)                # nadie la cotizó
+
+    assert backfill(apply=True) == 0
+
+
+def test_backfill_adds_who_quoted_an_order_computed_without_them(customer, moving):
+    company = make_company(moving)
+    order = make_order(customer)
+    run(NOW)
+    late = make_company(moving, name='Llegó Después', rates=None)   # no recibía la orden ese día
+    quote(order, late)
+
+    assert backfill(apply=True) == 1
+
+    row = estimates(order)[late.id]
+    assert (row.notified_at, row.inputs, row.skip_reason) == (
+        order.carrier_notified_at, estimates(order)[company.id].inputs, 'no_rates')
 
 
 # ── La misma fórmula que el simulador del backoffice ──
