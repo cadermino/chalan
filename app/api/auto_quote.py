@@ -19,6 +19,7 @@ import re
 import unicodedata
 from datetime import datetime, timedelta
 
+from flask import current_app
 from sqlalchemy import or_
 
 from .. import db
@@ -32,6 +33,9 @@ WAIT = timedelta(minutes=20)
 # calculan las de semanas atrás.
 LOOKBACK = timedelta(days=2)
 ROAD_FACTOR = 1.35
+# Lo que entra en `orders.estimated_volume_m3`. Una lista con "50000 ladrillos"
+# da más, y la base de datos rechazaba la orden entera.
+MAX_M3 = 9999
 LOAD_TYPES = (None, 'moving', 'items')
 ORDER_PENDING = 1
 ORDER_CANCELLED = 4
@@ -84,9 +88,11 @@ def floors_on_foot(detail):
     if detail is None or detail.has_elevator:
         return 0
     try:
-        return max(int(detail.floor_number or 1) - 1, 0)
+        floor = int(detail.floor_number or 1)
     except (TypeError, ValueError):
         return 0
+    # El piso 1 está a la calle, y un sótano se sube igual que se baja un piso.
+    return -floor if floor < 0 else max(floor - 1, 0)
 
 
 def _scope(order, origin, destination):
@@ -147,6 +153,7 @@ def check_order(order, now):
     destination = next((d for d in details if d.type == 'deliver_to'), None)
 
     volume = estimate_volume(order.comments)
+    volume['m3'] = min(volume['m3'], MAX_M3)
     order.estimated_volume_m3 = volume['m3']
     order.volume_breakdown = volume
     skip = _scope(order, origin, destination)
@@ -214,4 +221,17 @@ def run(now=None):
     """Mira las órdenes avisadas hace 20 minutos o más que no miró desde su
     último aviso. Devuelve {order_id: motivo o None}."""
     now = now or datetime.utcnow()
-    return {order.id: check_order(order, now) for order in pending_orders(now)}
+    checked = {}
+    for order in pending_orders(now):
+        order_id = order.id
+        try:
+            checked[order_id] = check_order(order, now)
+        except Exception:
+            # Una orden que falla no deja sin calcular a las que siguen ni vuelve
+            # a fallar cada dos minutos: queda marcada y el cron sigue.
+            db.session.rollback()
+            current_app.logger.exception('auto-quote: la orden %s no se pudo calcular', order_id)
+            Order.query.filter_by(id=order_id).update({'auto_quote_skip': 'error', 'auto_quote_checked_at': now})
+            db.session.commit()
+            checked[order_id] = 'error'
+    return checked

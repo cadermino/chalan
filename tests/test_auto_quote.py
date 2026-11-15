@@ -41,9 +41,52 @@ def test_a_line_with_several_things_is_split():
     assert [(i['key'], i['qty']) for i in result['items']] == [('cama_2', 1), ('silla', 2), ('caja', 3)]
 
 
-def test_the_longest_name_wins():
-    assert estimate_volume('1 sofá cama')['items'][0]['key'] == 'sofa_cama'
-    assert estimate_volume('refrigeradora de 2 puertas')['items'][0]['key'] == 'refrigeradora_grande'
+def _read(text):
+    return [(i['key'], i['qty']) for i in estimate_volume(text)['items']]
+
+
+def test_between_names_that_start_together_the_longest_wins():
+    assert _read('1 sofá cama') == [('sofa_cama', 1)]
+    assert _read('refrigeradora de 2 puertas') == [('refrigeradora_grande', 1)]
+    assert _read('consola de videojuegos') == [('computadora', 1)]
+
+
+def test_the_thing_is_the_first_one_named_not_the_longest_word():
+    # Eran 8 juegos de comedor (12 m³), 2 cabeceras, 10 cocinas, 25 libros y 2 camas.
+    assert _read('08 sillas de madera de comedor') == [('silla', 8)]
+    assert _read('2 camas con cabecera') == [('cama', 2)]
+    assert _read('10 cajas con objetos de cocina y sala') == [('caja', 10)]
+    assert _read('25 cajas de libros') == [('caja', 25)]
+    assert _read('dos colchones de 2 plazas') == [('colchon', 2)]
+
+
+def test_a_size_named_later_picks_the_variant():
+    assert _read('cama de madera queen') == [('cama_king', 1)]
+    assert _read('refrigeradora LG side by side') == [('refrigeradora_grande', 1)]
+    assert _read('sofá de cuero de 3 cuerpos') == [('sofa_3', 1)]
+
+
+def test_a_number_in_the_name_is_not_the_quantity():
+    assert _read('colchón, 2 plazas') == [('colchon', 1), ('cama_2', 1)]
+    assert _read('2 camas de 2 plazas') == [('cama_2', 2)]
+
+
+def test_what_comes_with_a_thing_counts_only_if_it_takes_room():
+    assert _read('2 mesas de madera con 6 sillas') == [('mesa', 2), ('silla', 6)]
+    assert _read('cama con 2 veladores') == [('cama', 1), ('velador', 2)]
+    # Un juego de comedor ya trae sus sillas, y los cajones son de la cómoda.
+    assert _read('juego de comedor con 6 sillas') == [('comedor', 1)]
+    assert _read('cómoda con 5 cajones') == [('comoda', 1)]
+
+
+def test_a_number_with_a_unit_is_a_measure_not_a_quantity():
+    # "entre 60 y 80 litros" eran 80 cosas sin reconocer: 24 m³.
+    result = estimate_volume('10 cajas de plástico de entre 60 y 80 litros de capacidad\n50mm de espesor\n13.6 toneladas')
+
+    assert [(i['key'], i['qty']) for i in result['items']] == [('caja', 10)]
+    assert result['unknown'] == []
+    assert _read('16 kg de ropa') == [('ropa', 1)]
+    assert _read('2 lavadoras de 16 kg') == [('lavadora', 2)]
 
 
 def test_what_has_measures_is_measured():
@@ -52,9 +95,32 @@ def test_what_has_measures_is_measured():
     assert result['items'][0]['m3'] == pytest.approx(0.2125, abs=0.001)
 
 
+def test_measures_are_per_unit_and_read_without_a_unit():
+    def m3(text):
+        return estimate_volume(text)['items'][0]['m3']
+
+    assert m3('Dos televisores de 0.85m x 1.45 m x 0.20m') == pytest.approx(2 * 0.2465, abs=0.001)
+    assert m3('6 roperos de madera 2x2x0.5') == 12            # chicos: metros
+    assert m3('300 cajas (navideñas) 39 x 29.5 x 23 (cm)') == pytest.approx(300 * 0.02646, abs=0.01)   # si no, cm
+    assert m3('1 escritorio 80 cm x 120 x 40 cm') == pytest.approx(0.384)
+    # El primer número de la medida no es la cantidad.
+    assert m3('120 x 50 x 75 cm escritorio') == pytest.approx(0.45)
+
+
 def test_a_total_written_by_the_customer_wins():
     assert estimate_volume('28 m3\n1 cama')['m3'] == 28
     assert estimate_volume('28 m3')['stated'] is True
+    assert estimate_volume('28 m3 de muebles y cajas\n1 cama')['m3'] == 28
+
+
+def test_the_m3_of_one_thing_are_not_the_total_of_the_move():
+    # "4 cajas de 1 M3 c/u" dejaba esta mudanza en 1 m³.
+    result = estimate_volume('1 refrigeradora\n2 roperos\n4 cajas de 1 M3 c/u')
+
+    assert result['stated'] is False
+    assert result['items'][-1]['m3'] == 4
+    assert result['m3'] == round((1 + 2.4 + 4) * 1.25, 1)
+    assert estimate_volume('1 congeladora de 0.3 m3')['m3'] == round(0.3 * 1.25, 1)
 
 
 def test_what_is_not_recognized_counts_as_a_thing_and_notes_count_as_nothing():
@@ -197,6 +263,43 @@ def test_orders_out_of_scope_are_not_computed(customer, moving, fields, reason):
     assert run(NOW) == {order.id: reason}
     assert not estimates(order)
     assert order.auto_quote_checked_at == NOW
+
+
+def test_a_basement_without_elevator_is_carried_like_a_floor(customer, moving):
+    company = make_company(moving)
+    order = make_order(customer, origin=(-12.08, -77.05, -3, 0), destination=(-12.14, -76.99, 2, 0))
+
+    run(NOW)
+
+    assert estimates(order)[company.id].inputs['floors'] == 3 + 1
+
+
+def test_a_list_with_a_huge_quantity_still_fits_the_column(customer, moving):
+    make_company(moving)
+    order = make_order(customer, comments='50000 ladrillos', load_type='cargo')
+
+    assert run(NOW) == {order.id: 'load_type'}
+    assert float(order.estimated_volume_m3) == 9999
+
+
+def test_an_order_that_fails_does_not_stop_the_ones_after_it(customer, moving, monkeypatch):
+    from app.api import auto_quote
+    company = make_company(moving)
+    broken = make_order(customer, notified=NOW - timedelta(minutes=40), comments='1 piano')
+    fine = make_order(customer)
+    real = auto_quote.estimate_volume
+
+    def fails_on_the_piano(comments):
+        if comments == '1 piano':
+            raise RuntimeError('boom')
+        return real(comments)
+    monkeypatch.setattr(auto_quote, 'estimate_volume', fails_on_the_piano)
+
+    assert run(NOW) == {broken.id: 'error', fine.id: None}
+    assert estimates(fine)[company.id].amount is not None
+    # Queda marcada: el cron no vuelve a fallar con ella cada dos minutos.
+    assert broken.auto_quote_skip == 'error'
+    assert run(NOW) == {}
 
 
 def test_without_any_company_with_rates_it_says_so(customer, moving):

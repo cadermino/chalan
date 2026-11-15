@@ -26,6 +26,7 @@ SKIP_LABELS = {
     'outside_lima': 'Origen o destino fuera de Lima',
     'no_items': 'Sin lista de cosas',
     'no_rates': 'Ninguna empresa tiene tarifas',
+    'error': 'No se pudo calcular (error del sistema)',
 }
 REASON_LABELS = {
     'declined': 'Rechazó la orden',

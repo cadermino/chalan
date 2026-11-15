@@ -7,16 +7,18 @@ cantidad ("2 sillas", "1 refrigeradora"); la escriben el cliente o la IA de las
 fotos del paso 2.
 
 Cada parte de una línea se busca en un catálogo de volúmenes típicos con sus
-sinónimos peruanos (el sinónimo más largo gana: "sofá cama" antes que "sofá").
-Lo que trae medidas ("0.85m x 0.50m x 0.50m") se calcula con ellas, y si el
-cliente escribe el total ("28 m3") manda ese. Lo que no se reconoce cuenta como
-una cosa mediana si parece una cosa, y como nada si es una frase (una nota).
-A la suma se le agrega un 25%: las cosas no encajan perfecto en el camión.
+sinónimos peruanos. Vale la primera cosa que nombra ("8 sillas de comedor" son
+sillas), y entre nombres que empiezan igual, el más largo ("sofá cama" antes
+que "sofá"). Lo que trae medidas ("0.85m x 0.50m x 0.50m", "2x2x0.5") o su
+volumen ("4 cajas de 1 m3") se calcula con eso por su cantidad, y si el cliente
+escribe el total ("28 m3") manda ese. Un número con unidad ("80 litros", "50
+mm") es una medida, no una cantidad. Lo que no se reconoce cuenta como una cosa
+mediana si parece una cosa, y como nada si es una frase (una nota). A la suma
+se le agrega un 25%: las cosas no encajan perfecto en el camión.
 
 Probado con las listas de 178 órdenes de producción (noviembre de 2026): el
-catálogo reconocía el 75% de las partes antes de agregar lo que faltaba. Las
-listas se quedan cortas (se escribe lo grande y no las cajas), así que el total
-tiende a ser bajo.
+catálogo reconoce el 87% de las partes. Las listas se quedan cortas (se escribe
+lo grande y no las cajas), así que el total tiende a ser bajo.
 """
 import re
 import unicodedata
@@ -146,10 +148,23 @@ _PATTERNS = sorted(
      for key, (_, _, synonyms) in CATALOG.items() for syn in synonyms),
     key=lambda p: -p[0],
 )
-_DIMS = re.compile(
-    r'(\d+(?:[.,]\d+)?)\s*(m|cm|mm)?\s*[x×*]\s*(\d+(?:[.,]\d+)?)\s*(m|cm|mm)?\s*[x×*]\s*(\d+(?:[.,]\d+)?)\s*(m|cm|mm)\b')
-_STATED = re.compile(r'(\d+(?:[.,]\d+)?)\s*(m3|m³|metros cubicos|metros cubicos)\b')
+_NUMBER = r'(\d+(?:[.,]\d+)?)'
+_DIM_UNIT = r'\s*(cm|mm|mts?|metros?|m)?'
+_DIMS = re.compile(rf'{_NUMBER}{_DIM_UNIT}\s*[x×*]\s*{_NUMBER}{_DIM_UNIT}\s*[x×*]\s*{_NUMBER}{_DIM_UNIT}\b')
+_METERS_PER = {'m': 1, 'mt': 1, 'mts': 1, 'metro': 1, 'metros': 1, 'cm': 100, 'mm': 1000}
+_STATED = re.compile(rf'{_NUMBER}\s*(m3|m³|metros cubicos)\b')
 _SPLIT = re.compile(rf',|;|\s+y\s+(?=(?:\d+|{_QTY_WORD})\b)|\s+\+\s+')
+# "mesa con 6 sillas": lo que viene con la cosa y también ocupa. Solo estas: casi
+# todo lo demás que sigue a "con" la describe ("cómoda con 5 cajones").
+_WITH = re.compile(rf'\s+con\s+(?=(?:\d+|{_QTY_WORD})\b)')
+_WITH_KEYS = ('silla', 'colchon', 'velador')
+# Un número con unidad es una medida, no una cantidad: "80 litros de capacidad"
+# no son 80 cosas.
+_MEASURE = re.compile(
+    r'^\d+(?:[.,]\d+)?\s*(?:(?:l|lt|lts|litros?|kg|kgs|kilos?|kilogramos?|g|gr|gramos?|tn|ton|toneladas?|mm|cm|m|m2|'
+    r'mts?|metros?|pulgadas?)\b|")')
+# Las que tienen variantes por tamaño: "cama de madera queen" es una cama queen.
+_FAMILIES = ('cama', 'sofa', 'refrigeradora', 'televisor', 'ropero', 'caja')
 # Lo que no es una cosa: pruebas, y negativas de la IA de las fotos de antes de
 # que se filtraran (orders.py, recognized_items).
 _NOT_AN_ITEM = re.compile(r'^(test|prueba|lo siento|no puedo|no es posible|ninguno)\b')
@@ -170,6 +185,27 @@ def _parts(line):
     return result
 
 
+def _found(text):
+    """Lo del catálogo que aparece en el texto, lo primero que se nombra primero:
+    [(dónde empieza, -largo del sinónimo, clave)]."""
+    return sorted((match.start(), -length, key)
+                  for length, pattern, key in _PATTERNS for match in [pattern.search(text)] if match)
+
+
+def _match(text):
+    """La cosa de la que habla el texto: la primera que nombra ("8 sillas de
+    comedor" son sillas, no comedores), y entre las que empiezan en el mismo
+    lugar el nombre más largo ("sofá cama" antes que "sofá"). Si después dice su
+    tamaño ("cama de madera queen"), es esa variante."""
+    found = _found(text)
+    if not found:
+        return None
+    head = found[0][2]
+    if head in _FAMILIES:
+        return next((key for _, _, key in found if key.startswith(head + '_')), head)
+    return head
+
+
 def _quantity(text):
     match = re.match(r'^(\d+)\s*(?!m3|m³|\d)', text) or re.match(r'^x\s*(\d+)\b', text)
     if match:
@@ -181,13 +217,52 @@ def _quantity(text):
 
 
 def _dims_m3(match):
-    unit_of_last = match.group(6)
+    values = [float(match.group(i).replace(',', '.')) for i in (1, 3, 5)]
+    units = [match.group(i) for i in (2, 4, 6)]
+    # Sin unidad: metros si todo es chico ("2x2x0.5"), centímetros si no ("60x40x40").
+    default = next((unit for unit in reversed(units) if unit), None) or ('m' if max(values) <= 5 else 'cm')
     volume = 1.0
-    for i in (1, 3, 5):
-        value = float(match.group(i).replace(',', '.'))
-        unit = match.group(i + 1) or unit_of_last
-        volume *= value / {'m': 1, 'cm': 100, 'mm': 1000}[unit]
+    for value, unit in zip(values, units):
+        volume *= value / _METERS_PER[unit or default]
     return volume
+
+
+def _is_total(line, stated):
+    """Si los m³ de la línea son el total de la mudanza ("28 m3", "28 m3 de
+    muebles") y no el tamaño de una cosa ("4 cajas de 1 m3 c/u"): la cosa se
+    nombra antes que su tamaño."""
+    found = _found(line)
+    return not found or found[0][0] > stated.start()
+
+
+def _item(text, part):
+    """La cosa de una parte de la línea, o None si no es una cosa; y si no se
+    reconoció."""
+    dims, own_m3 = _DIMS.search(part), _STATED.search(part)
+    if dims or own_m3:
+        if dims:
+            each = _dims_m3(dims)
+            # "120 x 50 x 75 cm": el primer número es una medida, no la cantidad.
+            qty = 1 if dims.start() == 0 else _quantity(part)
+        else:
+            each = float(own_m3.group(1).replace(',', '.'))
+            # "3 bultos, 2 m3 en total": los m³ ya son de todos.
+            qty = 1 if 'total' in part or own_m3.start() == 0 else _quantity(part)
+        return {'text': text, 'key': None, 'label': 'Con medidas', 'qty': qty, 'm3': round(each * qty, 3)}, False
+    key = _match(part)
+    measure = _MEASURE.match(part)
+    # "2 plazas", "3 cuerpos": el número es del nombre, no la cantidad.
+    named_by_number = part[:1].isdigit() and _found(part)[:1] and _found(part)[0][0] == 0
+    qty = 1 if measure or named_by_number else _quantity(part)
+    if key:
+        each, label, _ = CATALOG[key]
+        return {'text': text, 'key': key, 'label': label, 'qty': qty, 'm3': round(each * qty, 3)}, False
+    if measure:
+        return None, False
+    if len(part.split()) <= NOTE_WORDS:
+        return {'text': text, 'key': None, 'label': 'Sin reconocer', 'qty': qty,
+                'm3': round(UNKNOWN_ITEM_M3 * qty, 3)}, True
+    return None, True
 
 
 def estimate_volume(comments):
@@ -198,28 +273,26 @@ def estimate_volume(comments):
     """
     items, unknown, stated = [], [], None
     for line in (comments or '').split('\n'):
-        stated_match = _STATED.search(_norm(line))
-        if stated_match:
+        normalized = _norm(line)
+        stated_match = _STATED.search(normalized)
+        if stated_match and not _DIMS.search(normalized) and _is_total(normalized, stated_match):
             value = float(stated_match.group(1).replace(',', '.'))
             stated = max(stated or 0, value)
             continue
         for text, part in _parts(line):
-            dims = _DIMS.search(part)
-            if dims:
-                items.append({'text': text, 'key': None, 'label': 'Con medidas', 'qty': 1,
-                              'm3': round(_dims_m3(dims), 3)})
-                continue
-            key = next((key for _, pattern, key in _PATTERNS if pattern.search(part)), None)
-            qty = _quantity(part)
-            if key:
-                each, label, _ = CATALOG[key]
-                items.append({'text': text, 'key': key, 'label': label, 'qty': qty, 'm3': round(each * qty, 3)})
-            elif len(part.split()) <= NOTE_WORDS:
+            main, *extras = _WITH.split(part)
+            item, unrecognized = _item(text, main if extras else part)
+            if item:
+                items.append(item)
+            if unrecognized:
                 unknown.append(text)
-                items.append({'text': text, 'key': None, 'label': 'Sin reconocer', 'qty': qty,
-                              'm3': round(UNKNOWN_ITEM_M3 * qty, 3)})
-            else:
-                unknown.append(text)
+            for extra in extras:
+                key = _match(extra)
+                # Un juego de comedor ya cuenta sus sillas.
+                if key in _WITH_KEYS and not (key == 'silla' and item and item['key'] == 'comedor'):
+                    each, label, _ = CATALOG[key]
+                    qty = _quantity(extra)
+                    items.append({'text': extra, 'key': key, 'label': label, 'qty': qty, 'm3': round(each * qty, 3)})
     if stated:
         return {'m3': round(stated, 1), 'items': items, 'unknown': unknown, 'stated': True}
     total = sum(item['m3'] for item in items) * PACKING_FACTOR
