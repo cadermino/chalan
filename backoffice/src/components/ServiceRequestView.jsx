@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Card from './Card'
 import { districtOf } from '../lib/district'
 import ApproxMap from './ApproxMap'
@@ -26,10 +26,19 @@ export function formatTimestamp(iso) {
 }
 
 function Lightbox({ media, onClose }) {
+  const open = Boolean(media)
+  useEffect(() => {
+    if (!open) return undefined
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   if (!media) return null
   return (
+    // !mt-0: el contenedor es space-y-4, que le daría margen superior y dejaría un hueco arriba.
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      className="fixed inset-0 z-50 !mt-0 flex items-center justify-center bg-black/80 p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -215,6 +224,7 @@ function DescribedDetails({ code, details, media }) {
 
 export default function ServiceRequestView({ request }) {
   const [opened, setOpened] = useState(null)
+  const closeLightbox = useCallback(() => setOpened(null), [])
   // Armado de muebles: cada mueble dice qué hacer y si se embala, y los que se
   // desarman y arman van a una segunda dirección.
   const isAssembly = request.service_type?.code === 'furniture_assembly'
@@ -316,7 +326,7 @@ export default function ServiceRequestView({ request }) {
           )}
       </Card>
 
-      <Lightbox media={opened} onClose={() => setOpened(null)} />
+      <Lightbox media={opened} onClose={closeLightbox} />
     </div>
   )
 }
