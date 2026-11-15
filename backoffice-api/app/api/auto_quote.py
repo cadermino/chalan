@@ -195,7 +195,7 @@ def company_auto_quote_accuracy(company_id):
 
     saved = company_rates(company_id)
     rates = {field: getattr(saved, field) for field in FORMULA_FIELDS} if saved else {}
-    suggested = suggest([(_move(e), q.amount) for e, q in moves], LOW, READY_MAX_LOW_SHARE,
+    suggested = suggest([(_move(e), q.amount) for e, q in moves], LOW, HIGH, READY_MAX_LOW_SHARE,
                         weekend_percent=rates.get('weekend_surcharge_percent'))
     if suggested is not None:
         with_them = _measure(moves, {**rates, **suggested})

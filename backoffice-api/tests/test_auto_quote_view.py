@@ -198,6 +198,19 @@ def test_suggested_rates_go_up_until_they_are_rarely_far_below(client, company, 
     assert suggested['low_share'] == 0
 
 
+def test_one_quotation_far_from_the_rest_does_not_pull_the_suggestion(client, company, superadmin):
+    # Cotiza 180 + 15 por m³, y una vez S/ 3,500 por 7 m³ (no era su precio de
+    # mudanza): sin dejarla fuera, la base subía a más del doble.
+    for m3 in (2, 4, 6, 8, 10, 12, 15, 18, 20, 25):
+        compared(company, 180 + 15 * m3, reason='no_rates', m3=m3)
+    compared(company, 3500, reason='no_rates', m3=7)
+
+    suggested = accuracy(client, company, superadmin)['suggested']
+
+    assert (suggested['rates']['base_fee'], suggested['rates']['per_m3']) == (180, 15)
+    assert suggested['low_share'] == round(1 / 11, 3)
+
+
 def test_the_weekend_surcharge_is_not_counted_twice_in_the_suggestion(client, company, superadmin):
     set_rates(company, weekend_surcharge_percent=20)
     for i, m3 in enumerate((2, 4, 6, 8, 10, 12, 15, 18, 20, 25)):

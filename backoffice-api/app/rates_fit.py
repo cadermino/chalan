@@ -11,6 +11,7 @@ cotizó: cotizar de menos ata a la empresa a un precio que no habría dado, y
 cotizar de más solo pierde esa orden. En 232 cotizaciones de producción
 (noviembre de 2026) el ajuste sin subir quedaba más de 25% abajo en 1 de cada 7.
 """
+import math
 from itertools import combinations
 
 from .rates_formula import estimate
@@ -21,6 +22,12 @@ _INPUTS = (None, 'm3', 'loaders', 'floors')
 _STEPS = {'base_fee': 10, 'per_m3': 1, 'per_loader': 5, 'per_floor': 5}
 MIN_QUOTATIONS = 10
 MAX_RAISE = 0.30
+# Una cotización que queda a más del doble o menos de la mitad del ajuste no es
+# su precio de mudanza (S/ 3,500 por 6.9 m³ entre otras de S/ 180 a 700), y
+# mínimos cuadrados se va detrás de una sola así. Se saca la que más se aleja y
+# se vuelve a ajustar, de a una, hasta esta parte de las cotizaciones.
+OUTLIER_RATIO = 2
+MAX_OUTLIER_SHARE = 0.2
 
 
 def _solve(matrix, vector):
@@ -66,14 +73,50 @@ def _rounded(coefficients, raise_by):
             for field, value in zip(FIELDS, coefficients)}
 
 
-def suggest(moves, low, max_low_share, weekend_percent=0):
+def _fits(xs, ys):
+    """El ajuste con todas, y después sin las que no parecen su precio de
+    mudanza: se saca la que más se aleja (más del doble o menos de la mitad) y se
+    ajusta de nuevo, de a una, sin bajar de MIN_QUOTATIONS."""
+    coefficients = _least_squares(xs, ys)
+    for _ in range(int(len(ys) * MAX_OUTLIER_SHARE) + 1):
+        if coefficients is None:
+            return
+        yield coefficients
+        if len(ys) <= MIN_QUOTATIONS:
+            return
+        far = [abs(math.log(y / max(sum(c * v for c, v in zip(coefficients, x)), 1))) for x, y in zip(xs, ys)]
+        worst = max(range(len(ys)), key=far.__getitem__)
+        if far[worst] <= math.log(OUTLIER_RATIO):
+            return
+        xs, ys = xs[:worst] + xs[worst + 1:], ys[:worst] + ys[worst + 1:]
+        coefficients = _least_squares(xs, ys)
+
+
+def _raised(coefficients, xs, ys, low, high, max_low_share):
+    """Se sube todo de a 1% (hasta MAX_RAISE) hasta que a lo más `max_low_share`
+    de las cotizaciones quede más de `low` por encima de lo calculado. Devuelve
+    las tarifas y cómo quedan: (pasa lo de muy por debajo, cuántas cerca)."""
+    for percent in range(0, int(MAX_RAISE * 100) + 1):
+        rates = _rounded(coefficients, percent / 100)
+        totals = [estimate(rates, m3=x[1], loaders=int(x[2]), floors=int(x[3]))['total'] for x in xs]
+        too_low = sum(1 for total, y in zip(totals, ys) if total < y * (1 - low))
+        if too_low <= max_low_share * len(ys):
+            break
+    near = sum(1 for total, y in zip(totals, ys) if y * (1 - low) <= total <= y * (1 + high))
+    return rates, (too_low <= max_low_share * len(ys), near)
+
+
+def suggest(moves, low, high, max_low_share, weekend_percent=0):
     """Las tarifas sugeridas ({campo: soles}) o None si hay pocas cotizaciones.
 
-    `moves` es [(inputs, lo que cotizó)]. `low` y `max_low_share` son la regla
-    de "muy por debajo": se sube todo de a 1% (hasta MAX_RAISE) hasta que a lo
-    más esa parte de las cotizaciones quede más de `low` por encima de lo
-    calculado. El recargo de fin de semana que la empresa ya tiene se descuenta
-    antes de ajustar, porque la fórmula lo vuelve a poner.
+    `moves` es [(inputs, lo que cotizó)]. `low`, `high` y `max_low_share` son la
+    regla del backoffice: cerca es entre `low` abajo y `high` arriba de lo que
+    cotizó, y a lo más `max_low_share` puede quedar más de `low` abajo. De los
+    ajustes (con todas, y sin las más alejadas) gana el que, subido hasta cumplir
+    eso, deja más cerca, mirando todas las cotizaciones: sacar una ayuda cuando
+    no era su precio de mudanza y estorba cuando sí. El recargo de fin de semana
+    que la empresa ya tiene se descuenta antes de ajustar, porque la fórmula lo
+    vuelve a poner.
     """
     moves = [(inputs, float(quoted)) for inputs, quoted in moves if quoted]
     if len(moves) < MIN_QUOTATIONS:
@@ -81,15 +124,9 @@ def suggest(moves, low, max_low_share, weekend_percent=0):
     weekend = 1 + float(weekend_percent or 0) / 100
     xs = [[1.0] + [float(inputs.get(key) or 0) for key in _INPUTS[1:]] for inputs, _ in moves]
     ys = [quoted / weekend if inputs.get('weekend') else quoted for inputs, quoted in moves]
-    coefficients = _least_squares(xs, ys)
-    if coefficients is None:
-        return None
-
-    rates = _rounded(coefficients, 0)
-    for percent in range(0, int(MAX_RAISE * 100) + 1):
-        rates = _rounded(coefficients, percent / 100)
-        totals = [estimate(rates, m3=x[1], loaders=int(x[2]), floors=int(x[3]))['total'] for x in xs]
-        too_low = sum(1 for total, y in zip(totals, ys) if total < y * (1 - low))
-        if too_low <= max_low_share * len(ys):
-            break
-    return rates
+    best = None
+    for coefficients in _fits(xs, ys):
+        candidate = _raised(coefficients, xs, ys, low, high, max_low_share)
+        if best is None or candidate[1] > best[1]:
+            best = candidate
+    return best[0] if best else None
