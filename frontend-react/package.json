@@ -29,5 +29,13 @@
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.31"
+    },
+    "@tailwindcss/typography": {
+      "postcss-selector-parser": "6.1.5"
+    }
   }
 }
