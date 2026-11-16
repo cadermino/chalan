@@ -1434,6 +1434,7 @@ def get_quotation_links(order_id):
         result.append({
             'id': company.id,
             'name': company.name,
+            'coordinator_name': company.coordinator_name,
             'code': make_quotation_code(order_id, company.id),
             'departments': [WORK_DEPARTMENTS.get(c, c) for c in departments.get(company.id, [])],
         })

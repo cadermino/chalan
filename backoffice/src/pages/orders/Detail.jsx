@@ -749,6 +749,9 @@ export default function OrderDetail() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-gray-900">
                       {c.name}
+                      {c.coordinator_name && (
+                        <span className="ml-2 text-xs font-normal text-gray-500">Contacto en WhatsApp → {c.coordinator_name}</span>
+                      )}
                       {c.departments?.length > 0 && (
                         <span className="ml-2 text-xs font-normal text-gray-400">{c.departments.join(' · ')}</span>
                       )}

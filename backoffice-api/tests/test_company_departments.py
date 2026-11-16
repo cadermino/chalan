@@ -141,3 +141,17 @@ def test_quotation_links_give_the_short_link_code(client, catalog, superadmin):
 
     assert res.status_code == 200
     assert res.get_json()['companies'][0]['code'] == make_code(order.id, company.id)
+
+
+def test_quotation_links_name_the_coordinator(client, catalog, superadmin):
+    from app.models import Order
+    company = make_company('Mudanzas SAC', 'moving')
+    company.coordinator_name = 'Jackelinne Rojas'
+    order = Order(order_status_id=1)
+    db.session.add(order)
+    db.session.commit()
+
+    res = client.get(f'/api/orders/{order.id}/quotation-links', headers=superadmin)
+
+    assert res.status_code == 200
+    assert res.get_json()['companies'][0]['coordinator_name'] == 'Jackelinne Rojas'
