@@ -9,7 +9,7 @@ import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
 import AutoQuoteEstimates from '../../components/AutoQuoteEstimates'
-import OrderChanges from '../../components/OrderChanges'
+import OrderChanges, { CarrierOrderChanges } from '../../components/OrderChanges'
 import { cargoWeightLabel, loadTypeLabel } from '../../lib/loadTypes'
 
 function Field({ label, value }) {
@@ -473,6 +473,9 @@ export default function OrderDetail() {
       </div>
 
       <div className="space-y-4">
+        {/* Lo que cambió la orden desde que esta empresa cotizó o se le mandó */}
+        {isCarrier && <CarrierOrderChanges orderId={orderId} quotation={order.existing_quotation} />}
+
         {/* Cliente — el mismo bloque que en el detalle de una solicitud de servicio */}
         {isAdmin && (
           <Card title="Cliente">

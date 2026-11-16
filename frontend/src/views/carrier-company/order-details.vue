@@ -16,6 +16,7 @@
           </h2>
         </div>
         <div class="max-w-3xl mx-auto mt-8 space-y-4 md:mt-16">
+          <OrderChanges v-if="changes" :changes="changes" selected />
           <div
             class="transition-all
               duration-500
@@ -386,6 +387,7 @@
 <script>
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
+import OrderChanges from '@/components/carrierCompany/OrderChanges.vue';
 import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import { cashToCollect } from '@/utils/payments';
@@ -405,6 +407,8 @@ export default {
     return {
       viewName: 'carrierCompanyOrderDetails',
       orderData: {},
+      // Lo que cambió la orden desde que cotizó o se le mandó (null: nada).
+      changes: null,
       orderDetails: [],
       carrierCompanyId: null,
       amount: null,
@@ -424,6 +428,7 @@ export default {
   },
   components: {
     ViewsMessages,
+    OrderChanges,
   },
   computed: {
     ...mapState(useStore, [
@@ -526,6 +531,7 @@ export default {
         .then((response) => {
           if (response.status === 200) {
             this.orderData = response.data.order;
+            this.changes = response.data.changes || null;
             this.carrierCompanyId = response.data.carrier_company_id;
             this.orderDetails = this.orderData.order_details;
             this.services = this.orderData.services;

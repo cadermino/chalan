@@ -328,6 +328,14 @@ reenvío); si esa llamada falla el PUT igual responde 200.
 
 ### Fase 2 — Lo que ve el transportista
 
+> **Hecha el 2026-11-15.** Diferencias con lo escrito abajo: `changes_for_carrier(order_id, ...)` y
+> `for_carrier(entries, order_id, ...)` reciben el id, no la orden. Tampoco se muestra nada si ya
+> hay una cotización elegida de otra empresa aunque la orden siga pendiente (el yapeo en
+> revisión), igual que la dirección del link. Un presupuesto que sin la comisión da lo mismo no
+> es cambio. "Ver historial" solo aparece con más de un cambio desde la base. La etiqueta
+> "Cambió" usa un modelo espejo `OrderVersion` en el backoffice-api, completo (no SQL suelto):
+> los tests de SQLite no tendrían la tabla, y `create_all()` corre al arrancar.
+
 **2.1 API principal**: `order_detail` agrega `changes` al JSON (junto a `order` y `decline`):
 `changes_for_carrier(order, company_id, 'full')`. Ruta interna
 `GET /api/v1/order/<id>/changes?carrier_company_id=&address=full|district` con lo mismo.

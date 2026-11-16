@@ -8,8 +8,9 @@ import requests
 
 from app import db
 from app.api.orders import _record_order_version as real_record_order_version
-from app.models import Order
-from tests.test_service_requests import SECRET, FakeResponse, make_user
+from app.models import Order, OrderVersion, Quotation
+from tests.test_carrier_declines import carrier, carrier_user, make_order  # noqa: F401
+from tests.test_service_requests import SECRET, FakeResponse, make_carrier, make_user
 
 
 @pytest.fixture
@@ -100,11 +101,116 @@ def test_admins_read_the_history_with_the_name_of_who_edited(client, order, hist
     assert versions[1]['admin_name'] == 'superadmin-editor@example.com'
 
 
-@pytest.mark.parametrize('role', ['carrier_company', 'real_estate_agent'])
-def test_others_do_not_read_the_admin_history(client, order, history, role):
+def test_a_real_estate_agent_reads_no_changes(client, order, history):
     seen, _ = history
 
-    res = client.get(f'/api/orders/{order.id}/changes', headers=make_user(role))
+    res = client.get(f'/api/orders/{order.id}/changes', headers=make_user('real_estate_agent'))
 
     assert res.status_code == 403
     assert seen == {}
+
+
+# --- La empresa -------------------------------------------------------------------
+
+@pytest.fixture
+def carrier_main_api(monkeypatch):
+    seen = []
+    changes = {'since': 'sent', 'entries': [{'field': 'comments'}], 'history': []}
+
+    def fake_get(url, params, headers, timeout):
+        seen.append({'url': url, 'params': params})
+        return FakeResponse(200, {'changes': changes})
+    monkeypatch.setattr('app.api.orders.requests.get', fake_get)
+    monkeypatch.setenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    return seen, changes
+
+
+def test_a_carrier_gets_the_district_only_changes_before_the_move_is_theirs(client, carrier, carrier_user,
+                                                                             carrier_main_api):
+    seen, changes = carrier_main_api
+    order = make_order()
+
+    res = client.get(f'/api/orders/{order.id}/changes', headers=carrier_user)
+
+    assert res.status_code == 200
+    assert res.get_json() == {'changes': changes}
+    assert seen == [{'url': f'http://flask-api:8001/api/v1/order/{order.id}/changes',
+                     'params': {'carrier_company_id': carrier.id, 'address': 'district'}}]
+
+
+def test_a_carrier_gets_the_full_address_once_the_move_is_theirs(client, carrier, carrier_user, carrier_main_api):
+    seen, _ = carrier_main_api
+    order = make_order(2)
+    db.session.add(Quotation(order_id=order.id, carrier_company_id=carrier.id, amount=320, quotation_status_id=2))
+    db.session.commit()
+
+    client.get(f'/api/orders/{order.id}/changes', headers=carrier_user)
+
+    assert seen[0]['params'] == {'carrier_company_id': carrier.id, 'address': 'full'}
+
+
+def test_a_carrier_that_can_no_longer_quote_gets_no_changes(client, carrier, carrier_user, carrier_main_api):
+    seen, _ = carrier_main_api
+    other = make_carrier(name='Otra SAC')
+    order = make_order(2)
+    db.session.add(Quotation(order_id=order.id, carrier_company_id=other.id, amount=300, quotation_status_id=2))
+    db.session.commit()
+
+    res = client.get(f'/api/orders/{order.id}/changes', headers=carrier_user)
+
+    assert res.get_json() == {'changes': None}
+    assert seen == []
+
+
+def test_a_carrier_cannot_ask_for_another_companys_changes(client, carrier, carrier_user, carrier_main_api):
+    seen, _ = carrier_main_api
+    other = make_carrier(name='Otra SAC')
+    order = make_order()
+
+    client.get(f'/api/orders/{order.id}/changes?carrier_company_id={other.id}', headers=carrier_user)
+
+    assert seen[0]['params']['carrier_company_id'] == carrier.id
+
+
+def _version(order, number):
+    version = OrderVersion(order_id=order.id, number=number, author='customer', snapshot={})
+    db.session.add(version)
+    db.session.commit()
+    return version
+
+
+def _quote(order, company, version=None, status=1, updated=datetime(2026, 10, 2)):
+    db.session.add(Quotation(order_id=order.id, carrier_company_id=company.id, amount=300,
+                             quotation_status_id=status, updated_date=updated,
+                             order_version_id=version.id if version else None))
+    db.session.commit()
+
+
+def test_the_list_marks_the_orders_that_changed_since_the_carrier_read_them(client, carrier, carrier_user):
+    never_sent, unchanged, changed, quoted_before, requoted, cancelled = (make_order() for _ in range(6))
+    _version(unchanged, 1)
+    for order in (changed, quoted_before, requoted, cancelled):
+        _version(order, 1)
+    _version(changed, 2)                       # no cotizó: se compara con la 1
+    v1 = OrderVersion.query.filter_by(order_id=quoted_before.id).one()
+    _quote(quoted_before, carrier, v1)
+    _version(quoted_before, 2)                 # cotizó sobre la 1 y cambió
+    _version(requoted, 2)
+    _quote(requoted, carrier, OrderVersion.query.filter_by(order_id=requoted.id, number=2).one())
+    _quote(cancelled, carrier, OrderVersion.query.filter_by(order_id=cancelled.id, number=1).one(), status=3)
+    _version(cancelled, 2)                     # su cotización se canceló con el cambio
+
+    orders = client.get('/api/orders/pending', headers=carrier_user).get_json()['orders']
+
+    marked = {o['id'] for o in orders if o['changed']}
+    assert marked == {changed.id, quoted_before.id, cancelled.id}
+    assert never_sent.id not in marked and unchanged.id not in marked and requoted.id not in marked
+
+
+def test_admins_get_no_changed_mark(client, order):
+    _version(order, 1)
+    _version(order, 2)
+
+    orders = client.get('/api/orders/pending', headers=make_user('admin')).get_json()['orders']
+
+    assert [o['changed'] for o in orders] == [False]

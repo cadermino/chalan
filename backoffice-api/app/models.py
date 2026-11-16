@@ -515,6 +515,27 @@ class OrderVideo(db.Model):
         }
 
 
+class OrderVersion(db.Model):
+    """Espejo de las versiones de una orden (migración 051). Las escribe y las
+    compara el API principal (app/api/order/versions.py); aquí solo se leen los
+    números, para saber si una orden cambió desde que una empresa cotizó.
+
+    Con todas sus columnas aunque se lean dos: create_all() corre al arrancar,
+    y si arrancara antes de la migración crearía la tabla así, y el API
+    principal no podría escribirla."""
+    __tablename__ = 'order_versions'
+    __table_args__ = (db.UniqueConstraint('order_id', 'number'), {'extend_existing': True})
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+    author = db.Column(db.String(20), nullable=False)
+    admin_user_id = db.Column(db.Integer, nullable=True)
+    snapshot = db.Column(db.JSON, nullable=False)
+    notified_at = db.Column(db.DateTime(), nullable=True)
+    created_date = db.Column(db.DateTime(), server_default=func.now(), nullable=False)
+
+
 class Quotation(db.Model):
     __tablename__ = 'quotations'
     __table_args__ = {'extend_existing': True}
@@ -531,6 +552,9 @@ class Quotation(db.Model):
     # Lo que el transportista aclara junto al precio (migración 036). No va en
     # to_dict: solo la ven los admins (list_order_quotations) y el cliente.
     note = db.Column(db.String(500))
+    # La versión de la orden sobre la que cotizó (migración 051, la escribe el
+    # API principal). Solo para la etiqueta "Cambió" de la lista.
+    order_version_id = db.Column(db.Integer, nullable=True)
     created_date = db.Column(db.DateTime())
     updated_date = db.Column(db.DateTime())
 

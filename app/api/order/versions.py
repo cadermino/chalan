@@ -8,9 +8,12 @@ arma al leer, como entre dos commits.
 
 - Antes del primer aviso no se guarda nada: es un borrador que nadie vio.
 - Una foto igual a la anterior (lo que se ve, `diff_snapshots`) no es versión.
-- Los textos del diff salen de aquí ya escritos. El backoffice (y más adelante
-  el link del transportista y el correo) solo los pinta: no hay otra copia de
-  las etiquetas que mantener.
+- Los textos del diff salen de aquí ya escritos. El backoffice, el link del
+  transportista (y más adelante el correo) solo los pintan: no hay otra copia
+  de las etiquetas que mantener.
+- Un transportista ve lo mismo que en la orden (`for_carrier`): el presupuesto
+  sin la comisión, y en el backoffice solo el distrito hasta que la mudanza es
+  suya.
 """
 import difflib
 from datetime import datetime
@@ -18,9 +21,12 @@ from datetime import datetime
 from flask import current_app
 
 from ... import db
+from ..address import district_of
+from ..quotation.quotation_status import QuotationStatus
 from ...models import (CarrierCompany, LuServices, Order, OrderImage, OrderVersion,
                        OrderVideo, Quotations)
 from .load import CARGO_WEIGHT_LABELS, LOAD_TYPE_LABELS
+from .order import customer_markup
 from .order_status import OrderStatus
 
 ADDRESS_FIELDS = ('street', 'interior_number', 'floor_number', 'has_elevator',
@@ -359,4 +365,107 @@ def history_for_admin(order_id):
             'amount': q.amount,
             'version_number': numbers.get(q.order_version_id),
         } for q in quotations],
+    }
+
+
+# --- Lo que lee un transportista ---------------------------------------------
+
+_HIDDEN_BY_DISTRICT = ('interior_number', 'location')
+
+
+def _budget_entry(before, after, markup):
+    """El presupuesto como lo ve el transportista: sin la comisión, como en su
+    link. Dos montos que sin ella dan lo mismo no son un cambio."""
+    shown = lambda v: format_soles(round(v / markup)) if v else EMPTY
+    old, new = shown(before.get('approximate_budget')), shown(after.get('approximate_budget'))
+    return None if old == new else _value('approximate_budget', 'Presupuesto', old, new)
+
+
+def _district_entry(entry, side, before, after):
+    """La calle, pero solo el distrito: es lo que el backoffice le muestra a una
+    empresa antes de que la mudanza sea suya (`_address_payload`)."""
+    old = district_of(before.get(side) or {}) or EMPTY
+    new = district_of(after.get(side) or {}) or EMPTY
+    if old == new:
+        return _value(entry['field'], entry['label'], None, f'Cambió la dirección (sigue en {new})')
+    return _value(entry['field'], entry['label'], old, new)
+
+
+def for_carrier(entries, order_id, before, after, address):
+    """Las entradas que puede leer una empresa. `address`: `full` (su link de
+    cotización, o la mudanza ya es suya) o `district` (el backoffice antes de
+    que sea suya)."""
+    markup = customer_markup(order_id)
+    out = []
+    for entry in entries:
+        field = entry['field']
+        side, _, part = field.partition('.')
+        if field == 'approximate_budget':
+            entry = _budget_entry(before, after, markup)
+        elif address == 'district' and part in _HIDDEN_BY_DISTRICT:
+            entry = None
+        elif address == 'district' and part == 'street':
+            entry = _district_entry(entry, side, before, after)
+        if entry:
+            out.append(entry)
+    return out
+
+
+def changes_for_carrier(order_id, carrier_company_id, address):
+    """Lo que cambió la orden desde que esta empresa cotizó (o desde que se le
+    mandó, si no cotizó), o None si no hay nada que mostrarle.
+
+    La base es la versión de su última cotización, también si se canceló al
+    cambiar la orden: es lo último que leyó. Una cotización de antes del
+    historial, o ninguna, se compara con la versión 1. A una empresa que no
+    eligieron no se le muestra nada: ya no tiene qué cotizar.
+    """
+    order = db.session.get(Order, order_id)
+    versions = OrderVersion.query.filter_by(order_id=order_id).order_by(OrderVersion.number).all()
+    if order is None or not versions:
+        return None
+    quotations = Quotations.query.filter_by(order_id=order_id)
+    selected = quotations.filter_by(quotation_status_id=QuotationStatus.Selected()).first()
+    if selected is not None and selected.carrier_company_id != carrier_company_id:
+        return None
+    if selected is None and order.order_status_id != OrderStatus.pending():
+        return None
+
+    own = (quotations.filter_by(carrier_company_id=carrier_company_id)
+           .order_by(Quotations.updated_date.desc(), Quotations.id.desc()).first())
+    by_id = {v.id: v for v in versions}
+    base = by_id.get(own.order_version_id) if own else None
+    base = base or versions[0]
+    current = versions[-1]
+    if base is current:
+        return None
+
+    catalog = services_catalog()
+
+    def visible(older, newer):
+        entries = diff_snapshots(older.snapshot, newer.snapshot, catalog)
+        return for_carrier(entries, order_id, older.snapshot, newer.snapshot, address)
+
+    entries = visible(base, current)
+    if not entries:
+        return None
+    later = [v for v in versions if v.number > base.number]
+    history = []
+    previous = base
+    for version in later:
+        step = visible(previous, version)
+        if step:
+            history.append({
+                'number': version.number,
+                'created_date': _iso(version.created_date),
+                'author': 'chalan' if version.author == 'admin' else 'customer',
+                'entries': step,
+            })
+        previous = version
+    return {
+        'since': 'quotation' if own else 'sent',
+        'since_date': _iso(own.updated_date if own else (base.notified_at or base.created_date)),
+        'changed_at': _iso(current.created_date),
+        'entries': entries,
+        'history': history,
     }

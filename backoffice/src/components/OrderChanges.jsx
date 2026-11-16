@@ -63,3 +63,53 @@ export default function OrderChanges({ orderId }) {
     </Card>
   )
 }
+
+// Lo mismo para la empresa: lo que cambió desde que cotizó o se le mandó, con
+// lo que ve de la dirección en esta página (el distrito hasta que es suya).
+export function CarrierOrderChanges({ orderId, quotation }) {
+  const [changes, setChanges] = useState(null)
+  const [showHistory, setShowHistory] = useState(false)
+
+  useEffect(() => {
+    client.get(`/api/orders/${orderId}/changes`).then(({ data }) => setChanges(data.changes)).catch(() => setChanges(null))
+  }, [orderId, quotation?.amount])
+
+  if (!changes) return null
+
+  const selected = quotation?.quotation_status_id === 2
+  const hint = selected
+    ? 'Si esto cambia tu precio, escríbenos.'
+    : quotation ? 'Revisa tu precio y vuelve a enviarlo si cambia.' : null
+
+  return (
+    <section className="rounded-xl border border-yellow-300 bg-yellow-50 p-5 shadow">
+      <h2 className="text-sm font-semibold text-gray-800">
+        {changes.since === 'quotation'
+          ? 'Esta orden cambió después de tu cotización'
+          : 'Esta orden cambió desde que te la enviamos'}
+      </h2>
+      <p className="mb-3 text-xs text-gray-500">Último cambio: {when(changes.changed_at)}</p>
+      <OrderChangeEntries entries={changes.entries} />
+      {hint && <p className="mt-3 text-sm font-medium text-gray-800">{hint}</p>}
+      {changes.history.length > 1 && (
+        <div className="mt-3">
+          <button type="button" onClick={() => setShowHistory((v) => !v)} className="text-xs text-gray-600 underline">
+            {showHistory ? 'Ocultar historial' : 'Ver historial'}
+          </button>
+          {showHistory && (
+            <ol className="mt-2 space-y-3">
+              {changes.history.map((version) => (
+                <li key={version.number} className="border-l-2 border-yellow-300 pl-3">
+                  <p className="mb-1 text-xs text-gray-500">
+                    {when(version.created_date)} · {version.author === 'chalan' ? 'Chalán' : 'El cliente'}
+                  </p>
+                  <OrderChangeEntries entries={version.entries} />
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}

@@ -16,12 +16,12 @@ from .address import street_without_number
 from .decorators import (token_required, carrier_company_token_required,
                          authenticated_customer, is_internal_request)
 from .order import Order as OrderEntity
-from .order.order import yape_reservation_required
+from .order.order import customer_markup, yape_reservation_required
 from .order.order_status import OrderStatus
 from .order.load import needs_cargo_weight
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
-from .order.versions import history_for_admin, record_version
+from .order.versions import changes_for_carrier, history_for_admin, record_version
 from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
 from .carrier_declines import decline_to_dict, find_order_decline
@@ -326,19 +326,16 @@ def order_detail():
                 address[field] = None
 
     if order_details.get('approximate_budget'):
-        platform_fee = float(os.getenv('PLATFORM_FEE'))
-        commission_rate = 0
-        referred = ReferredOrder.query.filter_by(order_id=data['order_id']).first()
-        if referred:
-            agent = db.session.get(AdminUser, referred.admin_user_id)
-            commission_rate = agent.commission_rate
         order_details['approximate_budget'] = round(
-            order_details['approximate_budget'] / (1 + commission_rate + platform_fee), 2
+            order_details['approximate_budget'] / customer_markup(data['order_id']), 2
         )
 
     company = db.session.get(CarrierCompanyModel, data['carrier_company_id'])
     return jsonify({
         'order': order_details,
+        # Lo que cambió desde que cotizó o se le mandó (api/order/versions.py).
+        # El link ya trae la dirección completa, así que el diff también.
+        'changes': changes_for_carrier(data['order_id'], data['carrier_company_id'], 'full'),
         'carrier_company_id': data['carrier_company_id'],
         # Para etiquetar la grabación de la visita (quotation.vue): es su propio nombre.
         'carrier_company_name': company.name if company else None,
@@ -952,3 +949,19 @@ def order_versions(order_id):
         version = record_version(order_id, 'admin', admin_user_id if isinstance(admin_user_id, int) else None)
         return jsonify({'number': version.number if version else None}), 200
     return jsonify(history_for_admin(order_id)), 200
+
+
+@api.route('/order/<int:order_id>/changes', methods=['GET'])
+def order_changes_for_carrier(order_id):
+    """Lo que cambió la orden para una empresa, para su vista del backoffice.
+    El backoffice-api ya decidió qué empresa es y cuánto de la dirección ve
+    (`address`: full o district). Solo llamadas internas."""
+    if not is_internal_request():
+        return jsonify({'message': 'forbidden'}), 403
+    if db.session.get(Order, order_id) is None:
+        return not_found('order not found')
+    company_id = request.args.get('carrier_company_id', type=int)
+    address = request.args.get('address')
+    if company_id is None or address not in ('full', 'district'):
+        return jsonify({'message': 'carrier_company_id and address (full or district) are required'}), 400
+    return jsonify({'changes': changes_for_carrier(order_id, company_id, address)}), 200

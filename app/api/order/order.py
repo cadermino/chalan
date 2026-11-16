@@ -57,6 +57,20 @@ def _set_load(order, data):
     return ['load_type', 'cargo_weight_kg']
 
 
+def customer_markup(order_id):
+    """Por cuánto se multiplica el precio del transportista para llegar al que
+    ve el cliente: la comisión de Chalán más la del agente si la orden viene
+    referida. El presupuesto del cliente se guarda con todo eso adentro, y al
+    transportista se le muestra dividido por esto (su link y el historial de
+    cambios)."""
+    commission_rate = 0
+    referred = ReferredOrder.query.filter_by(order_id=order_id).first()
+    if referred:
+        agent = db.session.get(AdminUser, referred.admin_user_id)
+        commission_rate = agent.commission_rate
+    return 1 + commission_rate + float(os.getenv('PLATFORM_FEE'))
+
+
 def yape_reservation_required():
     """True si agendar exige yapear la reserva e informar su nº de operación.
 

@@ -16,6 +16,7 @@
           </h2>
         </div>
         <div class="max-w-3xl mx-auto mt-8 space-y-4 md:mt-16">
+          <OrderChanges v-if="changes" :changes="changes" :has-quotation="hasQuotation" />
           <div
             class="transition-all
               duration-500
@@ -546,6 +547,7 @@
 <script>
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
+import OrderChanges from '@/components/carrierCompany/OrderChanges.vue';
 import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import chalan from '../../api/chalan';
@@ -564,6 +566,8 @@ export default {
     return {
       viewName: 'quotation',
       orderData: {},
+      // Lo que cambió la orden desde que cotizó o se le mandó (null: nada).
+      changes: null,
       orderDetails: [],
       carrierCompanyId: null,
       amount: null,
@@ -602,6 +606,7 @@ export default {
   },
   components: {
     ViewsMessages,
+    OrderChanges,
   },
   computed: {
     ...mapState(useStore, [
@@ -751,6 +756,7 @@ export default {
         .then((response) => {
           if (response.status === 200) {
             this.orderData = response.data.order;
+            this.changes = response.data.changes || null;
             this.carrierCompanyId = response.data.carrier_company_id;
             tagSession('order_id', this.orderData.id);
             tagSession('carrier_company_id', this.carrierCompanyId);
@@ -888,6 +894,8 @@ export default {
               });
             }
             tagSessionLabel('carrier_quoted');
+            // Cotizó sobre la versión vigente: ya no hay cambios que mostrarle.
+            this.changes = null;
             this.setViewsMessages({
               view: this.viewName,
               message: {

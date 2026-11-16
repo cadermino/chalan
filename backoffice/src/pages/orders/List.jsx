@@ -725,9 +725,21 @@ export default function OrdersList() {
                       ? <DepositCell deposit={o.deposit} />
                       : o.declined
                         ? <span className="text-gray-400 font-medium">Rechazada</span>
-                        : (o.has_quotation
-                          ? <span className="text-green-600 font-medium">Enviada</span>
-                          : <span className="text-amber-500 font-medium">Pendiente</span>)}
+                        : (
+                          <>
+                            {o.has_quotation
+                              ? <span className="text-green-600 font-medium">Enviada</span>
+                              : <span className="text-amber-500 font-medium">Pendiente</span>}
+                            {o.changed && (
+                              <span
+                                className="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-medium text-yellow-800"
+                                title="La orden cambió desde que cotizaste o te la enviamos: ábrela para ver qué"
+                              >
+                                Cambió
+                              </span>
+                            )}
+                          </>
+                        )}
                   </td>
                   {isAdmin && (
                     <td className={`px-4 py-3 ${o.quotation_count ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>

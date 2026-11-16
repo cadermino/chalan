@@ -16,7 +16,7 @@ from ..carrier_prospects import WORK_DEPARTMENTS
 from ..carrier_rates import unavailable_pairs
 from ..order_access import make_token as make_order_access_token
 from ..quotation_short_link import make_code as make_quotation_code
-from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, AdminUser, Payment, OrderCarrierDecline, Vehicle, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
+from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, OrderVersion, AdminUser, Payment, OrderCarrierDecline, Vehicle, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
 # Qué lleva una orden y los topes de los tramos de peso de una carga. Copia de
@@ -401,6 +401,31 @@ def _carrier_without_moves(user):
     return None
 
 
+def _changed_since_quoted(company_id, order_ids):
+    """Las órdenes de la página cuya última versión es posterior a la que esta
+    empresa leyó: la de su última cotización, también cancelada (al cambiar la
+    orden se cancela), o la 1 si no cotizó o cotizó antes del historial. Es la
+    misma base que changes_for_carrier del API principal, pero sin el diff: un
+    cambio que la empresa no ve (el interior, en el backoffice) igual marca."""
+    if not order_ids:
+        return set()
+    versions = OrderVersion.query.filter(OrderVersion.order_id.in_(order_ids)).all()
+    if not versions:
+        return set()
+    latest = {}
+    number_of = {}
+    for version in versions:
+        number_of[version.id] = version.number
+        latest[version.order_id] = max(latest.get(version.order_id, 0), version.number)
+    seen = {}
+    for quotation in (Quotation.query
+                      .filter(Quotation.carrier_company_id == company_id,
+                              Quotation.order_id.in_(list(latest)))
+                      .order_by(Quotation.updated_date.desc(), Quotation.id.desc())):
+        seen.setdefault(quotation.order_id, number_of.get(quotation.order_version_id))
+    return {order_id for order_id, number in latest.items() if number > (seen.get(order_id) or 1)}
+
+
 @api.route('/orders/pending', methods=['GET'])
 @login_required
 def list_pending_orders():
@@ -490,6 +515,8 @@ def list_pending_orders():
 
     is_admin = user.role in (ROLE_SUPERADMIN, ROLE_ADMIN)
     site_url = os.environ.get('SITE_URL', 'https://chalan.pe/')
+    changed_ids = _changed_since_quoted(company_id, [o.id for o in all_sent_orders]) \
+        if company_id is not None else set()
 
     # has_quotation mira las cotizaciones de la empresa del usuario, así que
     # para un admin —que no tiene empresa— sale False en todas las filas: la
@@ -556,6 +583,8 @@ def list_pending_orders():
             **order.to_dict(),
             'has_quotation': has_quotation,
             'declined': order.id in declined_ids,
+            # La orden cambió desde que esta empresa cotizó (o se le mandó).
+            'changed': order.id in changed_ids,
             'quotation_url': quotation_url,
             'origin': _address_payload(origin, is_admin, reveal_full_address),
             'destination': _address_payload(destination, is_admin, reveal_full_address),
@@ -1141,9 +1170,12 @@ def _record_order_version(order_id, admin_user_id):
 @api.route('/orders/<int:order_id>/changes', methods=['GET'])
 @login_required
 def order_changes(order_id):
-    """El historial de cambios de la orden, para los admins. Lo arma el API
-    principal; acá se controla el rol y se pone el nombre de quién editó."""
+    """Lo que cambió la orden. Los admins reciben el historial entero, con el
+    nombre de quién editó; una empresa, lo que cambió desde que cotizó o se le
+    mandó (`changes`, o None). Lo arma el API principal; acá se controla el rol."""
     user = g.current_user
+    if user.role == ROLE_CARRIER:
+        return _carrier_order_changes(user, order_id)
     if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
         return jsonify({'message': 'forbidden'}), 403
 
@@ -1168,6 +1200,40 @@ def order_changes(order_id):
     for version in body['versions']:
         version['admin_name'] = names.get(version.get('admin_user_id'))
     return jsonify(body), 200
+
+
+def _carrier_order_changes(user, order_id):
+    """Lo que cambió la orden para esta empresa, con lo mismo de la dirección
+    que le muestra get_order: la calle cuando la mudanza es suya, el distrito
+    antes. Una orden que ya no puede cotizar no tiene cambios que mostrarle."""
+    denied = _carrier_without_moves(user)
+    if denied:
+        return denied
+    order = db.session.get(Order, order_id)
+    if order is None:
+        return jsonify({'message': 'order not found'}), 404
+    quotation = Quotation.query.filter(
+        Quotation.order_id == order_id,
+        Quotation.carrier_company_id == user.carrier_company_id,
+        Quotation.quotation_status_id != QUOTATION_STATUS_CANCELLED,
+    ).first()
+    if not _may_quote(quotation, order):
+        return jsonify({'changes': None}), 200
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.get(
+            f'{internal_api}/api/v1/order/{order_id}/changes',
+            params={'carrier_company_id': user.carrier_company_id,
+                    'address': 'full' if _is_theirs(quotation, order) else 'district'},
+            headers=_internal_headers(),
+            timeout=10,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the order service'}), 502
+    if res.status_code != 200:
+        return jsonify({'message': 'failed to load the order changes'}), 502
+    return jsonify({'changes': res.json().get('changes')}), 200
 
 
 @api.route('/orders/<int:order_id>/notify-carriers', methods=['POST'])
