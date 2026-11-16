@@ -6,6 +6,7 @@ from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
 from .order import Order as OrderEntity
 from .order.order_status import OrderStatus
+from .order.versions import current_version
 from .decorators import (token_required, carrier_company_token_required,
                          authenticated_customer, is_internal_request, _bearer_token)
 from .carrier_declines import (clear_order_decline, decline_order, decline_to_dict,
@@ -146,11 +147,15 @@ def create_quotation():
     # Opcional, como en las cotizaciones de servicios: 400 si no es texto o
     # pasa de 500. Al recotizar, sin `note` queda la que tenía.
     note = parse_note(quotation_data.get('note'))
+    # Sobre qué versión de la orden cotiza: lo que cambie después es lo que se
+    # le muestra como cambiado (api/order/versions.py).
+    version = current_version(order_id)
     data = {
         'amount': base_amount,
         'order_id': order_id,
         'carrier_company_id': carrier_company_id,
         'note': note,
+        'order_version_id': version.id if version else None,
     }
     previous_quotation = QuotationEntity().get(order_id, carrier_company_id)
     if previous_quotation is None or previous_quotation.quotation_status_id != QuotationStatus.Selected():
@@ -203,7 +208,7 @@ def create_quotation():
         # el monto viejo sin guardar nada: el transportista creía haber
         # actualizado su precio, Chalán seguía viendo el anterior y la
         # diferencia aparecía recién al mudarse. Ahora se actualiza de verdad.
-        changes = {'amount': base_amount}
+        changes = {'amount': base_amount, 'order_version_id': data['order_version_id']}
         if 'note' in quotation_data:
             changes['note'] = note
         QuotationEntity(previous_quotation.id).update(changes)

@@ -243,6 +243,9 @@ class Quotations(db.Model):
 	# QuotationsSchema porque el link de cada transportista lista todas las
 	# cotizaciones de la orden: solo recibe la suya.
 	note = db.Column(db.String(500))
+	# La versión de la orden sobre la que cotizó (migración 051): se pone al
+	# cotizar y al recotizar. NULL en las de antes del historial.
+	order_version_id = db.Column(db.Integer, db.ForeignKey('order_versions.id', ondelete='SET NULL'), nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 
@@ -554,6 +557,21 @@ class AutoQuoteEstimate(db.Model):
 	inputs = db.Column(db.JSON)
 	lines = db.Column(db.JSON)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+class OrderVersion(db.Model):
+	"""Una versión de la orden desde que salió a transportistas (migración
+	051): `snapshot` es lo que lee un transportista, entera, no un cambio por
+	campo. La arma y la compara api/order/versions.py."""
+	__tablename__ = 'order_versions'
+	__table_args__ = (db.UniqueConstraint('order_id', 'number'),)
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+	number = db.Column(db.Integer, nullable=False)
+	author = db.Column(db.String(20), nullable=False)  # customer | admin
+	admin_user_id = db.Column(db.Integer, nullable=True)
+	snapshot = db.Column(db.JSON, nullable=False)
+	notified_at = db.Column(db.DateTime(), nullable=True)
+	created_date = db.Column(db.DateTime(), server_default=func.now(), nullable=False)
 
 class ServiceRequestPayment(db.Model):
 	"""La plata de una solicitud (migraciones 026 y 032). `reservation`: lo que el

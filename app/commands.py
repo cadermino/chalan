@@ -28,6 +28,16 @@ def register(app):
         rows = backfill(apply=apply)
         click.echo(f'{rows} estimaciones {"agregadas" if apply else "por agregar (usa --apply)"}.')
 
+    @app.cli.command('order-versions-backfill')
+    @click.option('--apply', is_flag=True, help='Guardar de verdad; sin esto solo cuenta.')
+    def order_versions_backfill(apply):
+        """La versión 1 del historial de las órdenes pendientes que ya habían
+        salido a transportistas (api/order/versions.py, `backfill`): sin ella no
+        hay contra qué comparar su próximo cambio. Se puede repetir."""
+        from .api.order.versions import backfill
+        orders = backfill(apply=apply)
+        click.echo(f'{orders} órdenes {"con su versión 1" if apply else "sin versiones (usa --apply)"}.')
+
     @app.cli.command('move-service-media')
     @click.option('--apply', is_flag=True, help='Mover de verdad; sin esto solo cuenta.')
     def move_service_media(apply):

@@ -1101,6 +1101,7 @@ def update_order(order_id):
         order.quotation_requested = False
 
     db.session.commit()
+    _record_order_version(order_id, user.id)
 
     details = list(order.order_details)
     origin = next((d for d in details if d.type == 'carry_from'), None)
@@ -1116,6 +1117,57 @@ def update_order(order_id):
                          OrdersService.query.filter_by(order_id=order_id).all()],
         }
     }), 200
+
+
+def _record_order_version(order_id, admin_user_id):
+    """Le pide al API principal que guarde la orden como versión nueva de su
+    historial (app/api/order/versions.py): este PUT escribe directo a la base y
+    allá nadie se entera. Si falla se anota y se sigue: lo guardado ya está
+    guardado, y perder una versión no puede romper la edición."""
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.post(
+            f'{internal_api}/api/v1/order/{order_id}/versions',
+            json={'admin_user_id': admin_user_id},
+            headers=_internal_headers(),
+            timeout=10,
+        )
+        if res.status_code != 200:
+            current_app.logger.warning('order %s: versions answered %s', order_id, res.status_code)
+    except requests.RequestException as e:
+        current_app.logger.warning('order %s: could not record its version: %s', order_id, e)
+
+
+@api.route('/orders/<int:order_id>/changes', methods=['GET'])
+@login_required
+def order_changes(order_id):
+    """El historial de cambios de la orden, para los admins. Lo arma el API
+    principal; acá se controla el rol y se pone el nombre de quién editó."""
+    user = g.current_user
+    if user.role not in (ROLE_SUPERADMIN, ROLE_ADMIN):
+        return jsonify({'message': 'forbidden'}), 403
+
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.get(
+            f'{internal_api}/api/v1/order/{order_id}/versions',
+            headers=_internal_headers(),
+            timeout=10,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the order service'}), 502
+    if res.status_code == 404:
+        return jsonify({'message': 'order not found'}), 404
+    if res.status_code != 200:
+        return jsonify({'message': 'failed to load the order history'}), 502
+
+    body = res.json()
+    admin_ids = {v['admin_user_id'] for v in body['versions'] if v.get('admin_user_id')}
+    names = {a.id: ' '.join(filter(None, [a.first_name, a.last_name])) or a.email
+             for a in AdminUser.query.filter(AdminUser.id.in_(admin_ids))} if admin_ids else {}
+    for version in body['versions']:
+        version['admin_name'] = names.get(version.get('admin_user_id'))
+    return jsonify(body), 200
 
 
 @api.route('/orders/<int:order_id>/notify-carriers', methods=['POST'])

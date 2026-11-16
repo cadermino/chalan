@@ -261,6 +261,18 @@ A quarter of the orders that came in through the moving form were not moves (sac
 - **Landing widget** (`QuoteWidget.tsx`): chips above the sizes. Cargo and vehicle relabel the sizes (Camioneta / Camión / Camión grande) and hide the moving icons; the price formula is the same for now. The choice goes to Vue by merging `load_type` into `localStorage.currentOrder`, on the chip click and on the CTA. `load="cargo"` opens a widget on cargo: `/fletes-peru` and the flete post, whose frontmatter `quoteLoad: "cargo"` also sets the widget that closes it.
 - **GA4**: `load_type` on `quote_widget_start`, `quote_estimated`, `quote_cta_click`, `order_created`, `step_one_blocked`, `step_two_submitted` (with `cargo_weight_kg`) and `step_two_blocked`.
 
+## Order Change History
+
+Once a moving order has gone to carriers, every change leaves a version (migration 051, `order_versions`; plan in `docs/plans/historial-cambios-orden.md`, phase 1 of 3 done). Before, the PUT wrote over the order and the carrier got "La orden cambió, vuelve a cotizar" with nothing saying what. Logic in `app/api/order/versions.py`.
+
+- **A version is a whole snapshot** of what a carrier reads (date, load type and weight, item list, loaders, budget, services, both addresses, photo and video ids), not a per-field log: the diff between any two is computed when read (`diff_snapshots`), with its labels and values already written in Spanish. The backoffice only paints them (`components/OrderChangeEntries.jsx`); don't copy the labels to JS. Load type and weight labels are in `app/api/order/load.py` (`LOAD_TYPE_LABELS`, `CARGO_WEIGHT_LABELS`), mirroring `frontend/src/utils/loadTypes.js`.
+- **Recorded from the first notice on**: `send_email_to_carrier_companies` makes version 1 (`notified_at`) and stamps the current one on later notices. After that, `record_version` runs after the steps' PUT (`orderEditedByCustomer`), after photo/video uploads and deletes, and after the superadmin's backoffice PUT, which writes straight to the database and so calls the main API's internal `POST /api/v1/order/:id/versions {admin_user_id}`. A change that shows nothing new (same diff) is no version. `author` is `customer` (also the quotation agent) or `admin` (any internal call). `record_version` never fails its caller: it logs and rolls back.
+- **Quotations remember the version they were made on** (`quotations.order_version_id`, set on quote and re-quote).
+- **Backoffice** (admins): "Historial de cambios" in the order detail (`components/OrderChanges.jsx`, only with 2+ versions), from `GET /backoffice-api/api/orders/:id/changes`, which forwards to the internal `GET /api/v1/order/:id/versions` (`history_for_admin`) and adds who edited. It lists the live quotations made on an older version.
+- **Carriers see nothing yet** (phase 2: their diff in the Vue link and the backoffice, with the budget without the fee and only the district before the move is theirs). It does not change when quotations are cancelled or carriers are notified: `has_changed` still misses elevator, parking, load type, weight, loaders and budget, and the 15-minute cooldown still applies (phase 4, for later).
+- Orders sent before this have no version 1: `flask order-versions-backfill --apply` (main API, repeatable; without `--apply` it only counts) gives one to each pending order already sent, with today's data.
+- backoffice-api tests: `tests/conftest.py` stubs `_record_order_version`, so the order PUT tests do not call the main API over HTTP; `tests/test_order_changes.py` tests the real one.
+
 ## Edit Order in Backoffice
 
 Superadmins can edit order fields directly from the backoffice.

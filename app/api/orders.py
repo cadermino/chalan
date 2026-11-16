@@ -2,7 +2,7 @@ import os
 import re
 import base64
 import uuid
-from flask import jsonify, request, current_app
+from flask import jsonify, request, current_app, has_request_context
 from sqlalchemy import exc, func
 from openai import OpenAI
 from ..models import Customer, Order, OrderImage, OrderImageSchema, AdminUser, ReferredOrder
@@ -21,6 +21,7 @@ from .order.order_status import OrderStatus
 from .order.load import needs_cargo_weight
 from .order.steps.addresses import Addresses as AddressesStep
 from .order.steps.belongings_appointment_date import BelongingsAppointmentDate as BelongingsAppointmentDateStep
+from .order.versions import history_for_admin, record_version
 from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
 from .carrier_declines import decline_to_dict, find_order_decline
@@ -225,6 +226,9 @@ def update_order(order_id):
     if order_data.get('orderEditedByCustomer'):
         order = order_entity.update(request=order_data, customer_id=owner_id, internal=internal)
         written = 'full'
+        # Antes de cancelar cotizaciones y de avisar: el aviso marca esta
+        # versión como la que se mandó. En una orden que no salió no hace nada.
+        record_version(order_id, version_author())
     else:
         order = order_entity.link_customer(owner_id)
         written = 'customer_link'
@@ -758,7 +762,17 @@ def send_email_to_carrier_companies(order_id, order_data):
             db_order.quotation_requested = True
             db_order.carrier_notified_at = datetime.utcnow()
             db.session.commit()
+            # La primera vez es la versión 1 del historial; después marca la
+            # vigente como avisada.
+            record_version(order_id, version_author(), notified=True)
     return emails_sent
+
+
+def version_author():
+    """Quién hizo un cambio de la orden, para su historial: una llamada
+    interna es el backoffice; cualquier otra, el cliente (o el agente de
+    cotizaciones, que escribe por él)."""
+    return 'admin' if has_request_context() and is_internal_request() else 'customer'
 
 def get_carrier_companies():
     """Empresas a las que se avisa una orden de mudanza: activas, del país y con
@@ -858,6 +872,7 @@ def recognize_items():
     except Exception as e:
         current_app.logger.error(f'Image upload error: {str(e)}')
         return jsonify({'message': 'Error uploading image'}), 500
+    record_version(order.id, version_author())
 
     base64_image = base64.b64encode(image_data).decode('utf-8')
     mime_type = image_file.content_type
@@ -919,4 +934,21 @@ def delete_order_image(order_id, image_id):
 
     db.session.delete(order_image)
     db.session.commit()
+    record_version(order_id, version_author())
     return jsonify({'message': 'deleted'}), 200
+
+
+@api.route('/order/<int:order_id>/versions', methods=['GET', 'POST'])
+def order_versions(order_id):
+    """El historial de la orden (GET) y guardar la versión que dejó una
+    edición del backoffice (POST `{admin_user_id}`): el PUT del backoffice-api
+    escribe directo a la base, sin pasar por aquí. Solo llamadas internas."""
+    if not is_internal_request():
+        return jsonify({'message': 'forbidden'}), 403
+    if db.session.get(Order, order_id) is None:
+        return not_found('order not found')
+    if request.method == 'POST':
+        admin_user_id = (request.get_json(silent=True) or {}).get('admin_user_id')
+        version = record_version(order_id, 'admin', admin_user_id if isinstance(admin_user_id, int) else None)
+        return jsonify({'number': version.number if version else None}), 200
+    return jsonify(history_for_admin(order_id)), 200

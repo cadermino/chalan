@@ -18,6 +18,7 @@ from flask import current_app, jsonify, request
 
 from . import api
 from .decorators import is_internal_request
+from .order.versions import record_version
 from .service_request.validation import InvalidRequest, MEDIA_TYPES, VIDEO_MAX_BYTES
 from .. import db
 from ..models import Order, OrderVideo, OrderVideoSchema
@@ -118,6 +119,7 @@ def register_order_video(order_id):
     )
     db.session.add(video)
     db.session.commit()
+    record_version(order_id, 'admin')
     return jsonify(OrderVideoSchema().dump(video)), 201
 
 
@@ -136,4 +138,5 @@ def delete_order_video(order_id, video_id):
         return jsonify({'message': 'Error deleting file'}), 500
     db.session.delete(video)
     db.session.commit()
+    record_version(order_id, 'admin')
     return '', 204

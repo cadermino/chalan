@@ -15,6 +15,23 @@ LOAD_TYPES = ('moving', 'items', 'cargo', 'vehicle')
 CARGO_WEIGHTS = (500, 1500, 3000, 10000, 20000)
 
 
+# Cómo se lee cada valor (el historial de cambios, api/order/versions.py). Los
+# mismos textos que frontend/src/utils/loadTypes.js.
+LOAD_TYPE_LABELS = {
+    'moving': 'Mudanza',
+    'items': 'Objetos sueltos',
+    'cargo': 'Carga o materiales',
+    'vehicle': 'Vehículo',
+}
+CARGO_WEIGHT_LABELS = {
+    500: 'Hasta 500 kg',
+    1500: 'Hasta 1,5 toneladas',
+    3000: 'Hasta 3 toneladas',
+    10000: 'Hasta 10 toneladas',
+    20000: 'Más de 10 toneladas',
+}
+
+
 def clean_load_type(value):
     return value if value in LOAD_TYPES else None
 

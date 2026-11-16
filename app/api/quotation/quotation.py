@@ -44,6 +44,7 @@ class Quotation:
             order_id = quotationData['order_id'],
             carrier_company_id = quotationData['carrier_company_id'],
             note = quotationData.get('note'),
+            order_version_id = quotationData.get('order_version_id'),
         )
         db.session.add(quotation)
         db.session.commit()
