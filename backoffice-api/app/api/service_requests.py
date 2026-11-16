@@ -14,12 +14,13 @@ from .decorators import admin_required, login_required
 from .orders import _internal_headers
 from ..address import approximate_location, district_of, street_without_number
 from ..customer_note import PHONE_IN_TEXT, note_for_customer
+from ..quotation_short_link import make_service_code
 from ..service_media import make_token as make_media_token
 from ..service_reviews import review_of, review_path
 from .. import db
 from ..models import (ROLE_CARRIER, ROLE_SUPERADMIN, LIMA_DEPARTMENT_CODE, CarrierCompany, CarrierCompanyDepartment,
                       CarrierCompanyServiceType, ServiceRequest,
-                      ServiceRequestCarrierDecline, ServiceRequestItem,
+                      ServiceRequestCarrierDecline, ServiceRequestCarrierWhatsapp, ServiceRequestItem,
                       ServiceRequestNotification, ServiceRequestPayment, ServiceRequestQuotation,
                       ServiceMaterial, ServiceType, _iso, _money)
 
@@ -415,6 +416,15 @@ def get_service_request(service_request_id):
     current_rate = _platform_fee_rate()
     declines = ServiceRequestCarrierDecline.query.filter_by(service_request_id=service_request.id) \
         .order_by(ServiceRequestCarrierDecline.updated_date.desc()).all()
+    # Lo que cada empresa hizo, para avisar por WhatsApp solo a las que faltan
+    # mientras la solicitud busca precios (enviada, pendiente y sin elegida).
+    quoted = {q.carrier_company_id: q for q in service_request.quotations}
+    declined_ids = {d.carrier_company_id for d in declines}
+    whatsapp = {w.carrier_company_id: w for w in
+                ServiceRequestCarrierWhatsapp.query.filter_by(service_request_id=service_request.id)}
+    looking = (not _is_draft(service_request) and service_request.status == 'pending'
+               and not any(q.status == 'selected' for q in service_request.quotations))
+    last_quotation_id = max((q.id for q in service_request.quotations), default=None)
     return jsonify({'service_request': {
         **service_request.to_dict_full(),
         'materials_summary': _materials_summary(service_request),
@@ -435,16 +445,77 @@ def get_service_request(service_request_id):
         # que calificó si ya lo hizo.
         'review_path': review_path(service_request),
         'review': review_of(service_request),
+        'looking': looking,
+        # El aviso al cliente desde el WhatsApp de Chalán: una cotización con id
+        # mayor que la del último aviso llegó después.
+        'last_quotation_id': last_quotation_id,
+        'new_quotation': bool(service_request.customer_reminded_at and last_quotation_id
+                              and last_quotation_id > (service_request.customer_reminded_quotation_id or 0)),
+        'customer_reminded_at': _iso(service_request.customer_reminded_at),
+        'customer_reminder_count': service_request.customer_reminder_count or 0,
         'links': [
             {
                 'id': c.id,
                 'name': c.name,
+                'coordinator_name': c.coordinator_name,
+                'phone': c.phone,
                 'token': _generate_token(service_request.id, c.id),
+                # El link corto (chalan.pe/s/<código>), el que va en el WhatsApp.
+                'code': make_service_code(service_request.id, c.id),
                 'notified': c.id in notified_ids,
+                'quotation_amount': _money(quoted[c.id].amount) if c.id in quoted else None,
+                'declined': c.id in declined_ids,
+                'whatsapp_at': _iso(whatsapp[c.id].sent_at) if c.id in whatsapp else None,
+                'to_notify': looking and c.id not in quoted and c.id not in declined_ids and c.id not in whatsapp,
             }
             for c in offering
         ],
     }}), 200
+
+
+@api.route('/service-requests/<int:service_request_id>/carrier-whatsapp', methods=['POST'])
+@admin_required
+def mark_service_carrier_whatsapp(service_request_id):
+    """Lo llama el backoffice al abrir el WhatsApp de una empresa por esta solicitud."""
+    if db.session.get(ServiceRequest, service_request_id) is None:
+        return jsonify({'message': 'service request not found'}), 404
+    company_id = (request.get_json(silent=True) or {}).get('carrier_company_id')
+    if not isinstance(company_id, int) or db.session.get(CarrierCompany, company_id) is None:
+        return jsonify({'message': 'carrier company not found'}), 404
+
+    sent = ServiceRequestCarrierWhatsapp.query.filter_by(
+        service_request_id=service_request_id, carrier_company_id=company_id).first()
+    if sent is None:
+        sent = ServiceRequestCarrierWhatsapp(service_request_id=service_request_id,
+                                             carrier_company_id=company_id, sent_count=0)
+        db.session.add(sent)
+    sent.sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    sent.sent_count = (sent.sent_count or 0) + 1
+    sent.admin_user_id = g.current_user.id
+    db.session.commit()
+    return jsonify({'whatsapp_at': _iso(sent.sent_at), 'sent_count': sent.sent_count}), 200
+
+
+@api.route('/service-requests/<int:service_request_id>/customer-reminded', methods=['POST'])
+@admin_required
+def mark_service_customer_reminded(service_request_id):
+    """Lo llama el backoffice al abrir el WhatsApp del cliente con sus cotizaciones.
+    `quotation_id` es la más nueva que mostraba la página: una que llegó mientras
+    tanto sigue contando como nueva."""
+    service_request = db.session.get(ServiceRequest, service_request_id)
+    if service_request is None:
+        return jsonify({'message': 'service request not found'}), 404
+    newest = max((q.id for q in service_request.quotations), default=None)
+    shown = (request.get_json(silent=True) or {}).get('quotation_id')
+    if isinstance(shown, int) and newest is not None:
+        newest = min(shown, newest)
+    service_request.customer_reminded_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    service_request.customer_reminder_count = (service_request.customer_reminder_count or 0) + 1
+    service_request.customer_reminded_quotation_id = \
+        max(newest or 0, service_request.customer_reminded_quotation_id or 0) or None
+    db.session.commit()
+    return jsonify({'reminded_at': _iso(service_request.customer_reminded_at),
+                    'reminder_count': service_request.customer_reminder_count}), 200
 
 
 @api.route('/service-requests/<int:service_request_id>/notify-carriers', methods=['POST'])

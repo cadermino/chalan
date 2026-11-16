@@ -715,6 +715,11 @@ class ServiceRequest(db.Model):
     submitted_at = db.Column(db.DateTime())
     created_date = db.Column(db.DateTime(), server_default=func.now())
     updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
+    # Cuándo y cuántas veces se le avisó a mano al cliente de sus cotizaciones, y
+    # la más nueva que decía el mensaje (migración 053).
+    customer_reminded_at = db.Column(db.DateTime())
+    customer_reminder_count = db.Column(db.Integer, nullable=False, server_default='0', default=0)
+    customer_reminded_quotation_id = db.Column(db.Integer)
 
     service_type = db.relationship('ServiceType')
     items = db.relationship('ServiceRequestItem', backref='service_request',
@@ -966,6 +971,22 @@ class OrderCarrierWhatsapp(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
+                                   nullable=False)
+    sent_at = db.Column(db.DateTime(), nullable=False)
+    sent_count = db.Column(db.Integer, nullable=False, server_default='1', default=1)
+    admin_user_id = db.Column(db.Integer, nullable=True)
+
+
+class ServiceRequestCarrierWhatsapp(db.Model):
+    """Cuándo se le escribió a mano a una empresa por una solicitud de servicio
+    (migración 053). Editar la solicitud no avisa a nadie, así que no vence."""
+    __tablename__ = 'service_request_carrier_whatsapp'
+    __table_args__ = (db.UniqueConstraint('service_request_id', 'carrier_company_id'), {'extend_existing': True})
+
+    id = db.Column(db.Integer, primary_key=True)
+    service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.id', ondelete='CASCADE'),
+                                   nullable=False)
     carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
                                    nullable=False)
     sent_at = db.Column(db.DateTime(), nullable=False)

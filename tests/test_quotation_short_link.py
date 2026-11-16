@@ -72,3 +72,67 @@ def test_the_code_only_opens_an_order_still_quoting_or_the_carriers_own(app, cli
                               quotation_status_id=2))
     db.session.commit()
     assert redeem(client, code).status_code == 200
+
+
+@pytest.fixture
+def service_request(app, carrier_company):
+    from datetime import datetime
+    from app import db
+    from app.models import ServiceRequest, ServiceType
+    service_type = ServiceType(code='painting', name='Pintura', requestable=1)
+    db.session.add(service_type)
+    db.session.flush()
+    service_request = ServiceRequest(public_id='a' * 32, service_type_id=service_type.id, status='pending',
+                                     submitted_at=datetime(2026, 11, 1))
+    db.session.add(service_request)
+    db.session.commit()
+    return service_request
+
+
+def test_the_service_code_gives_the_carrier_view_token(app, client, service_request, carrier_company):
+    from app.api.quotation_short_link import make_service_code
+    res = client.get(f'/api/v1/service-quotation-links/{make_service_code(service_request.id, carrier_company.id)}')
+
+    assert res.status_code == 200
+    token = jwt.decode(res.get_json()['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
+    assert (token['purpose'], token['service_request_id'], token['carrier_company_id']) == \
+        ('service_request', service_request.id, carrier_company.id)
+
+
+def test_an_order_code_does_not_open_the_service_request_with_that_number(app, client, service_request, carrier_company):
+    assert client.get(f'/api/v1/service-quotation-links/{make_code(service_request.id, carrier_company.id)}') \
+        .status_code == 404
+
+
+def test_the_service_code_only_opens_a_request_still_quoting_or_the_carriers_own(app, client, service_request,
+                                                                                 carrier_company):
+    from app import db
+    from app.api.quotation_short_link import make_service_code
+    from app.models import ServiceRequestQuotation
+    url = f'/api/v1/service-quotation-links/{make_service_code(service_request.id, carrier_company.id)}'
+
+    service_request.submitted_at = None   # borrador: no se avisó a nadie
+    db.session.commit()
+    assert client.get(url).status_code == 404
+
+    service_request.submitted_at, service_request.status = service_request.created_date, 'in_progress'
+    db.session.commit()
+    assert client.get(url).status_code == 404
+
+    db.session.add(ServiceRequestQuotation(service_request_id=service_request.id, carrier_company_id=carrier_company.id,
+                                           amount=300, status='selected'))
+    db.session.commit()
+    assert client.get(url).status_code == 200
+
+
+def test_the_backoffice_makes_the_same_service_code(app):
+    from app.api.quotation_short_link import make_service_code
+    path = Path(__file__).resolve().parents[1] / 'backoffice-api' / 'app' / 'quotation_short_link.py'
+    if not path.exists():
+        pytest.skip('backoffice-api is not mounted in this container')
+    spec = importlib.util.spec_from_file_location('backoffice_quotation_short_link', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert module.make_service_code(12, 3) == make_service_code(12, 3)
+    assert make_service_code(12, 3) != make_code(12, 3)

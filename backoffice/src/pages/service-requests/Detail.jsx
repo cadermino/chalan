@@ -9,13 +9,9 @@ import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../
 import { DeclinesList } from '../../components/DeclinePanel'
 import QuotationNote from '../../components/QuotationNote'
 import ServiceProspects from '../../components/ServiceProspects'
+import { ServiceCarrierList, ServiceCustomerReminder } from '../../components/ServiceWhatsapp'
 import { districtOf } from '../../lib/district'
 import { useAuth } from '../../contexts/AuthContext'
-
-// El link se arma con el origen actual, así sirve igual en local y en producción.
-function carrierUrl(token) {
-  return `${window.location.origin}${import.meta.env.BASE_URL}carrier-view/${token}`
-}
 
 // Mensaje listo para pegarle al cliente por WhatsApp, con el total que ya incluye la comisión.
 function customerMessage(request, quotation) {
@@ -518,7 +514,6 @@ export default function ServiceRequestDetail() {
   if (!request) return <p className="py-10 text-center text-gray-400">Cargando...</p>
 
   const pending = request.links.filter((l) => !l.notified).length
-  const notifiedAt = Object.fromEntries(request.notifications.map((n) => [n.carrier_company_id, n.sent_at]))
 
   return (
     <div className="max-w-3xl">
@@ -577,6 +572,8 @@ export default function ServiceRequestDetail() {
             />
           </div>
         )}
+        {/* Para avisarle de una cotización nueva desde el WhatsApp de Chalán */}
+        <ServiceCustomerReminder request={request} onReminded={load} className="mt-4 border-t border-gray-100 pt-4" />
         {request.review && (
           <div className="mt-4 border-t border-gray-100 pt-4 text-sm">
             <p className="font-medium text-gray-900">
@@ -639,19 +636,7 @@ export default function ServiceRequestDetail() {
             </p>
           )
           : (
-            <ul className="divide-y divide-gray-100">
-              {request.links.map((link) => (
-                <li key={link.id} className="flex items-center justify-between gap-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{link.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {link.notified ? `Avisado ${formatTimestamp(notifiedAt[link.id])}` : 'Sin avisar'}
-                    </p>
-                  </div>
-                  <CopyButton text={carrierUrl(link.token)} />
-                </li>
-              ))}
-            </ul>
+            <ServiceCarrierList request={request} />
           )}
 
         <div className="mt-4 flex flex-wrap gap-3">

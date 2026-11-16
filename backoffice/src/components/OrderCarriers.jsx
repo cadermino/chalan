@@ -6,7 +6,14 @@ import CopyButton from './CopyButton'
 import { firstName, orderLine } from './CarrierReminders'
 
 // Todos los chats se abren en la misma pestaña: avisar a quince no deja quince pestañas.
-const WHATSAPP_WINDOW = 'chalan-whatsapp'
+export const WHATSAPP_WINDOW = 'chalan-whatsapp'
+
+// El teléfono de las empresas se guarda como lo escribieron: con o sin +51.
+export function waUrl(phone, text) {
+  const digits = (phone || '').replace(/\D/g, '')
+  const number = digits.length === 9 ? `51${digits}` : digits
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`
+}
 
 // Con el link corto para cotizar (chalan.pe/c/…), como el recordatorio. Si la
 // orden cambió después de que cotizó, su link le muestra qué cambió.
@@ -31,14 +38,11 @@ export function noticeMessage(company, order) {
   return lines.join('\n')
 }
 
-// El teléfono de las empresas se guarda como lo escribieron: con o sin +51.
 function whatsappUrl(company, order) {
-  const digits = (company.phone || '').replace(/\D/g, '')
-  const number = digits.length === 9 ? `51${digits}` : digits
-  return `https://wa.me/${number}?text=${encodeURIComponent(noticeMessage(company, order))}`
+  return waUrl(company.phone, noticeMessage(company, order))
 }
 
-function ago(iso) {
+export function ago(iso) {
   const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (minutes < 60) return minutes <= 1 ? 'hace un momento' : `hace ${minutes} min`
   const hours = Math.floor(minutes / 60)
