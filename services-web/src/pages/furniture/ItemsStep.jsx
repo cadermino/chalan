@@ -13,7 +13,8 @@ import { EMPTY_ADDRESS, newItem, useRequest } from '../../context/RequestContext
 const NOTE_MAX = 500
 // Un teléfono en la nota (7 dígitos o más, con espacios, puntos o guiones):
 // la nota la leen todas las empresas antes de que elija una. La misma regla
-// que PHONE_IN_TEXT de app/api/customer_note.py, que la rechaza igual.
+// que PHONE_IN_TEXT de app/api/customer_note.py, que la rechaza igual (un test
+// del API compara las dos: cambiar las dos juntas).
 const PHONE_IN_TEXT = /\+?\d(?:[\s.-]?\d){6,}/
 
 export default function ItemsStep() {

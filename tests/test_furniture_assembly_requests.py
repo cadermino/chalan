@@ -5,9 +5,13 @@ hacer (armar, desarmar, o desarmar acá y armar en el destino), puede pedirse
 embalado con los materiales del catálogo de embalaje, y si alguno se arma en
 otro lado hace falta la dirección de destino.
 """
+import re
+from pathlib import Path
+
 import pytest
 
 from app import db
+from app.api.customer_note import PHONE_IN_TEXT
 from app.models import CarrierCompanyServiceType, ServiceRequest, ServiceType
 from tests.test_service_requests import (ADDRESS, TOMORROW, catalog, create_draft,  # noqa: F401
                                          internal_headers, lima_clock, make_carrier, sent, submit)
@@ -154,6 +158,17 @@ def test_floors_and_sizes_are_not_phone_numbers(client):
     response = patch(client, draft(client), details={'description': note})
 
     assert response.get_json()['details']['description'] == note
+
+
+def test_the_form_checks_phones_with_the_same_rule():
+    """The form warns while typing with a copy of PHONE_IN_TEXT: if they drift,
+    a note it lets through gets a 400 with no clear message."""
+    path = Path(__file__).resolve().parents[1] / 'services-web' / 'src' / 'pages' / 'furniture' / 'ItemsStep.jsx'
+    if not path.exists():
+        pytest.skip('services-web is not mounted in this container')
+    copy = re.search(r'^const PHONE_IN_TEXT = /(.+)/$', path.read_text(), re.MULTILINE)
+
+    assert copy and copy.group(1) == PHONE_IN_TEXT.pattern
 
 
 def test_only_assemblers_hear_about_it(client, sent):  # noqa: F811
