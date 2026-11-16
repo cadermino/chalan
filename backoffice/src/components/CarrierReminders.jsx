@@ -9,7 +9,7 @@ import { shortDate } from '../lib/shortDate'
 // esto ya no se lee.
 const MAX_ORDERS = 20
 
-function orderLine(order) {
+export function orderLine(order) {
   const route = [order.origin_district, order.destination_district].filter(Boolean).join(' → ')
   const load = [loadTypeLabel(order.load_type), cargoWeightLabel(order.cargo_weight_kg)].filter(Boolean).join(', ')
   return `• ${[shortDate(order.appointment_date), route].filter(Boolean).join(' · ')} (${load.toLowerCase()})\n`
@@ -18,7 +18,7 @@ function orderLine(order) {
 
 // El primer nombre del coordinador, con mayúscula aunque se haya anotado en
 // minúsculas. Sin coordinador no hay nombre: el de la empresa no es a quién se le habla.
-function firstName(company) {
+export function firstName(company) {
   const [first] = (company.coordinator_name || '').trim().split(/\s+/)
   return first ? first.charAt(0).toLocaleUpperCase('es') + first.slice(1) : ''
 }

@@ -59,22 +59,87 @@ function remindedLabel(order) {
   return `Recordado ${when}${order.reminder_count > 1 ? ` (${order.reminder_count} veces)` : ''}`
 }
 
+// Abrir el WhatsApp (o copiar el mensaje) lo marca como recordado con la
+// cotización más nueva que decía, y lo baja al final de la lista hasta que
+// llegue otra.
+function useMarkReminded() {
+  const queryClient = useQueryClient()
+  return (order) => {
+    client.post(`/api/orders/${order.id}/customer-reminded`, { quotation_id: order.last_quotation_id })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['customer-reminders'] })
+        queryClient.invalidateQueries({ queryKey: ['customer-reminder', String(order.id)] })
+      })
+      .catch(() => {})
+  }
+}
+
+function NewQuotationTag() {
+  return (
+    <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs font-normal text-green-800">
+      Nueva cotización
+    </span>
+  )
+}
+
+function ReminderButtons({ order, onReminded }) {
+  return order.phone ? (
+    <div className="flex gap-2">
+      <CopyButton text={order.phone} label="Copiar número" />
+      <a
+        href={whatsappUrl(order)}
+        target="_blank"
+        rel="noreferrer"
+        onClick={() => onReminded(order)}
+        className="shrink-0 rounded-lg bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700"
+      >
+        Abrir WhatsApp
+      </a>
+    </div>
+  ) : (
+    <CopyButton text={reminderMessage(order)} label="Copiar mensaje" onCopy={() => onReminded(order)} />
+  )
+}
+
+// El mismo recordatorio en la tarjeta "Cliente" del detalle de la orden, para
+// avisarle de una cotización nueva sin ir a la lista. Nada si no tiene
+// cotizaciones que ver o ya eligió.
+export function CustomerReminder({ orderId, className = '' }) {
+  const markReminded = useMarkReminded()
+  const { data } = useQuery({
+    queryKey: ['customer-reminder', String(orderId)],
+    queryFn: () => client.get(`/api/orders/${orderId}/customer-reminder`).then(({ data }) => data.reminder),
+  })
+  if (!data) return null
+
+  return (
+    <div className={`flex flex-wrap items-center justify-between gap-3 ${className}`}>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-gray-900">
+          Avisarle por WhatsApp
+          {data.new_quotation && <NewQuotationTag />}
+        </p>
+        <p className="mt-0.5 text-xs text-gray-400">
+          {data.quotations_count === 1 ? '1 cotización' : `${data.quotations_count} cotizaciones`} desde {money(data.lowest_total)},
+          con su link para elegir.
+          {data.reminded_at && <span className="text-teal-700"> {remindedLabel(data)}.</span>}
+        </p>
+      </div>
+      <ReminderButtons order={data} onReminded={markReminded} />
+    </div>
+  )
+}
+
 // Clientes con cotizaciones que no eligieron, con un botón que abre WhatsApp
 // (el de Chalán, donde esté abierto) con el mensaje ya escrito: el precio más
-// bajo y el link para elegir sin contraseña. Abrirlo (o copiar el mensaje) lo
-// marca como recordado y lo baja al final de la lista.
+// bajo y el link para elegir sin contraseña. Arriba los que nadie recordó y los
+// que tienen una cotización nueva desde el último recordatorio.
 export default function CustomerReminders() {
-  const queryClient = useQueryClient()
+  const markReminded = useMarkReminded()
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['customer-reminders'],
     queryFn: () => client.get('/api/orders/customer-reminders').then(({ data }) => data),
   })
-
-  const markReminded = (order) => {
-    client.post(`/api/orders/${order.id}/customer-reminded`)
-      .then(() => queryClient.invalidateQueries({ queryKey: ['customer-reminders'] }))
-      .catch(() => {})
-  }
 
   return (
     <Card title="Recordar a clientes" className="mb-4">
@@ -92,7 +157,7 @@ export default function CustomerReminders() {
           <p className="mb-2 text-xs text-gray-400">
             Órdenes pendientes con cotizaciones y ninguna elegida, también las de fecha pasada. WhatsApp se abre con
             el mensaje escrito: el precio más bajo que ve el cliente y su link para elegir sin contraseña. Arriba las
-            que nadie recordó.
+            que nadie recordó y las que tienen una cotización nueva desde el último recordatorio.
           </p>
           <ul className="divide-y divide-gray-100">
             {data.orders.map((o) => (
@@ -101,6 +166,7 @@ export default function CustomerReminders() {
                   <p className="truncate text-sm font-medium text-gray-900">
                     <Link to={`/orders/${o.id}`} className="text-teal-700 hover:underline">#{o.id}</Link>
                     {' '}{o.customer_name || 'Sin nombre'}
+                    {o.new_quotation && <NewQuotationTag />}
                     {o.past && (
                       <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800">
                         Fecha pasada
@@ -117,24 +183,7 @@ export default function CustomerReminders() {
                   </p>
                   {o.reminded_at && <p className="text-xs text-teal-700">{remindedLabel(o)}</p>}
                 </div>
-                <div className="flex gap-2">
-                  {o.phone ? (
-                    <>
-                      <CopyButton text={o.phone} label="Copiar número" />
-                      <a
-                        href={whatsappUrl(o)}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => markReminded(o)}
-                        className="shrink-0 rounded-lg bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700"
-                      >
-                        Abrir WhatsApp
-                      </a>
-                    </>
-                  ) : (
-                    <CopyButton text={reminderMessage(o)} label="Copiar mensaje" onCopy={() => markReminded(o)} />
-                  )}
-                </div>
+                <ReminderButtons order={o} onReminded={markReminded} />
               </li>
             ))}
           </ul>

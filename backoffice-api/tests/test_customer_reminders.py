@@ -162,3 +162,47 @@ def test_only_admins(client, catalog, customer):
 
     assert client.get('/api/orders/customer-reminders', headers=carrier).status_code == 403
     assert client.post(f'/api/orders/{order.id}/customer-reminded', headers=carrier).status_code == 403
+
+
+def test_a_quotation_after_the_reminder_brings_it_back_to_the_top(client, catalog, superadmin, customer):
+    first, second = make_carrier('Primera SAC'), make_carrier('Segunda SAC')
+    reminded = make_order(customer, days_ahead=1)
+    untouched = make_order(customer, days_ahead=2)
+    quote(reminded, first, 200)
+    quote(untouched, first, 200)
+    [shown] = [r for r in reminders(client, superadmin) if r['id'] == reminded.id]
+    client.post(f'/api/orders/{reminded.id}/customer-reminded', headers=superadmin,
+                json={'quotation_id': shown['last_quotation_id']})
+    client.post(f'/api/orders/{untouched.id}/customer-reminded', headers=superadmin)
+
+    assert [r['new_quotation'] for r in reminders(client, superadmin)] == [False, False]
+
+    quote(reminded, second, 180)
+    rows = reminders(client, superadmin)
+
+    assert [(r['id'], r['new_quotation']) for r in rows] == [(reminded.id, True), (untouched.id, False)]
+
+
+def test_a_quotation_that_came_in_while_the_page_was_open_still_counts_as_new(client, catalog, superadmin, customer):
+    order = make_order(customer)
+    quote(order, make_carrier('Primera SAC'), 200)
+    [shown] = reminders(client, superadmin)
+    quote(order, make_carrier('Segunda SAC'), 180)
+
+    client.post(f'/api/orders/{order.id}/customer-reminded', headers=superadmin,
+                json={'quotation_id': shown['last_quotation_id']})
+
+    assert reminders(client, superadmin)[0]['new_quotation'] is True
+
+
+def test_the_order_detail_gets_the_same_reminder(client, catalog, superadmin, customer):
+    order = make_order(customer)
+    nothing_yet = make_order(customer)
+    quote(order, make_carrier('Mudanzas SAC'), 200)
+
+    res = client.get(f'/api/orders/{order.id}/customer-reminder', headers=superadmin)
+
+    assert res.status_code == 200
+    assert res.get_json()['reminder'] == reminders(client, superadmin)[0]
+    res = client.get(f'/api/orders/{nothing_yet.id}/customer-reminder', headers=superadmin)
+    assert res.get_json()['reminder'] is None

@@ -9,6 +9,8 @@ import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
 import AutoQuoteEstimates from '../../components/AutoQuoteEstimates'
+import OrderCarriers from '../../components/OrderCarriers'
+import { CustomerReminder } from '../../components/CustomerReminders'
 import OrderChanges, { CarrierOrderChanges } from '../../components/OrderChanges'
 import { cargoWeightLabel, loadTypeLabel } from '../../lib/loadTypes'
 
@@ -309,7 +311,6 @@ export default function OrderDetail() {
   const isCarrier = user?.role === 'carrier_company'
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [companies, setCompanies] = useState([])
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
   const [reviewUrl, setReviewUrl] = useState(null)
@@ -341,15 +342,6 @@ export default function OrderDetail() {
       client.get(`/api/orders/${orderId}/payments`)
         .then(({ data }) => setPayments(data.payments))
         .catch(() => setPayments([]))
-    }
-
-    if (isAdmin) {
-      client.get(`/api/orders/${orderId}/quotation-links`).then(({ data }) => {
-        setCompanies(data.companies.map((c) => ({
-          ...c,
-          quotation_url: `${window.location.origin}/c/${c.code}`,
-        })))
-      })
     }
   }, [orderId])
 
@@ -499,6 +491,8 @@ export default function OrderDetail() {
                 </p>
               </div>
             )}
+            {/* Para avisarle de una cotización nueva desde el WhatsApp de Chalán */}
+            <CustomerReminder orderId={orderId} className="mt-4 border-t border-gray-100 pt-4" />
             {(customerUrl || reviewUrl) && (
               <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
                 {customerUrl && (
@@ -740,30 +734,8 @@ export default function OrderDetail() {
         {/* Lo que cada empresa habría cotizado con sus tarifas, calculado en silencio */}
         {isAdmin && <AutoQuoteEstimates orderId={orderId} />}
 
-        {/* Link de cotización por empresa — solo para admins */}
-        {isAdmin && companies.length > 0 && (
-          <Card title="Transportistas">
-            <ul className="divide-y divide-gray-100">
-              {companies.map((c) => (
-                <li key={c.id} className="flex items-center justify-between gap-3 py-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-900">
-                      {c.name}
-                      {c.coordinator_name && (
-                        <span className="ml-2 text-xs font-normal text-gray-500">Contacto en WhatsApp → {c.coordinator_name}</span>
-                      )}
-                      {c.departments?.length > 0 && (
-                        <span className="ml-2 text-xs font-normal text-gray-400">{c.departments.join(' · ')}</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-400">Link para que cotice</p>
-                  </div>
-                  <CopyButton text={c.quotation_url} />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+        {/* Las empresas con su link para cotizar y el aviso por WhatsApp — solo para admins */}
+        {isAdmin && <OrderCarriers orderId={orderId} />}
       </div>
     </div>
   )

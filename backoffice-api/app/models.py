@@ -349,6 +349,9 @@ class Order(db.Model):
     # escribió al cliente para que elija una cotización.
     customer_reminded_at = db.Column(db.DateTime(), nullable=True)
     customer_reminder_count = db.Column(db.Integer, nullable=False, server_default='0', default=0)
+    # La cotización más nueva que se le avisó a mano (migración 052): una visible
+    # con id mayor llegó después del último recordatorio.
+    customer_reminded_quotation_id = db.Column(db.Integer, nullable=True)
     # "Completar órdenes" (migración 046): cuándo y cuántas veces se le pidió
     # por WhatsApp lo que le falta a la orden para mandarla a cotizar.
     completion_asked_at = db.Column(db.DateTime(), nullable=True)
@@ -952,6 +955,22 @@ class ServiceRequestQuotation(db.Model):
             'created_date': _iso(self.created_date),
             'updated_date': _iso(self.updated_date),
         }
+
+
+class OrderCarrierWhatsapp(db.Model):
+    """Cuándo se le escribió a mano a una empresa por una orden, desde el
+    WhatsApp de Chalán (migración 052). Uno anterior al último aviso de la orden
+    (`carrier_notified_at`) es de antes de que cambiara: hay que volver a escribirle."""
+    __tablename__ = 'order_carrier_whatsapp'
+    __table_args__ = (db.UniqueConstraint('order_id', 'carrier_company_id'), {'extend_existing': True})
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+    carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'),
+                                   nullable=False)
+    sent_at = db.Column(db.DateTime(), nullable=False)
+    sent_count = db.Column(db.Integer, nullable=False, server_default='1', default=1)
+    admin_user_id = db.Column(db.Integer, nullable=True)
 
 
 class OrderCarrierDecline(db.Model):
