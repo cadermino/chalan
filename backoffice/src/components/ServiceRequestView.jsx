@@ -300,6 +300,12 @@ export default function ServiceRequestView({ request }) {
             </tbody>
           </table>
         </div>
+        {isAssembly && request.details?.description && (
+          <div className="mt-3 border-t border-gray-100 pt-3">
+            <p className="text-xs text-gray-400">Nota del cliente</p>
+            <p className="whitespace-pre-line text-sm text-gray-900">{request.details.description}</p>
+          </div>
+        )}
       </Card>
       )}
 

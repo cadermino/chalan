@@ -15,8 +15,10 @@ const EMPTY_DRAFT = {
   publicId: null,
   address: EMPTY_ADDRESS,
   items: [],
-  // Solo armado: dónde se arman los muebles que se desarman en la dirección.
+  // Solo armado: dónde se arman los muebles que se desarman en la dirección,
+  // y una nota para quien cotiza (va en details.description).
   destination: null,
+  note: '',
   // Solo pintura: qué pintar (description) y las respuestas rápidas.
   details: {},
   media: [],
@@ -51,6 +53,7 @@ function fromServer(data) {
     address: toForm(data.address),
     items: (data.items || []).map((item) => newItem({ ...item, pack: Boolean(item.pack) })),
     destination: destination ? toForm(destination) : null,
+    note: DESCRIBED ? '' : data.details?.description || '',
     details: DESCRIBED ? (data.details || {}) : {},
     media: data.media || [],
     preferredDate: data.preferred_date || '',
@@ -121,17 +124,21 @@ export function RequestProvider({ children }) {
     patch({ publicId, address })
   }, [draft.publicId, patch])
 
-  // `destination` solo lo manda el armado: null la borra, undefined no la toca.
-  const saveItems = useCallback(async (items, destination) => {
+  // `destination` y `note` solo los manda el armado: null borra el destino,
+  // undefined no toca ninguno de los dos (van juntos en details).
+  const saveItems = useCallback(async (items, destination, note = '') => {
     const body = {
       items: items.map(({ description, quantity, materials, work, pack }) => (
         SERVICE === 'packing' ? { description, quantity, materials } : { description, quantity, materials, work, pack })),
     }
     if (destination !== undefined) {
-      body.details = destination ? { destination: addressPayload(destination) } : {}
+      body.details = {
+        ...(destination && { destination: addressPayload(destination) }),
+        ...(note && { description: note }),
+      }
     }
     await updateRequest(draft.publicId, body)
-    patch(destination === undefined ? { items } : { items, destination })
+    patch(destination === undefined ? { items } : { items, destination, note })
   }, [draft.publicId, patch])
 
   const saveDetails = useCallback(async (details) => {

@@ -88,6 +88,7 @@
                     {% if preferred_date %}Fecha deseada: <strong>{{preferred_date}}</strong><br/>{% endif %}
                     {% if needs_items %}
                     Cosas en la lista: <strong>{{items_count}}</strong>
+                    {% if description %}<br/>Nota: <strong>{{description}}</strong>{% endif %}
                     {% else %}
                     {% if description %}Qué pide: <strong>{{description}}</strong><br/>{% endif %}
                     Fotos y videos: <strong>{{media_count}}</strong>

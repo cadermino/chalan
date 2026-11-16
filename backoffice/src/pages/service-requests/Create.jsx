@@ -34,6 +34,7 @@ function friendlyError(message, isEdit) {
   if (!message) return isEdit ? 'No se pudo guardar el servicio' : 'Error al crear el servicio'
   if (message.includes('quotation was already chosen')) return 'Ya hay una cotización elegida: el servicio ya no se puede editar.'
   if (message.includes('describe what to paint')) return 'Cuenta qué hay que pintar, o deja un video que lo explique.'
+  if (message.includes('phone number')) return 'Quita el teléfono de la nota: la ven todas las empresas.'
   if (message.includes('destination.map_url')) return 'Falta el link de Google Maps del destino (tiene que empezar con https://).'
   if (message.includes('destination.neighborhood')) return 'Falta el distrito del destino.'
   if (message.includes('destination')) return 'Falta la dirección de destino: algún mueble se desarma y se arma en otro lado.'
@@ -130,6 +131,7 @@ function formFromRequest(request) {
         city: destination.city || '', mapUrl: destination.map_url || '',
       }
       : EMPTY_DESTINATION,
+    note: request.service_type?.code === 'furniture_assembly' ? request.details?.description || '' : '',
     painting: {
       description: request.details?.description || '', area: request.details?.area || '', size: request.details?.size || '',
       area_m2: request.details?.area_m2 ? String(request.details.area_m2) : '', paint_by: request.details?.paint_by || '',
@@ -163,6 +165,8 @@ export default function ServiceRequestCreate() {
   })
   const [items, setItems] = useState([newItem()])
   const [destination, setDestination] = useState(EMPTY_DESTINATION)
+  // Armado: la nota para quien cotiza (details.description), sin teléfonos.
+  const [note, setNote] = useState('')
   // Pintura no tiene lista: qué pintar y las respuestas rápidas (todas opcionales).
   const [painting, setPainting] = useState({ description: '', area: '', size: '', area_m2: '', paint_by: '', wall_issues: [] })
   const [perM2, setPerM2] = useState(EMPTY_PER_M2)
@@ -186,6 +190,7 @@ export default function ServiceRequestCreate() {
         setForm(loaded.form)
         setItems(loaded.items)
         setDestination(loaded.destination)
+        setNote(loaded.note)
         setPainting(loaded.painting)
         setPerM2(loaded.perM2)
         setSavedMedia(request.media)
@@ -302,9 +307,10 @@ export default function ServiceRequestCreate() {
           area_m2: Number(perM2.area_m2) > 0 ? Number(perM2.area_m2) : null,
         },
       }),
-      ...(needsDestination && {
+      ...(isAssembly && {
         details: {
-          destination: {
+          description: note,
+          ...(needsDestination && { destination: {
             street: destination.street,
             interior: destination.interior,
             neighborhood: destination.neighborhood,
@@ -312,7 +318,7 @@ export default function ServiceRequestCreate() {
             country: 'PE',
             map_url: destination.mapUrl,
             ...samePoint(original?.details?.destination, destination.mapUrl),
-          },
+          } }),
         },
       }),
     }
@@ -648,6 +654,16 @@ export default function ServiceRequestCreate() {
           >
             + Agregar otra cosa
           </button>
+          {isAssembly && (
+            <div className="mt-4">
+              <Field label="Nota para quien cotiza" hint="La ven todas las empresas: sin teléfonos (no se guarda con uno).">
+                <textarea
+                  rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className="input"
+                  placeholder="Ej. Se desarma en un 5.º piso sin ascensor y se arma en un 1.º piso."
+                />
+              </Field>
+            </div>
+          )}
         </div>
         )}
 

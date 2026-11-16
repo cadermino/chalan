@@ -1,3 +1,4 @@
+from ..customer_note import PHONE_IN_TEXT
 from .validation import InvalidRequest, validate_address
 
 
@@ -29,20 +30,39 @@ def validate_furniture_item(item, index):
     return {'work': work, 'pack': pack}
 
 
-def validate_furniture_details(details):
-    """The only field is `destination`, where the `both` items get assembled.
+FURNITURE_NOTE_MAX = 500
 
-    Same rules as the request's address (picked from Google Places). Whether it
-    is needed depends on the items, which can arrive in another PATCH, so that
-    is checked on submit.
+
+def validate_furniture_details(details):
+    """`destination`, where the `both` items get assembled, and `description`,
+    an optional note for whoever quotes ("se desarma en el 5.º piso y se arma
+    en un 1.º").
+
+    The destination follows the request's address rules (picked from Google
+    Places). Whether it is needed depends on the items, which can arrive in
+    another PATCH, so that is checked on submit. The note goes to every company
+    of the service before one is chosen, so a phone number in it is refused:
+    they would skip Chalán (what they see is masked anyway, `without_phones`).
     """
     if details is None:
         return {}
     if not isinstance(details, dict):
         raise InvalidRequest('details must be an object')
-    if details.get('destination') is None:
-        return {}
-    return {'destination': validate_address(details['destination'], name='details.destination')}
+    cleaned = {}
+    if details.get('destination') is not None:
+        cleaned['destination'] = validate_address(details['destination'], name='details.destination')
+    note = details.get('description')
+    if note is not None:
+        if not isinstance(note, str):
+            raise InvalidRequest('details.description must be text')
+        note = note.strip()
+        if len(note) > FURNITURE_NOTE_MAX:
+            raise InvalidRequest(f'details.description must be at most {FURNITURE_NOTE_MAX} characters')
+        if PHONE_IN_TEXT.search(note):
+            raise InvalidRequest('details.description must not include a phone number')
+        if note:
+            cleaned['description'] = note
+    return cleaned
 
 
 def check_furniture_submit(service_request):

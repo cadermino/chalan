@@ -56,7 +56,7 @@ export function serviceMessage(request) {
     request.items.length > 0 && `${isAssembly ? 'Muebles' : 'Qué hay'}:`,
     ...request.items.map((item) => itemLine(item, isAssembly)),
     // Pintura y porcelanato no tienen lista: lo que contó el cliente y sus respuestas.
-    request.details?.description && `Qué hay que hacer: ${request.details.description}`,
+    request.details?.description && `${isAssembly ? 'Nota del cliente' : 'Qué hay que hacer'}: ${request.details.description}`,
     ...describedLines(request),
     request.media.length > 0 && `Fotos y videos: ${request.media.length} (te los pasamos)`,
     '',

@@ -10,6 +10,12 @@ import { saveFailure, track, trackBlocked } from '../../analytics'
 import { COPY, PATHS, SERVICE, whatsappUrl } from '../../config'
 import { EMPTY_ADDRESS, newItem, useRequest } from '../../context/RequestContext'
 
+const NOTE_MAX = 500
+// Un teléfono en la nota (7 dígitos o más, con espacios, puntos o guiones):
+// la nota la leen todas las empresas antes de que elija una. La misma regla
+// que PHONE_IN_TEXT de app/api/customer_note.py, que la rechaza igual.
+const PHONE_IN_TEXT = /\+?\d(?:[\s.-]?\d){6,}/
+
 export default function ItemsStep() {
   const { draft, setItems, saveItems, addMedia, removeMedia } = useRequest()
   const navigate = useNavigate()
@@ -17,6 +23,7 @@ export default function ItemsStep() {
   const [loadError, setLoadError] = useState(false)
   const [destination, setDestination] = useState(draft.destination || EMPTY_ADDRESS)
   const [destinationError, setDestinationError] = useState('')
+  const [note, setNote] = useState(draft.note || '')
   const [mapsError, setMapsError] = useState(false)
   const [missingWork, setMissingWork] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -37,6 +44,7 @@ export default function ItemsStep() {
   }, [])
 
   const needsDestination = draft.items.some((item) => item.work === 'both')
+  const noteHasPhone = PHONE_IN_TEXT.test(note)
 
   const handleNext = async () => {
     // Las filas en blanco no cuentan: se descartan en vez de frenar al cliente.
@@ -59,9 +67,14 @@ export default function ItemsStep() {
       setDestinationError('Elige la dirección de la lista de sugerencias.')
       return
     }
+    if (noteHasPhone) {
+      trackBlocked(SERVICE, 'items', 'note_phone')
+      document.getElementById('note')?.focus()
+      return
+    }
     setSaving(true)
     try {
-      await saveItems(filled, needsDestination ? destination : null)
+      await saveItems(filled, needsDestination ? destination : null, note.trim())
       navigate(PATHS.contact)
     } catch (err) {
       trackBlocked(SERVICE, 'items', saveFailure(err))
@@ -124,6 +137,32 @@ export default function ItemsStep() {
           )}
         </section>
       )}
+
+      <div className="mt-8">
+        <label htmlFor="note" className="block text-lg font-semibold text-inkStrong">
+          ¿Algo más que deban saber? <span className="text-sm font-normal text-mute">(opcional)</span>
+        </label>
+        <textarea
+          id="note"
+          rows={3}
+          maxLength={NOTE_MAX}
+          className={`field mt-2 ${noteHasPhone ? 'border-danger' : ''}`}
+          placeholder="Ej: el ropero se desarma en un 5.º piso sin ascensor y se arma en un 1.º piso."
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          aria-invalid={noteHasPhone}
+          aria-describedby="note-hint"
+        />
+        {noteHasPhone ? (
+          <p id="note-hint" role="alert" className="mt-1 text-sm text-danger">
+            Quita el número de teléfono: te contactamos al WhatsApp que dejas en el último paso.
+          </p>
+        ) : (
+          <p id="note-hint" className="mt-1 text-xs text-mute">
+            Pisos, ascensor, horarios, accesos. Sin teléfonos: el que elijas recibe tu WhatsApp por Chalán.
+          </p>
+        )}
+      </div>
 
       <h2 className="mb-1 mt-8 text-lg font-semibold text-inkStrong">Fotos o videos</h2>
       <p className="mb-2 text-sm text-inkSoft">

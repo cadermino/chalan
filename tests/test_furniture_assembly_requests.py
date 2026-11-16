@@ -113,6 +113,49 @@ def test_a_destination_nobody_needs_is_dropped_on_submit(client):
     assert 'destination' not in response.get_json()['details']
 
 
+def test_the_customer_can_leave_a_note_with_the_destination(client):
+    public_id = draft(client)
+    note = 'El ropero se desarma en un 5.º piso sin ascensor y se arma en un 1.º.'
+
+    response = patch(client, public_id, details={'destination': DESTINATION, 'description': f'  {note} '})
+
+    details = response.get_json()['details']
+    assert details['description'] == note
+    assert details['destination']['neighborhood'] == 'Huancayo'
+
+
+def test_an_empty_note_is_not_stored(client):
+    response = patch(client, draft(client), details={'description': '   '})
+
+    assert response.status_code == 200
+    assert response.get_json()['details'] == {}
+
+
+@pytest.mark.parametrize('note', [
+    'Llamar al 987 654 321 antes de subir',
+    'mi wsp +51987654321',
+    'cel 987-654-321',
+])
+def test_a_note_with_a_phone_number_is_refused(client, note):
+    response = patch(client, draft(client), details={'description': note})
+
+    assert response.status_code == 400
+    assert 'phone number' in response.get_json()['message']
+
+
+@pytest.mark.parametrize('note', ['x' * 501, 12])
+def test_a_note_too_long_or_not_text_is_refused(client, note):
+    assert patch(client, draft(client), details={'description': note}).status_code == 400
+
+
+def test_floors_and_sizes_are_not_phone_numbers(client):
+    note = 'Piso 12, Mz. B Lt. 15. Ropero de 1.80 x 2.40 m.'
+
+    response = patch(client, draft(client), details={'description': note})
+
+    assert response.get_json()['details']['description'] == note
+
+
 def test_only_assemblers_hear_about_it(client, sent):  # noqa: F811
     make_carrier('Embala SAC')
     carrier = assembler()

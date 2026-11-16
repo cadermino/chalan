@@ -67,8 +67,9 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const { data } = result
   const firstPhoto = data.media.find((m) => m.media_type === 'image')?.url
   const day = formatDay(data.preferred_date)
-  const what = data.details.description
-    || data.items.map((i) => `${i.quantity} × ${i.description}`).join(', ')
+  // El armado trae la lista y una nota: la vista previa muestra la lista.
+  const what = data.items.map((i) => `${i.quantity} × ${i.description}`).join(', ')
+    || data.details.description
   const description = [day && `Para el ${day}.`, what && `${what.slice(0, 140)}${what.length > 140 ? '…' : ''}`]
     .filter(Boolean).join(' ') || 'Pedido para cotizar.'
   return {
@@ -148,7 +149,9 @@ function SharedBody({ data }: { data: SharedMedia }) {
 
       {(data.details.description || facts.length > 0) && (
         <section className="mt-8 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Qué hay que hacer</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            {isAssembly ? 'Nota del cliente' : 'Qué hay que hacer'}
+          </h2>
           {data.details.description && (
             <p className="mt-2 whitespace-pre-line text-gray-900">{data.details.description}</p>
           )}
