@@ -1,7 +1,25 @@
+import logging
+from logging.handlers import SMTPHandler
+
 import pytest
 
 from app import create_app, db
 from app.models import CarrierCompany, Customer, Order
+
+
+@pytest.fixture(autouse=True)
+def _no_error_emails():
+    # tests/test_config.py arma una app de producción, y ProductionConfig le
+    # cuelga al logger `app` (uno solo por proceso) un SMTPHandler que manda
+    # cada error por correo con las credenciales reales del contenedor. Sin
+    # esto, cualquier test que después registrara un error le llegaba a
+    # ADMIN_MAIL como "[chalan] Application Error".
+    logger = logging.getLogger('app')
+    for handler in [h for h in logger.handlers if isinstance(h, SMTPHandler)]:
+        logger.removeHandler(handler)
+    yield
+    for handler in [h for h in logger.handlers if isinstance(h, SMTPHandler)]:
+        logger.removeHandler(handler)
 
 
 @pytest.fixture

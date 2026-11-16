@@ -293,7 +293,7 @@ def test_the_version_routes_are_internal_only(client, customer, method):
     assert len(_versions(order_id)) == 1
 
 
-def test_a_failure_saving_the_version_does_not_break_the_edit(client, customer, monkeypatch):
+def test_a_failure_saving_the_version_does_not_break_the_edit(client, customer, monkeypatch, caplog):
     order_id = _sent_order(client, customer)
 
     def broken(*args):
@@ -304,6 +304,7 @@ def test_a_failure_saving_the_version_does_not_break_the_edit(client, customer, 
 
     assert db.session.get(Order, order_id).comments == '1 sofa'
     assert len(_versions(order_id)) == 1
+    assert 'No se pudo guardar la versión de la orden' in caplog.text
 
 
 def test_the_backfill_gives_sent_orders_their_version_1_once(client, customer):
