@@ -22,7 +22,8 @@ function accessUrl(order) {
   return `${window.location.origin}/acceso/${order.token}?r=whatsapp`
 }
 
-export function reminderMessage(order) {
+// `discount`: la frase de la rebaja va en la lista, no en el detalle de la orden.
+export function reminderMessage(order, { discount = true } = {}) {
   const name = (order.customer_name || '').trim().split(/\s+/)[0]
   const count = order.quotations_count === 1
     ? `1 cotización, de ${money(order.lowest_total)}`
@@ -33,23 +34,20 @@ export function reminderMessage(order) {
       `Hola${name ? ` ${name}` : ''}, ${what(order)}${date ? ` era para el ${date}` : ''} y tiene ${count}.`,
       '¿Todavía la necesitas? Respóndeme con la nueva fecha y la reagendamos. Las cotizaciones están aquí:',
       accessUrl(order),
-      '',
-      '¿Te parece caro? Respóndeme y te consigo una rebaja.',
     ]
     : [
       `Hola${name ? ` ${name}` : ''}, ${what(order)}${date ? ` del ${date}` : ''} tiene ${count}. Míralas y elige aquí:`,
       accessUrl(order),
-      '',
-      '¿Te parece caro? Respóndeme y te consigo una rebaja.',
     ]
+  if (discount) lines.push('', '¿Te parece caro? Respóndeme y te consigo una rebaja.')
   return lines.join('\n')
 }
 
 // El teléfono se guarda como lo escribieron: con o sin +51.
-function whatsappUrl(order) {
+function whatsappUrl(order, options) {
   const digits = (order.phone || '').replace(/\D/g, '')
   const number = digits.length === 9 ? `51${digits}` : digits
-  return `https://wa.me/${number}?text=${encodeURIComponent(reminderMessage(order))}`
+  return `https://wa.me/${number}?text=${encodeURIComponent(reminderMessage(order, options))}`
 }
 
 function remindedLabel(order) {
@@ -82,12 +80,12 @@ function NewQuotationTag() {
   )
 }
 
-function ReminderButtons({ order, onReminded }) {
+function ReminderButtons({ order, onReminded, discount }) {
   return order.phone ? (
     <div className="flex gap-2">
       <CopyButton text={order.phone} label="Copiar número" />
       <a
-        href={whatsappUrl(order)}
+        href={whatsappUrl(order, { discount })}
         target="_blank"
         rel="noreferrer"
         onClick={() => onReminded(order)}
@@ -97,7 +95,7 @@ function ReminderButtons({ order, onReminded }) {
       </a>
     </div>
   ) : (
-    <CopyButton text={reminderMessage(order)} label="Copiar mensaje" onCopy={() => onReminded(order)} />
+    <CopyButton text={reminderMessage(order, { discount })} label="Copiar mensaje" onCopy={() => onReminded(order)} />
   )
 }
 
@@ -125,7 +123,7 @@ export function CustomerReminder({ orderId, className = '' }) {
           {data.reminded_at && <span className="text-teal-700"> {remindedLabel(data)}.</span>}
         </p>
       </div>
-      <ReminderButtons order={data} onReminded={markReminded} />
+      <ReminderButtons order={data} onReminded={markReminded} discount={false} />
     </div>
   )
 }
