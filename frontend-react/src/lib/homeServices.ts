@@ -1,7 +1,7 @@
-// Servicios a domicilio de las landings con ServiceLanding. Lo usan sus landings
-// y el llamado al final de sus posts del blog, así el texto del WhatsApp y la
+// Servicios a domicilio con landing propia. Lo usan sus landings (las de
+// ServiceLanding) y el llamado al final de sus posts del blog, así el texto del WhatsApp y la
 // ruta viven en un solo lugar. Los que tienen formulario en services-web llevan
-// `formUrl` (pintura, porcelanato, microcemento): ahí el botón principal es el
+// `formUrl` (pintura, porcelanato, microcemento, armado): ahí el botón principal es el
 // formulario y WhatsApp queda de segunda opción. Los demás se cotizan solo por WhatsApp.
 
 export const WHATSAPP_NUMBER = '51972643007'
@@ -9,7 +9,7 @@ export const WHATSAPP_NUMBER = '51972643007'
 export const whatsappUrl = (text: string) =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
 
-export type HomeServiceKey = 'pintura' | 'microcemento' | 'porcelanato' | 'departamentos'
+export type HomeServiceKey = 'pintura' | 'microcemento' | 'porcelanato' | 'armado' | 'departamentos'
 
 export const HOME_SERVICES: Record<
   HomeServiceKey,
@@ -59,6 +59,18 @@ export const HOME_SERVICES: Record<
       body: 'Cuéntanos qué hay que instalar o súbenos un video del ambiente. Los instaladores te cotizan y eliges. Lima, Callao y Huancayo.',
     },
   },
+  armado: {
+    path: '/armado-de-muebles',
+    name: 'Armado y desarmado de muebles',
+    code: 'furniture_assembly',
+    whatsappText: 'Hola, quiero cotizar el armado o desarmado de muebles',
+    formUrl: '/armado/cotizar',
+    blogCta: {
+      eyebrow: '¿Prefieres que te lo armen?',
+      title: 'Cotiza el armado en 2 minutos',
+      body: 'Cuéntanos qué muebles son y si hay que armarlos, desarmarlos o las dos cosas. Los armadores te cotizan y eliges. Lima, Callao y Huancayo.',
+    },
+  },
   // Se cotiza con visita técnica (sin costo), no con precio por m².
   departamentos: {
     path: '/reparacion-de-departamentos',
@@ -77,6 +89,5 @@ export const HOME_SERVICES: Record<
 // (ChatWidget) cotiza mudanzas y fletes, así que ahí no se muestra (ver layout.tsx).
 export const NON_MOVING_PATHS = [
   '/embalaje-profesional',
-  '/armado-de-muebles',
   ...Object.values(HOME_SERVICES).map((s) => s.path),
 ]

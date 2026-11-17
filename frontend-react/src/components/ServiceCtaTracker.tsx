@@ -27,7 +27,6 @@ const FORM_SERVICES: Record<string, string> = {
 
 const LANDING_SERVICES: Record<string, string> = {
   '/embalaje-profesional': 'packing',
-  '/armado-de-muebles': 'furniture_assembly',
   ...Object.fromEntries(Object.values(HOME_SERVICES).map((s) => [s.path, s.code])),
 }
 

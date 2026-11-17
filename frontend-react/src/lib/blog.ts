@@ -6,7 +6,7 @@ import type { LoadType } from "@/components/QuoteWidget";
 
 const POSTS_DIR = path.join(process.cwd(), "content", "blog");
 
-const POST_CTAS = ["embalaje", "pintura", "microcemento", "porcelanato"] as const;
+const POST_CTAS = ["embalaje", "pintura", "microcemento", "porcelanato", "armado"] as const;
 export type PostCta = (typeof POST_CTAS)[number];
 
 // Un valor que no se conoce cae al cotizador de mudanza en vez de romper el post.
@@ -38,7 +38,7 @@ export interface PostMeta {
   // registro de transportistas, que se decide por categoría). "embalaje":
   // el formulario de /embalaje/cotizar, para los posts de embalaje, que
   // están repartidos en varias categorías. Los servicios a domicilio
-  // (pintura, microcemento, porcelanato) cierran con su caja de HOME_SERVICES:
+  // (pintura, microcemento, porcelanato, armado) cierran con su caja de HOME_SERVICES:
   // el formulario primero y WhatsApp de segunda opción.
   cta?: PostCta;
   // Qué viene marcado en el cotizador que cierra el post ("cargo" en los de
