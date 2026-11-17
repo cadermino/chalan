@@ -119,6 +119,15 @@ const FAQ: { q: string; a: string; render?: ReactNode }[] = [
   {
     q: '¿Cuánto se cobra por armar un mueble de melamina?',
     a: `Depende del tamaño del mueble. Un escritorio, una cabecera o una mesa de centro desde ${priceOf('02')}; un ropero de hasta 1.60 m, una cómoda o un juego de comedor desde ${priceOf('04')}; un ropero de 1.61 a 2.05 m desde ${priceOf('05')}. Son precios de referencia: el precio final te lo confirma el armador al cotizar.`,
+    render: (
+      <>
+        Depende del tamaño del mueble. Un escritorio, una cabecera o una mesa de centro desde{' '}
+        {priceOf('02')}; un ropero de hasta 1.60 m, una cómoda o un juego de comedor desde{' '}
+        {priceOf('04')}; un ropero de 1.61 a 2.05 m desde {priceOf('05')}. Son precios de
+        referencia: el precio final te lo confirma el armador al cotizar. Mira cuánto sale{' '}
+        <Link href="/blog/cuanto-se-cobra-por-armar-muebles">un dormitorio completo o una mudanza</Link>.
+      </>
+    ),
   },
   {
     q: '¿Arman muebles comprados en cualquier tienda?',
