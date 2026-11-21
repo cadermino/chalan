@@ -221,26 +221,49 @@ def _public_name(company):
     return company.contact_name or company.name
 
 
-def _ratings(company_ids):
-    """{empresa: {average, count}} de sus reseñas, de mudanzas y servicios."""
+# Cuántos comentarios se mandan por empresa: los más nuevos.
+REVIEWS_SHOWN = 20
+
+
+def _service_reviews(company_ids):
+    """{empresa: {rating: {average, count}, reviews: [...]}} de sus reseñas de
+    servicios, no de mudanzas: lo que se califica junto al precio es cómo hace
+    estos trabajos, y las estrellas cuentan lo mismo que la lista que abren.
+
+    El cliente todavía no eligió, así que un teléfono en un comentario ("lo
+    llamé al 9...") se oculta, como en la página que se comparte."""
+    from .reviews import _short_name  # reviews.py importa este módulo
     if not company_ids:
         return {}
     rows = db.session.query(Review.carrier_company_id, func.avg(Review.rating), func.count(Review.id))\
-        .filter(Review.carrier_company_id.in_(company_ids))\
+        .filter(Review.carrier_company_id.in_(company_ids), Review.service_request_id.isnot(None))\
         .group_by(Review.carrier_company_id).all()
-    return {company_id: {'average': round(float(average), 1), 'count': count} for company_id, average, count in rows}
+    result = {company_id: {'rating': {'average': round(float(average), 1), 'count': count}, 'reviews': []}
+              for company_id, average, count in rows}
+    for company_id in result:
+        reviews = Review.query.filter(Review.carrier_company_id == company_id, Review.service_request_id.isnot(None))\
+            .order_by(Review.created_date.desc(), Review.id.desc()).limit(REVIEWS_SHOWN).all()
+        result[company_id]['reviews'] = [{
+            'rating': r.rating,
+            'comment': without_phones(r.comment) or None,
+            'customer_name': _short_name(r.service_request.customer_name if r.service_request else None),
+            'service': r.service_request.service_type.name if r.service_request else None,
+            'created_date': r.created_date.date().isoformat() if r.created_date else None,
+        } for r in reviews]
+    return result
 
 
-def _customer_quotation(quotation, rate, ratings=None):
+def _customer_quotation(quotation, rate, reviews=None):
     """Lo que ve el cliente: el total (el congelado si ya la eligieron) y cómo se
-    reparte entre la reserva y lo que paga en el lugar, y la calificación de
-    quien cotiza. Nunca el teléfono, tampoco el que escribió en su nota (con
+    reparte entre la reserva y lo que paga en el lugar, y las reseñas de
+    servicios de quien cotiza (`_service_reviews`). Nunca el teléfono, tampoco el que escribió en su nota (con
     él lo contratan por fuera), ni los montos de la nota: customer_note.py."""
     total, reservation, on_site = split_total(quotation, rate)
     return {
         'id': quotation.id,
         'carrier_name': _public_name(quotation.carrier_company),
-        'rating': (ratings or {}).get(quotation.carrier_company_id),
+        'rating': (reviews or {}).get(quotation.carrier_company_id, {}).get('rating'),
+        'reviews': (reviews or {}).get(quotation.carrier_company_id, {}).get('reviews', []),
         'total_amount': float(total),
         'reservation_amount': float(reservation),
         'on_site_amount': float(on_site),
@@ -291,7 +314,7 @@ def get_customer_quotations(public_id):
         return _message('service request not found', 404)
     rate = platform_fee_rate()
     quotations = sorted(service_request.quotations, key=lambda q: (q.amount, q.id))
-    ratings = _ratings({q.carrier_company_id for q in quotations})
+    reviews = _service_reviews({q.carrier_company_id for q in quotations})
     return jsonify({
         'id': service_request.id,
         'service_type': {'code': service_request.service_type.code, 'name': service_request.service_type.name},
@@ -309,7 +332,7 @@ def get_customer_quotations(public_id):
         'reservation_required': yape_reservation_required(),
         'reservation': _customer_reservation(service_request),
         'carrier_contact': _carrier_contact(service_request),
-        'quotations': [_customer_quotation(q, rate, ratings) for q in quotations],
+        'quotations': [_customer_quotation(q, rate, reviews) for q in quotations],
         # Con el servicio completado, el link para calificar a quien lo hizo.
         'review_path': review_path(service_request),
         'reviewed': Review.query.filter_by(service_request_id=service_request.id).first() is not None,

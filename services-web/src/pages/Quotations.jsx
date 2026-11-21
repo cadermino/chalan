@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { chooseQuotation, getQuotations } from '../api'
 import { tagSession, track } from '../analytics'
@@ -13,7 +13,71 @@ function itemLabel(item) {
   return `${item.quantity} × ${item.description}${extras.length ? ` — ${extras.join(' · ')}` : ''}`
 }
 
+// Cinco estrellas grises con las amarillas encima, cortadas al promedio: 4.5 se
+// ve como cuatro y media, no redondeada a cinco.
+function Stars({ value }) {
+  return (
+    <span className="relative inline-block whitespace-nowrap leading-none tracking-tight text-line" aria-hidden="true">
+      ★★★★★
+      <span className="absolute inset-y-0 left-0 overflow-hidden text-amber-500" style={{ width: `${(value / 5) * 100}%` }}>
+        ★★★★★
+      </span>
+    </span>
+  )
+}
+
+const reviewDate = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })
+
+// Las estrellas de quien cotiza, de sus servicios (no de mudanzas); tocarlas
+// abre lo que escribieron sus clientes. `children` (la nota de la cotización) va
+// entre las estrellas y la lista, para que abierta no la aleje del precio.
+function Reviews({ rating, reviews, children }) {
+  const [open, setOpen] = useState(false)
+  const listId = useId()
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 text-sm text-inkSoft underline-offset-2 hover:underline"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => {
+          if (!open) track('service_reviews_opened', { count: rating.count })
+          setOpen(!open)
+        }}
+      >
+        <Stars value={rating.average} />
+        <span>
+          {rating.average.toFixed(1)} · {rating.count} {rating.count === 1 ? 'reseña' : 'reseñas'}
+        </span>
+        <span aria-hidden="true">{open ? '▴' : '▾'}</span>
+      </button>
+      {children}
+      {open && (
+        <ul id={listId} className="mt-2 space-y-3 border-l-2 border-line pl-3">
+          {reviews.map((review, i) => (
+            <li key={i} className="text-sm">
+              <p className="flex flex-wrap items-center gap-x-2 text-inkSoft">
+                <Stars value={review.rating} />
+                <span className="font-medium text-inkStrong">{review.customer_name}</span>
+                <span className="text-xs">
+                  {[review.service, review.created_date && reviewDate(review.created_date)].filter(Boolean).join(' · ')}
+                </span>
+              </p>
+              {review.comment && <p className="mt-0.5 text-ink">{review.comment}</p>}
+            </li>
+          ))}
+          {rating.count > reviews.length && (
+            <li className="text-xs text-inkSoft">Y {rating.count - reviews.length} más.</li>
+          )}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function QuotationCard({ quotation, lowest, canChoose, onChoose }) {
+  const note = quotation.note && <p className="mt-1 text-sm text-inkSoft">“{quotation.note}”</p>
   return (
     <li className={`rounded-xl border p-4 ${quotation.selected ? 'border-accent bg-accentSoft' : 'border-line bg-paper2'}`}>
       <div className="flex items-start justify-between gap-3">
@@ -27,13 +91,11 @@ function QuotationCard({ quotation, lowest, canChoose, onChoose }) {
               <span className="ml-2 rounded-full border border-accent px-2 py-0.5 text-xs text-accent">Más barata</span>
             )}
           </p>
-          {quotation.rating && (
-            <p className="mt-0.5 text-sm text-inkSoft">
-              <span className="text-amber-500">★</span> {quotation.rating.average.toFixed(1)}
-              {' · '}{quotation.rating.count} {quotation.rating.count === 1 ? 'reseña' : 'reseñas'}
-            </p>
-          )}
-          {quotation.note && <p className="mt-1 text-sm text-inkSoft">“{quotation.note}”</p>}
+          {quotation.rating ? (
+            <Reviews rating={quotation.rating} reviews={quotation.reviews || []}>
+              {note}
+            </Reviews>
+          ) : note}
         </div>
         <p className="shrink-0 text-xl font-semibold text-inkStrong">{money(quotation.total_amount)}</p>
       </div>

@@ -133,12 +133,53 @@ def test_the_customer_page_shows_each_companys_rating(client, packing, contact):
     assert data['quotations'][0]['rating'] == {'average': 4.0, 'count': 1}
 
 
+def test_the_stars_open_the_companys_service_comments_newest_first(client, packing, contact):
+    first = make_request(packing, contact)
+    review(client, make_review_token(first), rating=4, comment='Puntual')
+    second = make_request(packing, contact, public_id='c' * 32)
+    review(client, make_review_token(second), rating=5, comment='Lo dejó todo listo')
+    db.session.get(Review, 1).created_date = datetime(2026, 10, 2)
+    db.session.get(Review, 2).created_date = datetime(2026, 11, 2)
+    db.session.commit()
+    other = make_request(packing, contact, status='pending', public_id='b' * 32)
+
+    quotation = client.get(f'/api/v1/service-requests/{other.public_id}/quotations').get_json()['quotations'][0]
+
+    assert quotation['rating'] == {'average': 4.5, 'count': 2}
+    assert quotation['reviews'] == [
+        {'rating': 5, 'comment': 'Lo dejó todo listo', 'customer_name': 'Carla R.', 'service': 'Embalaje',
+         'created_date': '2026-11-02'},
+        {'rating': 4, 'comment': 'Puntual', 'customer_name': 'Carla R.', 'service': 'Embalaje',
+         'created_date': '2026-10-02'},
+    ]
+
+
+def test_moving_reviews_do_not_count_next_to_a_service_price(client, packing, contact):
+    db.session.add(Review(order_id=7, customer_id=3, carrier_company_id=contact.id, rating=1, comment='Mudanza'))
+    db.session.commit()
+    service_request = make_request(packing, contact, status='pending')
+
+    quotation = client.get(f'/api/v1/service-requests/{service_request.public_id}/quotations').get_json()['quotations'][0]
+
+    assert (quotation['rating'], quotation['reviews']) == (None, [])
+
+
+def test_a_phone_in_a_comment_is_hidden_before_the_customer_chooses(client, packing, contact):
+    review(client, make_review_token(make_request(packing, contact)), comment='Excelente, su cel 987 654 321')
+    other = make_request(packing, contact, status='pending', public_id='b' * 32)
+
+    quotation = client.get(f'/api/v1/service-requests/{other.public_id}/quotations').get_json()['quotations'][0]
+
+    assert quotation['reviews'][0]['comment'] == 'Excelente, su cel [número oculto]'
+
+
 def test_a_company_without_reviews_has_no_rating(client, packing, contact):
     service_request = make_request(packing, contact, status='pending')
 
     data = client.get(f'/api/v1/service-requests/{service_request.public_id}/quotations').get_json()
 
     assert data['quotations'][0]['rating'] is None
+    assert data['quotations'][0]['reviews'] == []
 
 
 def test_an_inactive_contact_has_no_public_page_or_testimonials(client, packing, contact):
