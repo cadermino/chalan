@@ -37,6 +37,10 @@ idna==3.15
 # Email
 Flask-Mail==0.10.0
 
+# PDF (cotización formal: app/api/formal_quotation/render.py)
+reportlab==4.4.4
+pillow==11.3.0
+
 # WhatsApp
 twilio==9.11.0
 

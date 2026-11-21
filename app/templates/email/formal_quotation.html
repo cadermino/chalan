@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Cotización formal – Orden {{ order_id }}</title>
+</head>
+<body style="margin:0; padding:0; background:#edf2f7;">
+  <table width="100%" bgcolor="#edf2f7" border="0" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="padding: 24px 12px;">
+        <table align="center" width="100%" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0"
+          style="max-width: 600px; font-family: sans-serif; color: #153643; font-size: 16px; line-height: 22px;">
+          <tr>
+            <td style="padding: 28px 30px 8px 30px; text-align: center;">
+              <img src="https://chalan-public.s3.amazonaws.com/logo_chalan.png" width="160" border="0" alt="Chalán" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 30px 28px 30px;">
+              <p>Hola{% if contact_name %} {{ contact_name }}{% endif %},</p>
+              <p>Adjuntamos la cotización formal de la orden N.° {{ order_id }} a nombre de
+                <strong>{{ business_name }}</strong> (RUC {{ ruc }}), por
+                <strong>S/ {{ total }}</strong> (incluye IGV), válida hasta el {{ valid_until }}.</p>
+              <p>Para aceptarla, confírmala por correo a <a href="mailto:{{ issuer_email }}">{{ issuer_email }}</a>.
+                En la cotización están la forma de pago y la cuenta para el depósito.</p>
+              <p>Cualquier duda, escríbenos al WhatsApp {{ issuer_phone }}.</p>
+              <p style="margin-bottom:0;">Chalán</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

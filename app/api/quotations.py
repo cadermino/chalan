@@ -19,6 +19,7 @@ from .email import send_email
 from .whatsapp import send_whatsapp
 from .order_access import order_access_url
 from .service_request.quotations import parse_note
+from .formal_quotation.accounting import sync_accounting_note
 from .. import db
 
 
@@ -39,6 +40,8 @@ def _accept_quotation(quotation_id):
         commission_rate = agent.commission_rate
         referred.commission = quotation.amount * commission_rate
     order.total_amount = round(quotation.amount * (1 + commission_rate + platform_fee), 2)
+    # Si la elegida tiene cotización formal, contabilidad tiene que saberlo.
+    sync_accounting_note(order)
     db.session.commit()
     return quotation, order
 

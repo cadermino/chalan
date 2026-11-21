@@ -10,6 +10,7 @@ import DeclinePanel from '../../components/DeclinePanel'
 import NearbyCarriers from '../../components/NearbyCarriers'
 import AutoQuoteEstimates from '../../components/AutoQuoteEstimates'
 import OrderCarriers from '../../components/OrderCarriers'
+import FormalQuotations from '../../components/FormalQuotations'
 import { CustomerReminder } from '../../components/CustomerReminders'
 import OrderChanges, { CarrierOrderChanges } from '../../components/OrderChanges'
 import { cargoWeightLabel, loadTypeLabel } from '../../lib/loadTypes'
@@ -564,6 +565,9 @@ export default function OrderDetail() {
             )}
           </>
         )}
+
+        {/* PDF con RUC para un cliente empresa (el cliente también lo saca en el paso 3) */}
+        {isAdmin && <FormalQuotations orderId={orderId} customerName={order.customer_name} />}
 
         {/* Servicios contratados (cargadores, embalaje, etc.) */}
         {order.services && (() => {

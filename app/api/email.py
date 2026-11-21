@@ -29,7 +29,8 @@ def send_async_email(app, msg):
         except Exception as e:
             print(f'[Email] SMTP error to={msg.recipients} subject="{msg.subject}": {e}', flush=True)
 
-def send_email(to, subject, template, bcc, **kwargs):
+def send_email(to, subject, template, bcc, attachments=None, **kwargs):
+    """`attachments`: [(nombre, content type, bytes)], p. ej. el PDF de la cotización formal."""
     app = current_app._get_current_object()
     if os.getenv('FLASK_ENV') != 'prod' and not subject.startswith('[test]'):
         subject = f'[test]{subject}'
@@ -40,6 +41,8 @@ def send_email(to, subject, template, bcc, **kwargs):
         recipients=[to]
     )
     msg.html = render_template(template + '.html', **kwargs)
+    for filename, content_type, data in attachments or []:
+        msg.attach(filename, content_type, data)
     thr = Thread(target=send_async_email, args=[app, msg])
     thr.start()
     return thr

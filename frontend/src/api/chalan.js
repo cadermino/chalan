@@ -51,6 +51,22 @@ export default {
       },
     });
   },
+  // Cotización formal en PDF (con RUC). Llega como blob para descargarlo.
+  getFormalQuotations(payload) {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}order/${payload.orderId}/formal-quotations`, {
+      headers: { Authorization: `Bearer ${payload.token}` },
+    });
+  },
+  createFormalQuotation(payload) {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}order/${payload.orderId}/formal-quotations`,
+      payload.data, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${payload.token}`,
+        },
+        responseType: 'blob',
+      });
+  },
   updateQuotation(payload) {
     return axios.put(`${import.meta.env.VUE_APP_API_URL}quotation/${payload.quotationId}`, payload, {
       headers: {

@@ -189,6 +189,13 @@
                       {{ 'Ver más' }}
                     </button>
                   </div>
+                  <!-- Para empresas: el PDF con RUC, IGV y condiciones que pide su
+                       área de compras, antes de elegir (FormalQuotationModal). -->
+                  <button type="button" :id="`formal-quotation-${quotation.id}`"
+                    @click="openFormalQuotation(quotation)"
+                    class="mt-3 w-full text-sm text-gray-700 underline focus:outline-none">
+                    ¿Eres empresa? Descarga la cotización formal con RUC
+                  </button>
                 </div>
               </div>
             </div>
@@ -259,6 +266,12 @@
             :currency="countryData.currency"
             show-yape-qr
             @close="closePaymentModal" />
+          <FormalQuotationModal
+            :visible="showFormalQuotationModal"
+            :order-id="currentOrder.order_id"
+            :quotation="formalQuotation"
+            :customer="customer"
+            @close="showFormalQuotationModal = false" />
         </div>
       </div>
     </div>
@@ -271,6 +284,7 @@ import { useStore } from '@/store';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
+import FormalQuotationModal from '@/components/FormalQuotationModal.vue';
 import axios from 'axios';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
@@ -307,12 +321,15 @@ export default {
       selectedQuotation: {},
       quotationSelectionPending: false,
       showPaymentModal: false,
+      showFormalQuotationModal: false,
+      formalQuotation: null,
     };
   },
   components: {
     Tracker,
     ViewsMessages,
     PaymentConfirmationModal,
+    FormalQuotationModal,
   },
   mounted() {
     this.triggerQuotationRequest();
@@ -436,6 +453,11 @@ export default {
           };
         }));
       await Promise.all(requests);
+    },
+    openFormalQuotation(quotation) {
+      this.formalQuotation = quotation;
+      this.showFormalQuotationModal = true;
+      track('formal_quotation_opened', { order_id: this.currentOrder.order_id });
     },
     openPaymentModal() {
       this.showPaymentModal = true;

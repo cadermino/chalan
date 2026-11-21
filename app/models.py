@@ -140,6 +140,10 @@ class Order(db.Model):
 	comments = db.Column(db.String(500))
 	total_amount = db.Column(db.Float, nullable=True)
 	approximate_budget = db.Column(db.Float, nullable=True)
+	# Con texto, la orden se concilia aparte en contabilidad (migración 021; la
+	# edita el backoffice). Aquí solo la escribe la cotización formal
+	# (api/formal_quotation/accounting.py).
+	accounting_note = db.Column(db.Text, nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 	quotation_requested = db.Column(db.Boolean, default=False, nullable=True)
@@ -325,6 +329,31 @@ class OrderVideo(db.Model):
 	storage_key = db.Column(db.String(300), nullable=False, unique=True)
 	content_type = db.Column(db.String(60))
 	size_bytes = db.Column(db.Integer)
+	created_date = db.Column(db.DateTime(), server_default=func.now())
+
+class FormalQuotation(db.Model):
+	"""Cotización formal en PDF para un cliente con RUC (migración 054).
+
+	`document` es todo lo que se imprimió (api/formal_quotation/build.py): volver
+	a descargarla da el mismo PDF aunque la orden cambie. La pide el cliente en
+	el paso 3 (`created_by_admin_id` NULL) o un admin desde el backoffice.
+	"""
+	__tablename__ = 'formal_quotations'
+	id = db.Column(db.Integer, primary_key=True)
+	order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
+	quotation_id = db.Column(db.Integer, db.ForeignKey('quotations.id', ondelete='CASCADE'), nullable=False)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customers.id', ondelete='SET NULL'))
+	ruc = db.Column(db.String(11), nullable=False)
+	business_name = db.Column(db.String(200), nullable=False)
+	contact_name = db.Column(db.String(120))
+	contact_email = db.Column(db.String(255))
+	prices_include_igv = db.Column(db.Boolean, nullable=False, default=False)
+	subtotal = db.Column(db.Numeric(10, 2), nullable=False)
+	igv = db.Column(db.Numeric(10, 2), nullable=False)
+	total = db.Column(db.Numeric(10, 2), nullable=False)
+	valid_until = db.Column(db.Date, nullable=False)
+	document = db.Column(db.JSON, nullable=False)
+	created_by_admin_id = db.Column(db.Integer)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
 
