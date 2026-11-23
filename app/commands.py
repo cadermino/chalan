@@ -30,9 +30,11 @@ def register(app):
     @click.option('--order', default=None, type=int, help='Orden del aviso; por defecto, la última pendiente.')
     @click.option('--base', default='http://localhost/', show_default=True,
                   help='Sitio del link del aviso (en el servidor: https://chalan.pe/).')
-    def web_push_test(company, order, base):
-        """Manda un aviso de "Nueva orden para cotizar" a los navegadores suscritos
-        de una empresa (api/carrier_push.py) y dice a cuántos salió."""
+    @click.option('--kind', type=click.Choice(['new', 'changed', 'selected']), default='new', show_default=True,
+                  help='Cuál de los tres avisos: orden nueva, la orden cambió o te eligieron.')
+    def web_push_test(company, order, base, kind):
+        """Manda uno de los tres avisos (--kind) a los navegadores suscritos de una
+        empresa (api/carrier_push.py) y dice si el servicio de push lo aceptó."""
         from .api import carrier_push
         from .models import CarrierPushSubscription, Order
         target = db.session.get(Order, order) if order else \
@@ -44,11 +46,15 @@ def register(app):
         # El mismo link que lleva un aviso real (con token), en localhost.
         from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
         token = CarrierCompanyEntity().generate_carrier_company_token(604800, target.id, company)
-        link = f'{base.rstrip("/")}/quotation/{token}'
+        if kind == 'selected':
+            message = carrier_push.selected_message(target, f'{base.rstrip("/")}/carrier-company/orders/{token}')
+        else:
+            message = carrier_push.new_order_message(target, f'{base.rstrip("/")}/quotation/{token}',
+                                                     changed=kind == 'changed')
         rows = CarrierPushSubscription.query.filter_by(carrier_company_id=company,
                                                        vapid_public_key=carrier_push.public_key()).all()
         before = {row.id: row.last_sent_at for row in rows}
-        if not carrier_push.notify_carrier(company, carrier_push.new_order_message(target, link), wait=True):
+        if not carrier_push.notify_carrier(company, message, wait=True):
             raise click.ClickException(f'La empresa {company} no tiene navegadores suscritos con la clave actual.')
         db.session.expire_all()
         for row_id, sent_at in before.items():
