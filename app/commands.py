@@ -8,6 +8,42 @@ from .storage import get_storage
 
 
 def register(app):
+    @app.cli.command('quotation-link')
+    @click.option('--company', default=1, show_default=True, help='Empresa del link.')
+    @click.option('--order', default=None, type=int, help='Orden; por defecto, la última pendiente.')
+    @click.option('--base', default='http://localhost/', show_default=True,
+                  help='Sitio: localhost para probar los avisos push (local.chalan.mx es http sin service workers).')
+    def quotation_link(company, order, base):
+        """Imprime un link de cotizar de 7 días para probar en local."""
+        from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
+        from .models import Order
+        if order is None:
+            last = Order.query.filter_by(order_status_id=1).order_by(Order.id.desc()).first()
+            if last is None:
+                raise click.ClickException('No hay órdenes pendientes.')
+            order = last.id
+        token = CarrierCompanyEntity().generate_carrier_company_token(604800, order, company)
+        click.echo(f'{base.rstrip("/")}/quotation/{token}')
+
+    @app.cli.command('web-push-test')
+    @click.option('--company', default=1, show_default=True, help='Empresa a la que se avisa.')
+    @click.option('--order', default=None, type=int, help='Orden del aviso; por defecto, la última pendiente.')
+    def web_push_test(company, order):
+        """Manda un aviso de "Nueva orden para cotizar" a los navegadores suscritos
+        de una empresa (api/carrier_push.py) y dice a cuántos salió."""
+        from .api import carrier_push
+        from .models import Order
+        target = db.session.get(Order, order) if order else \
+            Order.query.filter_by(order_status_id=1).order_by(Order.id.desc()).first()
+        if target is None:
+            raise click.ClickException('No hay esa orden.')
+        if not carrier_push.push_enabled():
+            raise click.ClickException('Faltan WEB_PUSH_PUBLIC_KEY / WEB_PUSH_PRIVATE_KEY en el entorno.')
+        link = 'http://localhost/quotation/x'
+        sent = carrier_push.notify_carrier(company, carrier_push.new_order_message(target, link))
+        click.echo(f'Aviso de la orden {target.id} enviado a {sent} navegador(es) de la empresa {company}.'
+                   if sent else f'La empresa {company} no tiene navegadores suscritos con la clave actual.')
+
     @app.cli.command('web-push-keys')
     def web_push_keys():
         """Arma un par de claves VAPID para los avisos push (api/carrier_push.py).
