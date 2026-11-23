@@ -220,13 +220,14 @@ def selected_message(order, orders_url):
     return _message(order, f'¡Te eligieron! Orden {order.id}', 'Toca para ver los datos del cliente.', orders_url)
 
 
-def notify_carriers(messages):
+def notify_carriers(messages, wait=False):
     """Manda cada mensaje a los navegadores suscritos de su empresa.
 
     `messages`: [(carrier_company_id, {title, body, url, tag})]. Devuelve a
     cuántos navegadores salió. Nunca falla: es un aviso más, junto al correo y
     el WhatsApp. Se manda en un hilo, como el WhatsApp, para no demorar la
-    respuesta (en los tests, en el mismo)."""
+    respuesta (en los tests, en el mismo). `wait`: mandarlo antes de volver,
+    para un comando de consola, que termina sin esperar al hilo."""
     try:
         if not messages or not push_enabled():
             return 0
@@ -244,7 +245,7 @@ def notify_carriers(messages):
         ]
         if not targets:
             return 0
-        if current_app.config.get('TESTING'):
+        if wait or current_app.config.get('TESTING'):
             _deliver(targets)
         else:
             app = current_app._get_current_object()
@@ -255,8 +256,8 @@ def notify_carriers(messages):
         return 0
 
 
-def notify_carrier(carrier_company_id, message):
-    return notify_carriers([(carrier_company_id, message)])
+def notify_carrier(carrier_company_id, message, wait=False):
+    return notify_carriers([(carrier_company_id, message)], wait=wait)
 
 
 def _send(subscription_info, payload):

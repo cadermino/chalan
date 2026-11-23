@@ -32,7 +32,7 @@ def register(app):
         """Manda un aviso de "Nueva orden para cotizar" a los navegadores suscritos
         de una empresa (api/carrier_push.py) y dice a cuántos salió."""
         from .api import carrier_push
-        from .models import Order
+        from .models import CarrierPushSubscription, Order
         target = db.session.get(Order, order) if order else \
             Order.query.filter_by(order_status_id=1).order_by(Order.id.desc()).first()
         if target is None:
@@ -40,9 +40,20 @@ def register(app):
         if not carrier_push.push_enabled():
             raise click.ClickException('Faltan WEB_PUSH_PUBLIC_KEY / WEB_PUSH_PRIVATE_KEY en el entorno.')
         link = 'http://localhost/quotation/x'
-        sent = carrier_push.notify_carrier(company, carrier_push.new_order_message(target, link))
-        click.echo(f'Aviso de la orden {target.id} enviado a {sent} navegador(es) de la empresa {company}.'
-                   if sent else f'La empresa {company} no tiene navegadores suscritos con la clave actual.')
+        rows = CarrierPushSubscription.query.filter_by(carrier_company_id=company,
+                                                       vapid_public_key=carrier_push.public_key()).all()
+        before = {row.id: row.last_sent_at for row in rows}
+        if not carrier_push.notify_carrier(company, carrier_push.new_order_message(target, link), wait=True):
+            raise click.ClickException(f'La empresa {company} no tiene navegadores suscritos con la clave actual.')
+        db.session.expire_all()
+        for row_id, sent_at in before.items():
+            row = db.session.get(CarrierPushSubscription, row_id)
+            if row is None:
+                click.echo(f'Navegador {row_id}: el servicio de push dijo que ya no existe; se borró.')
+            elif row.last_sent_at != sent_at and row.last_error is None:
+                click.echo(f'Navegador {row_id}: aviso de la orden {target.id} aceptado por el servicio de push.')
+            else:
+                click.echo(f'Navegador {row_id}: falló ({row.last_error}).')
 
     @app.cli.command('web-push-keys')
     def web_push_keys():
