@@ -148,7 +148,9 @@ export default function PushOptIn({ token }) {
       permission = Notification.permission
     }
     if (permission !== 'granted') {
-      setState(permission === 'denied' ? 'denied' : 'ask')
+      // 'default' sin haber visto la pregunta: Chrome con "mensajes discretos" (o
+      // una ventana dentro de otra app) contesta solo. Se explica cómo permitirlo.
+      setState(permission === 'denied' ? 'denied' : 'no_prompt')
       return
     }
     try {
@@ -220,11 +222,37 @@ export default function PushOptIn({ token }) {
   if (state === 'on') {
     return <p id="push-on" className="text-sm text-green-700">Avisos activados en este celular.</p>
   }
-  if (state === 'denied') {
+  if (state === 'denied' || state === 'no_prompt') {
     return (
-      <p id="push-denied" className="text-sm text-gray-600">
-        Bloqueaste los avisos de Chalán en este navegador. Para recibirlos, permítelos en la configuración del sitio (el candado junto a la dirección → Notificaciones).
-      </p>
+      <div id="push-help" className="flex items-start gap-3 rounded-lg border border-amber-300 bg-white p-4 shadow-sm">
+        <Bell />
+        <div className="flex-1">
+          <p className="font-semibold text-gray-800">
+            {state === 'denied' ? 'Los avisos de Chalán están bloqueados en este celular' : 'Tu navegador no mostró la pregunta para permitir avisos'}
+          </p>
+          {isIos() ? (
+            <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-gray-600">
+              <li>Abre <strong>Ajustes</strong> del iPhone → <strong>Notificaciones</strong> → <strong>Chalán</strong>.</li>
+              <li>Activa <strong>Permitir notificaciones</strong>.</li>
+              <li>Vuelve aquí y toca <strong>"Ya lo permití"</strong>.</li>
+            </ol>
+          ) : (
+            <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-gray-600">
+              <li>Toca <strong>⋮</strong> (arriba a la derecha) → <strong>Controles de sitio</strong>. También está en el ícono a la izquierda de chalan.pe.</li>
+              <li><strong>Permisos</strong> → <strong>Notificaciones</strong> → <strong>Permitir</strong>.</li>
+              <li>Vuelve aquí y toca <strong>"Ya lo permití"</strong>.</li>
+            </ol>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <button id="push-retry" type="button" onClick={enable} className="rounded-lg bg-teal-600 px-4 py-2 font-semibold text-white hover:bg-teal-700">
+              Ya lo permití
+            </button>
+            <button type="button" onClick={dismiss} className="py-2 text-sm text-gray-500 underline hover:text-gray-700">
+              Ahora no
+            </button>
+          </div>
+        </div>
+      </div>
     )
   }
   return (
