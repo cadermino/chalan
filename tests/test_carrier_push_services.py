@@ -85,7 +85,7 @@ def test_a_new_request_pushes_to_subscribed_carriers(app, client, pushed):
     request_id = make_submitted(client)
 
     assert len(pushed) == 1
-    assert '"title": "Nueva solicitud de embalaje"' in pushed[0]
+    assert f'"title": "Nueva solicitud {request_id} de embalaje"' in pushed[0]
     assert 'mar 6 oct · ' in pushed[0] and 'Toca para cotizar.' in pushed[0]
     assert '"url": "https://chalan.pe/backoffice/carrier-view/' in pushed[0] and '?r=push"' in pushed[0]
     assert f'"tag": "service-{request_id}"' in pushed[0]
@@ -99,7 +99,7 @@ def test_being_chosen_for_a_service_pushes_to_the_carrier(app, client, pushed):
     assert choose(client, service_request.public_id, quotation_id).status_code == 200
 
     assert len(pushed) == 1
-    assert '"title": "¡Te eligieron! Embalaje"' in pushed[0]
+    assert f'"title": "¡Te eligieron! Embalaje, solicitud {service_request.id}"' in pushed[0]
     assert 'Toca para ver los datos del cliente.' in pushed[0]
     assert '"url": "https://chalan.pe/backoffice/carrier-view/' in pushed[0]
 
@@ -107,5 +107,5 @@ def test_being_chosen_for_a_service_pushes_to_the_carrier(app, client, pushed):
 def test_a_request_without_date_or_address_still_gives_a_message(app):
     request = ServiceRequest(id=5)
     message = carrier_push.new_service_message(request, 'https://chalan.pe/backoffice/carrier-view/t')
-    assert message == {'title': 'Nueva solicitud de servicio', 'body': 'Toca para cotizar.',
+    assert message == {'title': 'Nueva solicitud 5 de servicio', 'body': 'Toca para cotizar.',
                        'url': 'https://chalan.pe/backoffice/carrier-view/t?r=push', 'tag': 'service-5'}

@@ -254,7 +254,7 @@ def test_a_new_order_pushes_to_subscribed_carriers(client, customer, carrier_com
 
     assert len(sent) == 1
     payload = sent[0][1]
-    assert '"title": "Nueva orden para cotizar"' in payload
+    assert f'"title": "Nueva orden {order_id} para cotizar"' in payload
     assert 'jue 20 ago · San Isidro · Mudanza. Toca para cotizar.' in payload
     assert '"url": "https://chalan.pe/quotation/' in payload and '?r=push"' in payload
     assert f'"tag": "order-{order_id}"' in payload

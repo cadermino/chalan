@@ -236,7 +236,7 @@ def _message(order, title, action, url):
 def new_order_message(order, quotation_url, changed=False):
     if changed:
         return _message(order, f'La orden {order.id} cambió', 'Vuelve a cotizar.', quotation_url)
-    return _message(order, 'Nueva orden para cotizar', 'Toca para cotizar.', quotation_url)
+    return _message(order, f'Nueva orden {order.id} para cotizar', 'Toca para cotizar.', quotation_url)
 
 
 def selected_message(order, orders_url):
@@ -266,12 +266,12 @@ def _service_message(service_request, title, action, url):
 
 
 def new_service_message(service_request, carrier_url):
-    return _service_message(service_request, f'Nueva solicitud de {_service_name(service_request)}',
+    return _service_message(service_request, f'Nueva solicitud {service_request.id} de {_service_name(service_request)}',
                             'Toca para cotizar.', carrier_url)
 
 
 def service_selected_message(service_request, carrier_url):
-    return _service_message(service_request, f'¡Te eligieron! {_service_name(service_request).capitalize()}',
+    return _service_message(service_request, f'¡Te eligieron! {_service_name(service_request).capitalize()}, solicitud {service_request.id}',
                             'Toca para ver los datos del cliente.', carrier_url)
 
 
