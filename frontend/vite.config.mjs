@@ -16,7 +16,7 @@ const APP_ROUTES = /^\/(order|carrier-company|dashboard|register-login|login|reg
 // Archivos de public/ que viven dentro de una ruta de la app: el service worker
 // de los avisos tiene que servirse desde /quotation/ para que su alcance sea el
 // link de cotizar (public/quotation/push-sw.js).
-const STATIC_IN_APP_ROUTES = /^\/quotation\/(push-sw\.js|manifest\.json|icon-192\.png)$/;
+const STATIC_IN_APP_ROUTES = /^\/quotation\/(push-sw\.js|manifest\.json|icon-192\.png|badge-96\.png)$/;
 
 // El servidor de desarrollo solo conoce la base: sin esto una URL de la app
 // daría 404 al recargar. Mismo truco que services-web/vite.config.js.

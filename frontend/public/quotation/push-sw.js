@@ -15,6 +15,9 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(data.title || 'Chalán', {
     body: data.body || '',
     icon: '/quotation/icon-192.png',
+    // Ícono chico de la barra de Android: sin él, Chrome pone el suyo. Android
+    // solo usa su silueta (blanco sobre transparente).
+    badge: '/quotation/badge-96.png',
     tag: data.tag,
     // Con el mismo tag reemplaza al anterior de esa orden, pero vuelve a sonar.
     renotify: Boolean(data.tag),
