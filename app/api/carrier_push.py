@@ -8,6 +8,11 @@ cambió y "te eligieron". Al tocar el aviso se abre el link de siempre con
 `?r=push`, que GA4 cuenta como `push_opened`. No reemplaza nada: el correo y el
 WhatsApp siguen saliendo igual.
 
+- Servicios (embalaje, armado, pintura…) igual: la tarjeta está en su link
+  (`backoffice/src/pages/service-requests/CarrierView.jsx`, a través del
+  backoffice-api) y avisan "nueva solicitud" y "te eligieron". Las dos páginas
+  registran el mismo service worker (`/quotation/push-sw.js`), así que una
+  empresa que hace mudanzas y servicios tiene una sola suscripción por celular.
 - Pedir el permiso en el link de cotizar y no en el backoffice: ahí entra todos
   los días, y su token ya dice de qué empresa es, sin contraseña.
 - Claves VAPID en el entorno (`WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`,
@@ -37,6 +42,10 @@ from .errors import bad_request, not_found, unauthorized
 from .order.load import LOAD_TYPE_LABELS
 from ..models import CarrierCompany, CarrierPushSubscription
 from .. import db
+
+# El propósito del token del link de una solicitud de servicio
+# (service_request/notifications.py, TOKEN_PURPOSE).
+SERVICE_TOKEN_PURPOSE = 'service_request'
 
 # Google (Chrome, Edge en Android, Samsung, Opera), Mozilla, Apple y Microsoft.
 PUSH_HOSTS = ('fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com',
@@ -96,16 +105,30 @@ def web_push_public_key():
     return jsonify({'public_key': public_key() if push_enabled() else None}), 200
 
 
-def _company_from_link():
-    """La empresa del token del link de cotizar, o (None, respuesta de error).
+def _is_carrier_link(data):
+    """Si el token es el de un link para cotizar: el de una orden (empresa y
+    orden, sin propósito) o el de una solicitud de servicio (`service_request`).
 
-    Cualquier JWT con SECRET_KEY pasa la firma (también el de un cliente): hace
-    falta que sea el de un link de cotizar, con empresa y orden."""
+    Todos los JWT de las dos apps comparten SECRET_KEY, y los de reseña también
+    traen la empresa (y la orden o la solicitud): con uno, un cliente
+    suscribiría su navegador a los avisos de esa empresa y recibiría sus links
+    para cotizar. Los de reseña llevan `purpose: review`, y los de mudanza de
+    antes de octubre de 2026, `customer_id`."""
+    if not data or not data.get('carrier_company_id') or 'customer_id' in data:
+        return False
+    purpose = data.get('purpose')
+    if purpose is None:
+        return bool(data.get('order_id'))
+    return purpose == SERVICE_TOKEN_PURPOSE and bool(data.get('service_request_id'))
+
+
+def _company_from_link():
+    """La empresa del token del link para cotizar, o (None, respuesta de error)."""
     parts = request.headers.get('Authorization', '').split()
     if len(parts) < 2:
         return None, unauthorized('Missing token')
     data = CarrierCompanyEntity.verify_carrier_company_token(parts[1])
-    if not data or not data.get('carrier_company_id') or not data.get('order_id'):
+    if not _is_carrier_link(data):
         return None, bad_request('Invalid token')
     company = db.session.get(CarrierCompany, data['carrier_company_id'])
     if company is None:
@@ -218,6 +241,38 @@ def new_order_message(order, quotation_url, changed=False):
 
 def selected_message(order, orders_url):
     return _message(order, f'¡Te eligieron! Orden {order.id}', 'Toca para ver los datos del cliente.', orders_url)
+
+
+def _service_summary(service_request):
+    """"sáb 29 nov · Miraflores": la fecha y el distrito de una solicitud. Nunca falla."""
+    try:
+        district = district_of({'street': service_request.street, 'neighborhood': service_request.neighborhood,
+                                'city': service_request.city})
+        return ' · '.join(filter(None, [_short_date(service_request.preferred_date), district]))
+    except Exception as e:
+        print(f'[Push] Sin resumen de la solicitud {getattr(service_request, "id", None)}: {e}', flush=True)
+        return ''
+
+
+def _service_name(service_request):
+    service_type = getattr(service_request, 'service_type', None)
+    return (service_type.name if service_type else 'servicio').lower()
+
+
+def _service_message(service_request, title, action, url):
+    summary = _service_summary(service_request)
+    return {'title': title, 'body': f'{summary}. {action}' if summary else action,
+            'url': _with_push_ref(url), 'tag': f'service-{service_request.id}'}
+
+
+def new_service_message(service_request, carrier_url):
+    return _service_message(service_request, f'Nueva solicitud de {_service_name(service_request)}',
+                            'Toca para cotizar.', carrier_url)
+
+
+def service_selected_message(service_request, carrier_url):
+    return _service_message(service_request, f'¡Te eligieron! {_service_name(service_request).capitalize()}',
+                            'Toca para ver los datos del cliente.', carrier_url)
 
 
 def notify_carriers(messages, wait=False):

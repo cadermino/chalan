@@ -7,6 +7,7 @@ from flask import current_app
 from ... import db
 from ...models import (CarrierCompany, CarrierCompanyServiceType,
                        ServiceRequestNotification)
+from .. import carrier_push
 from ..address import district_of
 from ..email import send_email
 from ..whatsapp import normalize_phone, send_whatsapp
@@ -83,6 +84,7 @@ def notify_service_request(service_request, notify_admin=True):
     service_name = service_request.service_type.name
     notified_ids = []
     notified_names = []
+    pushes = []
 
     for carrier in _pending_carriers(service_request):
         try:
@@ -113,9 +115,11 @@ def notify_service_request(service_request, notify_admin=True):
             db.session.commit()
             notified_ids.append(carrier.id)
             notified_names.append(carrier.name)
+            pushes.append((carrier.id, carrier_push.new_service_message(service_request, url)))
         except Exception as e:
             db.session.rollback()
             print(f'[ServiceRequest] error notifying carrier={carrier.id}: {e}', flush=True)
+    carrier_push.notify_carriers(pushes)
 
     if notify_admin:
         _notify_admin(service_request, service_name, notified_names)
@@ -342,6 +346,7 @@ def notify_job_confirmed(service_request, quotation, tell_customer):
             )
         except Exception as e:
             print(f'[ServiceRequest] error sending choice WhatsApp to carrier={carrier.id}: {e}', flush=True)
+        carrier_push.notify_carrier(carrier.id, carrier_push.service_selected_message(service_request, url))
 
     if tell_customer:
         try:

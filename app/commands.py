@@ -8,49 +8,84 @@ from .storage import get_storage
 
 
 def register(app):
+    def _links(base, service):
+        """Sitio de los links de prueba. Las órdenes se abren en Vue (localhost, por
+        nginx: local.chalan.mx es http y no tiene service workers) y los servicios
+        en el backoffice, que en local corre en el puerto 5173 sin /backoffice/."""
+        if base is None:
+            base = 'http://localhost:5173/' if service is not None else 'http://localhost/'
+        base = base.rstrip('/')
+        prefix = '' if base.endswith(':5173') else '/backoffice'
+        return base, prefix
+
+    def _last_pending(model, status_filter):
+        return model.query.filter(status_filter).order_by(model.id.desc()).first()
+
+    def _test_target(order, service):
+        """La orden o la solicitud del link o del aviso de prueba: la pedida, o la
+        última pendiente (y enviada, si es una solicitud)."""
+        from .models import Order, ServiceRequest
+        if service is not None:
+            target = db.session.get(ServiceRequest, service) if service else _last_pending(
+                ServiceRequest, (ServiceRequest.status == 'pending') & ServiceRequest.submitted_at.isnot(None))
+        else:
+            target = db.session.get(Order, order) if order else _last_pending(Order, Order.order_status_id == 1)
+        if target is None:
+            raise click.ClickException('No hay esa orden o solicitud.')
+        return target
+
+    def _carrier_url(target, company, base, service, selected=False):
+        from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
+        from .api.service_request.notifications import generate_service_request_token
+        site, prefix = _links(base, service)
+        if service is not None:
+            return f'{site}{prefix}/carrier-view/{generate_service_request_token(target.id, company)}'
+        token = CarrierCompanyEntity().generate_carrier_company_token(604800, target.id, company)
+        return f'{site}/carrier-company/orders/{token}' if selected else f'{site}/quotation/{token}'
+
+    service_option = click.option(
+        '--service', default=None, type=int, is_flag=False, flag_value=0,
+        help='Una solicitud de servicio en vez de una orden (--service sola: la última enviada pendiente).')
+
     @app.cli.command('quotation-link')
     @click.option('--company', default=1, show_default=True, help='Empresa del link.')
     @click.option('--order', default=None, type=int, help='Orden; por defecto, la última pendiente.')
-    @click.option('--base', default='http://localhost/', show_default=True,
-                  help='Sitio: localhost para probar los avisos push (local.chalan.mx es http sin service workers).')
-    def quotation_link(company, order, base):
-        """Imprime un link de cotizar de 7 días para probar en local."""
-        from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
-        from .models import Order
-        if order is None:
-            last = Order.query.filter_by(order_status_id=1).order_by(Order.id.desc()).first()
-            if last is None:
-                raise click.ClickException('No hay órdenes pendientes.')
-            order = last.id
-        token = CarrierCompanyEntity().generate_carrier_company_token(604800, order, company)
-        click.echo(f'{base.rstrip("/")}/quotation/{token}')
+    @service_option
+    @click.option('--base', default=None,
+                  help='Sitio (por defecto localhost: el de nginx para órdenes, el 5173 para servicios).')
+    def quotation_link(company, order, service, base):
+        """Imprime un link para cotizar (orden, o solicitud con --service) para probar."""
+        target = _test_target(order, service)
+        click.echo(_carrier_url(target, company, base, service))
 
     @app.cli.command('web-push-test')
     @click.option('--company', default=1, show_default=True, help='Empresa a la que se avisa.')
     @click.option('--order', default=None, type=int, help='Orden del aviso; por defecto, la última pendiente.')
-    @click.option('--base', default='http://localhost/', show_default=True,
+    @service_option
+    @click.option('--base', default=None,
                   help='Sitio del link del aviso (en el servidor: https://chalan.pe/).')
     @click.option('--kind', type=click.Choice(['new', 'changed', 'selected']), default='new', show_default=True,
-                  help='Cuál de los tres avisos: orden nueva, la orden cambió o te eligieron.')
-    def web_push_test(company, order, base, kind):
-        """Manda uno de los tres avisos (--kind) a los navegadores suscritos de una
+                  help='Cuál aviso: nueva, la orden cambió (solo órdenes) o te eligieron.')
+    def web_push_test(company, order, service, base, kind):
+        """Manda uno de los avisos (--kind) a los navegadores suscritos de una
         empresa (api/carrier_push.py) y dice si el servicio de push lo aceptó."""
         from .api import carrier_push
-        from .models import CarrierPushSubscription, Order
-        target = db.session.get(Order, order) if order else \
-            Order.query.filter_by(order_status_id=1).order_by(Order.id.desc()).first()
-        if target is None:
-            raise click.ClickException('No hay esa orden.')
+        from .models import CarrierPushSubscription
+        if service is not None and kind == 'changed':
+            raise click.ClickException('Las solicitudes de servicio no tienen aviso de "cambió".')
         if not carrier_push.push_enabled():
             raise click.ClickException('Faltan WEB_PUSH_PUBLIC_KEY / WEB_PUSH_PRIVATE_KEY en el entorno.')
-        # El mismo link que lleva un aviso real (con token), en localhost.
-        from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
-        token = CarrierCompanyEntity().generate_carrier_company_token(604800, target.id, company)
-        if kind == 'selected':
-            message = carrier_push.selected_message(target, f'{base.rstrip("/")}/carrier-company/orders/{token}')
+        target = _test_target(order, service)
+        url = _carrier_url(target, company, base, service, selected=kind == 'selected')
+        if service is not None:
+            message = (carrier_push.service_selected_message if kind == 'selected'
+                       else carrier_push.new_service_message)(target, url)
+        elif kind == 'selected':
+            message = carrier_push.selected_message(target, url)
         else:
-            message = carrier_push.new_order_message(target, f'{base.rstrip("/")}/quotation/{token}',
-                                                     changed=kind == 'changed')
+            message = carrier_push.new_order_message(target, url, changed=kind == 'changed')
+        what = f'la solicitud {target.id}' if service is not None else f'la orden {target.id}'
+
         rows = CarrierPushSubscription.query.filter_by(carrier_company_id=company,
                                                        vapid_public_key=carrier_push.public_key()).all()
         before = {row.id: row.last_sent_at for row in rows}
@@ -62,7 +97,7 @@ def register(app):
             if row is None:
                 click.echo(f'Navegador {row_id}: el servicio de push dijo que ya no existe; se borró.')
             elif row.last_sent_at != sent_at and row.last_error is None:
-                click.echo(f'Navegador {row_id}: aviso de la orden {target.id} aceptado por el servicio de push.')
+                click.echo(f'Navegador {row_id}: aviso de {what} aceptado por el servicio de push.')
             else:
                 click.echo(f'Navegador {row_id}: falló ({row.last_error}).')
 

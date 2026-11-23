@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import client from '../../api/client'
 import ServiceRequestView, { formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import DeclinePanel from '../../components/DeclinePanel'
+import PushOptIn from '../../components/PushOptIn'
 
 // Mismo número que usa la landing; ahora solo para dudas, ya no para cotizar.
 const CHALAN_WHATSAPP = '51972643007'
@@ -258,6 +259,7 @@ export default function ServiceRequestCarrierView() {
             <p className="text-sm text-gray-500">
               Hola{request.carrier_company_name ? `, ${request.carrier_company_name}` : ''}. Esta es la solicitud para cotizar.
             </p>
+            <PushOptIn token={token} />
             <ServiceRequestView request={request} />
             {canQuote && <QuotationForm token={token} request={request} onSaved={load} />}
             {quotationState === 'open' && (

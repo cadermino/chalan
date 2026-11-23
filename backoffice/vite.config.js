@@ -17,6 +17,15 @@ export default defineConfig(({ mode }) => {
       watch: {
         usePolling: true,
       },
+      // El service worker de los avisos push lo sirve la app de Vue en
+      // /quotation/ (components/PushOptIn.jsx). En producción es el mismo
+      // dominio; en local el backoffice corre aparte, así que se lo pide a Vue.
+      proxy: {
+        '/quotation/': {
+          target: env.VUE_DEV_URL || 'http://vuex:8080',
+          rewrite: (path) => `/vue-dev${path}`,
+        },
+      },
     },
   }
 })

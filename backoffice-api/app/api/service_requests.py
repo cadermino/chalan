@@ -911,3 +911,47 @@ def service_prospects(code):
     prospects = data.get(code) if not code.startswith('_') else None
     return jsonify({'prospects': prospects if isinstance(prospects, list) else []}), 200
 
+
+
+# --- Avisos push del link del transportista ------------------------------------
+# La tarjeta "Activar avisos" de la vista del transportista
+# (pages/service-requests/CarrierView.jsx, components/PushOptIn.jsx). Lo guarda
+# el API principal (app/api/carrier_push.py), con el mismo token del link: es el
+# que dice de qué empresa es.
+
+@api.route('/public/web-push/public-key', methods=['GET'])
+def web_push_public_key():
+    """La clave con que el navegador se suscribe; null si los avisos están apagados
+    o el API principal no contesta (la tarjeta no se muestra)."""
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request('GET', f'{internal_api}/api/v1/web-push/public-key', json=None,
+                               headers={}, timeout=10)
+        key = res.json().get('public_key') if res.status_code == 200 else None
+    except (requests.RequestException, ValueError):
+        key = None
+    return jsonify({'public_key': key}), 200
+
+
+@api.route('/public/service-requests/<token>/push-subscription', methods=['POST'])
+def subscribe_carrier_push(token):
+    """Guarda el buzón de este navegador para la empresa del link. Sin login."""
+    service_request, carrier_company_id, error = _resolve_carrier_link(token)
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+    internal_api = os.getenv('INTERNAL_API_URL', 'http://flask-api:8001')
+    try:
+        res = requests.request(
+            'POST', f'{internal_api}/api/v1/carrier-push-subscriptions',
+            json={'endpoint': data.get('endpoint'), 'keys': data.get('keys')},
+            headers={'Authorization': f'Bearer {token}',
+                     'User-Agent': (request.headers.get('User-Agent') or '')[:300]},
+            timeout=15,
+        )
+    except requests.RequestException:
+        return jsonify({'message': 'could not reach the push service'}), 502
+    # Nunca un 401: el interceptor del backoffice manda a /login.
+    if res.status_code not in (200, 201, 400, 404, 409):
+        return jsonify({'message': 'failed to save the subscription'}), 502
+    return jsonify(res.json()), res.status_code

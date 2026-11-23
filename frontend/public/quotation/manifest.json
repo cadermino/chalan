@@ -1,7 +1,7 @@
 {
   "name": "Chalán Transportistas",
   "short_name": "Chalán",
-  "scope": "/quotation/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#1e1b4b",
   "background_color": "#f9fafb",
