@@ -148,8 +148,6 @@ export function customerReminderMessage(request) {
   return [
     `Hola${name ? ` ${name}` : ''}, tu pedido de ${serviceName(request)}${when}${district ? ` en ${district}` : ''} tiene ${count}. Míralas y elige aquí:`,
     `${window.location.origin}${request.customer_quotations_path}`,
-    '',
-    '¿Te parece caro? Respóndeme y te consigo una rebaja.',
   ].join('\n')
 }
 
