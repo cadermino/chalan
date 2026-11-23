@@ -28,7 +28,9 @@ def register(app):
     @app.cli.command('web-push-test')
     @click.option('--company', default=1, show_default=True, help='Empresa a la que se avisa.')
     @click.option('--order', default=None, type=int, help='Orden del aviso; por defecto, la última pendiente.')
-    def web_push_test(company, order):
+    @click.option('--base', default='http://localhost/', show_default=True,
+                  help='Sitio del link del aviso (en el servidor: https://chalan.pe/).')
+    def web_push_test(company, order, base):
         """Manda un aviso de "Nueva orden para cotizar" a los navegadores suscritos
         de una empresa (api/carrier_push.py) y dice a cuántos salió."""
         from .api import carrier_push
@@ -42,7 +44,7 @@ def register(app):
         # El mismo link que lleva un aviso real (con token), en localhost.
         from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
         token = CarrierCompanyEntity().generate_carrier_company_token(604800, target.id, company)
-        link = f'http://localhost/quotation/{token}'
+        link = f'{base.rstrip("/")}/quotation/{token}'
         rows = CarrierPushSubscription.query.filter_by(carrier_company_id=company,
                                                        vapid_public_key=carrier_push.public_key()).all()
         before = {row.id: row.last_sent_at for row in rows}
