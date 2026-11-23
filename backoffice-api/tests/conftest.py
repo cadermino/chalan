@@ -3,12 +3,24 @@ import pytest
 from app import create_app, db
 
 
+# `reviews` es del API principal y no tiene modelo aquí (se lee con SQL): las
+# listas de órdenes y servicios la miran para la columna Review.
+REVIEWS_TABLE = ('CREATE TABLE reviews (id INTEGER PRIMARY KEY, order_id INTEGER, customer_id INTEGER, '
+                 'service_request_id INTEGER, carrier_company_id INTEGER, rating INTEGER, comment TEXT, '
+                 'platform_rating INTEGER, platform_comment TEXT, created_date TEXT)')
+
+
 @pytest.fixture
 def app():
     application = create_app('testing')
     with application.app_context():
+        db.session.execute(db.text('DROP TABLE IF EXISTS reviews'))
+        db.session.execute(db.text(REVIEWS_TABLE))
+        db.session.commit()
         yield application
         db.session.remove()
+        db.session.execute(db.text('DROP TABLE IF EXISTS reviews'))
+        db.session.commit()
         db.drop_all()
 
 

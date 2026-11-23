@@ -194,3 +194,14 @@ def test_admin_list_names_the_chosen_carrier(client, admin, carrier):
 
     assert {o['id']: (o['carrier_name'], o['carrier_phone']) for o in orders} == {
         chosen.id: ('Mudanzas SAC', '987 654 321'), open_order.id: (None, None)}
+
+
+def test_admin_list_says_which_completed_moves_the_customer_reviewed(client, admin, carrier):
+    reviewed, not_yet = make_order(3), make_order(3)
+    db.session.execute(db.text('INSERT INTO reviews (order_id, carrier_company_id, rating) VALUES (:o, :c, 5)'),
+                       {'o': reviewed.id, 'c': carrier.id})
+    db.session.commit()
+
+    orders = client.get('/api/orders/pending?status=3', headers=admin).get_json()['orders']
+
+    assert {o['id']: o['reviewed'] for o in orders} == {reviewed.id: True, not_yet.id: False}

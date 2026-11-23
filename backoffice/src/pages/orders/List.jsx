@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import StatusIcon from '../../components/StatusIcon'
+import ReviewedCell from '../../components/ReviewedCell'
 import CarrierReminders from '../../components/CarrierReminders'
 import CompleteOrders from '../../components/CompleteOrders'
 import CustomerReminders from '../../components/CustomerReminders'
@@ -191,6 +192,8 @@ export default function OrdersList() {
   const onlyAccounting = isAdmin && searchParams.get('accounting') === '1'
   // A quién se le asignó: solo en en curso y completadas, que siempre tienen uno.
   const showCarrier = isAdmin && ['2', '3'].includes(statusFilter)
+  // Si el cliente ya dejó su reseña: solo en completadas, las únicas que pueden tenerla.
+  const showReview = isAdmin && statusFilter === '3'
 
   // El input sí lleva estado propio: escribir no debe consultar al servidor ni
   // dejar una entrada en el historial por tecla. La búsqueda pasa a la URL al
@@ -597,6 +600,7 @@ export default function OrdersList() {
                 <SortHeader column="appointment" label="Fecha mudanza" sort={sort} dir={dir} onSort={onSort} />
                 <th className="px-4 py-3 text-center">Estado</th>
                 {showCarrier && <th className="px-4 py-3 text-left">Transportista</th>}
+                {showReview && <th className="px-4 py-3 text-center">Review</th>}
                 {isAdmin
                   ? <SortHeader column="deposit" label="Adelanto" sort={sort} dir={dir} onSort={onSort} />
                   : <th className="px-4 py-3 text-left">Cotización</th>}
@@ -720,6 +724,7 @@ export default function OrdersList() {
                       </div>
                     </td>
                   )}
+                  {showReview && <td className="px-4 py-3 text-center"><ReviewedCell reviewed={o.reviewed} /></td>}
                   <td className="px-4 py-3">
                     {isAdmin
                       ? <DepositCell deposit={o.deposit} />
@@ -778,7 +783,7 @@ export default function OrdersList() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={(isAdmin ? 10 : 8) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={(isAdmin ? 10 : 8) + (isSuperadmin ? 1 : 0) + (showCarrier ? 1 : 0) + (showReview ? 1 : 0)} className="px-4 py-8 text-center text-gray-400">
                     {isError
                       ? <>No se pudieron cargar las órdenes. <button type="button" onClick={() => refetch()} className="text-teal-600 hover:underline">Reintentar</button></>
                       : pagination && pagination.total > 0

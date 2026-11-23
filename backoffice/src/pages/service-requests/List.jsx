@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import client from '../../api/client'
 import CopyButton from '../../components/CopyButton'
 import StatusIcon from '../../components/StatusIcon'
+import ReviewedCell from '../../components/ReviewedCell'
 import { formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 
 // Los mismos estados y filtros que la lista de órdenes: cada estado tiene su
@@ -137,7 +138,11 @@ export default function ServiceRequestsList() {
     }
   }
 
-  const columns = 13
+  // Quién hace el trabajo: solo en curso y completados, que siempre tienen una
+  // elegida. Si el cliente ya dejó su reseña: solo completados.
+  const showCarrier = ['in_progress', 'completed'].includes(status)
+  const showReview = status === 'completed'
+  const columns = 13 + (showCarrier ? 1 : 0) + (showReview ? 1 : 0)
 
   return (
     <div>
@@ -262,6 +267,8 @@ export default function ServiceRequestsList() {
                 <th className="px-4 py-3 text-left">Avisados</th>
                 <th className="px-4 py-3 text-left">Cotizaciones</th>
                 <th className="px-4 py-3 text-left">Precio</th>
+                {showCarrier && <th className="px-4 py-3 text-left">Empresa</th>}
+                {showReview && <th className="px-4 py-3 text-center">Review</th>}
                 <th className="px-4 py-3 text-left">Adelanto</th>
                 <th className="px-4 py-3 text-center">Estado</th>
                 <th className="px-4 py-3 text-left">Creación</th>
@@ -316,6 +323,16 @@ export default function ServiceRequestsList() {
                           ? <span title="La cotización más barata">desde {formatMoney(r.min_amount)}</span>
                           : formatMoney(null)}
                     </td>
+                    {showCarrier && (
+                      <td className="px-4 py-3 text-gray-700">
+                        {r.carrier_name || '—'}
+                        {/* Un contacto de Google Maps: quien contesta, el nombre que ve el cliente. */}
+                        {r.carrier_contact_name && (
+                          <span className="block text-xs text-gray-400">{r.carrier_contact_name}</span>
+                        )}
+                      </td>
+                    )}
+                    {showReview && <td className="px-4 py-3 text-center"><ReviewedCell reviewed={r.reviewed} /></td>}
                     <td className="px-4 py-3"><DepositCell deposit={r.deposit} /></td>
                     <td className="px-4 py-3 text-center">
                       {state ? (

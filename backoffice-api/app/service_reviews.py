@@ -17,6 +17,21 @@ COMPLETED = 'completed'
 REVIEW_TTL = timedelta(days=30)
 
 
+def reviewed_ids(column, ids):
+    """Cuáles de estas órdenes (`order_id`) o servicios (`service_request_id`)
+    ya tienen la reseña del cliente: la columna Review de las listas."""
+    if column not in ('order_id', 'service_request_id'):
+        raise ValueError(column)
+    if not ids:
+        return set()
+    rows = db.session.execute(
+        db.text(f'SELECT DISTINCT {column} FROM reviews WHERE {column} IN :ids')
+        .bindparams(db.bindparam('ids', expanding=True)),
+        {'ids': list(ids)},
+    )
+    return {row[0] for row in rows}
+
+
 def _reviewed_quotation(service_request):
     if service_request.status != COMPLETED:
         return None

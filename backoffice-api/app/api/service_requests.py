@@ -16,7 +16,7 @@ from ..address import approximate_location, district_of, street_without_number
 from ..customer_note import PHONE_IN_TEXT, note_for_customer
 from ..quotation_short_link import make_service_code
 from ..service_media import make_token as make_media_token
-from ..service_reviews import review_of, review_path
+from ..service_reviews import review_of, review_path, reviewed_ids
 from .. import db
 from ..models import (ROLE_CARRIER, ROLE_SUPERADMIN, LIMA_DEPARTMENT_CODE, CarrierCompany, CarrierCompanyDepartment,
                       CarrierCompanyServiceType, ServiceRequest,
@@ -362,10 +362,18 @@ def list_service_requests():
     deposits = _deposits(ids)
     quotations = {}
     # El precio de la elegida: con una elegida, el "desde" de las demás ya no dice nada.
-    chosen = dict(
-        db.session.query(ServiceRequestQuotation.service_request_id, ServiceRequestQuotation.amount)
+    # y quién lo hace: la columna Empresa (el negocio, y quien contesta si es un contacto).
+    chosen = {
+        request_id: (amount, name, contact_name)
+        for request_id, amount, name, contact_name in
+        db.session.query(ServiceRequestQuotation.service_request_id, ServiceRequestQuotation.amount,
+                         CarrierCompany.name, CarrierCompany.contact_name)
+        .join(CarrierCompany, CarrierCompany.id == ServiceRequestQuotation.carrier_company_id)
         .filter(ServiceRequestQuotation.service_request_id.in_(ids),
-                ServiceRequestQuotation.status == 'selected').all()) if ids else {}
+                ServiceRequestQuotation.status == 'selected').all()
+    } if ids else {}
+    # Solo un servicio completado puede tener reseña.
+    reviewed = reviewed_ids('service_request_id', [r.id for r in rows if r.status == 'completed'])
     if ids:
         for request_id, count, lowest in (
             db.session.query(ServiceRequestQuotation.service_request_id, func.count(),
@@ -387,7 +395,10 @@ def list_service_requests():
             'notified_count': notified.get(r.id, 0),
             'quotations_count': quotations.get(r.id, (0, None))[0],
             'min_amount': quotations.get(r.id, (0, None))[1],
-            'selected_amount': _money(chosen[r.id]) if r.id in chosen else None,
+            'selected_amount': _money(chosen[r.id][0]) if r.id in chosen else None,
+            'carrier_name': chosen[r.id][1] if r.id in chosen else None,
+            'carrier_contact_name': chosen[r.id][2] if r.id in chosen else None,
+            'reviewed': r.id in reviewed,
             'deposit': deposits.get(r.id),
             'created_date': _iso(r.created_date),
             'submitted_at': _iso(r.submitted_at),

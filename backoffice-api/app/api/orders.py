@@ -16,6 +16,7 @@ from ..carrier_prospects import WORK_DEPARTMENTS
 from ..carrier_rates import unavailable_pairs
 from ..order_access import make_token as make_order_access_token
 from ..quotation_short_link import make_code as make_quotation_code
+from ..service_reviews import reviewed_ids
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, OrderVersion, AdminUser, Payment, OrderCarrierDecline, OrderCarrierWhatsapp, Vehicle, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
 
@@ -525,9 +526,12 @@ def list_pending_orders():
     deposits = {}
     selected_by_order = {}
     quotation_counts = {}
+    reviewed = set()
     if is_admin:
         page_ids = [o.id for o in all_sent_orders]
         deposits = _deposits_by_order(page_ids)
+        # Solo una completada puede tener reseña: la columna Review de "Completada".
+        reviewed = reviewed_ids('order_id', [o.id for o in all_sent_orders if o.order_status_id == 3])
         if page_ids:
             # Solo las activas: las canceladas y la ya seleccionada no son
             # ofertas que el cliente todavía pueda elegir.
@@ -608,6 +612,8 @@ def list_pending_orders():
             'quotation_count': quotation_counts.get(order.id, 0) if is_admin else None,
             'carrier_name': selected_by_order.get(order.id, (None, None))[0] if is_admin else None,
             'carrier_phone': selected_by_order.get(order.id, (None, None))[1] if is_admin else None,
+            # Si el cliente ya calificó la mudanza (solo completadas; None para el transportista).
+            'reviewed': (order.id in reviewed) if is_admin else None,
         })
 
     # `pagination` se agrega sin tocar `orders`, así que cualquier consumidor

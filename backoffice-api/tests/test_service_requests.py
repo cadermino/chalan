@@ -1014,6 +1014,26 @@ def test_the_list_filters_by_the_order_statuses(client, admin, submitted, packin
     assert client.get('/api/service-requests', query_string={'status': 'submitted'}, headers=admin).status_code == 400
 
 
+def test_the_list_names_the_company_doing_it_and_whether_the_customer_reviewed_it(client, admin, submitted, packing):
+    done = ServiceRequest(public_id='d' * 32, service_type_id=packing.id, status='completed',
+                          submitted_at=datetime(2026, 10, 5))
+    db.session.add(done)
+    db.session.commit()
+    contact = make_carrier(packing, active=0, name='Embalajes Rojas EIRL')
+    contact.contact_name = 'Jorge'
+    make_quotation(done, contact, 300, status='selected', total=330, rate=0.1)
+    make_quotation(submitted, make_carrier(packing, name='Otra SAC'), 280)
+    db.session.execute(db.text('INSERT INTO reviews (service_request_id, carrier_company_id, rating) VALUES (:sr, :c, 4)'),
+                       {'sr': done.id, 'c': contact.id})
+    db.session.commit()
+
+    rows = {r['id']: r for r in client.get('/api/service-requests', headers=admin).get_json()['service_requests']}
+
+    assert (rows[done.id]['carrier_name'], rows[done.id]['carrier_contact_name'], rows[done.id]['reviewed']) == (
+        'Embalajes Rojas EIRL', 'Jorge', True)
+    assert (rows[submitted.id]['carrier_name'], rows[submitted.id]['reviewed']) == (None, False)
+
+
 def test_registering_a_reservation_forwards_the_number_and_the_admin(client, admin, submitted, monkeypatch):
     seen = {}
 
