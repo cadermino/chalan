@@ -16,6 +16,8 @@
           </h2>
         </div>
         <div class="max-w-3xl mx-auto mt-8 space-y-4 md:mt-16">
+          <PushOptIn v-if="carrierCompanyId" :token="token" :order-id="orderData.id"
+            :carrier-company-id="carrierCompanyId" />
           <OrderChanges v-if="changes" :changes="changes" :has-quotation="hasQuotation" />
           <div
             class="transition-all
@@ -548,6 +550,7 @@
 import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import OrderChanges from '@/components/carrierCompany/OrderChanges.vue';
+import PushOptIn from '@/components/carrierCompany/PushOptIn.vue';
 import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import chalan from '../../api/chalan';
@@ -555,6 +558,7 @@ import formatFloor from '../../utils/floor';
 import { formatParkingDistance } from '../../utils/parking';
 import { formatCargoWeight, formatLoadType } from '../../utils/loadTypes';
 import { tagSession, tagSessionLabel } from '../../utils/sessionTags';
+import { track } from '../../utils/analytics';
 
 export default {
   name: 'quotation',
@@ -607,6 +611,7 @@ export default {
   components: {
     ViewsMessages,
     OrderChanges,
+    PushOptIn,
   },
   computed: {
     ...mapState(useStore, [
@@ -761,6 +766,10 @@ export default {
             tagSession('order_id', this.orderData.id);
             tagSession('carrier_company_id', this.carrierCompanyId);
             tagSession('carrier_company', response.data.carrier_company_name);
+            // Llegó tocando un aviso push (app/api/carrier_push.py).
+            if (this.$route.query.r === 'push') {
+              track('push_opened', { order_id: this.orderData.id, carrier_company_id: this.carrierCompanyId, view: 'quotation' });
+            }
             this.orderDetails = this.orderData.order_details;
             this.quotations = this.orderData.quotations || [];
             this.services = this.orderData.services;

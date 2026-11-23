@@ -44,6 +44,12 @@ pillow==11.3.0
 # WhatsApp
 twilio==9.11.0
 
+# Avisos push del navegador a transportistas (app/api/carrier_push.py).
+# aiohttp, que pywebpush pide, ya viene con twilio.
+pywebpush==2.5.0
+py-vapid==1.9.6
+http-ece==1.2.1
+
 # Facebook Auth (consider replacing with python-social-auth)
 facepy==1.0.12
 

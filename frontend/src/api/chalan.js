@@ -200,6 +200,18 @@ export default {
       },
     });
   },
+  // Avisos push del link de cotizar (app/api/carrier_push.py).
+  getWebPushKey() {
+    return axios.get(`${import.meta.env.VUE_APP_API_URL}web-push/public-key`);
+  },
+  subscribeCarrierPush(token, subscription) {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}carrier-push-subscriptions`, subscription, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
   declineOrder(token, orderId, payload) {
     return axios.post(`${import.meta.env.VUE_APP_API_URL}order/${orderId}/decline`, payload, {
       headers: {

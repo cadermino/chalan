@@ -29,6 +29,7 @@ from .operation_numbers import clean_operation_number, is_valid_operation_number
 
 from .carrier_company import CarrierCompany as CarrierCompanyEntity
 from .email import send_email
+from . import carrier_push
 from .whatsapp import send_whatsapp, normalize_phone
 from datetime import date, datetime, timedelta, timezone
 from .errors import not_found
@@ -406,6 +407,7 @@ def _send_order_scheduled_emails(order, customer, quotation, reservation=None):
         carrier_company_orders_url=carrier_company_orders_url,
         **contact,
     )
+    carrier_push.notify_carrier(carrier_company.id, carrier_push.selected_message(order, carrier_company_orders_url))
     receipt = {}
     if reservation is not None:
         receipt = {
@@ -722,6 +724,7 @@ def send_email_to_carrier_companies(order_id, order_data):
         return emails_sent
 
     carrier_companies = get_carrier_companies()
+    pushes = []
     if is_belongings_appointment_date_step_complete:
         for carrier_company in carrier_companies:
             quotation_url = QuotationEntity().generate_quotation_url(
@@ -754,7 +757,10 @@ def send_email_to_carrier_companies(order_id, order_data):
                     {'1': quotation_url},
                     body_label=body_label,
                 )
+                pushes.append((carrier_company['id'], carrier_push.new_order_message(
+                    db_order, quotation_url, changed=had_previous_quotation)))
                 emails_sent.append(carrier_company['id'])
+        carrier_push.notify_carriers(pushes)
         if emails_sent and db_order:
             db_order.quotation_requested = True
             db_order.carrier_notified_at = datetime.utcnow()

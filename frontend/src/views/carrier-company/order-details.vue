@@ -392,6 +392,7 @@ import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import { cashToCollect } from '@/utils/payments';
 import chalan from '../../api/chalan';
+import { track } from '../../utils/analytics';
 import formatFloor from '../../utils/floor';
 import { formatParkingDistance } from '../../utils/parking';
 import { formatCargoWeight, formatLoadType } from '../../utils/loadTypes';
@@ -536,6 +537,10 @@ export default {
             this.orderDetails = this.orderData.order_details;
             this.services = this.orderData.services;
             this.payment = this.orderData.payments;
+            // Llegó tocando el aviso "¡Te eligieron!" (app/api/carrier_push.py).
+            if (this.$route.query.r === 'push') {
+              track('push_opened', { order_id: this.orderData.id, carrier_company_id: this.carrierCompanyId, view: 'order_details' });
+            }
           }
         })
         .catch((error) => {

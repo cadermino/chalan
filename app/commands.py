@@ -8,6 +8,17 @@ from .storage import get_storage
 
 
 def register(app):
+    @app.cli.command('web-push-keys')
+    def web_push_keys():
+        """Arma un par de claves VAPID para los avisos push (api/carrier_push.py).
+        Van al .env del entorno; cambiarlas deja sin avisos a quienes ya los
+        activaron hasta que vuelvan a abrir un link."""
+        from .api.carrier_push import generate_keys
+        public, private = generate_keys()
+        click.echo(f'WEB_PUSH_PUBLIC_KEY={public}')
+        click.echo(f'WEB_PUSH_PRIVATE_KEY={private}')
+        click.echo('WEB_PUSH_SUBJECT=mailto:carlos.calderon@chalan.pe')
+
     @app.cli.command('auto-quote')
     def auto_quote():
         """Calcula en silencio lo que cada transportista con tarifas habría

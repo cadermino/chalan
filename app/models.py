@@ -476,6 +476,23 @@ class CarrierDocument(db.Model):
 	size_bytes = db.Column(db.Integer)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 
+class CarrierPushSubscription(db.Model):
+	"""Un navegador que activó los avisos desde el link de cotizar (migración 055,
+	api/carrier_push.py). `endpoint` es su buzón en el servicio de push."""
+	__tablename__ = 'carrier_push_subscriptions'
+	id = db.Column(db.Integer, primary_key=True)
+	carrier_company_id = db.Column(db.Integer, db.ForeignKey('carrier_company.id', ondelete='CASCADE'), nullable=False)
+	endpoint = db.Column(db.Text, nullable=False, unique=True)
+	p256dh = db.Column(db.String(200), nullable=False)
+	auth = db.Column(db.String(100), nullable=False)
+	vapid_public_key = db.Column(db.String(120), nullable=False)
+	user_agent = db.Column(db.String(300))
+	created_date = db.Column(db.DateTime(), server_default=func.now(), nullable=False)
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), nullable=False)
+	last_sent_at = db.Column(db.DateTime())
+	last_error = db.Column(db.String(200))
+	failure_count = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+
 class CarrierCompanyServiceType(db.Model):
 	"""Que servicios ofrece cada empresa (mudanza incluida); lo marca un admin."""
 	__tablename__ = 'carrier_company_service_types'

@@ -13,6 +13,10 @@ const DEFAULT_GA_ID = 'G-72KVLDWMQD';
 // /acceso, etc. (las rutas de router/index.js), que nginx ya le manda.
 const DEV_BASE = '/vue-dev/';
 const APP_ROUTES = /^\/(order|carrier-company|dashboard|register-login|login|register|quotation|acceso)(\/|\?|$)/;
+// Archivos de public/ que viven dentro de una ruta de la app: el service worker
+// de los avisos tiene que servirse desde /quotation/ para que su alcance sea el
+// link de cotizar (public/quotation/push-sw.js).
+const STATIC_IN_APP_ROUTES = /^\/quotation\/(push-sw\.js|manifest\.json|icon-192\.png)$/;
 
 // El servidor de desarrollo solo conoce la base: sin esto una URL de la app
 // daría 404 al recargar. Mismo truco que services-web/vite.config.js.
@@ -21,7 +25,8 @@ function appRoutesFallback() {
     name: 'app-routes-fallback',
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
-        if (req.url && APP_ROUTES.test(req.url)) req.url = DEV_BASE;
+        if (req.url && STATIC_IN_APP_ROUTES.test(req.url)) req.url = DEV_BASE + req.url.slice(1);
+        else if (req.url && APP_ROUTES.test(req.url)) req.url = DEV_BASE;
         next();
       });
     },
