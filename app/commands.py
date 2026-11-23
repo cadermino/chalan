@@ -39,7 +39,10 @@ def register(app):
             raise click.ClickException('No hay esa orden.')
         if not carrier_push.push_enabled():
             raise click.ClickException('Faltan WEB_PUSH_PUBLIC_KEY / WEB_PUSH_PRIVATE_KEY en el entorno.')
-        link = 'http://localhost/quotation/x'
+        # El mismo link que lleva un aviso real (con token), en localhost.
+        from .api.carrier_company import CarrierCompany as CarrierCompanyEntity
+        token = CarrierCompanyEntity().generate_carrier_company_token(604800, target.id, company)
+        link = f'http://localhost/quotation/{token}'
         rows = CarrierPushSubscription.query.filter_by(carrier_company_id=company,
                                                        vapid_public_key=carrier_push.public_key()).all()
         before = {row.id: row.last_sent_at for row in rows}
