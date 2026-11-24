@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -33,6 +35,51 @@ function appRoutesFallback() {
   };
 }
 
+// Vista previa de cada link que se manda por WhatsApp. WhatsApp no ejecuta
+// JavaScript: lee el HTML, que es el mismo index.html para toda la app y decía
+// "Mudanzas y fletes confiables en Perú" también en el link de cotizar. El
+// build escribe una copia del index por link, con su título y descripción, y
+// nginx entrega la de cada ruta ($vue_page en nginx.chalan-prod-peru.conf).
+// Mismo truco que services-web (sharePages). Si agregas una, agrégala allá.
+export const SHARE_PAGES = {
+  'quotation.html': {
+    title: 'Orden para cotizar | Chalán',
+    description: 'Mira la fecha, la ruta y lo que hay que llevar, y manda tu precio.',
+  },
+  'acceso.html': {
+    title: 'Tus cotizaciones en Chalán',
+    description: 'Mira los precios de los transportistas para tu pedido y elige el que más te convenga.',
+  },
+  'carrier-order.html': {
+    title: 'Tu orden en Chalán',
+    description: 'Los datos del pedido que te tocó y del cliente.',
+  },
+};
+
+function sharePages() {
+  const metaContent = (html, attr, name, value) => html.replace(
+    new RegExp(`(<meta ${attr}="${name}" content=")[^"]*(")`), `$1${value}$2`,
+  );
+  return {
+    name: 'share-pages',
+    apply: 'build',
+    // Sobre el index.html ya escrito: es el que nombra los bundles con su hash.
+    writeBundle(options) {
+      const html = readFileSync(join(options.dir, 'index.html'), 'utf8');
+      for (const [file, { title, description }] of Object.entries(SHARE_PAGES)) {
+        let page = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${title}</title>`)
+          // og:url es la portada: con él, quien comparte podría ver la de la portada.
+          .replace(/\s*<meta property="og:url"[^>]*>/, '');
+        page = metaContent(page, 'name', 'description', description);
+        page = metaContent(page, 'property', 'og:title', title);
+        page = metaContent(page, 'property', 'og:description', description);
+        if (!page.includes(`og:title" content="${title}"`)) throw new Error(`share-pages: ${file} sin og:title`);
+        writeFileSync(join(options.dir, file), page);
+      }
+    },
+  };
+}
+
 // index.html era una plantilla de vue-cli (<% if %>). Inspectlet y Clarity
 // graban solo en producción; GA también, salvo que VUE_APP_GA_ID lo encienda
 // en local para validar eventos en DebugView (y ahí va con debug_mode).
@@ -56,7 +103,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     base: command === 'serve' ? DEV_BASE : '/',
     envPrefix: ENV_PREFIX,
-    plugins: [vue(), appRoutesFallback(), indexHtml(mode, env)],
+    plugins: [vue(), appRoutesFallback(), indexHtml(mode, env), sharePages()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

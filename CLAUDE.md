@@ -306,6 +306,16 @@ A cheap test before a carrier app (November 2026): do carriers answer push notic
 - **Where it does not work**: iPhone needs iOS 16.4+ and the site on the home screen (the card shows the three steps instead; the page adds `manifest.json` and the touch icon only there). Huawei without Google services fails on subscribe ("Tu celular no puede recibir avisos…"). Test locally at `http://localhost/quotation/<token>`: `local.chalan.mx` is plain http, where browsers have no service workers. `make quotation-link` prints such a link (company 1, last pending order; `ARGS='--company 3 --order 2026'`) and `make push-test` sends a test notice to that company's browsers (`ARGS='--kind changed'` or `selected` for the other two; `--service` for a service request's link and notices, `--service 108` for one) (`flask quotation-link`, `flask web-push-test`).
 - **Measure**: companies with a row vs. active ones, `push_opened`, and time from `carrier_notified_at` to the quotation for companies with and without push.
 
+## Link Previews in WhatsApp
+
+WhatsApp reads a link's HTML without running JavaScript, so every personal link used to preview as the home page ("Chalán - Mudanzas y fletes confiables en Perú"), and the backoffice ones as nothing. Each one now has its own title and description (same truck image). Short links (`/c/`, `/s/`, `/r/`) redirect, and WhatsApp shows the preview of where they land.
+
+- **Next** (`/reviews/submit/<token>`, so `/r/`; `/transportistas/documentos/<token>`; `/v/<token>` when the token fails): `privateLinkMetadata(title, description)` in `src/lib/privateLinkMetadata.ts`, which also keeps them out of the index. A page without its own `openGraph` inherits the layout's.
+- **Vue** (`/quotation/` so `/c/`, `/acceso/`, `/carrier-company/order(s)/`): the build writes a copy of `index.html` per link (`SHARE_PAGES` in `frontend/vite.config.mjs`: `quotation.html`, `acceso.html`, `carrier-order.html`) and nginx's `@vue` serves the one `map $uri $vue_page` picks (`nginx.chalan-prod-peru.conf`). The public company page and the order flow keep `index.html`.
+- **Backoffice** (`/backoffice/carrier-view/` so `/s/`, `/backoffice/restablecer/`): same, `SHARE_PAGES` in `backoffice/vite.config.js`, served by a `rewrite` in nginx (with `alias`, `try_files` does not take a variable as its fallback: it 404'd every route).
+- **services-web**: each form had its preview already (`src/share.js`); the customer quotations page (`<form>/cotizaciones/<id>`) now has its own, "Tus cotizaciones de <servicio>" (`quotesTitle`, `<slug>-cotizaciones.html`, a longer `^~` prefix in `services-web/nginx.conf`).
+- A new link sent over WhatsApp needs its entry in one of these. WhatsApp caches a preview per URL, so a link already sent keeps the old one.
+
 ## Order Videos (backoffice → carrier link)
 
 Customers send videos of their things over WhatsApp. A superadmin uploads them in the backoffice order create/edit form (`components/OrderVideosField.jsx`, `lib/orderVideos.js`), and carriers watch them on the quotation link (`quotation.vue`, also `order-details.vue`) under "Videos de la carga", with an "Abrir video" link because an iPhone HEVC `.mov` does not play in every browser.

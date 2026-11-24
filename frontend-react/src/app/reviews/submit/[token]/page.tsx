@@ -1,10 +1,12 @@
 import { TokenReviewForm } from "@/components/TokenReviewForm";
 import type { Metadata } from "next";
+import { privateLinkMetadata } from "@/lib/privateLinkMetadata";
 
-export const metadata: Metadata = {
-  title: "Deja tu reseña - Chalán",
-  robots: { index: false, follow: false },
-};
+// Lo abre el link corto /r/ que se le manda al cliente por WhatsApp.
+export const metadata: Metadata = privateLinkMetadata(
+  "¿Cómo te fue? Deja tu reseña | Chalán",
+  "Califica a la empresa que hizo tu mudanza, flete o servicio. Te toma un minuto y ayuda a otros clientes a elegir.",
+);
 
 export default async function SubmitReviewPage({
   params,

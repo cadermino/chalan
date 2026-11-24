@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { SHARE, SHARE_IMAGE } from './src/share.js'
+import { QUOTES_DESCRIPTION, SHARE, SHARE_IMAGE } from './src/share.js'
 
 // Los archivos del build viven bajo /services-web/ (así nginx puede mandar solo
 // esa ruta y las del formulario a este contenedor), pero las pantallas se ven
@@ -46,6 +46,8 @@ function sharePages() {
         .replace('</head>', `  ${meta(page)}\n  </head>`)
       for (const page of Object.values(SHARE)) {
         writeFileSync(join(options.dir, `${page.slug}.html`), withMeta(page))
+        writeFileSync(join(options.dir, `${page.slug}-cotizaciones.html`),
+          withMeta({ title: page.quotesTitle, description: QUOTES_DESCRIPTION }))
       }
     },
   }

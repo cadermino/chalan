@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { privateLinkMetadata } from '@/lib/privateLinkMetadata'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { ApproxMap, type ApproxLocation } from '@/components/ApproxMap'
@@ -62,7 +63,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const { token } = await params
   const result = await getShared(token)
   if (result.status !== 'ok') {
-    return { title: 'Pedido para cotizar | Chalán', robots: { index: false, follow: false } }
+    return privateLinkMetadata('Pedido para cotizar | Chalán', 'Lo que hay que hacer, el distrito y la fecha, para mandar tu precio.')
   }
   const { data } = result
   const firstPhoto = data.media.find((m) => m.media_type === 'image')?.url
