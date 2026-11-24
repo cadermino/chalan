@@ -37,11 +37,12 @@
                 con todo incluido.
               </p>
               <p :class="limaMove ? '' : 'mb-2'">
-                La primera cotización suele llegar en minutos: 3 de cada 4 pedidos
-                reciben una en menos de 1 hora.
+                Normalmente la primera cotización llega en menos de 1 hora.
               </p>
+              <!-- La más cara suele costar 1,7 veces la más barata (estudio de
+                   precios): la más barata, un 41 % menos. -->
               <p v-if="!limaMove">
-                Y comparar vale la pena: la más cara suele costar 1,7 veces la más barata.
+                Y comparar conviene: la más barata suele costar 40&nbsp;% menos que la más cara.
               </p>
             </div>
             <div class="flex flex-wrap -mx-3">
