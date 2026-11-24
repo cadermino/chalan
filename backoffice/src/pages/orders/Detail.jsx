@@ -4,6 +4,7 @@ import client from '../../api/client'
 import { useAuth } from '../../contexts/AuthContext'
 import Card from '../../components/Card'
 import ClientContact from '../../components/ClientContact'
+import ReviewRequest, { orderWhat } from '../../components/ReviewRequest'
 import LinkCustomer from '../../components/LinkCustomer'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import DeclinePanel from '../../components/DeclinePanel'
@@ -314,7 +315,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true)
   const [completing, setCompleting] = useState(false)
   const [confirmComplete, setConfirmComplete] = useState(false)
-  const [reviewUrl, setReviewUrl] = useState(null)
+  const [review, setReview] = useState(null)
   const [customerUrl, setCustomerUrl] = useState(null)
   const [payments, setPayments] = useState([])
   const [savingPaymentId, setSavingPaymentId] = useState(null)
@@ -349,8 +350,8 @@ export default function OrderDetail() {
   useEffect(() => {
     if (isAdmin && order?.order_status_id === 3) {
       client.get(`/api/orders/${orderId}/review-link`).then(({ data }) => {
-        setReviewUrl(`${window.location.origin}${data.path}`)
-      }).catch(() => setReviewUrl(null))
+        setReview({ url: `${window.location.origin}${data.path}`, carrierName: data.carrier_name })
+      }).catch(() => setReview(null))
     }
   }, [orderId, isAdmin, order?.order_status_id])
 
@@ -494,7 +495,7 @@ export default function OrderDetail() {
             )}
             {/* Para avisarle de una cotización nueva desde el WhatsApp de Chalán */}
             <CustomerReminder orderId={orderId} className="mt-4 border-t border-gray-100 pt-4" />
-            {(customerUrl || reviewUrl) && (
+            {(customerUrl || review) && (
               <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
                 {customerUrl && (
                   <CopyRow
@@ -503,11 +504,15 @@ export default function OrderDetail() {
                     text={customerUrl}
                   />
                 )}
-                {reviewUrl && (
-                  <CopyRow
-                    title="Link de reseña"
-                    hint="Para que califique el servicio."
-                    text={reviewUrl}
+                {review && (
+                  <ReviewRequest
+                    url={review.url}
+                    hint="Para que califique a la empresa que lo hizo."
+                    phone={order.lead_phone || order.customer_phone}
+                    customerName={order.customer_name}
+                    carrierName={review.carrierName}
+                    what={orderWhat(order.load_type)}
+                    transport
                   />
                 )}
               </div>

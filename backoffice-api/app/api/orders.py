@@ -1959,7 +1959,10 @@ def get_review_link(order_id):
     token = _generate_review_token(order_id, order.customer_id, selected_quotation.carrier_company_id)
     # `path` es el link corto (chalan.pe/r/o<orden>-<firma>), el que se copia
     # para el WhatsApp; `token`, el largo de siempre.
-    return jsonify({'token': token, 'path': review_short_path(REVIEW_ORDER, order_id)}), 200
+    # `carrier_name`, para el mensaje de WhatsApp que le pide la reseña al cliente.
+    company = db.session.get(CarrierCompany, selected_quotation.carrier_company_id)
+    return jsonify({'token': token, 'path': review_short_path(REVIEW_ORDER, order_id),
+                    'carrier_name': company.name if company else None}), 200
 
 
 @api.route('/orders/<int:order_id>/quotations', methods=['GET'])

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import client from '../../api/client'
 import Card from '../../components/Card'
 import ClientContact from '../../components/ClientContact'
+import ReviewRequest, { serviceWhat } from '../../components/ReviewRequest'
 import CopyButton, { CopyRow } from '../../components/CopyButton'
 import ServiceRequestView, { formatDay, formatMoney, formatTimestamp } from '../../components/ServiceRequestView'
 import { DeclinesList } from '../../components/DeclinePanel'
@@ -20,6 +21,12 @@ function customerMessage(request, quotation) {
   const where = district ? ` en ${district}` : ''
   const hello = request.customer_name ? `Hola ${request.customer_name.split(' ')[0]}` : 'Hola'
   return `${hello}, tenemos tu cotización de ${service} para el ${formatDay(request.preferred_date)}${where}: ${formatMoney(quotation.total_amount)}. ¿Confirmamos?`
+}
+
+// Como lo ve el cliente: a un contacto de Google Maps, por quien contesta.
+function selectedCarrierName(request) {
+  const selected = (request.quotations || []).find((q) => q.status === 'selected')
+  return selected ? selected.carrier_contact_name || selected.carrier_company_name : null
 }
 
 function Quotations({ request, busy, confirmingId, onAskConfirm, onSelect }) {
@@ -590,10 +597,13 @@ export default function ServiceRequestDetail() {
         )}
         {request.review_path && !request.review && (
           <div className="mt-4 border-t border-gray-100 pt-4">
-            <CopyRow
-              title="Link de reseña"
+            <ReviewRequest
+              url={`${window.location.origin}${request.review_path}`}
               hint="Para que califique a quien hizo el trabajo. Después le ofrece dejar una reseña de Chalán en Google. Sirve mientras el servicio siga completado."
-              text={`${window.location.origin}${request.review_path}`}
+              phone={request.whatsapp}
+              customerName={request.customer_name}
+              carrierName={selectedCarrierName(request)}
+              what={serviceWhat(request.service_type?.name)}
             />
           </div>
         )}

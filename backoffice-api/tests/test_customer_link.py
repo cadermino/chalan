@@ -106,3 +106,4 @@ def test_the_review_link_is_marked_as_a_review(client, admin, customer):
     assert (payload['order_id'], payload['customer_id'], payload['carrier_company_id']) == (order.id, customer.id, company.id)
     # Lo que se copia es el link corto, que el API principal canjea por ese token.
     assert res.get_json()['path'].startswith(f'/r/o{order.id}-')
+    assert res.get_json()['carrier_name'] == 'Gana SAC'
