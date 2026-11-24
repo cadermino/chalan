@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { NON_MOVING_PATHS } from '@/lib/homeServices'
 import { blogLayout, tagRecordings } from '@/lib/blogLayoutTest'
+import { setAnalyticsLocation, withoutCredentials } from '@/lib/privateUrl'
 
 // Grupo de contenido de GA4 (dimensión estándar "Grupo de contenido"), para
 // comparar el blog con el resto sin filtrar por URL.
@@ -52,11 +53,13 @@ export function PageViewTracker() {
       const gtag = (window as any).gtag
       if (typeof gtag !== 'function') return
 
+      // Sin tokens (lib/privateUrl.ts): /reviews/submit/<token>, /v/<token>...
+      setAnalyticsLocation()
       gtag('event', 'page_view', {
-        page_path: pathname,
+        page_path: withoutCredentials(pathname),
         // href y no pathname: lleva el query string, que es donde viajan los
         // ?ref= de los agentes y los utm_*.
-        page_location: window.location.href,
+        page_location: withoutCredentials(window.location.href),
         page_title: document.title,
         content_group: contentGroup(pathname),
         ...postParams(),

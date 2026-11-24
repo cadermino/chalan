@@ -9,6 +9,7 @@ import { NON_MOVING_PATHS } from "@/lib/homeServices";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { ServiceCtaTracker } from "@/components/ServiceCtaTracker";
 import { GA_ENABLED, GA_DEBUG, GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { PRIVATE_URL_SCRIPT } from "@/lib/privateUrl";
 import { BLOG_LAYOUT_SCRIPT } from "@/lib/blogLayoutTest";
 import { CTA_TEXT_SCRIPT } from "@/lib/ctaTextTest";
 import "./globals.css";
@@ -150,7 +151,8 @@ export default function RootLayout({
                 __html: `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false${GA_DEBUG ? ", debug_mode: true" : ""} });`,
+gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false${GA_DEBUG ? ", debug_mode: true" : ""} });
+${PRIVATE_URL_SCRIPT}`,
               }}
             />
             <Script

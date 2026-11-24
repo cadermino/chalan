@@ -8,6 +8,11 @@ import App from './App.vue';
 import router from './router';
 import pinia from './store/pinia';
 import './assets/css/tailwind.css';
+import { setAnalyticsLocation } from './utils/privateUrl';
+
+// Antes que cualquier evento: la página de entrada suele ser justo la que trae
+// el token (/acceso/<token>, /quotation/<JWT>).
+setAnalyticsLocation();
 
 const app = createApp(App);
 

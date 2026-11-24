@@ -3,6 +3,8 @@
 //
 // Nunca mandes PII a GA (WhatsApp, dirección): además de ser dato personal,
 // viola los términos de uso y pueden borrarte la propiedad.
+import { setAnalyticsLocation, withoutCredentials } from './privateUrl'
+
 const DEFAULT_GA_ID = 'G-72KVLDWMQD'
 
 export function initAnalytics() {
@@ -18,6 +20,8 @@ export function initAnalytics() {
   window.gtag('js', new Date())
   // send_page_view apagado: es una SPA y cada pantalla manda el suyo (pageView).
   window.gtag('config', id, { send_page_view: false, debug_mode: !import.meta.env.PROD })
+  // Antes que cualquier evento: la página de cotizaciones lleva el public_id.
+  setAnalyticsLocation()
 
   const script = document.createElement('script')
   script.async = true
@@ -105,7 +109,8 @@ export const saveFailure = (err) => (err?.response ? 'server' : 'network')
 // Los adblockers tumban gtag: envolverlo evita que un bloqueador rompa el formulario.
 export function track(event, params = {}) {
   if (typeof window.gtag !== 'function') return
-  const clean = {}
+  // La URL sin el public_id (privateUrl.js), calculada al enviar.
+  const clean = { page_location: withoutCredentials(window.location.href) }
   Object.keys(params).forEach((key) => {
     const value = params[key]
     if (value !== undefined && value !== null && value !== '') clean[key] = value
@@ -114,5 +119,7 @@ export function track(event, params = {}) {
 }
 
 export function pageView(path) {
-  track('page_view', { page_path: path, page_location: window.location.origin + path })
+  const location = withoutCredentials(window.location.origin + path)
+  setAnalyticsLocation(location)
+  track('page_view', { page_path: withoutCredentials(path), page_location: location })
 }

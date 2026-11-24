@@ -5,6 +5,7 @@ import pinia from '../store/pinia';
 import countryData from '../countryData';
 import storage from '../utils/safeStorage';
 import { staleDraftReason } from '../utils/orderDraft';
+import { setAnalyticsLocation, withoutCredentials } from '../utils/privateUrl';
 
 // Se pide en el primer guard, no al importar: main.js importa este archivo antes
 // de app.use(pinia), y un store creado antes de eso nace sin los plugins
@@ -286,25 +287,21 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach((to) => {
   if (typeof window.gtag !== 'function') return;
 
-  // vue-router corre los hooks afterEach ANTES de hacer el pushState, así que
-  // aquí el navegador todavía está en la URL anterior. Medido en producción:
-  // el page_view salía con dl de la página vieja mientras el begin_order que
-  // sale del mounted, unos ms después, ya traía la correcta.
-  //
-  // Encolar con nextTick no alcanza: es un microtask y corre dentro del mismo
-  // turno, antes del pushState. Un setTimeout de 0 lo manda al siguiente
-  // turno, cuando la URL y el título ya son los de destino.
-  //
-  // gtag ignora el page_location que se le pasa por evento y arma dl leyendo
-  // document.location al momento del envío, así que la única forma de que
-  // salga bien es enviar tarde, no pasarle el valor correcto.
-  //
-  // Eso se midió con vue-router 3. El 4 ya hizo el pushState al llegar acá,
-  // pero el setTimeout no estorba y cubre los dos casos.
+  // La URL de destino sin tokens (utils/privateUrl.js), armada desde la ruta y
+  // no desde el navegador: sirve igual si el pushState todavía no ocurrió. El
+  // set va ya, para que los eventos del mounted de la vista nueva también
+  // salgan sin el token.
+  const location = withoutCredentials(window.location.origin + router.resolve(to.fullPath).href);
+  setAnalyticsLocation(location);
+
+  // El setTimeout espera al siguiente turno, cuando document.title ya es el de
+  // destino. (Con vue-router 3 el afterEach corría antes del pushState; el
+  // comentario de entonces decía que gtag ignoraba el page_location del
+  // evento, pero medido en noviembre de 2026 sí lo usa para dl.)
   setTimeout(() => {
     window.gtag('event', 'page_view', {
-      page_path: to.fullPath,
-      page_location: window.location.href,
+      page_path: withoutCredentials(to.fullPath),
+      page_location: location,
       page_title: document.title,
     });
   }, 0);
