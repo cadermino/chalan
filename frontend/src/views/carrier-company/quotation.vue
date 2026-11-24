@@ -327,9 +327,9 @@
             <div
               id="answer3"
               class="px-4 pb-5 sm:px-6 sm:pb-6">
-              <p v-if="itemsToMoveList">
-                <pre>{{ itemsToMoveList }}</pre>
-              </p>
+              <!-- Respeta los saltos de línea del cliente, pero parte las líneas
+                   largas: una lista escrita en una sola línea obligaba a deslizar. -->
+              <p v-if="itemsToMoveList" class="whitespace-pre-wrap break-words">{{ itemsToMoveList }}</p>
               <div v-if="orderImages.length" class="mt-4">
                 <p class="font-bold mb-2">
                   Fotos de la carga:
