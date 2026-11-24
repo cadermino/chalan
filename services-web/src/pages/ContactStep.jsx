@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import StepNav from '../components/StepNav'
 import StepTracker from '../components/StepTracker'
@@ -6,7 +6,7 @@ import { friendlyError, getMaterials } from '../api'
 import { saveFailure, track, trackBlocked } from '../analytics'
 import { COPY, DESCRIBED, PATHS, SERVICE, describedFacts, workLabel } from '../config'
 import { useRequest } from '../context/RequestContext'
-import { MAX_ADVANCE_DAYS, dateLimits, formatDateLabel, isValidPreferredDate } from '../dates'
+import { MAX_ADVANCE_DAYS, isValidPreferredDate } from '../dates'
 
 // Acepta lo que la gente pega: "987 654 321", "+51 987654321", "51987654321".
 function nineDigits(raw) {
@@ -18,8 +18,25 @@ function nineDigits(raw) {
 // La misma regla que EMAIL_RE del API (service_request/validation.py).
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
+// El calendario (react-datepicker + date-fns) pesa ~50 kB: se baja solo en este
+// paso, no en los dos primeros.
+const DateField = lazy(() => import('../components/DateField'))
+
 // Los campos como los llama el API, para service_request_blocked.
 const FIELD_NAMES = { date: 'preferred_date', name: 'customer_name', email: 'customer_email' }
+
+// Dónde está cada campo, en el orden de la pantalla. El botón queda debajo del
+// resumen, lejos de los campos: sin llevar a la persona al primer error, en el
+// celular tocaba "Enviar" una y otra vez sin ver qué faltaba.
+const FIELD_ELEMENTS = [['date', 'preferred-date'], ['name', 'customer-name'], ['whatsapp', 'whatsapp'], ['email', 'customer-email']]
+
+function goToFirstError(found) {
+  const first = FIELD_ELEMENTS.find(([key]) => found[key])
+  const element = first && document.getElementById(first[1])
+  if (!element) return
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  element.focus({ preventScroll: true })
+}
 
 // Lo que va después de "2 × Ropero" en el resumen. En embalaje, los materiales;
 // en armado, qué se hace y si se embala.
@@ -49,7 +66,6 @@ export default function ContactStep() {
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [sending, setSending] = useState(false)
-  const { min, max } = dateLimits()
 
   useEffect(() => {
     track('service_request_step_view', { service: SERVICE, step: 'contact' })
@@ -62,7 +78,9 @@ export default function ContactStep() {
   const handleSubmit = async () => {
     const found = {}
     if (!isValidPreferredDate(draft.preferredDate)) {
-      found.date = `Elige un día desde mañana y hasta dentro de ${MAX_ADVANCE_DAYS} días.`
+      found.date = draft.preferredDate
+        ? `Ese día ya no se puede: elige desde mañana y hasta dentro de ${MAX_ADVANCE_DAYS} días.`
+        : 'Elige el día en que lo necesitas.'
     }
     if (!draft.customerName.trim()) {
       found.name = 'Escribe tu nombre, para saber a quién le escribimos.'
@@ -78,6 +96,7 @@ export default function ContactStep() {
     setSubmitError('')
     if (Object.keys(found).length > 0) {
       trackBlocked(SERVICE, 'contact', Object.keys(found).map((key) => FIELD_NAMES[key] || key))
+      goToFirstError(found)
       return
     }
 
@@ -110,18 +129,14 @@ export default function ContactStep() {
           <label htmlFor="preferred-date" className="mb-1 block text-sm font-semibold text-inkStrong">
             Fecha deseada <span className="text-danger">*</span>
           </label>
-          <input
-            id="preferred-date"
-            type="date"
-            className={`field ${errors.date ? 'border-danger' : ''}`}
-            min={min}
-            max={max}
-            value={draft.preferredDate}
-            onChange={(event) => { setErrors((e) => ({ ...e, date: '' })); setPreferredDate(event.target.value) }}
-          />
-          {draft.preferredDate && !errors.date && (
-            <p className="mt-1 text-sm text-accent first-letter:uppercase">{formatDateLabel(draft.preferredDate)}</p>
-          )}
+          <Suspense fallback={<input id="preferred-date" className="field" placeholder="Elige el día" readOnly />}>
+            <DateField
+              id="preferred-date"
+              value={draft.preferredDate}
+              invalid={Boolean(errors.date)}
+              onChange={(value) => { setErrors((e) => ({ ...e, date: '' })); setPreferredDate(value) }}
+            />
+          </Suspense>
           <p className="mt-1 text-xs text-mute">{COPY.dateHint}</p>
           {errors.date && <p role="alert" className="mt-1 text-sm text-danger">{errors.date}</p>}
         </div>
@@ -232,6 +247,9 @@ export default function ContactStep() {
       </div>
 
       {submitError && <p role="alert" className="mt-4 text-sm text-danger">{submitError}</p>}
+      {Object.values(errors).some(Boolean) && (
+        <p className="mt-4 text-sm text-danger">Revisa lo marcado en rojo arriba.</p>
+      )}
 
       <StepNav
         onBack={() => navigate(PATHS.items)}

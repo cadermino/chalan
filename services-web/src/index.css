@@ -44,3 +44,60 @@ body {
 .pac-item:hover, .pac-item-selected { background: #1f2632; }
 .pac-item-query { color: #f3ede2; }
 .pac-icon { display: none; }
+
+/* Calendario de la fecha (components/DateField.jsx, react-datepicker) con la
+   paleta del formulario. Su CSS viene claro y con letra chica. */
+.chalan-calendar.react-datepicker {
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: #2a3344;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  color: #f3ede2;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.chalan-calendar .react-datepicker__header {
+  background: #1f2632;
+  border-bottom: 1px solid #3a4558;
+  padding-top: 0.75rem;
+}
+.chalan-calendar .react-datepicker__current-month {
+  color: #f3ede2;
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-bottom: 0.5rem;
+}
+.chalan-calendar .react-datepicker__navigation { top: 0.6rem; }
+.chalan-calendar .react-datepicker__navigation-icon::before { border-color: #9aa5b4; }
+.chalan-calendar .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before { border-color: #f3ede2; }
+.chalan-calendar .react-datepicker__day-name {
+  color: #7a8899;
+  width: 2.4rem;
+  line-height: 2rem;
+  margin: 0.1rem;
+  text-transform: capitalize;
+}
+.chalan-calendar .react-datepicker__day {
+  color: #f3ede2;
+  width: 2.4rem;
+  line-height: 2.4rem;
+  margin: 0.1rem;
+  border-radius: 0.5rem;
+}
+.chalan-calendar .react-datepicker__day:not(.react-datepicker__day--disabled):hover {
+  background: #3a4558;
+  border-radius: 0.5rem;
+}
+.chalan-calendar .react-datepicker__day--today { font-weight: 600; }
+.chalan-calendar .react-datepicker__day--keyboard-selected { background: #1a3328; color: #f3ede2; }
+.chalan-calendar .react-datepicker__day--selected,
+.chalan-calendar .react-datepicker__day--selected:hover {
+  background: #2fa55f;
+  color: #fff;
+  font-weight: 600;
+}
+.chalan-calendar .react-datepicker__day--disabled,
+.chalan-calendar .react-datepicker__day--outside-month { color: #4a5568; }
+div.react-datepicker-popper { z-index: 30; }
