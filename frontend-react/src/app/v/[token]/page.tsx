@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { privateLinkMetadata } from '@/lib/privateLinkMetadata'
+import { CHALAN_IMAGE, privateLinkMetadata } from '@/lib/privateLinkMetadata'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { ApproxMap, type ApproxLocation } from '@/components/ApproxMap'
@@ -32,7 +32,8 @@ type SharedMedia = {
 
 type Result = { status: 'ok'; data: SharedMedia } | { status: 'expired' | 'missing' }
 
-const FALLBACK_IMAGE = 'https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png'
+// Un pedido de servicio sin foto: el chalán, no el camión de las mudanzas.
+const FALLBACK_IMAGE = CHALAN_IMAGE
 
 async function getShared(token: string): Promise<Result> {
   try {

@@ -5,7 +5,16 @@ import type { Metadata } from "next";
 // openGraph propio, la página hereda el del layout ("Mudanzas y fletes
 // confiables en Perú"), que no dice para qué es el link. Nunca se indexa. Los
 // links de Vue y del backoffice tienen lo mismo en su build (vite.config).
-export const SHARE_IMAGE = "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png";
+//
+// La imagen es el chalán (public/og/chalan.png): estos links no son solo de
+// mudanzas (reseñas de servicios, documentos de profesionales, pedidos de
+// pintura…). El camión queda para los de mudanzas (el layout y los de Vue).
+export const CHALAN_IMAGE = "https://chalan.pe/og/chalan.png";
+
+// Para el openGraph de las páginas públicas que no son de mudanzas (servicios,
+// profesionales). Una página con openGraph propio no hereda la imagen del layout:
+// sin esto WhatsApp no mostraba ninguna.
+export const CHALAN_OG_IMAGES = [{ url: CHALAN_IMAGE, width: 1200, height: 1200, alt: "Chalán" }];
 
 export function privateLinkMetadata(title: string, description: string): Metadata {
   return {
@@ -18,7 +27,7 @@ export function privateLinkMetadata(title: string, description: string): Metadat
       siteName: "Chalán",
       locale: "es_PE",
       type: "website",
-      images: [{ url: SHARE_IMAGE, width: 1519, height: 1506, alt: "Chalán" }],
+      images: CHALAN_OG_IMAGES,
     },
     twitter: { card: "summary", title, description },
   };

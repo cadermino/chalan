@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ServiceLanding, soles, type ServiceFaq, type ServicePrice } from '@/components/ServiceLanding'
 import { HOME_SERVICES } from '@/lib/homeServices'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Precios "desde", de mano de obra, por m² y con la comisión de Chalán incluida.
 // Referencia de Lima (octubre de 2026): instalación simple de cerámico o
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
     'instalación de porcelanato lima, instalación de cerámica, colocación de porcelanato precio m2, enchape de pisos, maestro albañil lima, instalación de pisos huancayo',
   alternates: { canonical: service.path },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Instalación de porcelanato y cerámica en Lima | Chalán',
     description: `Pisos de porcelanato y cerámica, con zócalo y fragua. Lima, Callao y Huancayo. Desde ${lowest} por m².`,
     url: `https://chalan.pe${service.path}`,

@@ -3,7 +3,9 @@ import { join } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const SHARE_IMAGE = 'https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png'
+// El chalán (frontend-react/public/og/chalan.png, lo sirve Next): estos links no
+// son de mudanzas.
+const SHARE_IMAGE = 'https://chalan.pe/og/chalan.png'
 
 // Vista previa de los links del backoffice que se mandan por WhatsApp. WhatsApp
 // no ejecuta JavaScript y el index.html no tenía ninguna: el link de cotizar un

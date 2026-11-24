@@ -4,6 +4,7 @@ import { instrumentSerif, interTight, jetbrainsMono } from '@/lib/fonts'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import '../landing.css'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 export const metadata: Metadata = {
   title: 'Contrata embalaje a domicilio en Lima | Chalán',
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
     'embalaje a domicilio lima, contratar embalaje mudanza, embalaje de muebles, embalaje profesional lima, empacar objetos frágiles',
   alternates: { canonical: '/embalaje-profesional' },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Contrata embalaje a domicilio en Lima | Chalán',
     description:
       'Embalamos tus muebles y objetos frágiles con materiales profesionales. Cotiza por WhatsApp.',

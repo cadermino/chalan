@@ -5,6 +5,7 @@ import { instrumentSerif, interTight, jetbrainsMono } from '@/lib/fonts'
 import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import '../landing.css'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Precios "desde", de referencia y con la comisión de Chalán incluida. El precio
 // final lo confirma el armador al cotizar, así que se ajustan a medida que
@@ -56,6 +57,7 @@ export const metadata: Metadata = {
     'armado de muebles a domicilio, armado de muebles de melamina, desarmado de muebles para mudanza, armado de muebles lima, armador de muebles, armado de roperos, armado de muebles huancayo',
   alternates: { canonical: '/armado-de-muebles' },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Armado y desarmado de muebles a domicilio | Chalán',
     description:
       `Muebles de melamina, roperos, camas y cocinas de cualquier tienda. Lima, Callao y Huancayo. Desde ${lowestPrice}.`,

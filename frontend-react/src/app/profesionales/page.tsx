@@ -5,6 +5,7 @@ import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { PROFESSIONALS } from '@/lib/professionals'
 import '../landing.css'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Índice de los oficios que se pueden registrar (lib/professionals.ts). Los
 // transportistas tienen su propia página: piden otros documentos.
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     'Pintores, aplicadores de microcemento, instaladores de porcelanato, armadores de muebles y embaladores: regístrate gratis en Chalán y recibe pedidos de clientes en Lima.',
   alternates: { canonical: '/profesionales' },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Trabaja con Chalán: recibe pedidos de clientes en Lima',
     description: 'Regístrate gratis y recibe por WhatsApp pedidos de tu oficio. Tú pones tu precio.',
     url: 'https://chalan.pe/profesionales',

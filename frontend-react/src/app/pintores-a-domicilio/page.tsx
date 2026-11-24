@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ServiceLanding, soles, type ServiceFaq, type ServicePrice } from '@/components/ServiceLanding'
 import { HOME_SERVICES } from '@/lib/homeServices'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Precios "desde", de mano de obra, por m² y con la comisión de Chalán incluida.
 // Se definieron con las tarifas públicas de pintura de las tiendas de
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
     'pintor a domicilio lima, pintores a domicilio, pintado de departamentos lima, servicio de pintura lima, empastado y pintado, pintar departamento para entregar, pintor huancayo',
   alternates: { canonical: service.path },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Pintores a domicilio en Lima: departamentos y casas | Chalán',
     description: `Pintado y empastado de departamentos y casas. Lima, Callao y Huancayo. Desde ${lowest} por m².`,
     url: `https://chalan.pe${service.path}`,

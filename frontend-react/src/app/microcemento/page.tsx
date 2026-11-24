@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ServiceLanding, soles, type ServiceFaq, type ServicePrice } from '@/components/ServiceLanding'
 import { HOME_SERVICES } from '@/lib/homeServices'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Precios "desde", por m² y con la comisión de Chalán incluida. Referencia de
 // Lima (octubre de 2026), de un aplicador: mano de obra desde S/ 50 en
@@ -36,6 +37,7 @@ export const metadata: Metadata = {
     'aplicación de microcemento lima, aplicador de microcemento, microcemento en baños, microcemento sobre mayólica, microcemento en pisos, mano de obra microcemento m2',
   alternates: { canonical: service.path },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Aplicación de microcemento en Lima: baños, pisos y paredes | Chalán',
     description: `Baños, pisos y paredes sin juntas, también sobre mayólica. Lima, Callao y Huancayo. Desde ${lowest} por m².`,
     url: `https://chalan.pe${service.path}`,

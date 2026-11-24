@@ -7,6 +7,7 @@ import { LandingFooter } from '@/components/LandingFooter'
 import { CarrierSignupForm } from '@/components/CarrierSignupForm'
 import { COMMON_FAQ, PRO_STEPS, PROFESSIONALS, professionalBySlug } from '@/lib/professionals'
 import '../../landing.css'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Un oficio por página (lib/professionals.ts), todas con la misma forma que
 // /transportistas. El formulario manda el código del servicio, así la empresa
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ oficio: s
     description: pro.description,
     keywords: pro.keywords,
     alternates: { canonical: path },
-    openGraph: { title: pro.title, description: pro.description, url: `https://chalan.pe${path}` },
+    openGraph: { images: CHALAN_OG_IMAGES, title: pro.title, description: pro.description, url: `https://chalan.pe${path}` },
   }
 }
 

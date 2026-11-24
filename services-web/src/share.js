@@ -7,7 +7,9 @@
 // La misma para la página de cotizaciones de todos los servicios.
 export const QUOTES_DESCRIPTION = 'Mira los precios que te mandaron y elige el que más te convenga.'
 
-export const SHARE_IMAGE = 'https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png'
+// El chalán (frontend-react/public/og/chalan.png, lo sirve Next), no el camión de
+// las mudanzas: son servicios para la casa.
+export const SHARE_IMAGE = 'https://chalan.pe/og/chalan.png'
 
 export const SHARE = {
   packing: {

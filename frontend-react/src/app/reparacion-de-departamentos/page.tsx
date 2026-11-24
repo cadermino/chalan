@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ServiceLanding, type ServiceFaq } from '@/components/ServiceLanding'
 import { HOME_SERVICES } from '@/lib/homeServices'
+import { CHALAN_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 // Servicio integral para departamentos en alquiler: cuando se va el inquilino,
 // el propietario tiene que llamar a un pintor, un gasfitero, un electricista, un
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     'servicio integral de reparación de departamentos lima, mantenimiento de departamentos en alquiler, reparación de departamento para alquilar, dejar departamento listo para alquilar, remodelación de departamento para alquilar, mantenimiento de inmuebles lima',
   alternates: { canonical: service.path },
   openGraph: {
+    images: CHALAN_OG_IMAGES,
     title: 'Reparación de departamentos en alquiler en Lima | Chalán',
     description:
       'Deja tu departamento listo para el nuevo inquilino, con un solo contacto. Visita técnica sin costo en Lima y Callao.',
