@@ -4,6 +4,7 @@ import { getAllPosts } from "@/lib/blog";
 import { LandingNav } from "@/components/LandingNav";
 import { LandingFooter } from "@/components/LandingFooter";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Blog de mudanzas y fletes en Perú | Chalán",
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     canonical: "/blog",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Blog de mudanzas y fletes | Chalán",
     description:
       "Guías y tips para tu mudanza en Perú. Información útil antes de contratar un servicio.",

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Nosotros - Chalán | Plataforma de mudanzas en Perú",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     canonical: "/nosotros",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Nosotros - Chalán",
     description:
       "Conoce Chalán, la plataforma digital que facilita tus mudanzas en Lima y Perú.",

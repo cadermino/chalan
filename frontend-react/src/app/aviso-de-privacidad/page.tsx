@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Aviso de privacidad - Chalán | Mudanzas y fletes en Perú",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
     canonical: "/aviso-de-privacidad",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Aviso de privacidad - Chalán",
     description:
       "Conoce cómo protegemos tu información personal en Chalán.",

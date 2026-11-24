@@ -16,6 +16,13 @@ export const CHALAN_IMAGE = "https://chalan.pe/og/chalan.png";
 // sin esto WhatsApp no mostraba ninguna.
 export const CHALAN_OG_IMAGES = [{ url: CHALAN_IMAGE, width: 1200, height: 1200, alt: "Chalán" }];
 
+// El camión del layout, para las páginas de mudanzas y generales con openGraph
+// propio: tampoco heredan la imagen del layout.
+export const TRUCK_OG_IMAGES = [{
+  url: "https://chalan-public.s3.amazonaws.com/home/truck-list-fb.png", width: 1519, height: 1506,
+  alt: "Chalán - Mudanzas y fletes en Perú",
+}];
+
 export function privateLinkMetadata(title: string, description: string): Metadata {
   return {
     title,

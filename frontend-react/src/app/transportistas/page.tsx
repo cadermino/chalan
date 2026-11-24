@@ -5,6 +5,7 @@ import { LandingNav } from '@/components/LandingNav'
 import { LandingFooter } from '@/components/LandingFooter'
 import { CarrierSignupForm } from '@/components/CarrierSignupForm'
 import '../landing.css'
+import { TRUCK_OG_IMAGES } from '@/lib/privateLinkMetadata'
 
 export const metadata: Metadata = {
   title: 'Trabaja con Chalán - Registra tu empresa de mudanzas | Chalán',
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     'trabajar como transportista chalan, empresa de mudanzas afiliarse, transportistas peru, chalanes chalan, unirse chalan mudanzas',
   alternates: { canonical: '/transportistas' },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: 'Trabaja con Chalán - Registra tu empresa de mudanzas',
     description: 'Recibe pedidos de mudanza sin gastar en marketing. Regístrate gratis y empieza a cotizar.',
     url: 'https://chalan.pe/transportistas',

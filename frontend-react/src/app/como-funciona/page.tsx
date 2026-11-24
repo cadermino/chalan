@@ -4,6 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Cómo Funciona Chalán: Cotiza tu Mudanza en 3 Pasos",
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     canonical: "/como-funciona",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "¿Cómo funciona Chalán?",
     description:
       "Cotiza tu mudanza o flete en 3 simples pasos. Compara precios y reserva fácil.",

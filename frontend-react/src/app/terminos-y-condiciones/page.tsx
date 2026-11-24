@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Términos y condiciones - Chalán | Mudanzas y fletes en Perú",
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
     canonical: "/terminos-y-condiciones",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Términos y condiciones - Chalán",
     description:
       "Términos y condiciones de uso de Chalán, plataforma de mudanzas y fletes en Perú.",

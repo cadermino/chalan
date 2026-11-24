@@ -4,6 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Fletes en Perú - Transporte de carga y mudanzas | Chalán",
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     canonical: "/fletes-peru",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Fletes en Perú - Chalán",
     description:
       "Transporte de carga y fletes a nivel nacional. Cotiza gratis y compara precios.",

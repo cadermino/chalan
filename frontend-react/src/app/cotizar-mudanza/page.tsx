@@ -5,6 +5,7 @@ import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
 import { Testimonials } from "@/components/Testimonials";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Cotizar mudanza online gratis en minutos | Chalán",
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
     canonical: "/cotizar-mudanza",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Cotizar mudanza online gratis | Chalán",
     description:
       "Cotiza tu mudanza online gratis y sin llamadas. Compara precios de vehículos y reserva en minutos.",

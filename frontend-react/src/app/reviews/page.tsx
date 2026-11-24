@@ -3,6 +3,7 @@ import { StarRating } from "@/components/StarRating";
 import { getApiBase } from "@/lib/api";
 import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Reviews de empresas transportistas - Chalán",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     canonical: "/reviews",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Reviews de empresas transportistas - Chalán",
     description:
       "Lee las reseñas y calificaciones de empresas de mudanzas y fletes en Perú. Encuentra la mejor empresa transportista.",

@@ -5,6 +5,7 @@ import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
 import { Testimonials } from "@/components/Testimonials";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Servicio de mudanza en Lima, grande o pequeña | Chalán",
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
     canonical: "/mudanzas-lima",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Servicio de mudanza en Lima - Chalán",
     description:
       "Contrata tu mudanza en Lima con transportistas verificados, desde unas cajas hasta una casa completa.",

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Contacto - Chalán | Mudanzas y fletes en Perú",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     canonical: "/contacto",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Contacto - Chalán",
     description:
       "Comunícate con Chalán por WhatsApp o correo. Dudas sobre mudanzas, fletes o ser socio transportista.",

@@ -3,6 +3,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Mudanzas en Huancayo - Precios y servicio confiable | Chalán",
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     canonical: "/mudanzas-huancayo",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Mudanzas en Huancayo - Chalán",
     description:
       "Servicio de mudanzas en Huancayo y el Valle del Mantaro. Compara precios y múdate fácil.",

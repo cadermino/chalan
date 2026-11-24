@@ -4,6 +4,7 @@ import { BreadcrumbJsonLd } from "@/components/Breadcrumbs";
 import { LandingFooter } from "@/components/LandingFooter";
 import { LandingNav } from "@/components/LandingNav";
 import { QuoteWidget } from "@/components/QuoteWidget";
+import { TRUCK_OG_IMAGES } from "@/lib/privateLinkMetadata";
 
 export const metadata: Metadata = {
   title: "Preguntas Frecuentes sobre Mudanzas y Fletes - Chalán",
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
     canonical: "/preguntas-frecuentes",
   },
   openGraph: {
+    images: TRUCK_OG_IMAGES,
     title: "Preguntas frecuentes - Chalán",
     description:
       "Resolvemos tus dudas sobre mudanzas en Lima y Perú: precios, formas de pago, cobertura y más.",
