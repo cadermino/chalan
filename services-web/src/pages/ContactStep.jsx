@@ -237,11 +237,14 @@ export default function ContactStep() {
           </p>
         </SummaryRow>
         )}
-        {destination && (
+        {(destination || draft.sameAddress) && (
           <SummaryRow title="Se arman en" editTo={PATHS.items}>
-            <span data-clarity-mask="true">
-              {destination.street}{destination.interior ? ` · ${destination.interior}` : ''}
-            </span>
+            {draft.sameAddress ? 'La misma dirección' : (
+              <span data-clarity-mask="true">
+                {destination.street}{destination.interior ? ` · ${destination.interior}` : ''}
+              </span>
+            )}
+            {draft.destinationFloor && <span className="text-mute"> · {draft.destinationFloor}</span>}
           </SummaryRow>
         )}
       </div>

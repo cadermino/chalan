@@ -31,12 +31,15 @@ def validate_furniture_item(item, index):
 
 
 FURNITURE_NOTE_MAX = 500
+DESTINATION_FLOOR_MAX = 100
 
 
 def validate_furniture_details(details):
-    """`destination`, where the `both` items get assembled, and `description`,
-    an optional note for whoever quotes ("se desarma en el 5.º piso y se arma
-    en un 1.º").
+    """`destination`, where the `both` items get assembled, or `same_address`
+    (true) when they are put together at the request's own address (another
+    room or floor); `destination_floor`, an optional "1.er piso, dormitorio del
+    fondo" for either case; and `description`, an optional note for whoever
+    quotes ("se desarma en el 5.º piso y se arma en un 1.º").
 
     The destination follows the request's address rules (picked from Google
     Places). Whether it is needed depends on the items, which can arrive in
@@ -49,8 +52,25 @@ def validate_furniture_details(details):
     if not isinstance(details, dict):
         raise InvalidRequest('details must be an object')
     cleaned = {}
-    if details.get('destination') is not None:
+    same_address = details.get('same_address')
+    if same_address is not None and not isinstance(same_address, bool):
+        raise InvalidRequest('details.same_address must be true or false')
+    if same_address:
+        # Una u otra: la casilla esconde el destino en el formulario.
+        cleaned['same_address'] = True
+    elif details.get('destination') is not None:
         cleaned['destination'] = validate_address(details['destination'], name='details.destination')
+    floor = details.get('destination_floor')
+    if floor is not None:
+        if not isinstance(floor, str):
+            raise InvalidRequest('details.destination_floor must be text')
+        floor = floor.strip()
+        if len(floor) > DESTINATION_FLOOR_MAX:
+            raise InvalidRequest(f'details.destination_floor must be at most {DESTINATION_FLOOR_MAX} characters')
+        if PHONE_IN_TEXT.search(floor):
+            raise InvalidRequest('details.destination_floor must not include a phone number')
+        if floor:
+            cleaned['destination_floor'] = floor
     note = details.get('description')
     if note is not None:
         if not isinstance(note, str):
@@ -66,15 +86,21 @@ def validate_furniture_details(details):
 
 
 def check_furniture_submit(service_request):
-    """A `both` item needs a destination; without one, a stale destination left
-    by an item that changed its work is dropped instead of shown to carriers."""
+    """A `both` item needs a destination, or `same_address`; without one, a
+    stale destination (and its floor) left by an item that changed its work is
+    dropped instead of shown to carriers."""
     details = dict(service_request.details or {})
     needs_destination = any(item.work == 'both' for item in service_request.items)
-    if needs_destination and not details.get('destination'):
+    if needs_destination and not details.get('destination') and not details.get('same_address'):
         raise InvalidRequest('details.destination is required when a piece is disassembled and assembled')
-    if not needs_destination and 'destination' in details:
-        details.pop('destination')
+    stale = [key for key in DESTINATION_KEYS if key in details] if not needs_destination else []
+    if stale:
+        for key in stale:
+            details.pop(key)
         service_request.details = details
+
+
+DESTINATION_KEYS = ('destination', 'same_address', 'destination_floor')
 
 
 # Painting has no list of things: the customer says what to paint in their own

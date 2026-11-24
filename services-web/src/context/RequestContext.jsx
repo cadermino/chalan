@@ -15,9 +15,12 @@ const EMPTY_DRAFT = {
   publicId: null,
   address: EMPTY_ADDRESS,
   items: [],
-  // Solo armado: dónde se arman los muebles que se desarman en la dirección,
-  // y una nota para quien cotiza (va en details.description).
+  // Solo armado: dónde se arman los muebles que se desarman en la dirección
+  // (o sameAddress: en otro ambiente o piso de la misma), en qué piso o
+  // ambiente, y una nota para quien cotiza (va en details.description).
   destination: null,
+  sameAddress: false,
+  destinationFloor: '',
   note: '',
   // Solo pintura: qué pintar (description) y las respuestas rápidas.
   details: {},
@@ -53,6 +56,8 @@ function fromServer(data) {
     address: toForm(data.address),
     items: (data.items || []).map((item) => newItem({ ...item, pack: Boolean(item.pack) })),
     destination: destination ? toForm(destination) : null,
+    sameAddress: Boolean(data.details?.same_address),
+    destinationFloor: data.details?.destination_floor || '',
     note: DESCRIBED ? '' : data.details?.description || '',
     details: DESCRIBED ? (data.details || {}) : {},
     media: data.media || [],
@@ -124,21 +129,28 @@ export function RequestProvider({ children }) {
     patch({ publicId, address })
   }, [draft.publicId, patch])
 
-  // `destination` y `note` solo los manda el armado: null borra el destino,
-  // undefined no toca ninguno de los dos (van juntos en details).
-  const saveItems = useCallback(async (items, destination, note = '') => {
+  // `assembly` y `note` solo los manda el armado: { destination, sameAddress,
+  // floor } dónde se arman, null si ningún mueble se arma en otro lado,
+  // undefined no toca details (van todos juntos ahí).
+  const saveItems = useCallback(async (items, assembly, note = '') => {
     const body = {
       items: items.map(({ description, quantity, materials, work, pack }) => (
         SERVICE === 'packing' ? { description, quantity, materials } : { description, quantity, materials, work, pack })),
     }
-    if (destination !== undefined) {
+    const destination = assembly && !assembly.sameAddress ? assembly.destination : null
+    const floor = (assembly && assembly.floor) || ''
+    if (assembly !== undefined) {
       body.details = {
+        ...(assembly?.sameAddress && { same_address: true }),
         ...(destination && { destination: addressPayload(destination) }),
+        ...(floor && { destination_floor: floor }),
         ...(note && { description: note }),
       }
     }
     await updateRequest(draft.publicId, body)
-    patch(destination === undefined ? { items } : { items, destination, note })
+    patch(assembly === undefined ? { items } : {
+      items, destination, sameAddress: Boolean(assembly?.sameAddress), destinationFloor: floor, note,
+    })
   }, [draft.publicId, patch])
 
   const saveDetails = useCallback(async (details) => {

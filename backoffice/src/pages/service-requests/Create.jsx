@@ -26,7 +26,9 @@ const WORKS = [
   { code: 'disassemble', label: 'Desarmar' },
   { code: 'both', label: 'Desarmar y armar' },
 ]
-const EMPTY_DESTINATION = { street: '', interior: '', neighborhood: '', city: 'Lima', mapUrl: '' }
+// sameAddress: se desarman y se arman en la misma dirección (otro ambiente o
+// piso), sin destino. floor: en qué piso o ambiente se arman, en los dos casos.
+const EMPTY_DESTINATION = { street: '', interior: '', neighborhood: '', city: 'Lima', mapUrl: '', sameAddress: false, floor: '' }
 
 // El API principal responde en inglés, pensado para quien programa; acá se avisa
 // qué falta con las palabras del formulario.
@@ -35,6 +37,7 @@ function friendlyError(message, isEdit) {
   if (message.includes('quotation was already chosen')) return 'Ya hay una cotización elegida: el servicio ya no se puede editar.'
   if (message.includes('describe what to paint')) return 'Cuenta qué hay que pintar, o deja un video que lo explique.'
   if (message.includes('phone number')) return 'Quita el teléfono de la nota: la ven todas las empresas.'
+  if (message.includes('destination_floor')) return 'El piso o ambiente de destino no puede llevar un teléfono ni pasar de 100 caracteres.'
   if (message.includes('destination.map_url')) return 'Falta el link de Google Maps del destino (tiene que empezar con https://).'
   if (message.includes('destination.neighborhood')) return 'Falta el distrito del destino.'
   if (message.includes('destination')) return 'Falta la dirección de destino: algún mueble se desarma y se arma en otro lado.'
@@ -125,12 +128,17 @@ function formFromRequest(request) {
         materials: i.materials.map((m) => m.code),
       }))
       : [newItem()],
-    destination: destination
-      ? {
-        street: destination.street || '', interior: destination.interior || '', neighborhood: destination.neighborhood || '',
-        city: destination.city || '', mapUrl: destination.map_url || '',
-      }
-      : EMPTY_DESTINATION,
+    destination: {
+      ...(destination
+        ? {
+          ...EMPTY_DESTINATION,
+          street: destination.street || '', interior: destination.interior || '', neighborhood: destination.neighborhood || '',
+          city: destination.city || '', mapUrl: destination.map_url || '',
+        }
+        : EMPTY_DESTINATION),
+      sameAddress: Boolean(request.details?.same_address),
+      floor: request.details?.destination_floor || '',
+    },
     note: request.service_type?.code === 'furniture_assembly' ? request.details?.description || '' : '',
     painting: {
       description: request.details?.description || '', area: request.details?.area || '', size: request.details?.size || '',
@@ -310,7 +318,9 @@ export default function ServiceRequestCreate() {
       ...(isAssembly && {
         details: {
           description: note,
-          ...(needsDestination && { destination: {
+          ...(needsDestination && destination.sameAddress && { same_address: true }),
+          ...(needsDestination && destination.floor.trim() && { destination_floor: destination.floor.trim() }),
+          ...(needsDestination && !destination.sameAddress && { destination: {
             street: destination.street,
             interior: destination.interior,
             neighborhood: destination.neighborhood,
@@ -671,7 +681,24 @@ export default function ServiceRequestCreate() {
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-1">Destino (dónde se arman)</h2>
             <p className="text-xs text-gray-400 mb-3">Algún mueble se desarma en la dirección de arriba y se arma acá.</p>
+            <label className="mb-3 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={destination.sameAddress}
+                onChange={(e) => setDestination((d) => ({ ...d, sameAddress: e.target.checked }))}
+              />
+              Se arman en la misma dirección (otro ambiente o piso)
+            </label>
             <div className="grid grid-cols-2 gap-4">
+              <Field label="Piso o ambiente donde se arman" span={2}>
+                <input
+                  maxLength={100} placeholder="1.er piso, dormitorio del fondo"
+                  value={destination.floor} onChange={setDest('floor')} className="input"
+                />
+              </Field>
+            </div>
+            {!destination.sameAddress && (
+            <div className="mt-4 grid grid-cols-2 gap-4">
               <Field label="Dirección *" span={2}>
                 <input required maxLength={200} value={destination.street} onChange={setDest('street')} className="input" />
               </Field>
@@ -691,6 +718,7 @@ export default function ServiceRequestCreate() {
                 />
               </Field>
             </div>
+            )}
           </div>
         )}
 

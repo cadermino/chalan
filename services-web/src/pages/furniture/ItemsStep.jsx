@@ -27,6 +27,8 @@ export default function ItemsStep() {
     'destination', draft.destination || EMPTY_ADDRESS, draft.publicId,
   )
   const [destinationError, setDestinationError] = useState('')
+  const [sameAddress, setSameAddress] = useState(draft.sameAddress)
+  const [floor, setFloor] = useState(draft.destinationFloor)
   const [note, setNote] = useState(draft.note || '')
   const [mapsError, setMapsError] = useState(false)
   const [missingWork, setMissingWork] = useState(false)
@@ -49,6 +51,7 @@ export default function ItemsStep() {
 
   const needsDestination = draft.items.some((item) => item.work === 'both')
   const noteHasPhone = PHONE_IN_TEXT.test(note)
+  const floorHasPhone = PHONE_IN_TEXT.test(floor)
 
   const handleNext = async () => {
     // Las filas en blanco no cuentan: se descartan en vez de frenar al cliente.
@@ -66,9 +69,14 @@ export default function ItemsStep() {
       setError('Falta elegir qué hacer con algún mueble.')
       return
     }
-    if (needsDestination && !destination.map_url) {
+    if (needsDestination && !sameAddress && !destination.map_url) {
       trackBlocked(SERVICE, 'items', 'destination_map_url')
       setDestinationError('No encontramos esta dirección en el mapa. Busca la calle o un lugar cercano, elígelo y toca el mapa en el lugar exacto.')
+      return
+    }
+    if (needsDestination && floorHasPhone) {
+      trackBlocked(SERVICE, 'items', 'destination_floor_phone')
+      document.getElementById('destination-floor')?.focus()
       return
     }
     if (noteHasPhone) {
@@ -78,7 +86,7 @@ export default function ItemsStep() {
     }
     setSaving(true)
     try {
-      await saveItems(filled, needsDestination ? destination : null, note.trim())
+      await saveItems(filled, needsDestination ? { destination, sameAddress, floor: floor.trim() } : null, note.trim())
       forgetDestination()
       navigate(PATHS.contact)
     } catch (err) {
@@ -118,20 +126,56 @@ export default function ItemsStep() {
         <section className="mt-8 space-y-5">
           <div>
             <h2 className="text-lg font-semibold text-inkStrong">¿Dónde se arman?</h2>
-            <p className="mt-1 text-sm text-inkSoft">
-              La dirección a la que llegan los muebles que se desarman. El traslado no está incluido.
-            </p>
+            {!sameAddress && (
+              <p className="mt-1 text-sm text-inkSoft">
+                La dirección a la que llegan los muebles que se desarman. El traslado no está incluido.
+              </p>
+            )}
           </div>
-          <AddressFields
-            id="destination"
-            label="Dirección de destino"
-            address={destination}
-            onChange={(next) => { setDestinationError(''); setDestination(next) }}
-            error={destinationError}
-            mapsError={mapsError}
-            onMapsError={() => setMapsError(true)}
-          />
-          {mapsError && (
+          <label className="flex items-start gap-3 text-inkStrong">
+            <input
+              type="checkbox"
+              className="mt-1 h-5 w-5 accent-accent"
+              checked={sameAddress}
+              onChange={(event) => { setDestinationError(''); setSameAddress(event.target.checked) }}
+            />
+            <span>
+              Se arman en la misma dirección
+              <span className="block text-xs text-mute">En otro ambiente o piso de la misma casa o edificio.</span>
+            </span>
+          </label>
+          {!sameAddress && (
+            <AddressFields
+              id="destination"
+              label="Dirección de destino"
+              address={destination}
+              onChange={(next) => { setDestinationError(''); setDestination(next) }}
+              error={destinationError}
+              mapsError={mapsError}
+              onMapsError={() => setMapsError(true)}
+            />
+          )}
+          <div>
+            <label htmlFor="destination-floor" className="mb-1 block text-sm font-semibold text-inkStrong">
+              ¿En qué piso o ambiente se arman? <span className="font-normal text-mute">(opcional)</span>
+            </label>
+            <input
+              id="destination-floor"
+              type="text"
+              maxLength={100}
+              className={`field ${floorHasPhone ? 'border-danger' : ''}`}
+              placeholder="Ej. 1.er piso, dormitorio del fondo"
+              value={floor}
+              onChange={(event) => setFloor(event.target.value)}
+              aria-invalid={floorHasPhone}
+            />
+            {floorHasPhone && (
+              <p role="alert" className="mt-1 text-sm text-danger">
+                Quita el número de teléfono: te contactamos al WhatsApp que dejas en el último paso.
+              </p>
+            )}
+          </div>
+          {!sameAddress && mapsError && (
             <div role="alert" className="rounded-lg border border-line bg-paper2 p-4 text-sm">
               <p className="text-inkStrong">No pudimos cargar el buscador de direcciones.</p>
               <p className="mt-1 text-inkSoft">Recarga la página o cuéntanos qué necesitas por WhatsApp.</p>

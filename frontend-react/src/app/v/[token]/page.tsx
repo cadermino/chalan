@@ -26,7 +26,7 @@ type SharedMedia = {
   destination_approximate_location: ApproxLocation | null
   preferred_date: string | null
   items: { description: string; quantity: number; work: string | null; pack: boolean | null }[]
-  details: Record<string, unknown> & { description?: string }
+  details: Record<string, unknown> & { description?: string; same_address?: boolean; destination_floor?: string }
   media: { url: string; media_type: 'image' | 'video'; content_type: string | null }[]
 }
 
@@ -143,10 +143,18 @@ function SharedBody({ data }: { data: SharedMedia }) {
       {data.destination_district && (
         <>
           <p className="mt-4 text-gray-600">
-            Se arman en {[data.destination_street, data.destination_district].filter(Boolean).join(', ')}.
+            Se arman en {[data.destination_street, data.destination_district].filter(Boolean).join(', ')}
+            {data.details.destination_floor ? ` (${data.details.destination_floor})` : ''}.
           </p>
           <ApproxMap location={data.destination_approximate_location} />
         </>
+      )}
+      {/* Armado: se desarman y se arman en la misma dirección (otro ambiente o piso). */}
+      {data.details.same_address && (
+        <p className="mt-4 text-gray-600">
+          Se arman en la misma dirección
+          {data.details.destination_floor ? ` (${data.details.destination_floor})` : ''}.
+        </p>
       )}
 
       {(data.details.description || facts.length > 0) && (

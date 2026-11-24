@@ -230,6 +230,10 @@ export default function ServiceRequestView({ request }) {
   const isAssembly = request.service_type?.code === 'furniture_assembly'
   const isDescribed = DESCRIBED_CODES.includes(request.service_type?.code)
   const destination = request.details?.destination
+  // Se desarman y se arman en la misma dirección (otro ambiente o piso), y en
+  // qué piso o ambiente se arman, para los dos casos.
+  const sameAddress = Boolean(request.details?.same_address)
+  const destinationFloor = request.details?.destination_floor
 
   return (
     <div className="space-y-4">
@@ -242,14 +246,21 @@ export default function ServiceRequestView({ request }) {
         </p>
       </div>
 
-      <Card title={`Dirección${destination ? ' (dónde se desarman)' : ''}`}>
+      <Card title={`Dirección${destination || sameAddress ? ' (dónde se desarman)' : ''}`}>
         <AddressBlock address={request} hidden={request.address_hidden} />
       </Card>
 
       {destination && (
         <Card title="Destino (dónde se arman)">
           <AddressBlock address={destination} hidden={request.address_hidden} />
+          {destinationFloor && <p className="mt-2 text-sm text-gray-900">Piso o ambiente: {destinationFloor}</p>}
           <p className="mt-2 text-xs text-gray-400">El traslado de los muebles no está incluido.</p>
+        </Card>
+      )}
+      {sameAddress && (
+        <Card title="Dónde se arman">
+          <p className="text-sm text-gray-900">En la misma dirección (otro ambiente o piso).</p>
+          {destinationFloor && <p className="mt-1 text-sm text-gray-900">Piso o ambiente: {destinationFloor}</p>}
         </Card>
       )}
 

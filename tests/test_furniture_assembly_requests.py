@@ -117,6 +117,52 @@ def test_a_destination_nobody_needs_is_dropped_on_submit(client):
     assert 'destination' not in response.get_json()['details']
 
 
+def test_pieces_put_together_at_the_same_address_need_no_destination(client):
+    public_id = draft(client)
+    patch(client, public_id, preferred_date=TOMORROW, items=[{'description': 'Ropero', 'work': 'both'}])
+
+    patch(client, public_id, details={'same_address': True, 'destination': DESTINATION,
+                                      'destination_floor': ' 1.er piso, dormitorio del fondo '})
+    response = submit(client, public_id)
+
+    assert response.status_code == 200
+    details = response.get_json()['details']
+    # La casilla gana: el destino que quedó en el formulario no se guarda.
+    assert details == {'same_address': True, 'destination_floor': '1.er piso, dormitorio del fondo'}
+
+
+def test_the_floor_goes_with_another_address_too(client):
+    public_id = draft(client)
+    patch(client, public_id, preferred_date=TOMORROW, items=[{'description': 'Ropero', 'work': 'both'}])
+
+    patch(client, public_id, details={'destination': DESTINATION, 'destination_floor': '3.er piso'})
+
+    assert submit(client, public_id).get_json()['details']['destination_floor'] == '3.er piso'
+
+
+@pytest.mark.parametrize('details, field', [
+    ({'same_address': 'sí'}, 'details.same_address'),
+    ({'destination_floor': 'x' * 101}, 'details.destination_floor'),
+    ({'destination_floor': '2.º piso, llamar al 987 654 321'}, 'details.destination_floor'),
+])
+def test_the_same_address_answers_are_checked(client, details, field):
+    response = patch(client, draft(client), details=details)
+
+    assert response.status_code == 400
+    assert field in response.get_json()['message']
+
+
+def test_the_same_address_answers_nobody_needs_are_dropped_on_submit(client):
+    public_id = draft(client)
+    patch(client, public_id, preferred_date=TOMORROW, items=[{'description': 'Ropero', 'work': 'both'}],
+          details={'same_address': True, 'destination_floor': '1.er piso'})
+    patch(client, public_id, items=[{'description': 'Ropero', 'work': 'assemble'}])
+
+    details = submit(client, public_id).get_json()['details']
+
+    assert 'same_address' not in details and 'destination_floor' not in details
+
+
 def test_the_customer_can_leave_a_note_with_the_destination(client):
     public_id = draft(client)
     note = 'El ropero se desarma en un 5.º piso sin ascensor y se arma en un 1.º.'
