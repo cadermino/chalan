@@ -1356,10 +1356,11 @@ def test_a_completed_service_has_a_review_link_for_the_chosen_company(client, ad
 
     data = client.get(f'/api/service-requests/{submitted.id}', headers=admin).get_json()['service_request']
 
-    token = data['review_path'].removeprefix('/reviews/submit/')
-    payload = jwt.decode(token, client.application.config['SECRET_KEY'], algorithms=['HS256'])
-    assert (payload['service_request_id'], payload['carrier_company_id']) == (submitted.id, carrier.id)
-    assert payload['purpose'] == 'review'
+    # El link corto: el API principal lo canjea por el JWT de reseña
+    # (tests/test_review_short_link.py del API principal).
+    with client.application.app_context():
+        from app.review_short_link import make_code
+        assert data['review_path'] == f"/r/{make_code('s', submitted.id)}"
     assert data['review'] is None
 
 

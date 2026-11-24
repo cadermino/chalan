@@ -349,7 +349,7 @@ export default function OrderDetail() {
   useEffect(() => {
     if (isAdmin && order?.order_status_id === 3) {
       client.get(`/api/orders/${orderId}/review-link`).then(({ data }) => {
-        setReviewUrl(`${window.location.origin}/reviews/submit/${data.token}`)
+        setReviewUrl(`${window.location.origin}${data.path}`)
       }).catch(() => setReviewUrl(null))
     }
   }, [orderId, isAdmin, order?.order_status_id])

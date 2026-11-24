@@ -592,7 +592,7 @@ export default function ServiceRequestDetail() {
           <div className="mt-4 border-t border-gray-100 pt-4">
             <CopyRow
               title="Link de reseña"
-              hint="Para que califique a quien hizo el trabajo. Después le ofrece dejar una reseña de Chalán en Google. Vence en 30 días."
+              hint="Para que califique a quien hizo el trabajo. Después le ofrece dejar una reseña de Chalán en Google. Sirve mientras el servicio siga completado."
               text={`${window.location.origin}${request.review_path}`}
             />
           </div>

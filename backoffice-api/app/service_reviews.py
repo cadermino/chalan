@@ -1,20 +1,12 @@
-"""Link de reseña de un servicio completado (chalan.pe/reviews/submit/<token>).
-
-Es el mismo JWT que hace el API principal en
-`app/api/service_request/reviews.py`: misma SECRET_KEY, `service_request_id`
-y `carrier_company_id`, 30 días. Si cambia el formato allá hay que cambiarlo
-aquí. La reseña la escribe el API principal: `reviews` no tiene modelo en este
-API y se lee con SQL.
+"""Link de reseña de un servicio completado: el corto, chalan.pe/r/s<solicitud>-<firma>
+(`review_short_link.py`), que el API principal canjea por el JWT de siempre
+(/reviews/submit/<jwt>, `app/api/review_short_link.py`). La reseña la escribe el
+API principal: `reviews` no tiene modelo en este API y se lee con SQL.
 """
-from datetime import datetime, timedelta, timezone
-
-import jwt
-from flask import current_app
-
 from . import db
+from .review_short_link import SERVICE, review_short_path
 
 COMPLETED = 'completed'
-REVIEW_TTL = timedelta(days=30)
 
 
 def reviewed_ids(column, ids):
@@ -39,18 +31,9 @@ def _reviewed_quotation(service_request):
 
 
 def review_path(service_request):
-    quotation = _reviewed_quotation(service_request)
-    if quotation is None:
+    if _reviewed_quotation(service_request) is None:
         return None
-    now = datetime.now(timezone.utc)
-    token = jwt.encode({
-        'purpose': 'review',
-        'service_request_id': service_request.id,
-        'carrier_company_id': quotation.carrier_company_id,
-        'exp': now + REVIEW_TTL,
-        'iat': now,
-    }, current_app.config['SECRET_KEY'], algorithm='HS256')
-    return f'/reviews/submit/{token}'
+    return review_short_path(SERVICE, service_request.id)
 
 
 def review_of(service_request):

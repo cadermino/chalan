@@ -104,3 +104,5 @@ def test_the_review_link_is_marked_as_a_review(client, admin, customer):
     payload = jwt.decode(res.get_json()['token'], SECRET, algorithms=['HS256'])
     assert payload['purpose'] == 'review'
     assert (payload['order_id'], payload['customer_id'], payload['carrier_company_id']) == (order.id, customer.id, company.id)
+    # Lo que se copia es el link corto, que el API principal canjea por ese token.
+    assert res.get_json()['path'].startswith(f'/r/o{order.id}-')

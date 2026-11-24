@@ -16,6 +16,7 @@ from ..carrier_prospects import WORK_DEPARTMENTS
 from ..carrier_rates import unavailable_pairs
 from ..order_access import make_token as make_order_access_token
 from ..quotation_short_link import make_code as make_quotation_code
+from ..review_short_link import ORDER as REVIEW_ORDER, review_short_path
 from ..service_reviews import reviewed_ids
 from ..models import Order, OrderDetail, Quotation, ReferredOrder, Customer, CarrierCompany, OrdersService, LuService, OrderImage, OrderVideo, OrderVersion, AdminUser, Payment, OrderCarrierDecline, OrderCarrierWhatsapp, Vehicle, ROLE_CARRIER, ROLE_SUPERADMIN, ROLE_ADMIN, ROLE_REAL_ESTATE
 from .. import db
@@ -1956,7 +1957,9 @@ def get_review_link(order_id):
         return jsonify({'message': 'order has no selected quotation'}), 400
 
     token = _generate_review_token(order_id, order.customer_id, selected_quotation.carrier_company_id)
-    return jsonify({'token': token}), 200
+    # `path` es el link corto (chalan.pe/r/o<orden>-<firma>), el que se copia
+    # para el WhatsApp; `token`, el largo de siempre.
+    return jsonify({'token': token, 'path': review_short_path(REVIEW_ORDER, order_id)}), 200
 
 
 @api.route('/orders/<int:order_id>/quotations', methods=['GET'])
