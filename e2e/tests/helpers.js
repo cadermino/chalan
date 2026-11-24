@@ -513,7 +513,7 @@ async function mockGooglePlaces(page) {
 
     window.google = {
       maps: {
-        Map: class { addListener() {} getBounds() { return null; } fitBounds() {} },
+        Map: class { addListener() {} getBounds() { return null; } fitBounds() {} getZoom() { return 11; } setCenter() {} setZoom() {} },
         Marker: class { setMap() {} },
         Size: class {},
         Point: class {},

@@ -18,10 +18,29 @@ const {
 const FORM = '/embalaje/cotizar';
 const STORAGE_KEY = 'chalan_packing_request';
 
-/** Pasado mañana en Lima, como lo pide el input date (el formulario no acepta hoy). */
+/** Pasado mañana en Lima, YYYY-MM-DD (el formulario no acepta hoy). */
 function inTwoDaysInLima() {
   const date = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(date);
+}
+
+/**
+ * Elige pasado mañana en el calendario del paso de contacto (DateField.jsx). El
+ * campo es de solo lectura, como el día del paso 2 de mudanzas: se abre y se
+ * toca el día. Si cae en el mes siguiente, ese número en el mes que se ve ya
+ * pasó (desactivado), y se pasa de mes.
+ */
+async function pickDay(page) {
+  const day = String(Number(inTwoDaysInLima().slice(8)));
+  await page.click('#preferred-date');
+  const calendar = page.locator('.chalan-calendar');
+  await expect(calendar).toBeVisible();
+  const target = calendar
+    .locator('.react-datepicker__day:not(.react-datepicker__day--outside-month):not(.react-datepicker__day--disabled)')
+    .getByText(day, { exact: true });
+  if (await target.count() === 0) await calendar.locator('.react-datepicker__navigation--next').click();
+  await target.click();
+  await expect(page.locator('#preferred-date')).not.toHaveValue('');
 }
 
 /** Nueve dígitos que empiezan con 9, distintos en cada corrida: así se encuentra el servicio. */
@@ -68,7 +87,7 @@ test.describe('A packing customer, start to finish', () => {
     await page.getByRole('button', { name: 'Siguiente' }).click();
 
     await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
-    await page.fill('#preferred-date', inTwoDaysInLima());
+    await pickDay(page);
     await page.fill('#customer-name', 'Carla');
     await page.fill('#whatsapp', whatsapp);
     await page.getByRole('button', { name: 'Enviar solicitud' }).click();
@@ -182,7 +201,7 @@ test.describe('A painting customer, start to finish', () => {
     await expect(page.getByText('Sala y comedor, paredes y techo. Blanco humo.')).toBeVisible();
     await expect(page.getByText('Interior · 2 a 3 ambientes · 45 m² · Pintura: que la incluya el pintor · Paredes: humedad'))
       .toBeVisible();
-    await page.fill('#preferred-date', inTwoDaysInLima());
+    await pickDay(page);
     await page.fill('#customer-name', 'Carla');
     await page.fill('#whatsapp', whatsapp);
     await page.getByRole('button', { name: 'Enviar solicitud' }).click();
