@@ -63,9 +63,11 @@ def today_lima():
 
 
 def validate_address(address, name='address'):
-    """Requires street, country and map_url: map_url is the proof that the user
-    picked a Google Places suggestion instead of typing free text, which is what
-    carrier pricing needs. Same rule as the move flow; do not relax it.
+    """Requires street, country and map_url: map_url is the proof that the
+    address is a point on the map (a Google Places suggestion, or a pin the
+    customer dropped when Google did not suggest it, a coordinates link) instead
+    of free text, which is what carrier pricing needs. Same rule as the move
+    flow; do not relax it.
 
     `name` is what the errors call it (a second address lives in details)."""
     if not isinstance(address, dict):

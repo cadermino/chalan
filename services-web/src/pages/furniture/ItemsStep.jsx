@@ -9,6 +9,7 @@ import { friendlyError, getMaterials } from '../../api'
 import { saveFailure, track, trackBlocked } from '../../analytics'
 import { COPY, PATHS, SERVICE, whatsappUrl } from '../../config'
 import { EMPTY_ADDRESS, newItem, useRequest } from '../../context/RequestContext'
+import useUnsavedAddress from '../../unsavedAddress'
 
 const NOTE_MAX = 500
 // Un teléfono en la nota (7 dígitos o más, con espacios, puntos o guiones):
@@ -22,7 +23,9 @@ export default function ItemsStep() {
   const navigate = useNavigate()
   const [materials, setMaterials] = useState(null)
   const [loadError, setLoadError] = useState(false)
-  const [destination, setDestination] = useState(draft.destination || EMPTY_ADDRESS)
+  const [destination, setDestination, forgetDestination] = useUnsavedAddress(
+    'destination', draft.destination || EMPTY_ADDRESS, draft.publicId,
+  )
   const [destinationError, setDestinationError] = useState('')
   const [note, setNote] = useState(draft.note || '')
   const [mapsError, setMapsError] = useState(false)
@@ -65,7 +68,7 @@ export default function ItemsStep() {
     }
     if (needsDestination && !destination.map_url) {
       trackBlocked(SERVICE, 'items', 'destination_map_url')
-      setDestinationError('Elige la dirección de la lista de sugerencias.')
+      setDestinationError('No encontramos esta dirección en el mapa. Busca la calle o un lugar cercano, elígelo y toca el mapa en el lugar exacto.')
       return
     }
     if (noteHasPhone) {
@@ -76,6 +79,7 @@ export default function ItemsStep() {
     setSaving(true)
     try {
       await saveItems(filled, needsDestination ? destination : null, note.trim())
+      forgetDestination()
       navigate(PATHS.contact)
     } catch (err) {
       trackBlocked(SERVICE, 'items', saveFailure(err))

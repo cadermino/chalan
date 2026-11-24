@@ -7,11 +7,12 @@ import { friendlyError } from '../api'
 import { saveFailure, track, trackBlocked } from '../analytics'
 import { COPY, PATHS, SERVICE, whatsappUrl } from '../config'
 import { useRequest } from '../context/RequestContext'
+import useUnsavedAddress from '../unsavedAddress'
 
 function AddressForm() {
   const { draft, saveAddress } = useRequest()
   const navigate = useNavigate()
-  const [address, setAddress] = useState(draft.address)
+  const [address, setAddress, forgetAddress] = useUnsavedAddress('address', draft.address, draft.publicId)
   const [website, setWebsite] = useState('') // honeypot: un humano nunca lo ve
   const [error, setError] = useState('')
   const [mapsError, setMapsError] = useState(false)
@@ -24,12 +25,13 @@ function AddressForm() {
   const handleNext = async () => {
     if (!address.map_url) {
       trackBlocked(SERVICE, 'address', 'map_url')
-      setError('Elige tu dirección de la lista de sugerencias.')
+      setError('No encontramos esta dirección en el mapa. Busca la calle o un lugar cercano, elígelo y toca el mapa en el lugar exacto.')
       return
     }
     setSaving(true)
     try {
       await saveAddress(address, website)
+      forgetAddress()
       navigate(PATHS.items)
     } catch (err) {
       trackBlocked(SERVICE, 'address', saveFailure(err))

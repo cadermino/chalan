@@ -75,3 +75,65 @@ export function addressFromPlace(place) {
     longitude: place.geometry?.location?.lng() ?? null,
   }
 }
+
+// Para la casa que Google no sugiere: el cliente toca el mapa donde es (mismo
+// comportamiento que el paso 1 de mudanzas, frontend/src/components/
+// SearchBoxPlacesApiGoogle.vue). El punto se guarda como un link de
+// coordenadas, que es también como se reconoce después que vino de un pin.
+const PIN_URL = 'https://www.google.com/maps/search/?api=1&query='
+
+export const pinUrl = (lat, lng) => `${PIN_URL}${lat.toFixed(6)},${lng.toFixed(6)}`
+
+export const isPinned = (address) => Boolean(address?.map_url?.startsWith(PIN_URL))
+
+// La dirección de un punto, o null. El geocoder es lo exacto, pero la key
+// necesita la Geocoding API habilitada (la de local no la tiene). Si no
+// responde, sale de Places el lugar de Google más cercano: su calle y número
+// pueden no ser los de la casa (el aviso del mapa pide corregirlos).
+export function describePoint(google, map, location) {
+  const { places } = google.maps
+  const service = new places.PlacesService(map)
+  const details = (placeId) => new Promise((resolve) => {
+    service.getDetails({ placeId, fields: ['address_components', 'formatted_address'] }, (place, status) => {
+      resolve(status === places.PlacesServiceStatus.OK && place ? place : null)
+    })
+  })
+  const nearest = () => new Promise((resolve) => {
+    service.nearbySearch({ location, radius: 300 }, (results, status) => {
+      if (status !== places.PlacesServiceStatus.OK || !results?.length) {
+        resolve(null)
+        return
+      }
+      const distance = (place) => (place.geometry?.location
+        ? (place.geometry.location.lat() - location.lat()) ** 2 + (place.geometry.location.lng() - location.lng()) ** 2
+        : Infinity)
+      // Un distrito o la ciudad también son "lugares", pero sin calle.
+      const spots = results.filter((place) => !(place.types || []).includes('political'))
+      const [closest] = (spots.length ? spots : results).sort((a, b) => distance(a) - distance(b))
+      resolve(details(closest.place_id))
+    })
+  })
+  return new Promise((resolve) => {
+    new google.maps.Geocoder().geocode({ location }, (results, status) => {
+      if (status === 'OK' && results?.[0]) resolve(results[0])
+      else resolve(nearest())
+    })
+  })
+}
+
+// La dirección que se guarda para un pin. Como en mudanzas, el pin escribe en
+// el campo la dirección de Google para ese punto y el cliente corrige ahí el
+// número (o Mz. y Lt.); lo que había escrito queda solo si Google no da nada.
+export function addressFromPin(found, location, typed) {
+  const fromGoogle = found ? addressFromPlace({ ...found, url: '', geometry: { location } }) : {}
+  const street = fromGoogle.street || (typed || '').trim()
+    || `Punto en el mapa (${location.lat().toFixed(5)}, ${location.lng().toFixed(5)})`
+  return {
+    ...fromGoogle,
+    street: street.slice(0, 200),
+    country: fromGoogle.country || 'PE',
+    map_url: pinUrl(location.lat(), location.lng()),
+    latitude: location.lat(),
+    longitude: location.lng(),
+  }
+}
