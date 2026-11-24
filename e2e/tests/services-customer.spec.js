@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const {
   mockGooglePlaces, uniqueOperationNumber, openBackofficeAsAdmin, seedServiceRequest, seedServiceQuotation,
-  findServiceRequestByWhatsapp, getServiceRequestStatus, getServiceRequestPublicId, cleanupSeededServiceRequests,
+  findServiceRequestByWhatsapp, getServiceRequestStatus, getServiceRequestPublicId, cleanupSeededServiceRequests, psql,
 } = require('./helpers');
 
 // Lo que ve el cliente de un servicio de embalaje (services-web), de punta a
@@ -48,15 +48,18 @@ function uniqueWhatsapp() {
   return `9${String(Date.now()).slice(-8)}`;
 }
 
-/** Elige una dirección del autocompletado falso de Google (mockGooglePlaces). */
-async function pickAddress(page, formatted) {
+/**
+ * Elige una dirección del autocompletado falso de Google (mockGooglePlaces), en
+ * el campo de dirección o, con `inputId`, en otro (el destino del armado).
+ */
+async function pickAddress(page, formatted, inputId = 'address-street') {
   await page.waitForFunction(
-    () => (window.__autocompleteInstances || []).some((entry) => entry.input.id === 'address-street'),
-    null,
+    (id) => (window.__autocompleteInstances || []).some((entry) => entry.input.id === id),
+    inputId,
     { timeout: 15000 },
   );
-  await page.evaluate((address) => {
-    const entry = window.__autocompleteInstances.find((e) => e.input.id === 'address-street');
+  await page.evaluate(([address, id]) => {
+    const entry = window.__autocompleteInstances.find((e) => e.input.id === id);
     entry.instance.__select({
       formatted_address: address,
       url: 'https://maps.google.com/?cid=123',
@@ -67,7 +70,7 @@ async function pickAddress(page, formatted) {
         { long_name: 'Perú', short_name: 'PE', types: ['country'] },
       ],
     });
-  }, formatted);
+  }, [formatted, inputId]);
 }
 
 test.afterEach(() => cleanupSeededServiceRequests());
@@ -319,5 +322,124 @@ test.describe('A microcement customer', () => {
     )).toBeVisible();
 
     await page.evaluate(() => localStorage.removeItem('chalan_microcement_request'));
+  });
+});
+
+// Armado y desarmado: cada mueble dice qué hacer con él. "Desarmar y armar"
+// pide dónde se arma: otra dirección (con el mismo buscador y mapa que la
+// dirección) o, con la casilla, la misma, en otro piso o ambiente. Sin
+// armadores locales con el servicio marcado, enviar solo avisa al admin.
+test.describe('A furniture assembly customer', () => {
+  const FURNITURE_FORM = '/armado/cotizar';
+
+  /** Los details que guardó el API, como objeto. */
+  const savedDetails = (id) => JSON.parse(psql(`SELECT details::text FROM service_requests WHERE id = ${id};`));
+
+  /** Paso 1 y un ropero que se desarma acá y se arma en otro lado. */
+  async function startWithAWardrobeToMove(page) {
+    await mockGooglePlaces(page);
+    await page.goto(FURNITURE_FORM, { waitUntil: 'networkidle' });
+    await pickAddress(page, 'Av. Larco 345, Miraflores, Lima, Perú');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Qué muebles son?' })).toBeVisible();
+    await page.getByRole('button', { name: '+ Ropero' }).click();
+    // Sin elegir qué hacer no avanza.
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByText('Falta elegir qué hacer con algún mueble.')).toBeVisible();
+    await page.getByText('Desarmar y armar', { exact: true }).click();
+    await expect(page.getByRole('heading', { name: '¿Dónde se arman?' })).toBeVisible();
+  }
+
+  async function sendContact(page, whatsapp) {
+    await pickDay(page);
+    await page.fill('#customer-name', 'Carla');
+    await page.fill('#whatsapp', whatsapp);
+    await page.getByRole('button', { name: 'Enviar solicitud' }).click();
+    await expect(page.getByRole('heading', { name: '¡Recibimos tu solicitud!' })).toBeVisible({ timeout: 15000 });
+    return findServiceRequestByWhatsapp(`+51${whatsapp}`);
+  }
+
+  test('only pieces put together elsewhere ask where', async ({ page }) => {
+    await mockGooglePlaces(page);
+    await page.goto(FURNITURE_FORM, { waitUntil: 'networkidle' });
+    await pickAddress(page, 'Av. Larco 345, Miraflores, Lima, Perú');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await page.getByRole('button', { name: '+ Escritorio' }).click();
+    await page.getByText('Armar', { exact: true }).click();
+    await expect(page.getByRole('heading', { name: '¿Dónde se arman?' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await expect(page.getByText('1 × Escritorio')).toBeVisible();
+    await expect(page.getByText('Se arman en')).toHaveCount(0);
+
+    await page.evaluate(() => localStorage.removeItem('chalan_furniture_assembly_request'));
+  });
+
+  test('taken apart and put together at the same address, on another floor', async ({ page }) => {
+    await startWithAWardrobeToMove(page);
+
+    // La casilla esconde la dirección de destino y su mapa; el piso queda.
+    await page.getByRole('checkbox', { name: /Se arman en la misma dirección/ }).check();
+    await expect(page.locator('#destination-street')).toHaveCount(0);
+    await expect(page.locator('#destination-map')).toHaveCount(0);
+
+    // Un teléfono en el piso no pasa: lo leen todas las empresas.
+    await page.fill('#destination-floor', '1.er piso, llamar al 987 654 321');
+    await expect(page.getByText('Quita el número de teléfono').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByRole('heading', { name: '¿Qué muebles son?' })).toBeVisible();
+
+    await page.fill('#destination-floor', '1.er piso, dormitorio del fondo');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await expect(page.getByText('1 × Ropero')).toBeVisible();
+    await expect(page.getByText('La misma dirección · 1.er piso, dormitorio del fondo')).toBeVisible();
+
+    // Volver al paso 2 la mantiene marcada.
+    await page.goBack();
+    await expect(page.getByRole('checkbox', { name: /Se arman en la misma dirección/ })).toBeChecked();
+    await expect(page.locator('#destination-floor')).toHaveValue('1.er piso, dormitorio del fondo');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    const request = await sendContact(page, uniqueWhatsapp());
+    expect(savedDetails(request.id)).toEqual({ same_address: true, destination_floor: '1.er piso, dormitorio del fondo' });
+
+    // El admin (y el armador) lo ven en el detalle.
+    const admin = await page.context().newPage();
+    await openBackofficeAsAdmin(admin, `/service-requests/${request.id}`);
+    await expect(admin.getByText('Dónde se arman', { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(admin.getByText('Piso o ambiente: 1.er piso, dormitorio del fondo')).toBeVisible();
+    await expect(admin.getByText('Dirección (dónde se desarman)')).toBeVisible();
+  });
+
+  test('taken apart here and put together at another address', async ({ page }) => {
+    await startWithAWardrobeToMove(page);
+
+    // Sin destino no avanza.
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+    await expect(page.getByText('No encontramos esta dirección en el mapa.')).toBeVisible();
+
+    await pickAddress(page, 'Av. Primavera 1050, Santiago de Surco, Lima, Perú', 'destination-street');
+    await expect(page.getByText('✓ Dirección confirmada')).toBeVisible();
+    await page.fill('#destination-floor', '3.er piso');
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(page.getByRole('heading', { name: '¿Cuándo lo necesitas?' })).toBeVisible();
+    await expect(page.getByText('Av. Primavera 1050, Santiago de Surco, Lima, Perú · 3.er piso')).toBeVisible();
+
+    const request = await sendContact(page, uniqueWhatsapp());
+    const details = savedDetails(request.id);
+    expect(details.destination.street).toBe('Av. Primavera 1050, Santiago de Surco, Lima, Perú');
+    expect(details.destination_floor).toBe('3.er piso');
+    expect(details.same_address).toBeUndefined();
+
+    const admin = await page.context().newPage();
+    await openBackofficeAsAdmin(admin, `/service-requests/${request.id}`);
+    await expect(admin.getByText('Destino (dónde se arman)')).toBeVisible({ timeout: 15000 });
+    await expect(admin.getByText('Piso o ambiente: 3.er piso')).toBeVisible();
   });
 });
