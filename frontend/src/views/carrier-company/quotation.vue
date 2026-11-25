@@ -398,6 +398,7 @@
             w-full
             mt-10">
             <h2 class="text-gray-800 text-lg font-semibold mb-5">Ingresar cotización</h2>
+            <RatesEstimate v-if="ratesEstimate" :estimate="ratesEstimate" />
             <div class="relative mb-4">
               <label for="email"
                 class="leading-7
@@ -551,6 +552,7 @@ import 'moment/locale/es';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import OrderChanges from '@/components/carrierCompany/OrderChanges.vue';
 import PushOptIn from '@/components/carrierCompany/PushOptIn.vue';
+import RatesEstimate from '@/components/carrierCompany/RatesEstimate.vue';
 import { mapState, mapActions } from 'pinia';
 import { useStore } from '@/store';
 import chalan from '../../api/chalan';
@@ -575,6 +577,7 @@ export default {
       orderDetails: [],
       carrierCompanyId: null,
       amount: null,
+      ratesEstimate: null,
       // Lo que aclara junto al precio; lo ve el cliente. Mismo tope que el API.
       note: '',
       noteMaxLength: 500,
@@ -612,6 +615,7 @@ export default {
     ViewsMessages,
     OrderChanges,
     PushOptIn,
+    RatesEstimate,
   },
   computed: {
     ...mapState(useStore, [
@@ -774,6 +778,15 @@ export default {
             this.quotations = this.orderData.quotations || [];
             this.services = this.orderData.services;
             this.decline = response.data.decline || null;
+            // Lo que cobraría con sus tarifas, junto al precio (RatesEstimate.vue).
+            this.ratesEstimate = response.data.rates_estimate || null;
+            if (this.ratesEstimate && !this.hasQuotation && !this.decline) {
+              track('rates_estimate_shown', {
+                order_id: this.orderData.id,
+                carrier_company_id: this.carrierCompanyId,
+                amount: this.ratesEstimate.total,
+              });
+            }
           }
           this.setLoader(false);
         })

@@ -25,7 +25,7 @@ from sqlalchemy import or_
 from .. import db
 from ..models import (AutoQuoteEstimate, CarrierAvailability, CarrierRates, Order, OrderCarrierDecline,
                       Quotations)
-from .order.volume import estimate_volume
+from .order.volume import PACKING_FACTOR, estimate_volume
 from .rates_formula import blocked_on, estimate, is_available, rates_complete
 
 WAIT = timedelta(minutes=20)
@@ -195,6 +195,51 @@ def _add_estimate(order_id, company_id, notified_at, move, rates, reason=None):
         amount=result['total'] if result else None, skip_reason=reason,
         inputs=move, lines=result['lines'] if result else None,
     ))
+
+
+# El tipo de cada línea de `estimate()`, para pintarla en el link (quotation.vue).
+_LINE_KINDS = (('Base', 'base'), ('m³', 'm3'), ('cargador', 'loaders'), ('piso', 'floors'),
+               ('km', 'km'), ('Fin de semana', 'weekend'))
+
+
+def _line_kind(label):
+    return next((kind for text, kind in _LINE_KINDS if text in label), 'other')
+
+
+def estimate_for_carrier(order, company_id):
+    """Lo que la empresa cobraría con sus propias tarifas, con el desglose y de
+    dónde salen los m³, para mostrárselo en su link mientras cotiza: es una
+    referencia, el precio lo pone ella. None si la orden ya no busca
+    cotizaciones, si queda fuera de lo que la fórmula cubre (como el cálculo en
+    silencio) o si la empresa no tiene tarifas. No escribe nada en la orden."""
+    if order is None or order.order_status_id != ORDER_PENDING:
+        return None
+    rates = _complete_rates([company_id]).get(company_id)
+    if rates is None:
+        return None
+    origin, destination = _ends(order)
+    if _scope(order, origin, destination):
+        return None
+    volume = estimate_volume(order.comments)
+    m3 = min(volume['m3'], MAX_M3)
+    if m3 <= 0:
+        return None
+    move = _move(order, origin, destination, m3)
+    result = estimate(_rates_dict(rates), **move)
+    return {
+        'total': result['total'],
+        'lines': [{**line, 'kind': _line_kind(line['label'])} for line in result['lines']],
+        'minimum_applied': result['minimum_applied'],
+        'minimum_fare': float(rates.minimum_fare) if rates.minimum_fare is not None else None,
+        'm3': m3,
+        'volume': {
+            'stated': volume['stated'],
+            # Con el texto del cliente, que es lo que el transportista leyó.
+            'items': [{'text': i['text'], 'm3': i['m3'], 'recognized': i['label'] != 'Sin reconocer'}
+                      for i in volume['items']],
+            'packing_percent': round((PACKING_FACTOR - 1) * 100),
+        },
+    }
 
 
 def check_order(order, now):

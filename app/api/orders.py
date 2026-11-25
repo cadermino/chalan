@@ -341,7 +341,19 @@ def order_detail():
         # Para etiquetar la grabación de la visita (quotation.vue): es su propio nombre.
         'carrier_company_name': company.name if company else None,
         'decline': decline_to_dict(find_order_decline(data['order_id'], data['carrier_company_id'])),
+        'rates_estimate': _rates_estimate(data['order_id'], data['carrier_company_id']),
     }), 200
+
+
+def _rates_estimate(order_id, company_id):
+    """Lo que la empresa cobraría con sus tarifas (`estimate_for_carrier`), que
+    el link le muestra junto al precio. Es una ayuda: si falla, el link sigue."""
+    from .auto_quote import estimate_for_carrier
+    try:
+        return estimate_for_carrier(db.session.get(Order, order_id), company_id)
+    except Exception:
+        current_app.logger.exception('rates estimate failed for order %s, company %s', order_id, company_id)
+        return None
 
 @api.route('/order/<int:order_id>', methods=['GET'])
 @token_required

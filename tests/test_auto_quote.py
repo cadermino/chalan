@@ -448,3 +448,65 @@ def test_the_formula_is_the_same_as_the_backoffice_one():
                      {'m3': 12, 'km': 300, 'outside_lima': True}):
             assert rates_formula.estimate(rates, **move) == backoffice.estimate(rates, **move)
     assert Path(rates_formula.__file__).read_text().split('"""', 2)[2] == path.read_text().split('"""', 2)[2]
+
+
+# ── En el link de cotizar ──
+
+def carrier_link(client, order, company):
+    from app.api.carrier_company import CarrierCompany as CarrierCompanyEntity
+    token = CarrierCompanyEntity().generate_carrier_company_token(3600, order.id, company.id)
+    return client.get('/api/v1/orders/details', headers={'Authorization': f'Bearer {token}'}).get_json()
+
+
+def test_the_carrier_link_shows_what_its_own_rates_would_charge(client, customer, moving):
+    company = make_company(moving)
+    make_company(moving, name='Otra', rates={**RATES, 'base_fee': 999})
+    order = make_order(customer, loaders_quantity=2)
+
+    estimate = carrier_link(client, order, company)['rates_estimate']
+
+    # La misma cuenta que el cálculo en silencio, con sus tarifas y no las de otra.
+    assert estimate['total'] == 457
+    assert [line['kind'] for line in estimate['lines']] == ['base', 'm3', 'loaders', 'floors']
+    assert estimate['m3'] == 5.1
+    assert [(i['text'], i['recognized']) for i in estimate['volume']['items']][0] == ('1 refrigeradora', True)
+    assert estimate['volume']['packing_percent'] == 25
+    # Mirarlo no escribe nada en la orden.
+    assert order.estimated_volume_m3 is None and order.auto_quote_checked_at is None
+
+
+def test_the_minimum_shows_when_it_wins(client, customer, moving):
+    company = make_company(moving)
+    estimate = carrier_link(client, make_order(customer, comments='1 refrigeradora'), company)['rates_estimate']
+
+    # 200 + 1.25 × 15 + 3 pisos × 20 = 279: más que la mínima.
+    assert estimate['minimum_applied'] is False
+    company_rates = CarrierRates.query.filter_by(carrier_company_id=company.id).one()
+    company_rates.minimum_fare = 400
+    db.session.commit()
+    estimate = carrier_link(client, make_order(customer, comments='1 refrigeradora'), company)['rates_estimate']
+    assert (estimate['total'], estimate['minimum_applied'], estimate['minimum_fare']) == (400, True, 400)
+
+
+@pytest.mark.parametrize('case', ['no_rates', 'cargo', 'outside_lima', 'no_list', 'not_pending'])
+def test_nothing_is_shown_when_the_formula_does_not_apply(client, customer, moving, case):
+    company = make_company(moving, rates=None if case == 'no_rates' else RATES)
+    fields = {
+        'cargo': {'load_type': 'cargo'},
+        'outside_lima': {'destination': (-12.06, -75.21, 1, 0)},   # Huancayo
+        'no_list': {'comments': ''},
+        'not_pending': {'order_status_id': 2},
+    }.get(case, {})
+    order = make_order(customer, **fields)
+
+    assert carrier_link(client, order, company)['rates_estimate'] is None
+
+
+def test_a_failing_estimate_does_not_break_the_link(client, customer, moving, monkeypatch):
+    company = make_company(moving)
+    order = make_order(customer)
+    monkeypatch.setattr('app.api.auto_quote.estimate_volume', lambda _: 1 / 0)
+
+    data = carrier_link(client, order, company)
+
+    assert data['rates_estimate'] is None and data['order']['id'] == order.id
