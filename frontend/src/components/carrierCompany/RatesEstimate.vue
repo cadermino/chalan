@@ -22,7 +22,11 @@
     <p v-if="estimate.minimum_applied" class="text-xs text-gray-600 mt-1">
       La suma da menos que tu tarifa mínima ({{ soles(estimate.minimum_fare) }}), así que va la mínima.
     </p>
-    <button type="button" class="mt-2 text-xs text-indigo-700 underline" @click="showVolume = !showVolume">
+    <button type="button" @click="$emit('use', estimate.total)"
+      class="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded px-3 py-1">
+      Usar {{ soles(estimate.total) }}
+    </button>
+    <button type="button" class="mt-2 block text-xs text-indigo-700 underline" @click="showVolume = !showVolume">
       {{ showVolume ? 'Ocultar' : `¿De dónde salen los ${number(estimate.m3)} m³?` }}
     </button>
     <div v-if="showVolume" class="mt-2 bg-white border border-indigo-200 rounded px-3 py-2 text-xs">
@@ -47,7 +51,8 @@
 // Lo que la empresa cobraría con sus propias tarifas, al lado de donde escribe
 // el precio (app/api/auto_quote.py, estimate_for_carrier): una empresa cotizaba en
 // mediana 25 % arriba del más barato y nadie lo elegía. Un color por tipo de
-// línea, para que se lea de un vistazo qué pesa más.
+// línea, para que se lea de un vistazo qué pesa más. "Usar S/ N" lo copia al
+// campo del precio (evento `use`): no se precarga, así lo pone el transportista.
 const KIND_CLASSES = {
   base: 'bg-gray-200 text-gray-800',
   m3: 'bg-green-200 text-green-900',
@@ -63,6 +68,7 @@ export default {
   props: {
     estimate: { type: Object, required: true },
   },
+  emits: ['use'],
   data() {
     return { showVolume: false, KIND_CLASSES };
   },

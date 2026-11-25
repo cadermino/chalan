@@ -398,7 +398,7 @@
             w-full
             mt-10">
             <h2 class="text-gray-800 text-lg font-semibold mb-5">Ingresar cotización</h2>
-            <RatesEstimate v-if="ratesEstimate" :estimate="ratesEstimate" />
+            <RatesEstimate v-if="ratesEstimate" :estimate="ratesEstimate" @use="useRatesEstimate" />
             <div class="relative mb-4">
               <label for="email"
                 class="leading-7
@@ -878,6 +878,15 @@ export default {
         .finally(() => {
           this.declineSaving = false;
         });
+    },
+    useRatesEstimate(total) {
+      this.amount = String(total);
+      this.setFormValidationMessages({ field: 'quotation_amount', message: null });
+      track('rates_estimate_used', {
+        order_id: this.orderData.id,
+        carrier_company_id: this.carrierCompanyId,
+        amount: total,
+      });
     },
     sendQuotation() {
       if (!this.amount) {
