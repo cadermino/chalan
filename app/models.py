@@ -498,6 +498,23 @@ class CarrierPushSubscription(db.Model):
 	last_error = db.Column(db.String(200))
 	failure_count = db.Column(db.Integer, nullable=False, default=0, server_default='0')
 
+class CustomerPushSubscription(db.Model):
+	"""Un navegador donde el cliente activó los avisos de cotizaciones en el paso 3
+	(migración 057, api/customer_push.py). Mismas columnas que la de transportistas."""
+	__tablename__ = 'customer_push_subscriptions'
+	id = db.Column(db.Integer, primary_key=True)
+	customer_id = db.Column(db.Integer, db.ForeignKey('customers.id', ondelete='CASCADE'), nullable=False)
+	endpoint = db.Column(db.Text, nullable=False, unique=True)
+	p256dh = db.Column(db.String(200), nullable=False)
+	auth = db.Column(db.String(100), nullable=False)
+	vapid_public_key = db.Column(db.String(120), nullable=False)
+	user_agent = db.Column(db.String(300))
+	created_date = db.Column(db.DateTime(), server_default=func.now(), nullable=False)
+	updated_date = db.Column(db.DateTime(), server_default=func.now(), nullable=False)
+	last_sent_at = db.Column(db.DateTime())
+	last_error = db.Column(db.String(200))
+	failure_count = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+
 class CarrierCompanyServiceType(db.Model):
 	"""Que servicios ofrece cada empresa (mudanza incluida); lo marca un admin."""
 	__tablename__ = 'carrier_company_service_types'

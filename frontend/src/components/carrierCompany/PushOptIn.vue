@@ -8,11 +8,8 @@
         <path stroke-linecap="round" stroke-linejoin="round" :d="BELL" />
       </svg>
       <div class="flex-1">
-        <p class="font-semibold text-gray-800">Recibe las órdenes nuevas al instante</p>
-        <p class="text-sm text-gray-600 mt-1">
-          Te avisamos en este celular apenas entre una orden para cotizar, aunque tengas el
-          navegador cerrado. El WhatsApp te sigue llegando igual.
-        </p>
+        <p class="font-semibold text-gray-800">{{ copy.title }}</p>
+        <p class="text-sm text-gray-600 mt-1">{{ copy.body }}</p>
         <div class="mt-3 flex flex-wrap items-center">
           <button id="push-enable" @click="enable" :disabled="state === 'working'"
             class="text-white bg-blue-500 hover:bg-blue-700 border-0 py-2 px-5 rounded mr-4
@@ -49,7 +46,7 @@
         stroke-width="1.5" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" :d="CHECK" />
       </svg>
-      Avisos activados en este celular.
+      {{ copy.on }}
     </p>
 
     <div v-else-if="state === 'denied' || state === 'no_prompt'"
@@ -87,15 +84,17 @@
     </div>
 
     <p v-else-if="state === 'failed'" id="push-failed" class="text-sm text-gray-600">
-      Tu celular no puede recibir avisos de Chalán. Te seguimos escribiendo por WhatsApp.
+      {{ copy.failed }}
     </p>
   </div>
 </template>
 
 <script>
-// Pide el permiso de avisos en el link de cotizar y guarda el buzón de este
-// navegador para su empresa (app/api/carrier_push.py). El service worker es
-// public/quotation/push-sw.js: su alcance es solo /quotation/.
+// Pide el permiso de avisos y guarda el buzón de este navegador: en el link de
+// cotizar, para su empresa (app/api/carrier_push.py); en el paso 3 del cliente
+// (`audience="customer"`), para el cliente de la sesión (app/api/customer_push.py).
+// El service worker es public/quotation/push-sw.js (alcance /quotation/): sirve
+// para los dos, porque solo muestra el aviso y abre su link.
 import chalan from '../../api/chalan';
 import storage from '../../utils/safeStorage';
 import { track } from '../../utils/analytics';
@@ -104,7 +103,23 @@ import { tagSessionLabel } from '../../utils/sessionTags';
 const SW_URL = '/quotation/push-sw.js';
 const SW_SCOPE = '/quotation/';
 const SW_TIMEOUT_MS = 10000;
-const DISMISS_KEY = 'chalan_push_dismissed_at';
+const DISMISS_KEYS = { carrier: 'chalan_push_dismissed_at', customer: 'chalan_customer_push_dismissed_at' };
+const COPY = {
+  carrier: {
+    title: 'Recibe las órdenes nuevas al instante',
+    body: 'Te avisamos en este celular apenas entre una orden para cotizar, aunque tengas el '
+      + 'navegador cerrado. El WhatsApp te sigue llegando igual.',
+    on: 'Avisos activados en este celular.',
+    failed: 'Tu celular no puede recibir avisos de Chalán. Te seguimos escribiendo por WhatsApp.',
+  },
+  customer: {
+    title: 'Te avisamos cuando llegue cada cotización',
+    body: 'Activa los avisos y te llega una notificación a este celular apenas un transportista '
+      + 'cotice, aunque cierres esta página. El correo te sigue llegando igual.',
+    on: 'Avisos activados: te avisamos en este celular cuando llegue cada cotización.',
+    failed: 'Tu celular no puede recibir avisos de Chalán. Te avisamos por correo.',
+  },
+};
 const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function base64UrlToBytes(value) {
@@ -174,12 +189,15 @@ export default {
     token: { type: String, required: true },
     orderId: { type: Number, default: null },
     carrierCompanyId: { type: Number, default: null },
+    // 'carrier' (link de cotizar) o 'customer' (paso 3).
+    audience: { type: String, default: 'carrier' },
   },
   data() {
     return {
       state: 'hidden',
       publicKey: null,
       ios: isIos(),
+      copy: COPY[this.audience] || COPY.carrier,
       // Heroicons (outline): bell y check-circle.
       BELL: 'M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0',
       CHECK: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
@@ -194,7 +212,8 @@ export default {
     if (!this.publicKey) return;
 
     if (isIos() && !isStandalone()) {
-      if (!iosHasWebPush()) return;
+      // Al cliente no se le pide instalar el sitio: casi nadie lo hace.
+      if (!iosHasWebPush() || this.audience === 'customer') return;
       addHomeScreenLinks();
       if (!this.dismissedRecently()) this.show('ios_install');
       return;
@@ -224,8 +243,10 @@ export default {
   },
   methods: {
     params(extra = {}) {
+      const who = this.audience === 'customer'
+        ? { view: 'step_three' } : { carrier_company_id: this.carrierCompanyId };
       return {
-        order_id: this.orderId, carrier_company_id: this.carrierCompanyId, platform: platform(), ...extra,
+        order_id: this.orderId, ...who, platform: platform(), ...extra,
       };
     },
     show(state) {
@@ -233,11 +254,11 @@ export default {
       track('push_prompt_shown', this.params({ variant: state }));
     },
     dismissedRecently() {
-      const at = Number(storage.getItem(DISMISS_KEY));
+      const at = Number(storage.getItem(DISMISS_KEYS[this.audience] || DISMISS_KEYS.carrier));
       return Boolean(at) && Date.now() - at < DISMISS_MS;
     },
     dismiss() {
-      storage.setItem(DISMISS_KEY, String(Date.now()));
+      storage.setItem(DISMISS_KEYS[this.audience] || DISMISS_KEYS.carrier, String(Date.now()));
       track('push_dismissed', this.params({ variant: this.state }));
       this.state = 'hidden';
     },
@@ -258,6 +279,7 @@ export default {
       });
     },
     save(subscription) {
+      if (this.audience === 'customer') return chalan.subscribeCustomerPush(this.token, subscription.toJSON());
       return chalan.subscribeCarrierPush(this.token, subscription.toJSON());
     },
     async enable() {

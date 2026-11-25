@@ -46,6 +46,8 @@ export default {
       const channel = typeof this.$route.query.r === 'string' ? this.$route.query.r.slice(0, 20) : '';
       if (channel) {
         track('reminder_opened', { channel, order_id: data.order_id });
+        // ?r=push: tocó el aviso de una cotización nueva (app/api/customer_push.py).
+        if (channel === 'push') track('push_opened', { order_id: data.order_id, view: 'step_three' });
         rememberReminderVisit(data.order_id, channel);
       }
       this.$router.replace({ name: 'step-three', params: { order_id: data.order_id } }).catch(() => {});

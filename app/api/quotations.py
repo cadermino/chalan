@@ -17,6 +17,7 @@ from ..models import Customer, ReferredOrder, AdminUser, CarrierCompany as Carri
 from ..models import Quotations as QuotationsModel, Order as OrderModel
 from .email import send_email
 from .whatsapp import send_whatsapp
+from . import customer_push
 from .order_access import order_access_url
 from .service_request.quotations import parse_note
 from .formal_quotation.accounting import sync_accounting_note
@@ -215,6 +216,8 @@ def create_quotation():
             body_label='[Plantilla: Nueva cotización disponible]',
             customer_id=customer.id,
         )
+        # Y al navegador donde activó los avisos en el paso 3 (customer_push.py).
+        customer_push.notify_new_quotation(order_row, quotation)
     elif previous_quotation.quotation_status_id == QuotationStatus.Selected():
         # La cotización ya fue aceptada por el cliente y su total quedó
         # congelado en orders.total_amount. Dejar que el transportista la

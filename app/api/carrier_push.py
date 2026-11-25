@@ -146,6 +146,48 @@ def _known_push_service(endpoint):
     return parts.scheme == 'https' and any(host == h or host.endswith('.' + h) for h in PUSH_HOSTS)
 
 
+def parse_subscription(body):
+    """(endpoint, keys) de `PushSubscription.toJSON()`, o (None, respuesta de error)."""
+    endpoint = body.get('endpoint')
+    keys = body.get('keys') if isinstance(body.get('keys'), dict) else {}
+    if not isinstance(endpoint, str) or len(endpoint) > MAX_ENDPOINT:
+        return None, bad_request('invalid_endpoint')
+    if not _known_push_service(endpoint):
+        return None, bad_request('unsupported_push_service')
+    if not _key(keys.get('p256dh'), 80, 200) or not _key(keys.get('auth'), 16, 100):
+        return None, bad_request('invalid_keys')
+    return (endpoint, keys), None
+
+
+def save_subscription(model, owner_field, owner_id, endpoint, keys, max_per_owner):
+    """Guarda el buzón para su dueño (empresa o cliente) y borra los más viejos
+    de ese dueño pasado el tope. Con el mismo buzón lo actualiza y lo pasa a este
+    dueño. Devuelve si es nuevo. Hace el commit."""
+    now = datetime.utcnow()
+    subscription = model.query.filter_by(endpoint=endpoint).first()
+    created = subscription is None
+    if created:
+        subscription = model(endpoint=endpoint, created_date=now)
+        db.session.add(subscription)
+    setattr(subscription, owner_field, owner_id)
+    subscription.p256dh = keys['p256dh']
+    subscription.auth = keys['auth']
+    subscription.vapid_public_key = public_key()
+    subscription.user_agent = (request.headers.get('User-Agent') or '')[:300] or None
+    subscription.updated_date = now
+    subscription.failure_count = 0
+    subscription.last_error = None
+    db.session.flush()
+
+    extra = model.query.filter(getattr(model, owner_field) == owner_id) \
+        .order_by(model.updated_date.desc(), model.id.desc()) \
+        .offset(max_per_owner).all()
+    for old in extra:
+        db.session.delete(old)
+    db.session.commit()
+    return created
+
+
 @api.route('/carrier-push-subscriptions', methods=['POST'])
 def subscribe_carrier_push():
     """Guarda el buzón de este navegador para la empresa del link.
@@ -158,39 +200,11 @@ def subscribe_carrier_push():
         return error
     if not push_enabled():
         return jsonify({'message': 'push_disabled'}), 409
-
-    body = request.get_json(silent=True) or {}
-    endpoint = body.get('endpoint')
-    keys = body.get('keys') if isinstance(body.get('keys'), dict) else {}
-    if not isinstance(endpoint, str) or len(endpoint) > MAX_ENDPOINT:
-        return bad_request('invalid_endpoint')
-    if not _known_push_service(endpoint):
-        return bad_request('unsupported_push_service')
-    if not _key(keys.get('p256dh'), 80, 200) or not _key(keys.get('auth'), 16, 100):
-        return bad_request('invalid_keys')
-
-    now = datetime.utcnow()
-    subscription = CarrierPushSubscription.query.filter_by(endpoint=endpoint).first()
-    created = subscription is None
-    if created:
-        subscription = CarrierPushSubscription(endpoint=endpoint, created_date=now)
-        db.session.add(subscription)
-    subscription.carrier_company_id = company.id
-    subscription.p256dh = keys['p256dh']
-    subscription.auth = keys['auth']
-    subscription.vapid_public_key = public_key()
-    subscription.user_agent = (request.headers.get('User-Agent') or '')[:300] or None
-    subscription.updated_date = now
-    subscription.failure_count = 0
-    subscription.last_error = None
-    db.session.flush()
-
-    extra = CarrierPushSubscription.query.filter_by(carrier_company_id=company.id) \
-        .order_by(CarrierPushSubscription.updated_date.desc(), CarrierPushSubscription.id.desc()) \
-        .offset(MAX_PER_COMPANY).all()
-    for old in extra:
-        db.session.delete(old)
-    db.session.commit()
+    parsed, error = parse_subscription(request.get_json(silent=True) or {})
+    if error is not None:
+        return error
+    created = save_subscription(CarrierPushSubscription, 'carrier_company_id', company.id, *parsed,
+                                MAX_PER_COMPANY)
     return jsonify({'subscribed': True}), 201 if created else 200
 
 
@@ -283,28 +297,35 @@ def notify_carriers(messages, wait=False):
     el WhatsApp. Se manda en un hilo, como el WhatsApp, para no demorar la
     respuesta (en los tests, en el mismo). `wait`: mandarlo antes de volver,
     para un comando de consola, que termina sin esperar al hilo."""
+    return push_to_owners(CarrierPushSubscription, 'carrier_company_id', messages, wait)
+
+
+def push_to_owners(model, owner_field, messages, wait=False):
+    """`notify_carriers` para cualquier tabla de suscripciones: `messages` es
+    [(id del dueño, mensaje)]. También la usan los avisos a clientes
+    (customer_push.py)."""
     try:
         if not messages or not push_enabled():
             return 0
-        by_company = {}
-        for company_id, message in messages:
-            by_company.setdefault(company_id, []).append(message)
-        rows = CarrierPushSubscription.query.filter(
-            CarrierPushSubscription.carrier_company_id.in_(list(by_company)),
-            CarrierPushSubscription.vapid_public_key == public_key(),
+        by_owner = {}
+        for owner_id, message in messages:
+            by_owner.setdefault(owner_id, []).append(message)
+        rows = model.query.filter(
+            getattr(model, owner_field).in_(list(by_owner)),
+            model.vapid_public_key == public_key(),
         ).all()
         targets = [
             (row.id, {'endpoint': row.endpoint, 'keys': {'p256dh': row.p256dh, 'auth': row.auth}},
              json.dumps(message, ensure_ascii=False))
-            for row in rows for message in by_company[row.carrier_company_id]
+            for row in rows for message in by_owner[getattr(row, owner_field)]
         ]
         if not targets:
             return 0
         if wait or current_app.config.get('TESTING'):
-            _deliver(targets)
+            _deliver(model, targets)
         else:
             app = current_app._get_current_object()
-            Thread(target=_deliver_in_thread, args=(app, targets), daemon=True).start()
+            Thread(target=_deliver_in_thread, args=(app, model, targets), daemon=True).start()
         return len(targets)
     except Exception as e:
         print(f'[Push] Error al preparar avisos: {e}', flush=True)
@@ -336,16 +357,16 @@ def _send(subscription_info, payload):
         return None, str(e)
 
 
-def _deliver_in_thread(app, targets):
+def _deliver_in_thread(app, model, targets):
     with app.app_context():
-        _deliver(targets)
+        _deliver(model, targets)
 
 
-def _deliver(targets):
+def _deliver(model, targets):
     for subscription_id, subscription_info, payload in targets:
         status, error = _send(subscription_info, payload)
         try:
-            row = db.session.get(CarrierPushSubscription, subscription_id)
+            row = db.session.get(model, subscription_id)
             if row is None:
                 continue
             if error is None:

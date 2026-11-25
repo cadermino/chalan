@@ -212,6 +212,15 @@ export default {
       },
     });
   },
+  // Avisos de cotizaciones al cliente, con su sesión (app/api/customer_push.py).
+  subscribeCustomerPush(token, subscription) {
+    return axios.post(`${import.meta.env.VUE_APP_API_URL}customer-push-subscriptions`, subscription, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  },
   declineOrder(token, orderId, payload) {
     return axios.post(`${import.meta.env.VUE_APP_API_URL}order/${orderId}/decline`, payload, {
       headers: {

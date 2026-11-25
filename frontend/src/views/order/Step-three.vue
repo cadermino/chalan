@@ -230,6 +230,10 @@
                   con el enlace para verlas, así que puedes cerrar esta página.
                 </span>
               </div>
+              <!-- Avisos al celular cuando llegue cada cotización
+                   (app/api/customer_push.py): no bloquea nada. -->
+              <PushOptIn v-if="customer.token" audience="customer" :token="customer.token"
+                :order-id="currentOrder.order_id" class="mb-8" />
             </div>
           </div>
 
@@ -285,6 +289,7 @@ import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal.vue';
 import FormalQuotationModal from '@/components/FormalQuotationModal.vue';
+import PushOptIn from '@/components/carrierCompany/PushOptIn.vue';
 import axios from 'axios';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
@@ -330,6 +335,7 @@ export default {
     ViewsMessages,
     PaymentConfirmationModal,
     FormalQuotationModal,
+    PushOptIn,
   },
   mounted() {
     this.triggerQuotationRequest();
