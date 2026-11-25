@@ -6,6 +6,7 @@
     "serve": "vite",
     "build": "vite build",
     "lint": "eslint src",
+    "test:unit": "node --no-warnings --test src/utils/*.test.mjs",
     "build-dev": "vite build --mode development",
     "preview": "vite preview"
   },

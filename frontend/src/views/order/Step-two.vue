@@ -77,20 +77,30 @@
                     Cosas a mover (edita o elimina):
                   </p>
                   <div v-for="(item, index) in recognizedItems"
-                    :key="'item-'+index"
-                    class="flex items-center mb-1">
-                    <input type="text"
-                      v-model="recognizedItems[index]"
-                      class="flex-1 appearance-none border
-                        rounded py-1 px-2 text-sm text-gray-700
-                        focus:outline-none
-                        focus:border-blue-400" />
-                    <button type="button"
-                      @click="removeRecognizedItem(index)"
-                      class="ml-2 text-red-500
-                        hover:text-red-700 text-sm font-bold">
-                      ✕
-                    </button>
+                    :key="'item-'+index" class="mb-1">
+                    <div class="flex items-center">
+                      <input type="text"
+                        v-model="recognizedItems[index]"
+                        class="flex-1 appearance-none border
+                          rounded py-1 px-2 text-sm text-gray-700
+                          focus:outline-none
+                          focus:border-blue-400" />
+                      <button type="button"
+                        @click="removeRecognizedItem(index)"
+                        class="ml-2 text-red-500
+                          hover:text-red-700 text-sm font-bold">
+                        ✕
+                      </button>
+                    </div>
+                    <!-- Varias cosas en un renglón: el transportista las lee
+                         amontonadas y el cálculo de m³ se queda corto. -->
+                    <p v-if="isCrammed(item)" class="crammed-item text-xs text-gray-700
+                      bg-yellow-100 rounded px-2 py-1 mt-1">
+                      Aquí hay varias cosas juntas. Pon cada una en su línea, así el
+                      transportista calcula mejor.
+                      <button type="button" @click="splitItemAt(index)"
+                        class="ml-1 font-bold text-blue-700 underline">Separar por mí</button>
+                    </p>
                   </div>
                 </div>
                 <p v-else class="text-sm text-gray-400
@@ -102,6 +112,7 @@
                     id="list-of-belongings"
                     v-model="manualItem"
                     @keyup.enter="addManualItem"
+                    @paste="pasteItems"
                     @blur="handleManualItemBlur"
                     :placeholder="inventoryCopy.placeholder"
                     class="flex-1 appearance-none border
@@ -396,6 +407,7 @@ import moment from 'moment';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
+import { isCrammed, splitItems } from '../../utils/splitItems';
 import { track } from '../../utils/analytics';
 import { tagBlockedStep, tagSessionLabel } from '../../utils/sessionTags';
 import shrinkPhoto from '../../utils/shrinkPhoto';
@@ -591,6 +603,28 @@ export default {
       URL.revokeObjectURL(this.photoThumbnails[index].url);
       this.photoThumbnails.splice(index, 1);
     },
+    isCrammed,
+    // "Separar por mí": el renglón amontonado pasa a ser una cosa por línea.
+    splitItemAt(index) {
+      const items = splitItems(this.recognizedItems[index]);
+      this.recognizedItems.splice(index, 1, ...items);
+      this.syncComments();
+      track('items_split', { order_id: this.currentOrder.order_id, source: 'button', items_count: items.length });
+    },
+    // Pegar una lista con saltos de línea en este campo de una línea la dejaba
+    // en un solo renglón (el navegador los cambia por espacios): cada línea
+    // pegada entra como una cosa.
+    pasteItems(event) {
+      const text = event.clipboardData?.getData('text') || '';
+      if (!text.includes('\n')) return;
+      const items = text.split('\n').map((line) => line.trim()).filter(Boolean);
+      if (items.length < 2) return;
+      event.preventDefault();
+      this.mergeItems(items);
+      this.manualItem = '';
+      this.syncComments();
+      track('items_split', { order_id: this.currentOrder.order_id, source: 'paste', items_count: items.length });
+    },
     removeRecognizedItem(index) {
       this.recognizedItems.splice(index, 1);
       this.syncComments();
@@ -703,6 +737,8 @@ export default {
               track('step_two_submitted', {
                 order_id: this.currentOrder.order_id,
                 items_count: this.recognizedItems.length,
+                // Renglones con varias cosas que se mandaron sin separar.
+                crammed_items: this.recognizedItems.filter(isCrammed).length,
                 photos_used: this.photoThumbnails.length,
                 days_ahead: this.$moment(this.currentOrder.appointment_date)
                   .startOf('day').diff(this.$moment().startOf('day'), 'days'),

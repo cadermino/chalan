@@ -112,6 +112,34 @@ def test_measures_are_per_unit_and_read_without_a_unit():
     assert m3('120 x 50 x 75 cm escritorio') == pytest.approx(0.45)
 
 
+# Tal como llegó la orden 343: pegada en el campo de una línea, con los saltos
+# de línea hechos espacios.
+ORDER_343 = ('Una tarima de 2 plazas con respaldo  Una cama de plaza y media  3 colchones uno de 2 plazas, '
+             'de plaza y media y una plaza  Una refrigeradora Un comedor de 4 sillas y mesa redonda de vidrio  '
+             'Un mueble de 200cm de ancho Una tele de 65  Una tele de 45 Un zapatero  Un equipo radio  '
+             'Una cómoda pequeña  Vajilla y ollas')
+
+
+def test_a_crammed_list_counts_every_thing_not_one_per_chunk():
+    result = estimate_volume(ORDER_343)
+
+    keys = [i['key'] for i in result['items']]
+    for key in ('refrigeradora', 'comedor', 'colchon', 'comoda'):
+        assert key in keys
+    assert keys.count('televisor') == 2
+    # Antes eran 4 trozos y una cosa por trozo.
+    assert len(result['items']) >= 12
+
+
+def test_a_list_already_in_lines_is_not_cut_again():
+    # Doble espacio o "Una" dentro de un renglón de una lista ya separada.
+    assert _read('2  cajas con pantallas') == [('caja', 2)]
+    assert _read('2 camas  con colchones\nuna lavadora') == _read('2 camas con colchones\nuna lavadora')
+    assert estimate_volume('1 cama\nNota: Una persona va en el camión')['m3'] == estimate_volume('1 cama')['m3']
+    # Uno o dos trozos en una línea tampoco: "1 cama (colchon + base)  + 15 bolsas".
+    assert ('bolsa', 15) in _read('1 cama (colchon + base)  + 15 bolsas de rafia')
+
+
 def test_a_total_written_by_the_customer_wins():
     assert estimate_volume('28 m3\n1 cama')['m3'] == 28
     assert estimate_volume('28 m3')['stated'] is True

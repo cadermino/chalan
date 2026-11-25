@@ -269,6 +269,29 @@ def _item(text, part):
     return None, True
 
 
+# Una lista pegada en el campo de una línea del paso 2 llega amontonada: el
+# navegador cambia los saltos de línea por espacios ("Una refrigeradora  Un
+# comedor de 4 sillas  Una tele de 65"). Sin cortarla, cada trozo contaba solo
+# la primera cosa que nombraba (la orden 343 daba 5.9 m³ en vez de ~13). Se corta
+# en dos o más espacios y antes de "Un", "Una", "Unos", "Unas" con mayúscula,
+# solo si la lista no tiene ningún salto de línea y quedan 3 trozos o más: en una
+# lista ya separada, "2  cajas" o "2 camas  con colchones" son una sola cosa
+# escrita con doble espacio. Vue tiene la misma regla para avisarle al cliente
+# (frontend/src/utils/splitItems.js).
+_CRAMMED = re.compile(r'\s{2,}|\s+(?=(?:Un|Una|Unos|Unas)\b)')
+CRAMMED_MIN_PIECES = 3
+
+
+def split_lines(comments):
+    """Las líneas de la lista, cortando la que viene amontonada."""
+    comments = comments or ''
+    if '\n' not in comments:
+        pieces = [piece for piece in _CRAMMED.split(comments) if piece.strip()]
+        if len(pieces) >= CRAMMED_MIN_PIECES:
+            return pieces
+    return comments.split('\n')
+
+
 def estimate_volume(comments):
     """{'m3': total con el margen, 'items': [...], 'unknown': [...], 'stated': bool}.
 
@@ -276,7 +299,7 @@ def estimate_volume(comments):
     no se reconoció), su nombre, la cantidad y los m³. `m3` es 0 sin lista.
     """
     items, unknown, stated = [], [], None
-    for line in (comments or '').split('\n'):
+    for line in split_lines(comments):
         normalized = _norm(line)
         stated_match = _STATED.search(normalized)
         if stated_match and not _DIMS.search(normalized) and _is_total(normalized, stated_match):
