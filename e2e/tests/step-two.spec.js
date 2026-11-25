@@ -21,7 +21,7 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
     // navigate), which is what happened when this was wired through a
     // blur handler instead of nextStep() itself: adding the item grows the
     // list and pushes "Siguiente" down mid-click, so the click misses it.
-    await page.fill('input[placeholder="Ej: 1 cama matrimonial"]', '1 mesa de centro');
+    await page.fill('#list-of-belongings', '1 mesa de centro');
     await page.fill('#approximate-budget', String(TEST_DATA.stepTwo.approximateBudget));
 
     await page.click('button:has-text("Siguiente")');
@@ -80,7 +80,7 @@ test.describe('Order Step Two - Appointment & Belongings', () => {
       const store = document.querySelector('#app').__vue_app__.config.globalProperties.$pinia._s.get('main');
       store.setOrder({ section: 'currentOrder', field: 'appointment_date', value: date });
     }, TEST_DATA.stepTwo.appointmentDate);
-    await page.fill('input[placeholder="Ej: 1 cama matrimonial"]', '1 mesa de centro');
+    await page.fill('#list-of-belongings', '1 mesa de centro');
 
     await page.click('button:has-text("Siguiente")');
     await expect(page).toHaveURL(/step-two/);

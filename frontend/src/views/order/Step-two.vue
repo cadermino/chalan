@@ -104,7 +104,7 @@
                     @keyup.enter="addManualItem"
                     @paste="pasteItems"
                     @blur="handleManualItemBlur"
-                    :placeholder="inventoryCopy.placeholder"
+                    :placeholder="inventoryPlaceholder"
                     class="flex-1 appearance-none border
                       rounded py-1 px-2 text-sm text-gray-700
                       focus:outline-none
@@ -402,7 +402,9 @@ import { track } from '../../utils/analytics';
 import { tagBlockedStep, tagSessionLabel } from '../../utils/sessionTags';
 import shrinkPhoto from '../../utils/shrinkPhoto';
 import {
-  CARGO_WEIGHT_OPTIONS, DEFAULT_LOAD_TYPE, INVENTORY_COPY, needsCargoWeight,
+  CARGO_WEIGHT_OPTIONS, DEFAULT_LOAD_TYPE, ELEVATOR_HINT_LOAD_TYPES, ELEVATOR_PLACEHOLDER_HINT,
+  INVENTORY_COPY,
+  hasElevator, needsCargoWeight,
 } from '../../utils/loadTypes';
 
 const DATE_INPUT_FORMAT = "d 'de' MMMM 'de' yyyy";
@@ -793,6 +795,17 @@ export default {
   computed: {
     inventoryCopy() {
       return INVENTORY_COPY[this.currentOrder.load_type] || INVENTORY_COPY[DEFAULT_LOAD_TYPE];
+    },
+    // Una mudanza u objetos sueltos con ascensor en el origen o el destino: el
+    // ejemplo recuerda anotar lo que no entra en él (no en carga ni vehículo).
+    inventoryPlaceholder() {
+      const { placeholder } = this.inventoryCopy;
+      const loadType = this.currentOrder.load_type || DEFAULT_LOAD_TYPE;
+      const withElevator = hasElevator(this.orderDetailsOrigin.from_has_elevator)
+        || hasElevator(this.orderDetailsDestination.to_has_elevator);
+      return ELEVATOR_HINT_LOAD_TYPES.includes(loadType) && withElevator
+        ? placeholder + ELEVATOR_PLACEHOLDER_HINT
+        : placeholder;
     },
     needsWeight() {
       return needsCargoWeight(this.currentOrder.load_type);

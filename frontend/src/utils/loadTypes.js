@@ -32,6 +32,18 @@ export const INVENTORY_COPY = {
   vehicle: { label: 'Describe el vehículo', placeholder: 'Ej: 1 camioneta Toyota Hilux, funciona', photoHint: 'Una foto del vehículo basta.' },
 };
 
+// Se suma al placeholder de una mudanza o de objetos sueltos cuando el origen
+// o el destino tiene ascensor: el paso 1 avisa que marcarlo da a entender que
+// todo entra en él. Carga y vehículo no lo llevan.
+export const ELEVATOR_PLACEHOLDER_HINT = ' (no cabe por el ascensor)';
+export const ELEVATOR_HINT_LOAD_TYPES = ['moving', 'items'];
+
+// El check del paso 1 guarda '1'/'0', pero una orden cargada de la API puede
+// traer 1, true o 'true'.
+export function hasElevator(value) {
+  return [1, '1', true, 'true'].includes(value);
+}
+
 // Lo que se hace, como se le dice al cliente ("Las cotizaciones para tu flete…").
 export const LOAD_WHAT = {
   moving: 'tu mudanza',

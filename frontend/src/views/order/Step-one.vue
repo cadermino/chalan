@@ -193,6 +193,10 @@
                       Sí, cuenta con elevador
                     </label>
                   </div>
+                  <p class="mt-1 text-xs text-gray-600">
+                    Al marcarlo, entendemos que tus cosas entran en el ascensor.
+                    Si algo grande no entra (un sofá, un ropero), indícalo en tu lista del paso 2.
+                  </p>
                   <p v-if="formValidationMessages['from_has_elevator']"
                     class="text-red-500
                     text-xs
@@ -378,6 +382,10 @@
                       Sí, cuenta con elevador
                     </label>
                   </div>
+                  <p class="mt-1 text-xs text-gray-600">
+                    Al marcarlo, entendemos que tus cosas entran en el ascensor.
+                    Si algo grande no entra (un sofá, un ropero), indícalo en tu lista del paso 2.
+                  </p>
                   <p v-if="formValidationMessages['to_has_elevator']"
                     class="text-red-500
                     text-xs
