@@ -1,9 +1,10 @@
 // Una lista pegada en un renglón del paso 2 llega amontonada: el navegador
 // cambia los saltos de línea por espacios, y el transportista leía "Una
 // refrigeradora  Un comedor de 4 sillas  Una tele de 65" en un renglón (orden
-// 343). Al cliente no se le pide nada (el paso 2 no debe frenarlo): se separa
-// solo al mostrársela al transportista (`listForDisplay`), sin tocar lo
-// guardado. Corta en saltos de línea, en dos o más espacios, en " . " (una
+// 343). Al cliente no se le pide nada (el paso 2 no debe frenarlo): lo que pega
+// amontonado en el campo de agregar entra separado al agregarlo (Step-two.vue),
+// y una lista que llegó amontonada igual se le muestra separada al transportista
+// (`listForDisplay`), sin tocar lo guardado. Corta en saltos de línea, en dos o más espacios, en " . " (una
 // lista con puntos como viñetas), antes de "Un", "Una", "Unos", "Unas" con
 // mayúscula y en comas o punto y coma fuera de paréntesis ("cosas de cocina
 // (ollas, platos)" es una). El API lee los m³ con una regla parecida

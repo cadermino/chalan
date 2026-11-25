@@ -397,6 +397,7 @@ import moment from 'moment';
 import Tracker from '@/components/Tracker.vue';
 import ViewsMessages from '@/components/ViewsMessages.vue';
 import chalan from '../../api/chalan';
+import { isCrammed, splitItems } from '../../utils/splitItems';
 import { track } from '../../utils/analytics';
 import { tagBlockedStep, tagSessionLabel } from '../../utils/sessionTags';
 import shrinkPhoto from '../../utils/shrinkPhoto';
@@ -447,6 +448,9 @@ export default {
       photoResult: null,
       recognizedItems: [],
       manualItem: '',
+      // Se pegó texto en un renglón (sin saltos de línea): al agregarlo, si trae
+      // varias cosas amontonadas, entra una por renglón (addManualItem).
+      manualItemPasted: false,
       cargoWeightOptions: CARGO_WEIGHT_OPTIONS,
       DATE_INPUT_FORMAT,
       // El día o la hora que eligió y todavía no se guardaron: la fecha de la
@@ -597,7 +601,10 @@ export default {
     // pegada entra como una cosa.
     pasteItems(event) {
       const text = event.clipboardData?.getData('text') || '';
-      if (!text.includes('\n')) return;
+      if (!text.includes('\n')) {
+        this.manualItemPasted = true;
+        return;
+      }
       const items = text.split('\n').map((line) => line.trim()).filter(Boolean);
       if (items.length < 2) return;
       // Lo que ya había escrito en el campo no se pierde: entra primero.
@@ -613,11 +620,19 @@ export default {
       this.syncComments();
     },
     addManualItem() {
-      if (this.manualItem.trim()) {
-        this.mergeItems([this.manualItem.trim()]);
+      const text = this.manualItem.trim();
+      if (text) {
+        // Lo pegado amontonado ("Una cama  Una refrigeradora  Un comedor…")
+        // entra una cosa por renglón; lo que escribió a mano, tal cual.
+        const items = this.manualItemPasted && isCrammed(text) ? splitItems(text) : [text];
+        this.mergeItems(items);
         this.manualItem = '';
         this.syncComments();
+        if (items.length > 1) {
+          track('items_pasted', { order_id: this.currentOrder.order_id, items_count: items.length, crammed: true });
+        }
       }
+      this.manualItemPasted = false;
     },
     // Used on @blur instead of calling addManualItem() directly.
     // event.relatedTarget is the element about to receive focus. If
