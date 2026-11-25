@@ -11,7 +11,8 @@
         <span v-if="i > 0" class="text-gray-500 mx-1 mb-1">+</span>
         <span :class="KIND_CLASSES[line.kind] || KIND_CLASSES.other"
           class="rounded px-2 py-1 mb-1 whitespace-nowrap">
-          {{ line.label }}<span class="font-semibold ml-1">{{ soles(line.amount) }}</span>
+          {{ line.label }}<span v-if="line.label.includes('×')" class="ml-1">=</span><span
+            class="font-semibold ml-1">{{ soles(line.amount) }}</span>
         </span>
       </template>
       <span class="text-gray-500 mx-1 mb-1">=</span>
