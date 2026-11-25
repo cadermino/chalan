@@ -520,7 +520,7 @@ def send_quote(client, order, company, **body):
     return Quotations.query.filter_by(order_id=order.id, carrier_company_id=company.id).one()
 
 
-def test_the_quotation_keeps_what_the_link_showed_and_whether_it_was_used(client, customer, moving):
+def test_the_quotation_keeps_what_the_link_showed_and_whether_it_sent_that_price(client, customer, moving):
     company = make_company(moving)
     order = make_order(customer, loaders_quantity=2)
 
@@ -528,8 +528,8 @@ def test_the_quotation_keeps_what_the_link_showed_and_whether_it_was_used(client
     quotation = send_quote(client, order, company, rates_estimate_shown=True, rates_estimate=1)
     assert (quotation.rates_estimate, quotation.rates_estimate_used) == (457, False)
 
-    # Recotizar con el botón lo reescribe.
-    quotation = send_quote(client, order, company, amount=457, rates_estimate_shown=True, rates_estimate_used=True)
+    # Recotizar con el precio precargado lo reescribe.
+    quotation = send_quote(client, order, company, amount=457, rates_estimate_shown=True)
     assert (quotation.amount, quotation.rates_estimate, quotation.rates_estimate_used) == (457, 457, True)
 
 
@@ -540,5 +540,5 @@ def test_nothing_is_kept_when_the_link_did_not_show_it(client, customer, moving)
 
     # Desde el backoffice, que no lo muestra, o sin tarifas.
     assert send_quote(client, order, company).rates_estimate is None
-    quotation = send_quote(client, order, other, rates_estimate_shown=True, rates_estimate_used=True)
+    quotation = send_quote(client, order, other, rates_estimate_shown=True)
     assert (quotation.rates_estimate, quotation.rates_estimate_used) == (None, None)

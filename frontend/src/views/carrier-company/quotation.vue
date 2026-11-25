@@ -398,7 +398,7 @@
             w-full
             mt-10">
             <h2 class="text-gray-800 text-lg font-semibold mb-5">Ingresar cotización</h2>
-            <RatesEstimate v-if="ratesEstimate" :estimate="ratesEstimate" @use="useRatesEstimate" />
+            <RatesEstimate v-if="ratesEstimate" :estimate="ratesEstimate" />
             <div class="relative mb-4">
               <label for="email"
                 class="leading-7
@@ -408,31 +408,42 @@
                   class="text-red-500
                   text-xs
                   italic">{{ formValidationMessages['quotation_amount'] }}.</p>
-              <input
-                type="text"
-                id="amount"
-                name="amount"
-                placeholder="Ej. 1450"
-                v-model="amount"
-                :class="formValidationMessages['quotation_amount']
-                    ?'border-red-300':''"
-                class="w-full
-                  bg-white
-                  rounded
-                  border
-                  border-gray-300
-                  focus:border-indigo-500
-                  focus:ring-2
-                  focus:ring-indigo-200
-                  text-base
-                  outline-none
-                  text-gray-700
-                  py-1
-                  px-3
-                  leading-8
-                  transition-colors
-                  duration-500
-                  ease-in-out">
+              <div class="relative">
+                <input
+                  type="text"
+                  id="amount"
+                  name="amount"
+                  placeholder="Ej. 1450"
+                  v-model="amount"
+                  :class="formValidationMessages['quotation_amount']
+                      ?'border-red-300':''"
+                  class="w-full
+                    bg-white
+                    rounded
+                    border
+                    border-gray-300
+                    focus:border-indigo-500
+                    focus:ring-2
+                    focus:ring-indigo-200
+                    text-base
+                    outline-none
+                    text-gray-700
+                    py-1
+                    pl-3
+                    pr-10
+                    leading-8
+                    transition-colors
+                    duration-500
+                    ease-in-out">
+                <button v-if="amount" type="button" @click="amount = ''"
+                  aria-label="Borrar el precio"
+                  class="absolute right-0 top-0 h-full px-3 text-gray-500 hover:text-gray-800
+                    text-lg leading-none">✕</button>
+              </div>
+              <p v-if="ratesEstimate && amount === String(ratesEstimate.total)"
+                class="text-xs text-gray-600 mt-1">
+                Precargado con tus tarifas. Cámbialo si no te cuadra.
+              </p>
             </div>
             <div class="relative mb-4">
               <label for="quotation-note" class="leading-7 text-sm text-gray-600">
@@ -578,8 +589,6 @@ export default {
       carrierCompanyId: null,
       amount: null,
       ratesEstimate: null,
-      // Si tocó "Usar S/ N": va con la cotización (quotations.rates_estimate_used).
-      ratesEstimateUsed: false,
       // Lo que aclara junto al precio; lo ve el cliente. Mismo tope que el API.
       note: '',
       noteMaxLength: 500,
@@ -783,6 +792,9 @@ export default {
             // Lo que cobraría con sus tarifas, junto al precio (RatesEstimate.vue).
             this.ratesEstimate = response.data.rates_estimate || null;
             if (this.ratesEstimate && !this.hasQuotation && !this.decline) {
+              // Precargado: lo cambia o lo borra con la ✕ (decidido así en vez
+              // de un botón "Usar", que lejos del campo confundía).
+              if (!this.amount) this.amount = String(this.ratesEstimate.total);
               track('rates_estimate_shown', {
                 order_id: this.orderData.id,
                 carrier_company_id: this.carrierCompanyId,
@@ -881,16 +893,6 @@ export default {
           this.declineSaving = false;
         });
     },
-    useRatesEstimate(total) {
-      this.amount = String(total);
-      this.ratesEstimateUsed = true;
-      this.setFormValidationMessages({ field: 'quotation_amount', message: null });
-      track('rates_estimate_used', {
-        order_id: this.orderData.id,
-        carrier_company_id: this.carrierCompanyId,
-        amount: total,
-      });
-    },
     sendQuotation() {
       if (!this.amount) {
         this.setFormValidationMessages({
@@ -904,9 +906,9 @@ export default {
         token: this.token,
         amount: this.amount,
         note: this.note,
-        // El monto lo guarda el API: aquí solo va si se mostró y si lo usó.
+        // El monto sugerido y si lo mandó igual los saca el API: aquí solo va
+        // si el link lo mostró.
         rates_estimate_shown: Boolean(this.ratesEstimate),
-        rates_estimate_used: this.ratesEstimateUsed,
       };
       chalan
         .createQuotation(payload)

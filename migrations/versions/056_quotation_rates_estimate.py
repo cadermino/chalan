@@ -1,9 +1,10 @@
 """What the carrier's own rates gave when it quoted, as the quotation link showed it.
 
-`quotations.rates_estimate`: the price "Con tus tarifas" the link showed above the
-price field when the carrier sent this quotation (computed by the API, never
-taken from the browser), NULL when the link showed none. `rates_estimate_used`:
-whether it tapped "Usar S/ N" to put it in the field (NULL when none was shown).
+`quotations.rates_estimate`: the price "Con tus tarifas" the link showed (and
+prefilled in the price field) when the carrier sent this quotation (computed by
+the API, never taken from the browser), NULL when the link showed none.
+`rates_estimate_used`: whether the carrier sent that same price (NULL when none
+was shown).
 Both are rewritten on every re-quote. To measure whether showing the price
 moves what carriers quote and how often they are chosen.
 

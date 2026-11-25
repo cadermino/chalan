@@ -122,11 +122,12 @@ def admin_accept_quotation(order_id, quotation_id):
         'total_amount': order.total_amount,
     }), 200
 
-def _rates_estimate_shown(order, carrier_company_id, body):
-    """Lo que el link le mostraba como "Con tus tarifas" al cotizar y si tocó
-    "Usar S/ N", para medir si mostrarlo cambia lo que cotiza. El monto lo
-    calcula el API (el mismo `estimate_for_carrier` del link), nunca el
-    navegador, que solo dice si lo mostró (el backoffice no lo muestra)."""
+def _rates_estimate_shown(order, carrier_company_id, body, amount):
+    """Lo que el link le mostraba como "Con tus tarifas" al cotizar (y le
+    precargaba en el precio) y si mandó ese mismo precio, para medir si
+    mostrarlo cambia lo que cotiza. El monto lo calcula el API (el mismo
+    `estimate_for_carrier` del link), nunca el navegador, que solo dice si lo
+    mostró (el backoffice no lo muestra)."""
     from .auto_quote import estimate_for_carrier
     empty = {'rates_estimate': None, 'rates_estimate_used': None}
     if body.get('rates_estimate_shown') is not True:
@@ -138,7 +139,7 @@ def _rates_estimate_shown(order, carrier_company_id, body):
         return empty
     if estimate is None:
         return empty
-    return {'rates_estimate': estimate['total'], 'rates_estimate_used': body.get('rates_estimate_used') is True}
+    return {'rates_estimate': estimate['total'], 'rates_estimate_used': round(amount) == estimate['total']}
 
 
 @api.route('/quotations', methods=['POST'])
@@ -177,7 +178,7 @@ def create_quotation():
         'order_id': order_id,
         'carrier_company_id': carrier_company_id,
         'note': note,
-        'order_version_id': version.id if version else None,        **_rates_estimate_shown(order_row, carrier_company_id, quotation_data),
+        'order_version_id': version.id if version else None,        **_rates_estimate_shown(order_row, carrier_company_id, quotation_data, base_amount),
     }
     previous_quotation = QuotationEntity().get(order_id, carrier_company_id)
     if previous_quotation is None or previous_quotation.quotation_status_id != QuotationStatus.Selected():
