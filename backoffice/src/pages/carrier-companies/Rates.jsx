@@ -13,11 +13,11 @@ import { useAuth } from '../../contexts/AuthContext'
 
 const FIELDS = [
   { section: 'En Lima' },
-  { key: 'base_fee', label: 'Base', hint: 'Lo que cobras por salir: el camión y el conductor.' },
+  { key: 'base_fee', label: 'Base', hint: 'Lo que cobras por salir: el camión y el conductor. Se suma siempre.' },
   { key: 'per_m3', label: 'Por m³ de carga', hint: 'Un ropero ocupa ~1.2 m³, una refrigeradora ~1 m³, una caja mediana ~0.07 m³.' },
   { key: 'per_loader', label: 'Por cargador' },
   { key: 'per_floor', label: 'Por piso sin ascensor', hint: 'Por cada piso que hay que subir o bajar a pie, en el origen y en el destino.' },
-  { key: 'minimum_fare', label: 'Tarifa mínima', hint: 'Lo menos que cobras, aunque la mudanza sea chica.' },
+  { key: 'minimum_fare', label: 'Tarifa mínima', hint: 'No se suma: si la suma de todo lo demás da menos, se cobra la mínima. Ej.: base 210 + 2 m³ × 7 = 224, con mínima 250 se cobra 250. Solo sirve si es mayor que la base.' },
   { section: 'Fuera de Lima' },
   { key: 'per_km_outside_lima', label: 'Por km', hint: 'Se suma a lo de arriba cuando el origen o el destino está fuera de Lima.' },
   { section: 'Fin de semana' },
