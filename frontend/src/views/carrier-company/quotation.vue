@@ -409,12 +409,18 @@
                   text-xs
                   italic">{{ formValidationMessages['quotation_amount'] }}.</p>
               <div class="relative">
+                <!-- Solo números (onlyDigits). Texto con teclado decimal y no
+                     type="number", que acepta "e" y la rueda del mouse le
+                     cambia el valor. -->
                 <input
                   type="text"
+                  inputmode="decimal"
+                  maxlength="9"
                   id="amount"
                   name="amount"
                   placeholder="Ej. 1450"
-                  v-model="amount"
+                  :value="amount"
+                  @input="onlyDigits"
                   :class="formValidationMessages['quotation_amount']
                       ?'border-red-300':''"
                   class="w-full
@@ -893,8 +899,17 @@ export default {
           this.declineSaving = false;
         });
     },
+    // Dígitos y un punto con hasta 2 decimales. Las comas se ignoran ("1,200"
+    // es 1200). Sin el punto, "450.00" quedaba 45000.
+    onlyDigits(event) {
+      const [whole, ...rest] = event.target.value.replace(/[^\d.]/g, '').split('.');
+      const clean = rest.length ? `${whole}.${rest.join('').slice(0, 2)}` : whole;
+      // Si se borró algo, el input todavía muestra lo tecleado: se reescribe.
+      event.target.value = clean;
+      this.amount = clean;
+    },
     sendQuotation() {
-      if (!this.amount) {
+      if (!(Math.round(Number(this.amount)) > 0)) {
         this.setFormValidationMessages({
           field: 'quotation_amount',
           message: 'Ingresa la cotización',
@@ -904,7 +919,8 @@ export default {
       this.setLoader(true);
       const payload = {
         token: this.token,
-        amount: this.amount,
+        // quotations.amount es entero.
+        amount: Math.round(Number(this.amount)),
         note: this.note,
         // El monto sugerido y si lo mandó igual los saca el API: aquí solo va
         // si el link lo mostró.
