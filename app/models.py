@@ -250,6 +250,11 @@ class Quotations(db.Model):
 	# La versión de la orden sobre la que cotizó (migración 051): se pone al
 	# cotizar y al recotizar. NULL en las de antes del historial.
 	order_version_id = db.Column(db.Integer, db.ForeignKey('order_versions.id', ondelete='SET NULL'), nullable=True)
+	# Lo que daban sus tarifas en el link al cotizar ("Con tus tarifas", calculado
+	# por el API) y si tocó "Usar S/ N" (migración 056). NULL si el link no lo
+	# mostró. Se reescriben al recotizar.
+	rates_estimate = db.Column(db.Integer, nullable=True)
+	rates_estimate_used = db.Column(db.Boolean, nullable=True)
 	created_date = db.Column(db.DateTime(), server_default=func.now())
 	updated_date = db.Column(db.DateTime(), server_default=func.now(), onupdate=func.now())
 

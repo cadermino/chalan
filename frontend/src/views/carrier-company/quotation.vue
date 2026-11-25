@@ -578,6 +578,8 @@ export default {
       carrierCompanyId: null,
       amount: null,
       ratesEstimate: null,
+      // Si tocó "Usar S/ N": va con la cotización (quotations.rates_estimate_used).
+      ratesEstimateUsed: false,
       // Lo que aclara junto al precio; lo ve el cliente. Mismo tope que el API.
       note: '',
       noteMaxLength: 500,
@@ -881,6 +883,7 @@ export default {
     },
     useRatesEstimate(total) {
       this.amount = String(total);
+      this.ratesEstimateUsed = true;
       this.setFormValidationMessages({ field: 'quotation_amount', message: null });
       track('rates_estimate_used', {
         order_id: this.orderData.id,
@@ -901,6 +904,9 @@ export default {
         token: this.token,
         amount: this.amount,
         note: this.note,
+        // El monto lo guarda el API: aquí solo va si se mostró y si lo usó.
+        rates_estimate_shown: Boolean(this.ratesEstimate),
+        rates_estimate_used: this.ratesEstimateUsed,
       };
       chalan
         .createQuotation(payload)

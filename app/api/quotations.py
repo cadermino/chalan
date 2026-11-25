@@ -1,6 +1,6 @@
 import math
 import os
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 from . import api
 from .quotation import Quotation as QuotationEntity
 from .quotation.quotation_status import QuotationStatus
@@ -122,6 +122,25 @@ def admin_accept_quotation(order_id, quotation_id):
         'total_amount': order.total_amount,
     }), 200
 
+def _rates_estimate_shown(order, carrier_company_id, body):
+    """Lo que el link le mostraba como "Con tus tarifas" al cotizar y si tocó
+    "Usar S/ N", para medir si mostrarlo cambia lo que cotiza. El monto lo
+    calcula el API (el mismo `estimate_for_carrier` del link), nunca el
+    navegador, que solo dice si lo mostró (el backoffice no lo muestra)."""
+    from .auto_quote import estimate_for_carrier
+    empty = {'rates_estimate': None, 'rates_estimate_used': None}
+    if body.get('rates_estimate_shown') is not True:
+        return empty
+    try:
+        estimate = estimate_for_carrier(order, carrier_company_id)
+    except Exception:
+        current_app.logger.exception('rates estimate failed for order %s, company %s', order.id, carrier_company_id)
+        return empty
+    if estimate is None:
+        return empty
+    return {'rates_estimate': estimate['total'], 'rates_estimate_used': body.get('rates_estimate_used') is True}
+
+
 @api.route('/quotations', methods=['POST'])
 @carrier_company_token_required
 def create_quotation():
@@ -158,7 +177,7 @@ def create_quotation():
         'order_id': order_id,
         'carrier_company_id': carrier_company_id,
         'note': note,
-        'order_version_id': version.id if version else None,
+        'order_version_id': version.id if version else None,        **_rates_estimate_shown(order_row, carrier_company_id, quotation_data),
     }
     previous_quotation = QuotationEntity().get(order_id, carrier_company_id)
     if previous_quotation is None or previous_quotation.quotation_status_id != QuotationStatus.Selected():
@@ -211,7 +230,8 @@ def create_quotation():
         # el monto viejo sin guardar nada: el transportista creía haber
         # actualizado su precio, Chalán seguía viendo el anterior y la
         # diferencia aparecía recién al mudarse. Ahora se actualiza de verdad.
-        changes = {'amount': base_amount, 'order_version_id': data['order_version_id']}
+        changes = {'amount': base_amount, 'order_version_id': data['order_version_id'],
+                   'rates_estimate': data['rates_estimate'], 'rates_estimate_used': data['rates_estimate_used']}
         if 'note' in quotation_data:
             changes['note'] = note
         QuotationEntity(previous_quotation.id).update(changes)

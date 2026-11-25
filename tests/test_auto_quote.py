@@ -510,3 +510,35 @@ def test_a_failing_estimate_does_not_break_the_link(client, customer, moving, mo
     data = carrier_link(client, order, company)
 
     assert data['rates_estimate'] is None and data['order']['id'] == order.id
+
+
+def send_quote(client, order, company, **body):
+    from app.api.carrier_company import CarrierCompany as CarrierCompanyEntity
+    token = CarrierCompanyEntity().generate_carrier_company_token(3600, order.id, company.id)
+    res = client.post('/api/v1/quotations', json={'amount': 400, **body}, headers={'Authorization': f'Bearer {token}'})
+    assert res.status_code in (200, 201), res.get_json()
+    return Quotations.query.filter_by(order_id=order.id, carrier_company_id=company.id).one()
+
+
+def test_the_quotation_keeps_what_the_link_showed_and_whether_it_was_used(client, customer, moving):
+    company = make_company(moving)
+    order = make_order(customer, loaders_quantity=2)
+
+    # El monto lo calcula el API: el que mande el navegador no cuenta.
+    quotation = send_quote(client, order, company, rates_estimate_shown=True, rates_estimate=1)
+    assert (quotation.rates_estimate, quotation.rates_estimate_used) == (457, False)
+
+    # Recotizar con el botón lo reescribe.
+    quotation = send_quote(client, order, company, amount=457, rates_estimate_shown=True, rates_estimate_used=True)
+    assert (quotation.amount, quotation.rates_estimate, quotation.rates_estimate_used) == (457, 457, True)
+
+
+def test_nothing_is_kept_when_the_link_did_not_show_it(client, customer, moving):
+    company = make_company(moving)
+    other = make_company(moving, name='Sin Tarifas', rates=None)
+    order = make_order(customer)
+
+    # Desde el backoffice, que no lo muestra, o sin tarifas.
+    assert send_quote(client, order, company).rates_estimate is None
+    quotation = send_quote(client, order, other, rates_estimate_shown=True, rates_estimate_used=True)
+    assert (quotation.rates_estimate, quotation.rates_estimate_used) == (None, None)
