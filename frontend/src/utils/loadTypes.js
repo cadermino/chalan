@@ -32,6 +32,18 @@ export const INVENTORY_COPY = {
   vehicle: { label: 'Describe el vehículo', placeholder: 'Ej: 1 camioneta Toyota Hilux, funciona', photoHint: 'Una foto del vehículo basta.' },
 };
 
+// Lo que se hace, como se le dice al cliente ("Las cotizaciones para tu flete…").
+export const LOAD_WHAT = {
+  moving: 'tu mudanza',
+  items: 'tu flete',
+  cargo: 'el transporte de tu carga',
+  vehicle: 'el traslado de tu vehículo',
+};
+
+export function loadWhat(loadType) {
+  return LOAD_WHAT[loadType || DEFAULT_LOAD_TYPE] || LOAD_WHAT[DEFAULT_LOAD_TYPE];
+}
+
 export function needsCargoWeight(loadType) {
   return loadType === 'cargo';
 }
