@@ -393,6 +393,7 @@ import { useStore } from '@/store';
 import { cashToCollect } from '@/utils/payments';
 import chalan from '../../api/chalan';
 import { track } from '../../utils/analytics';
+import { listForDisplay } from '../../utils/splitItems';
 import formatFloor from '../../utils/floor';
 import { formatParkingDistance } from '../../utils/parking';
 import { formatCargoWeight, formatLoadType } from '../../utils/loadTypes';
@@ -456,7 +457,8 @@ export default {
       return carryTo;
     },
     itemsToMoveList() {
-      return this.orderData?.comments;
+      // Una lista amontonada en un renglón se le muestra separada (splitItems.js).
+      return listForDisplay(this.orderData?.comments);
     },
     orderImages() {
       return this.orderData?.images || [];

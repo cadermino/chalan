@@ -1,7 +1,7 @@
 // node --test frontend/src/utils/   (sin dependencias: el runner de Node)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isCrammed, splitItems } from './splitItems.js';
+import { isCrammed, listForDisplay, splitItems } from './splitItems.js';
 
 // Tal como llegó la orden 343: la lista pegada con los saltos de línea hechos espacios.
 const ORDER_343 = 'Una tarima de 2 plazas con respaldo  Una cama de plaza y media  3 colchones uno de 2 plazas, '
@@ -57,4 +57,11 @@ test('a list with dots as bullets is split at them', () => {
 
 test('bullets and empty pieces are dropped', () => {
   assert.deepEqual(splitItems('. Armario  . Base de cama  - Colchón , ,'), ['Armario', 'Base de cama', 'Colchón']);
+});
+
+test('the carrier sees a crammed list one thing per line, and any other list as written', () => {
+  assert.equal(listForDisplay('cama, refrigeradora, 5 cajas'), 'cama\nrefrigeradora\n5 cajas');
+  assert.equal(listForDisplay('1 cama\n2  cajas, ropa, zapatos'), '1 cama\n2  cajas, ropa, zapatos');
+  assert.equal(listForDisplay('1 armario metálico'), '1 armario metálico');
+  assert.equal(listForDisplay(null), null);
 });

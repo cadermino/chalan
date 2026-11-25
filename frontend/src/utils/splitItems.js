@@ -1,7 +1,9 @@
-// Una lista pegada en el campo de una línea del paso 2 llegaba amontonada: el
-// navegador cambia los saltos de línea por espacios, y el transportista leía
-// "Una refrigeradora  Un comedor de 4 sillas  Una tele de 65" en un renglón
-// (orden 343). Corta en saltos de línea, en dos o más espacios, en " . " (una
+// Una lista pegada en un renglón del paso 2 llega amontonada: el navegador
+// cambia los saltos de línea por espacios, y el transportista leía "Una
+// refrigeradora  Un comedor de 4 sillas  Una tele de 65" en un renglón (orden
+// 343). Al cliente no se le pide nada (el paso 2 no debe frenarlo): se separa
+// solo al mostrársela al transportista (`listForDisplay`), sin tocar lo
+// guardado. Corta en saltos de línea, en dos o más espacios, en " . " (una
 // lista con puntos como viñetas), antes de "Un", "Una", "Unos", "Unas" con
 // mayúscula y en comas o punto y coma fuera de paréntesis ("cosas de cocina
 // (ollas, platos)" es una). El API lee los m³ con una regla parecida
@@ -27,4 +29,11 @@ export function splitItems(text) {
 
 export function isCrammed(text) {
   return splitItems(text).length >= CRAMMED_MIN_ITEMS;
+}
+
+// La lista como la lee el transportista: una sin saltos de línea con 3 cosas o
+// más, una por renglón; cualquier otra, tal cual.
+export function listForDisplay(text) {
+  if (!text || text.includes('\n') || !isCrammed(text)) return text;
+  return splitItems(text).join('\n');
 }

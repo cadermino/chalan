@@ -578,6 +578,7 @@ import { formatParkingDistance } from '../../utils/parking';
 import { formatCargoWeight, formatLoadType } from '../../utils/loadTypes';
 import { tagSession, tagSessionLabel } from '../../utils/sessionTags';
 import { track } from '../../utils/analytics';
+import { listForDisplay } from '../../utils/splitItems';
 
 export default {
   name: 'quotation',
@@ -659,7 +660,8 @@ export default {
       return carryTo;
     },
     itemsToMoveList() {
-      return this.orderData?.comments;
+      // Una lista amontonada en un renglón se le muestra separada (splitItems.js).
+      return listForDisplay(this.orderData?.comments);
     },
     orderImages() {
       return this.orderData?.images || [];
